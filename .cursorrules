@@ -1,0 +1,9 @@
+# shadcn instructions
+
+Use the latest version of Shadcn with Bun to install new components, like this command to add a button component:
+
+```bash
+bunx --bun shadcn@latest add button
+```
+
+Follow `AGENTS.md` for project rules. Use Bun for project commands, preserve the current shadcn `radix-mira` theme, and use shadcn components before custom UI primitives.

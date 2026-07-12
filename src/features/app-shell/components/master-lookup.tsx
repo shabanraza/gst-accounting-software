@@ -1,0 +1,119 @@
+import * as React from 'react'
+import { ChevronsUpDownIcon } from 'lucide-react'
+
+import { Button } from '#/components/ui/button.tsx'
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '#/components/ui/command.tsx'
+import { cn } from '#/lib/utils.ts'
+
+export type LookupOption = {
+  value: string
+  label: string
+  keywords?: string
+  description?: string
+}
+
+type MasterLookupProps = {
+  options: Array<LookupOption>
+  value: string
+  onValueChange: (value: string) => void
+  placeholder?: string
+  emptyText?: string
+  searchPlaceholder?: string
+  title?: string
+  className?: string
+  disabled?: boolean
+  onFocus?: () => void
+}
+
+export function MasterLookup({
+  options,
+  value,
+  onValueChange,
+  placeholder = 'Select…',
+  emptyText = 'No matches.',
+  searchPlaceholder = 'Type to search…',
+  title = 'Lookup',
+  className,
+  disabled,
+  onFocus,
+}: MasterLookupProps) {
+  const [open, setOpen] = React.useState(false)
+  const selected = options.find((option) => option.value === value)
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (disabled) return
+    if (event.key === 'F2') {
+      event.preventDefault()
+      setOpen(true)
+    }
+  }
+
+  return (
+    <>
+      <Button
+        className={cn('w-full justify-between font-normal', className)}
+        data-master-lookup
+        disabled={disabled}
+        onClick={() => setOpen(true)}
+        onFocus={onFocus}
+        onKeyDown={handleKeyDown}
+        type="button"
+        variant="outline"
+      >
+        <span className="truncate">{selected?.label ?? placeholder}</span>
+        <span className="flex shrink-0 items-center gap-1 text-muted-foreground">
+          <kbd className="rounded border px-1 font-mono text-[10px]">F2</kbd>
+          <ChevronsUpDownIcon className="size-3.5 opacity-50" />
+        </span>
+      </Button>
+      <CommandDialog
+        description="Search and select a master record"
+        onOpenChange={setOpen}
+        open={open}
+        title={title}
+      >
+        <Command>
+          <CommandInput placeholder={searchPlaceholder} />
+          <CommandList>
+            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandGroup>
+              {options.map((option) => (
+                <CommandItem
+                  data-checked={option.value === value || undefined}
+                  key={option.value}
+                  keywords={
+                    option.keywords
+                      ? option.keywords.split(/\s+/).filter(Boolean)
+                      : undefined
+                  }
+                  onSelect={() => {
+                    onValueChange(option.value)
+                    setOpen(false)
+                  }}
+                  value={`${option.label} ${option.keywords ?? ''}`}
+                >
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <span className="truncate">{option.label}</span>
+                    {option.description ? (
+                      <span className="truncate text-[11px] text-muted-foreground">
+                        {option.description}
+                      </span>
+                    ) : null}
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </CommandDialog>
+    </>
+  )
+}
