@@ -45,8 +45,16 @@ export function VoucherPreviewSheet({
   const { companyId, company, isReady } = useWorkspace()
 
   const salesQuery = useQuery({
-    ...trpc.sales.getById.queryOptions({ id: target?.id ?? '' }),
-    enabled: open && target?.kind === 'sales' && Boolean(target.id),
+    ...trpc.sales.getById.queryOptions({
+      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
+      id: target?.id ?? '',
+    }),
+    enabled:
+      open &&
+      target?.kind === 'sales' &&
+      Boolean(target.id) &&
+      Boolean(companyId) &&
+      isReady,
   })
   const purchaseQuery = useQuery({
     ...trpc.purchases.getById.queryOptions({ id: target?.id ?? '' }),

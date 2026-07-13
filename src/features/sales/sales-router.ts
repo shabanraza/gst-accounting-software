@@ -1,10 +1,13 @@
 import { z } from 'zod'
 
 import { recordSalesSummary } from '#/features/dashboard/dashboard-summary-service.ts'
+import { ensureInventoryOpeningStock } from '#/features/inventory/opening-stock.ts'
 import { cancelSalesInvoice, postSalesInvoice } from '#/features/sales/sales-invoice-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
-import { companyProcedure, publicProcedure } from '#/integrations/trpc/init.ts'
+import { companyProcedure } from '#/integrations/trpc/init.ts'
 import { sendInvoiceEmail } from '#/lib/email.ts'
+
+import { TRPCError } from '@trpc/server'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
@@ -13,6 +16,7 @@ import type {
   StockBalanceRepository,
   StockMovementRepository,
 } from '#/features/inventory/stock-movement-service.ts'
+import type { ItemRepository } from '#/features/inventory/item-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
 import type { SalesInvoiceRepository } from '#/features/sales/sales-invoice-service.ts'
 
@@ -32,6 +36,8 @@ const postSalesInvoiceInputSchema = z.object({
   companyStateCode: z.string().length(2),
   customerId: z.string().uuid(),
   customerStateCode: z.string().length(2),
+  placeOfSupply: z.string().length(2).optional(),
+  reverseCharge: z.boolean().optional(),
   invoiceNumber: z.string().min(1),
   invoiceDate: z.string().min(1),
   paymentMode: z.enum(['credit', 'cash']),
@@ -56,6 +62,7 @@ const listSalesInputSchema = z.object({
 })
 
 const getSalesInvoiceInputSchema = z.object({
+  companyId: z.string().uuid(),
   id: z.string().uuid(),
 })
 
@@ -79,21 +86,33 @@ export const createSalesRouter = (
   stock: StockMovementRepository & StockBalanceRepository,
   dashboard: DashboardSummaryRepository,
   parties: PartyRepository,
+  items: ItemRepository,
 ) =>
   ({
-    list: publicProcedure.input(listSalesInputSchema).query(({ input }) => {
-      return invoices.listByCompanyId(input.companyId)
-    }),
-    getById: publicProcedure
-      .input(getSalesInvoiceInputSchema)
+    list: capabilityProcedure('view')
+      .input(listSalesInputSchema)
       .query(({ input }) => {
-        return invoices.findById(input.id)
+        return invoices.listByCompanyId(input.companyId)
+      }),
+    getById: capabilityProcedure('view')
+      .input(getSalesInvoiceInputSchema)
+      .query(async ({ input }) => {
+        const invoice = await invoices.findById(input.id)
+        if (!invoice || invoice.companyId !== input.companyId) {
+          throw new TRPCError({ code: 'NOT_FOUND' })
+        }
+        return invoice
       }),
     postInvoice: capabilityProcedure('post_sales')
       .input(postSalesInvoiceInputSchema)
       .mutation(async ({ input }) => {
+        await ensureInventoryOpeningStock(items, stock, {
+          companyId: input.companyId,
+          occurredOn: input.invoiceDate,
+        })
+
         const invoice = await postSalesInvoice(
-          { invoices, posting, stock, parties },
+          { invoices, posting, stock, items, parties },
           input,
         )
         const stockOutQuantity = invoice.lines
@@ -113,14 +132,17 @@ export const createSalesRouter = (
     cancelInvoice: capabilityProcedure('post_sales')
       .input(cancelSalesInvoiceInputSchema)
       .mutation(({ input }) => {
-        return cancelSalesInvoice(invoices, input.id)
+        return cancelSalesInvoice(
+          { invoices, posting, stock, items, dashboard },
+          { companyId: input.companyId, invoiceId: input.id },
+        )
       }),
     emailInvoice: companyProcedure
       .input(emailInvoiceInputSchema)
       .mutation(async ({ input }) => {
         const invoice = await invoices.findById(input.id)
-        if (!invoice) {
-          throw new Error('Invoice not found')
+        if (!invoice || invoice.companyId !== input.companyId) {
+          throw new TRPCError({ code: 'NOT_FOUND' })
         }
         await sendInvoiceEmail({
           to: input.toEmail,

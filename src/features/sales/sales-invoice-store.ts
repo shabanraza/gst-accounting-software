@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 
 import { getDb } from '#/db/client.ts'
 import * as schema from '#/db/schema.ts'
@@ -183,15 +183,29 @@ export class DrizzleSalesInvoiceRepository implements SalesInvoiceRepository {
       .from(schema.salesInvoices)
       .where(eq(schema.salesInvoices.companyId, companyId))
 
-    const results: Array<SalesInvoiceRecord> = []
-    for (const invoice of invoices) {
-      const lines = await this.database
-        .select()
-        .from(schema.salesInvoiceLines)
-        .where(eq(schema.salesInvoiceLines.salesInvoiceId, invoice.id))
-      results.push(mapRowsToSalesInvoiceRecord(invoice, lines))
+    if (invoices.length === 0) {
+      return []
     }
-    return results
+
+    const invoiceIds = invoices.map((invoice) => invoice.id)
+    const allLines = await this.database
+      .select()
+      .from(schema.salesInvoiceLines)
+      .where(inArray(schema.salesInvoiceLines.salesInvoiceId, invoiceIds))
+
+    const linesByInvoiceId = new Map<string, Array<SalesInvoiceLineRow>>()
+    for (const line of allLines) {
+      const group = linesByInvoiceId.get(line.salesInvoiceId) ?? []
+      group.push(line)
+      linesByInvoiceId.set(line.salesInvoiceId, group)
+    }
+
+    return invoices.map((invoice) =>
+      mapRowsToSalesInvoiceRecord(
+        invoice,
+        linesByInvoiceId.get(invoice.id) ?? [],
+      ),
+    )
   }
 }
 

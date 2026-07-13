@@ -1,6 +1,8 @@
 import { initTRPC, TRPCError } from '@trpc/server'
 import superjson from 'superjson'
 
+import { assertCompanyMembership } from '#/features/companies/membership-service.ts'
+import { createMembershipRepository } from '#/features/companies/membership-store.ts'
 import { auth } from '#/lib/auth.ts'
 
 export type AuthSession = {
@@ -100,6 +102,16 @@ export const companyProcedure = t.procedure.use(async ({ ctx, next, getRawInput 
       code: 'BAD_REQUEST',
       message: 'companyId is required for this action',
     })
+  }
+
+  const memberships = createMembershipRepository()
+  try {
+    await assertCompanyMembership(memberships, {
+      companyId,
+      userId: ctx.session.user.id,
+    })
+  } catch {
+    throw new TRPCError({ code: 'FORBIDDEN' })
   }
 
   return next({

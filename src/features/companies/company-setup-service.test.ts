@@ -8,6 +8,13 @@ import { InMemoryCompanyRepository } from '#/features/companies/company-store.ts
 import { InMemoryFinancialYearRepository } from '#/features/companies/financial-year-store.ts'
 import { InMemoryMembershipRepository } from '#/features/companies/membership-store.ts'
 
+import { InMemoryGodownRepository } from '#/features/inventory/godown-store.ts'
+import {
+  InMemoryItemRepository,
+  InMemoryStockStore,
+} from '#/features/inventory/inventory-store.ts'
+import { InMemoryPartyRepository } from '#/features/parties/party-store.ts'
+
 describe('createCompanyWithSetup', () => {
   test('creates company, seeds chart of accounts, opens FY, and assigns owner', async () => {
     const companies = new InMemoryCompanyRepository()
@@ -15,9 +22,23 @@ describe('createCompanyWithSetup', () => {
     const financialYears = new InMemoryFinancialYearRepository()
     const memberships = new InMemoryMembershipRepository()
     const audit = new InMemoryAuditLogRepository()
+    const godowns = new InMemoryGodownRepository()
+    const parties = new InMemoryPartyRepository()
+    const items = new InMemoryItemRepository()
+    const stock = new InMemoryStockStore()
 
     const result = await createCompanyWithSetup(
-      { companies, ledgers, financialYears, memberships, audit },
+      {
+        companies,
+        ledgers,
+        financialYears,
+        memberships,
+        audit,
+        godowns,
+        parties,
+        items,
+        stock,
+      },
       {
         accountId: 'account-1',
         ownerUserId: 'user-1',
@@ -38,6 +59,8 @@ describe('createCompanyWithSetup', () => {
     expect(result.ledgerAccounts.map((account) => account.name)).toContain(
       'Stock In Hand',
     )
+    expect(result.starterData.parties.length).toBeGreaterThan(0)
+    expect(result.starterData.items.length).toBeGreaterThan(0)
 
     const accounts = await setupDefaultChartOfAccounts(ledgers, {
       companyId: result.company.id,

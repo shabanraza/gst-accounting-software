@@ -87,7 +87,7 @@ async function seedReturnsContext() {
   })
 
   const invoice = await postSalesInvoice(
-    { invoices, posting: ledgerPosting, stock },
+    { invoices, posting: ledgerPosting, stock, items },
     {
       companyId,
       companyStateCode: '27',

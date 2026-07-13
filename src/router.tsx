@@ -2,7 +2,7 @@ import { createRouter as createTanStackRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
 
 import type { ReactNode } from 'react'
-import { QueryClient } from '@tanstack/react-query'
+import { RoutePending } from '#/features/app-shell/components/route-pending.tsx'
 import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
 import TanstackQueryProvider, {
   getContext,
@@ -16,7 +16,10 @@ export function getRouter() {
     context,
     scrollRestoration: true,
     defaultPreload: 'intent',
-    defaultPreloadStaleTime: 0,
+    defaultPreloadStaleTime: 60_000,
+    defaultPendingMs: 200,
+    defaultPendingMinMs: 300,
+    defaultPendingComponent: RoutePending,
 
     Wrap: (props: { children: ReactNode }) => {
       return (

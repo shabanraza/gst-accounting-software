@@ -31,6 +31,7 @@ const postPurchaseBillInputSchema = z.object({
   financialYearStart: z.string().min(1),
   supplierId: z.string().uuid(),
   supplierStateCode: z.string().length(2).optional(),
+  placeOfSupply: z.string().length(2).optional(),
   supplierBillNumber: z.string().min(1),
   billDate: z.string().min(1),
   dueDate: z.string().min(1),

@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 
 import { getDb } from '#/db/client.ts'
 import * as schema from '#/db/schema.ts'
@@ -227,15 +227,26 @@ export class DrizzlePurchaseBillRepository implements PurchaseBillRepository {
       .from(schema.purchaseBills)
       .where(eq(schema.purchaseBills.companyId, companyId))
 
-    const results: Array<PurchaseBillRecord> = []
-    for (const bill of bills) {
-      const lines = await this.database
-        .select()
-        .from(schema.purchaseBillLines)
-        .where(eq(schema.purchaseBillLines.purchaseBillId, bill.id))
-      results.push(mapRowsToPurchaseBillRecord(bill, lines))
+    if (bills.length === 0) {
+      return []
     }
-    return results
+
+    const billIds = bills.map((bill) => bill.id)
+    const allLines = await this.database
+      .select()
+      .from(schema.purchaseBillLines)
+      .where(inArray(schema.purchaseBillLines.purchaseBillId, billIds))
+
+    const linesByBillId = new Map<string, Array<PurchaseBillLineRow>>()
+    for (const line of allLines) {
+      const group = linesByBillId.get(line.purchaseBillId) ?? []
+      group.push(line)
+      linesByBillId.set(line.purchaseBillId, group)
+    }
+
+    return bills.map((bill) =>
+      mapRowsToPurchaseBillRecord(bill, linesByBillId.get(bill.id) ?? []),
+    )
   }
 }
 

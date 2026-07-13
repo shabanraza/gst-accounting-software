@@ -18,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
+import { Skeleton } from '#/components/ui/skeleton.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
@@ -59,6 +60,13 @@ export function DashboardContent() {
     }),
     enabled: Boolean(companyId) && isReady,
   })
+
+  const isPageLoading =
+    summaryQuery.isPending ||
+    salesQuery.isPending ||
+    purchasesQuery.isPending ||
+    stockQuery.isPending ||
+    itemsQuery.isPending
 
   const qtyByItem = new Map<string, number>()
   for (const balance of stockQuery.data ?? []) {
@@ -173,7 +181,11 @@ export function DashboardContent() {
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {cards.map((card) => {
+        {isPageLoading
+          ? Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton className="h-24 w-full" key={index} />
+            ))
+          : cards.map((card) => {
           const Icon = card.icon
           return (
             <Card key={card.label}>

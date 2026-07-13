@@ -20,9 +20,6 @@ import type { LedgerAccountRepository } from '#/features/accounting/chart-of-acc
 import type { AuditLogRepository } from '#/features/audit/audit-service.ts'
 import type { CompanyRepository } from '#/features/companies/company-service.ts'
 import type { CompanySetupDependencies } from '#/features/companies/company-setup-service.ts'
-import type { FinancialYearRepository } from '#/features/companies/financial-year-service.ts'
-import type { MembershipRepository } from '#/features/companies/membership-service.ts'
-import type { GodownRepository } from '#/features/inventory/godown-service.ts'
 
 const createCompanyInputSchema = z.object({
   legalName: z.string().min(1),
@@ -64,14 +61,7 @@ const updateProfileInputSchema = z.object({
   logoUrl: z.string(),
 })
 
-export type CompaniesRouterDependencies = {
-  companies: CompanyRepository
-  ledgers: LedgerAccountRepository
-  financialYears: FinancialYearRepository
-  memberships: MembershipRepository
-  audit: AuditLogRepository
-  godowns: GodownRepository
-}
+export type CompaniesRouterDependencies = CompanySetupDependencies
 
 async function listCompaniesForUser(
   deps: CompaniesRouterDependencies,

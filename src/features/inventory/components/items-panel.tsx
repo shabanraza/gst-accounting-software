@@ -50,6 +50,7 @@ import {
   godowns as demoGodowns,
 } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { useItemsList } from '#/features/masters/use-master-data.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 const emptyForm = {
@@ -66,7 +67,7 @@ const emptyForm = {
   saleRate: '',
   mrp: '',
   reorderLevel: '',
-  openingQuantity: '',
+  openingQuantity: '100',
   openingGodown: demoGodowns[0],
   tracksInventory: 'yes',
 }
@@ -87,12 +88,7 @@ export function ItemsPanel() {
   const [form, setForm] = React.useState(emptyForm)
   const [formError, setFormError] = React.useState<string | null>(null)
 
-  const itemsQuery = useQuery({
-    ...trpc.inventory.listItems.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const itemsQuery = useItemsList()
 
   const createItem = useMutation(
     trpc.inventory.createItemWithOpening.mutationOptions(),

@@ -7,6 +7,11 @@ import { InMemoryCompanyRepository } from '#/features/companies/company-store.ts
 import { InMemoryFinancialYearRepository } from '#/features/companies/financial-year-store.ts'
 import { InMemoryMembershipRepository } from '#/features/companies/membership-store.ts'
 import { InMemoryGodownRepository } from '#/features/inventory/godown-store.ts'
+import {
+  InMemoryItemRepository,
+  InMemoryStockStore,
+} from '#/features/inventory/inventory-store.ts'
+import { InMemoryPartyRepository } from '#/features/parties/party-store.ts'
 import { createTRPCRouter } from '#/integrations/trpc/init.ts'
 
 import type { TRPCContext } from '#/integrations/trpc/init.ts'
@@ -26,6 +31,9 @@ const appRouter = () => {
   const memberships = new InMemoryMembershipRepository()
   const audit = new InMemoryAuditLogRepository()
   const godowns = new InMemoryGodownRepository()
+  const parties = new InMemoryPartyRepository()
+  const items = new InMemoryItemRepository()
+  const stock = new InMemoryStockStore()
 
   return createTRPCRouter({
     companies: createCompaniesRouter({
@@ -35,6 +43,9 @@ const appRouter = () => {
       memberships,
       audit,
       godowns,
+      parties,
+      items,
+      stock,
     }),
   })
 }
@@ -57,6 +68,8 @@ describe('companies router', () => {
     expect(result.company.id).toBeTruthy()
     expect(result.membership.role).toBe('owner')
     expect(result.ledgerAccounts.length).toBeGreaterThan(0)
+    expect(result.starterData.parties.length).toBeGreaterThan(0)
+    expect(result.starterData.items.length).toBeGreaterThan(0)
   })
 
   test('lists only companies the signed-in user belongs to', async () => {
@@ -88,5 +101,34 @@ describe('companies router', () => {
 
     expect(companies).toHaveLength(1)
     expect(companies[0]?.tradeName).toBe('Shaban Textiles')
+  })
+
+  test('ensureWorkspace can be called repeatedly without side effects', async () => {
+    const router = appRouter()
+    const userId = crypto.randomUUID()
+    const caller = router.createCaller(testContext(userId))
+
+    const created = await caller.companies.createWithSetup({
+      legalName: 'Repeat Workspace Private Limited',
+      tradeName: 'Repeat Workspace',
+      gstin: '27ABCDE1234F1Z5',
+      stateCode: '27',
+      financialYearStart: '2026-04-01',
+      businessType: 'wholesale',
+    })
+
+    const first = await caller.companies.ensureWorkspace({
+      preferredCompanyId: created.company.id,
+    })
+    const second = await caller.companies.ensureWorkspace({
+      preferredCompanyId: created.company.id,
+    })
+
+    expect(first.company.id).toBe(created.company.id)
+    expect(second.company.id).toBe(created.company.id)
+    expect(first.godowns.length).toBe(second.godowns.length)
+    expect(Object.keys(first.ledgerBySystemKey).length).toBe(
+      Object.keys(second.ledgerBySystemKey).length,
+    )
   })
 })

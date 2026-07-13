@@ -24,9 +24,17 @@ export const trpcClient = createTRPCClient<TRPCRouter>({
   ],
 })
 
+const QUERY_STALE_TIME_MS = 60_000
+
 export function getContext() {
   const queryClient = new QueryClient({
     defaultOptions: {
+      queries: {
+        staleTime: QUERY_STALE_TIME_MS,
+        gcTime: 5 * 60_000,
+        refetchOnWindowFocus: false,
+        retry: 1,
+      },
       dehydrate: { serializeData: superjson.serialize },
       hydrate: { deserializeData: superjson.deserialize },
     },

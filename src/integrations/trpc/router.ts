@@ -62,6 +62,9 @@ export const trpcRouter = createTRPCRouter({
     memberships: membershipRepository,
     audit: auditLogRepository,
     godowns: godownRepository,
+    parties: partyRepository,
+    items: itemRepository,
+    stock: stockStore,
   }),
   accounting: createAccountingRouter(
     ledgerAccountRepository,
@@ -94,6 +97,7 @@ export const trpcRouter = createTRPCRouter({
     stockStore,
     dashboardSummaryRepository,
     partyRepository,
+    itemRepository,
   ),
   payments: createPaymentsRouter(
     salesInvoiceRepository,

@@ -1,3 +1,4 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import * as React from 'react'
 
 import { WORKSPACE_COMPANY_KEY } from '#/features/app-shell/workspace.ts'
@@ -16,6 +17,7 @@ type WorkspaceValue = {
   ledgerBySystemKey: Partial<Record<string, string>>
   godowns: Array<GodownRecord>
   isReady: boolean
+  isLoading: boolean
   error: string | null
   refresh: () => Promise<void>
   setActiveCompany: (companyId: string) => Promise<void>
@@ -32,78 +34,71 @@ function readPreferredCompanyId() {
   return uuidPattern.test(value) ? value : undefined
 }
 
+function workspaceQueryKey(
+  accountId: string,
+  preferredCompanyId: string | undefined,
+) {
+  return ['workspace', accountId, preferredCompanyId ?? 'default'] as const
+}
+
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient()
   const { data: sessionData } = authClient.useSession()
   const accountId = sessionData?.user.id ?? ''
-  const [companyId, setCompanyId] = React.useState<string | null>(() => {
-    return readPreferredCompanyId() ?? null
-  })
-  const [company, setCompany] = React.useState<CompanyRecord | null>(null)
-  const [companies, setCompanies] = React.useState<Array<CompanyRecord>>([])
-  const [ledgerBySystemKey, setLedgerBySystemKey] = React.useState<
-    Partial<Record<string, string>>
-  >({})
-  const [activeFinancialYearId, setActiveFinancialYearId] = React.useState<
-    string | null
-  >(null)
-  const [godowns, setGodowns] = React.useState<Array<GodownRecord>>([])
-  const [error, setError] = React.useState<string | null>(null)
-  const [isReady, setIsReady] = React.useState(false)
+  const [preferredCompanyId, setPreferredCompanyId] = React.useState<
+    string | undefined
+  >(() => readPreferredCompanyId())
 
-  const applyWorkspace = React.useCallback(
-    (data: {
-      company: CompanyRecord
-      companies: Array<CompanyRecord>
-      ledgerBySystemKey: Partial<Record<string, string>>
-      godowns?: Array<GodownRecord>
-      activeFinancialYearId?: string
-    }) => {
-      setCompanies(data.companies)
-      setCompany(data.company)
-      setCompanyId(data.company.id)
-      setLedgerBySystemKey(data.ledgerBySystemKey)
-      setGodowns(data.godowns ?? [])
-      setActiveFinancialYearId(data.activeFinancialYearId ?? null)
-      window.localStorage.setItem(WORKSPACE_COMPANY_KEY, data.company.id)
-      setError(null)
-      setIsReady(true)
+  const workspaceQuery = useQuery({
+    queryKey: workspaceQueryKey(accountId, preferredCompanyId),
+    queryFn: async () => {
+      return trpcClient.companies.ensureWorkspace.mutate({
+        preferredCompanyId,
+      })
     },
-    [],
-  )
+    enabled: Boolean(accountId),
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+  })
+
+  const company = workspaceQuery.data?.company ?? null
+  const companies = workspaceQuery.data?.companies ?? []
+  const companyId = company?.id ?? null
+  const ledgerBySystemKey = workspaceQuery.data?.ledgerBySystemKey ?? {}
+  const godowns = workspaceQuery.data?.godowns ?? []
+  const activeFinancialYearId =
+    workspaceQuery.data?.activeFinancialYearId ?? null
+  const isLoading = workspaceQuery.isLoading || workspaceQuery.isFetching
+  const isReady = workspaceQuery.isSuccess || workspaceQuery.isError
+  const error = workspaceQuery.error
+    ? workspaceQuery.error instanceof Error
+      ? workspaceQuery.error.message
+      : 'Workspace failed to load'
+    : null
+
+  React.useEffect(() => {
+    if (companyId) {
+      window.localStorage.setItem(WORKSPACE_COMPANY_KEY, companyId)
+    }
+  }, [companyId])
 
   const refresh = React.useCallback(async () => {
-    try {
-      const data = await trpcClient.companies.ensureWorkspace.mutate({
-        preferredCompanyId: readPreferredCompanyId(),
-      })
-      applyWorkspace(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Workspace failed to load')
-      setIsReady(true)
-    }
-  }, [applyWorkspace])
+    await queryClient.invalidateQueries({
+      queryKey: workspaceQueryKey(accountId, preferredCompanyId),
+    })
+  }, [accountId, preferredCompanyId, queryClient])
 
   const setActiveCompany = React.useCallback(
     async (nextCompanyId: string) => {
       window.localStorage.setItem(WORKSPACE_COMPANY_KEY, nextCompanyId)
-      try {
-        const data = await trpcClient.companies.ensureWorkspace.mutate({
-          preferredCompanyId: nextCompanyId,
-        })
-        applyWorkspace(data)
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Unable to switch company',
-        )
-      }
+      setPreferredCompanyId(nextCompanyId)
+      await queryClient.invalidateQueries({
+        queryKey: workspaceQueryKey(accountId, nextCompanyId),
+      })
     },
-    [applyWorkspace],
+    [accountId, queryClient],
   )
-
-  React.useEffect(() => {
-    if (!accountId) return
-    void refresh()
-  }, [accountId, refresh])
 
   const value = React.useMemo<WorkspaceValue>(
     () => ({
@@ -115,6 +110,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       ledgerBySystemKey,
       godowns,
       isReady,
+      isLoading,
       error,
       refresh,
       setActiveCompany,
@@ -128,6 +124,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       ledgerBySystemKey,
       godowns,
       isReady,
+      isLoading,
       error,
       refresh,
       setActiveCompany,

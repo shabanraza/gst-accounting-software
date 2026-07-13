@@ -1,6 +1,7 @@
 import { recordAuditEvent } from '#/features/audit/audit-service.ts'
 import { setupDefaultChartOfAccounts } from '#/features/accounting/chart-of-accounts.ts'
 import { createCompany } from '#/features/companies/company-service.ts'
+import { seedCompanyStarterData } from '#/features/companies/company-starter-data-service.ts'
 import { createFinancialYear } from '#/features/companies/financial-year-service.ts'
 import { assignCompanyMembership } from '#/features/companies/membership-service.ts'
 
@@ -11,6 +12,7 @@ import type {
   CompanyRepository,
   CreateCompanyInput,
 } from '#/features/companies/company-service.ts'
+import type { CompanyStarterDataDependencies } from '#/features/companies/company-starter-data-service.ts'
 import type { FinancialYearRepository } from '#/features/companies/financial-year-service.ts'
 import type { MembershipRepository } from '#/features/companies/membership-service.ts'
 
@@ -18,7 +20,7 @@ export type CreateCompanyWithSetupInput = CreateCompanyInput & {
   ownerUserId: string
 }
 
-export type CompanySetupDependencies = {
+export type CompanySetupDependencies = CompanyStarterDataDependencies & {
   companies: CompanyRepository
   ledgers: LedgerAccountRepository
   financialYears: FinancialYearRepository
@@ -62,10 +64,23 @@ export async function createCompanyWithSetup(
     },
   })
 
+  const ledgerBySystemKey = Object.fromEntries(
+    ledgerAccounts
+      .filter((ledger) => ledger.systemKey)
+      .map((ledger) => [ledger.systemKey, ledger.id]),
+  ) as Record<string, string>
+
+  const starterData = await seedCompanyStarterData(deps, {
+    companyId: company.id,
+    financialYearStart: input.financialYearStart,
+    ledgerBySystemKey,
+  })
+
   return {
     company,
     ledgerAccounts,
     financialYear,
     membership,
+    starterData,
   }
 }

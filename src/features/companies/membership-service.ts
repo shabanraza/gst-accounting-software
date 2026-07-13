@@ -119,6 +119,17 @@ export async function assertMembershipRole(
   return membership
 }
 
+export async function assertCompanyMembership(
+  repository: MembershipRepository,
+  input: { companyId: string; userId: string },
+): Promise<MembershipRecord> {
+  return assertMembershipRole(repository, {
+    companyId: input.companyId,
+    userId: input.userId,
+    allowedRoles: Object.keys(roleCapabilities) as Array<CompanyRole>,
+  })
+}
+
 export async function assignCompanyMembership(
   repository: MembershipRepository,
   input: { companyId: string; userId: string; role: CompanyRole },

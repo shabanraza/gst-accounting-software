@@ -47,6 +47,7 @@ import {
 } from '#/features/app-shell/data/india-masters.ts'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { usePartiesList } from '#/features/masters/use-master-data.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 import type { PartyType } from '#/features/parties/party-service.ts'
 
@@ -73,12 +74,7 @@ export function PartiesPanel() {
   const [priceListId, setPriceListId] = React.useState('')
   const [formError, setFormError] = React.useState<string | null>(null)
 
-  const partiesQuery = useQuery({
-    ...trpc.parties.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const partiesQuery = usePartiesList()
   const salesQuery = useQuery({
     ...trpc.sales.list.queryOptions({
       companyId: companyId ?? '00000000-0000-4000-8000-000000000099',

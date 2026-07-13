@@ -90,7 +90,26 @@ describe('createItemWithOpening', () => {
     expect(await getCurrentStock(stock, 'company-1', result.item.id)).toBe('50')
   })
 
-  test('skips opening movement for service items or blank qty', async () => {
+  test('defaults opening stock for inventory items without qty', async () => {
+    const items = new InMemoryItemRepository()
+    const stock = new InMemoryStockStore()
+
+    const result = await createItemWithOpening(items, stock, {
+      companyId: 'company-1',
+      name: 'Cotton Fabric',
+      hsnCode: '5208',
+      gstRate: '5.00',
+      baseUnit: 'Meter',
+      purchaseRate: '80.00',
+      saleRate: '120.00',
+      tracksInventory: true,
+    })
+
+    expect(result.openingMovement?.movementType).toBe('opening')
+    expect(await getCurrentStock(stock, 'company-1', result.item.id)).toBe('100')
+  })
+
+  test('skips opening movement for service items', async () => {
     const items = new InMemoryItemRepository()
     const stock = new InMemoryStockStore()
 

@@ -21,8 +21,11 @@ export function InvoicePrintView({ invoiceId, autoprint }: InvoicePrintViewProps
   const { companyId, company, isReady } = useWorkspace()
 
   const invoiceQuery = useQuery({
-    ...trpc.sales.getById.queryOptions({ id: invoiceId }),
-    enabled: Boolean(invoiceId),
+    ...trpc.sales.getById.queryOptions({
+      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
+      id: invoiceId,
+    }),
+    enabled: Boolean(invoiceId) && Boolean(companyId) && isReady,
   })
   const partiesQuery = useQuery({
     ...trpc.parties.list.queryOptions({

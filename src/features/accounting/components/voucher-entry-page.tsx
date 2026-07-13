@@ -51,8 +51,10 @@ import {
   computeVoucherTotals,
   createEmptyVoucherLines,
   emptyVoucherLine,
+  partyStateForRegion,
 } from '#/features/accounting/voucher-math.ts'
 import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { useItemsList, usePartiesList } from '#/features/masters/use-master-data.ts'
 import { VoucherPreviewSheet } from '#/features/documents/components/voucher-preview-sheet.tsx'
 import type { VoucherPreviewTarget } from '#/features/documents/components/voucher-preview-sheet.tsx'
 import { useTRPC } from '#/integrations/trpc/react.ts'
@@ -82,18 +84,8 @@ export function VoucherEntryPage({
     godowns.length > 0 ? godowns.map((entry) => entry.name) : demoGodowns
   const seriesOptions = isSales ? salesSeriesOptions : purchaseSeriesOptions
 
-  const partiesQuery = useQuery({
-    ...trpc.parties.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
-  const itemsQuery = useQuery({
-    ...trpc.inventory.listItems.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const partiesQuery = usePartiesList()
+  const itemsQuery = useItemsList()
 
   const postSales = useMutation(trpc.sales.postInvoice.mutationOptions())
   const postPurchase = useMutation(trpc.purchases.postBill.mutationOptions())
@@ -513,11 +505,17 @@ export function VoucherEntryPage({
       setVoucherNoPreview(allocatedNumber)
 
       if (isSales) {
+        const gstPartyState = partyStateForRegion(
+          region,
+          placeOfSupply,
+          company.stateCode,
+        )
         const invoice = await postSales.mutateAsync({
           companyId,
           companyStateCode: company.stateCode,
           customerId: party.id,
-          customerStateCode: placeOfSupply,
+          customerStateCode: gstPartyState,
+          placeOfSupply,
           invoiceNumber: allocatedNumber,
           invoiceDate: voucherDate,
           paymentMode,
@@ -565,12 +563,18 @@ export function VoucherEntryPage({
         })
         setPreviewOpen(true)
       } else {
+        const gstPartyState = partyStateForRegion(
+          region,
+          placeOfSupply,
+          company.stateCode,
+        )
         const bill = await postPurchase.mutateAsync({
           companyId,
           companyStateCode: company.stateCode,
           financialYearStart: company.financialYearStart,
           supplierId: party.id,
-          supplierStateCode: placeOfSupply,
+          supplierStateCode: gstPartyState,
+          placeOfSupply,
           supplierBillNumber: supplierBillNo.trim(),
           billDate: voucherDate,
           dueDate: dueDate || voucherDate,

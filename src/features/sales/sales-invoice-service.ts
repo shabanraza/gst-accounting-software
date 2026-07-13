@@ -2,14 +2,18 @@ import Decimal from 'decimal.js'
 
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
 import { calculateGst } from '#/features/gst/gst-calculator.ts'
+import { ensureOpeningStockForItemIds } from '#/features/inventory/opening-stock.ts'
 import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
 
 import type { TaxMode } from '#/features/accounting/voucher-math.ts'
+import type { DashboardSummaryRepository } from '#/features/dashboard/dashboard-summary-service.ts'
+import { reverseSalesSummary } from '#/features/dashboard/dashboard-summary-service.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
 import type {
   StockBalanceRepository,
   StockMovementRepository,
 } from '#/features/inventory/stock-movement-service.ts'
+import type { ItemRepository } from '#/features/inventory/item-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
 
 export type PaymentMode = 'credit' | 'cash'
@@ -101,7 +105,17 @@ export type SalesInvoiceDependencies = {
   invoices: SalesInvoiceRepository
   posting: LedgerPostingRepository
   stock: StockMovementRepository & StockBalanceRepository
+  items: ItemRepository
   parties?: PartyRepository
+}
+
+export type CancelSalesInvoiceDependencies = SalesInvoiceDependencies & {
+  dashboard?: DashboardSummaryRepository
+}
+
+export type CancelSalesInvoiceInput = {
+  companyId: string
+  invoiceId: string
 }
 
 export class CreditLimitExceededError extends Error {
@@ -264,7 +278,18 @@ export async function postSalesInvoice(
     lines: ledgerLines,
   })
 
+  await ensureOpeningStockForItemIds(deps.items, deps.stock, {
+    companyId: input.companyId,
+    itemIds: lines.map((line) => line.itemId),
+    occurredOn: input.invoiceDate,
+  })
+
   for (const line of lines) {
+    const item = await deps.items.findById(line.itemId)
+    if (item && !item.tracksInventory) {
+      continue
+    }
+
     await recordStockMovement(deps.stock, deps.stock, {
       companyId: input.companyId,
       itemId: line.itemId,
@@ -308,6 +333,22 @@ export async function postSalesInvoice(
   return deps.invoices.create(invoice)
 }
 
+export class InvoiceNotFoundError extends Error {
+  constructor(invoiceId: string) {
+    super(`Sales invoice not found: ${invoiceId}`)
+    this.name = 'InvoiceNotFoundError'
+  }
+}
+
+export class InvoiceCompanyMismatchError extends Error {
+  constructor(invoiceId: string, companyId: string) {
+    super(
+      `Sales invoice ${invoiceId} does not belong to company ${companyId}`,
+    )
+    this.name = 'InvoiceCompanyMismatchError'
+  }
+}
+
 export class InvoiceAlreadyCancelledError extends Error {
   constructor(invoiceNumber: string) {
     super(`Sales invoice ${invoiceNumber} is already cancelled`)
@@ -316,18 +357,71 @@ export class InvoiceAlreadyCancelledError extends Error {
 }
 
 export async function cancelSalesInvoice(
-  invoices: SalesInvoiceRepository,
-  invoiceId: string,
+  deps: CancelSalesInvoiceDependencies,
+  input: CancelSalesInvoiceInput,
 ): Promise<SalesInvoiceRecord> {
-  const invoice = await invoices.findById(invoiceId)
+  const invoice = await deps.invoices.findById(input.invoiceId)
 
   if (!invoice) {
-    throw new Error(`Sales invoice not found: ${invoiceId}`)
+    throw new InvoiceNotFoundError(input.invoiceId)
+  }
+
+  if (invoice.companyId !== input.companyId) {
+    throw new InvoiceCompanyMismatchError(input.invoiceId, input.companyId)
   }
 
   if (invoice.status === 'cancelled') {
     throw new InvoiceAlreadyCancelledError(invoice.invoiceNumber)
   }
 
-  return invoices.save({ ...invoice, status: 'cancelled' })
+  const entries = await deps.posting.listByCompanyId(invoice.companyId)
+  const originalEntry = entries.find((entry) => entry.id === invoice.ledgerEntryId)
+
+  if (!originalEntry) {
+    throw new Error(
+      `Ledger entry not found for sales invoice ${invoice.invoiceNumber}`,
+    )
+  }
+
+  await postLedgerEntry(deps.posting, {
+    companyId: invoice.companyId,
+    entryDate: invoice.invoiceDate,
+    narration: `Cancellation of sales invoice ${invoice.invoiceNumber}`,
+    voucherType: 'sales',
+    lines: originalEntry.lines.map((line) => ({
+      ledgerAccountId: line.ledgerAccountId,
+      debit: line.credit,
+      credit: line.debit,
+    })),
+  })
+
+  for (const line of invoice.lines) {
+    await recordStockMovement(deps.stock, deps.stock, {
+      companyId: invoice.companyId,
+      itemId: line.itemId,
+      movementType: 'sales_return_in',
+      quantity: line.quantity,
+      unit: line.unit,
+      referenceType: 'sales_invoice_cancel',
+      referenceId: invoice.id,
+      occurredOn: invoice.invoiceDate,
+      godownName: line.godownName,
+    })
+  }
+
+  if (deps.dashboard) {
+    const stockOutQuantity = invoice.lines
+      .reduce((sum, line) => sum + Number(line.quantity), 0)
+      .toFixed(0)
+
+    await reverseSalesSummary(deps.dashboard, {
+      companyId: invoice.companyId,
+      summaryDate: invoice.invoiceDate,
+      salesAmount: invoice.totalAmount,
+      receivableAmount: invoice.outstandingAmount,
+      stockOutQuantity,
+    })
+  }
+
+  return deps.invoices.save({ ...invoice, status: 'cancelled' })
 }

@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-router'
 
 import { AppShell } from '#/features/app-shell/components/app-shell.tsx'
+import { WorkspaceLoadingGate } from '#/features/app-shell/components/workspace-loading-gate.tsx'
 import { WorkspaceProvider } from '#/features/app-shell/workspace-context.tsx'
 import { trpcClient } from '#/integrations/tanstack-query/root-provider.tsx'
 import { authClient } from '#/lib/auth-client.ts'
@@ -51,7 +52,9 @@ function AppLayoutRoute() {
         </div>
       ) : (
         <AppShell>
-          <Outlet />
+          <WorkspaceLoadingGate>
+            <Outlet />
+          </WorkspaceLoadingGate>
         </AppShell>
       )}
     </WorkspaceProvider>

@@ -75,6 +75,32 @@ export async function recordPurchaseSummary(
   })
 }
 
+export async function reverseSalesSummary(
+  repository: DashboardSummaryRepository,
+  input: {
+    companyId: string
+    summaryDate: string
+    salesAmount: string
+    receivableAmount: string
+    stockOutQuantity: string
+  },
+) {
+  const current = await repository.get(input.companyId, input.summaryDate)
+
+  return repository.save({
+    ...current,
+    salesTotal: new Decimal(current.salesTotal)
+      .minus(input.salesAmount)
+      .toFixed(2),
+    receivableTotal: new Decimal(current.receivableTotal)
+      .minus(input.receivableAmount)
+      .toFixed(2),
+    stockOutQuantity: new Decimal(current.stockOutQuantity)
+      .minus(input.stockOutQuantity)
+      .toFixed(0),
+  })
+}
+
 export async function getDashboardSummary(
   repository: DashboardSummaryRepository,
   companyId: string,

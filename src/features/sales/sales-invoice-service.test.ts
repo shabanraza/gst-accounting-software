@@ -123,6 +123,7 @@ async function seedSalesContext() {
     cashAccountId,
     customer,
     item,
+    items,
     ledgerPosting,
     stock,
     invoices,
@@ -139,6 +140,7 @@ describe('postSalesInvoice', () => {
         invoices: context.invoices,
         posting: context.ledgerPosting,
         stock: context.stock,
+        items: context.items,
         parties: context.parties,
       },
       {
@@ -202,6 +204,7 @@ describe('postSalesInvoice', () => {
         invoices: context.invoices,
         posting: context.ledgerPosting,
         stock: context.stock,
+        items: context.items,
         parties: context.parties,
       },
       {
@@ -263,6 +266,7 @@ describe('postSalesInvoice', () => {
         invoices: context.invoices,
         posting: context.ledgerPosting,
         stock: context.stock,
+        items: context.items,
         parties: context.parties,
       },
       {
@@ -335,6 +339,7 @@ describe('cancelSalesInvoice', () => {
         invoices: context.invoices,
         posting: context.ledgerPosting,
         stock: context.stock,
+        items: context.items,
         parties: context.parties,
       },
       {
@@ -364,9 +369,29 @@ describe('cancelSalesInvoice', () => {
 
     expect(invoice.status).toBe('posted')
 
-    const cancelled = await cancelSalesInvoice(context.invoices, invoice.id)
+    const cancelled = await cancelSalesInvoice(
+      {
+        invoices: context.invoices,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+      },
+      { companyId: context.companyId, invoiceId: invoice.id },
+    )
 
     expect(cancelled.status).toBe('cancelled')
+
+    const stockAfterCancel = await getCurrentStock(
+      context.stock,
+      context.companyId,
+      context.item.id,
+    )
+    expect(stockAfterCancel).toBe('100')
+
+    const ledgerEntries = await context.ledgerPosting.listByCompanyId(
+      context.companyId,
+    )
+    expect(ledgerEntries).toHaveLength(2)
   })
 
   test('rejects cancelling an already cancelled invoice', async () => {
@@ -377,6 +402,7 @@ describe('cancelSalesInvoice', () => {
         invoices: context.invoices,
         posting: context.ledgerPosting,
         stock: context.stock,
+        items: context.items,
         parties: context.parties,
       },
       {
@@ -404,10 +430,25 @@ describe('cancelSalesInvoice', () => {
       },
     )
 
-    await cancelSalesInvoice(context.invoices, invoice.id)
+    await cancelSalesInvoice(
+      {
+        invoices: context.invoices,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+      },
+      { companyId: context.companyId, invoiceId: invoice.id },
+    )
 
     await expect(
-      cancelSalesInvoice(context.invoices, invoice.id),
+      cancelSalesInvoice(
+        {
+          invoices: context.invoices,
+          posting: context.ledgerPosting,
+          stock: context.stock,
+        },
+        { companyId: context.companyId, invoiceId: invoice.id },
+      ),
     ).rejects.toBeInstanceOf(InvoiceAlreadyCancelledError)
   })
 })
