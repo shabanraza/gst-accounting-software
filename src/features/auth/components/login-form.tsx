@@ -60,7 +60,7 @@ export function LoginForm() {
         <AuthFieldGroup
           hint={
             <Link
-              className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+              className="inline-flex min-h-6 items-center py-1 text-xs text-muted-foreground underline-offset-4 hover:underline"
               to="/forgot-password"
             >
               Forgot password?

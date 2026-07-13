@@ -44,7 +44,9 @@ export function AuthForm({
 }) {
   return (
     <form className="contents" onSubmit={onSubmit}>
-      <CardContent className="flex flex-col gap-3">{children}</CardContent>
+      <CardContent className="flex flex-col gap-3 [&_[data-slot=input]]:h-11 [&_[data-slot=input]]:text-base sm:[&_[data-slot=input]]:text-sm [&_button]:min-h-11">
+        {children}
+      </CardContent>
     </form>
   )
 }
@@ -62,7 +64,7 @@ export function AuthFieldGroup({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex min-h-6 items-center justify-between gap-2">
         <label className="text-xs font-medium" htmlFor={htmlFor}>
           {label}
         </label>
