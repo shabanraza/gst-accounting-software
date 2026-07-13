@@ -45,6 +45,18 @@ import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
+function paymentStatusBadgeVariant(status: string) {
+  if (status === 'Paid') {
+    return 'success' as const
+  }
+
+  if (status === 'Part paid') {
+    return 'warning' as const
+  }
+
+  return 'info' as const
+}
+
 export function PaymentsPanel() {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
@@ -300,7 +312,9 @@ export function PaymentsPanel() {
                         {formatInr(row.outstandingAmount)}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="info">{row.paymentStatus}</Badge>
+                        <Badge variant={paymentStatusBadgeVariant(row.paymentStatus)}>
+                          {row.paymentStatus}
+                        </Badge>
                       </TableCell>
                     </TableRow>
                   ))
@@ -315,7 +329,9 @@ export function PaymentsPanel() {
                         {formatInr(row.outstandingAmount)}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="info">{row.paymentStatus}</Badge>
+                        <Badge variant={paymentStatusBadgeVariant(row.paymentStatus)}>
+                          {row.paymentStatus}
+                        </Badge>
                       </TableCell>
                     </TableRow>
                   ))}

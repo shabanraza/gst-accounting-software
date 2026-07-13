@@ -163,7 +163,7 @@ export function DashboardContent() {
 
   return (
     <WorkspacePage
-      description={`${company?.tradeName ?? 'Company'} · today's business at a glance`}
+      description="Today's business at a glance"
       title="Dashboard"
     >
       <div className="flex flex-wrap gap-2">
@@ -206,10 +206,10 @@ export function DashboardContent() {
       {lowStockItems.length > 0 || overdueInvoices.length > 0 ? (
         <div className="grid gap-3 lg:grid-cols-2">
           {lowStockItems.length > 0 ? (
-            <Card className="border-amber-500/40">
+            <Card className="border-amber-500/20">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <AlertTriangleIcon className="size-4 text-amber-500" />
+                  <AlertTriangleIcon className="size-4 text-amber-700 dark:text-amber-300" />
                   Low stock ({lowStockItems.length})
                 </CardTitle>
                 <CardDescription>
@@ -220,7 +220,7 @@ export function DashboardContent() {
                 {lowStockItems.slice(0, 5).map((item) => (
                   <div className="flex justify-between gap-3" key={item.id}>
                     <span className="truncate">{item.name}</span>
-                    <span className="shrink-0 tabular-nums text-amber-600">
+                    <span className="shrink-0 tabular-nums text-amber-700 dark:text-amber-300">
                       {item.quantity} / {item.reorderLevel} {item.unit}
                     </span>
                   </div>
@@ -232,10 +232,10 @@ export function DashboardContent() {
             </Card>
           ) : null}
           {overdueInvoices.length > 0 ? (
-            <Card className="border-red-500/40">
+            <Card className="border-destructive/30">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <ClockIcon className="size-4 text-red-500" />
+                  <ClockIcon className="size-4 text-destructive" />
                   Overdue receivables ({overdueInvoices.length})
                 </CardTitle>
                 <CardDescription>
@@ -248,7 +248,7 @@ export function DashboardContent() {
                     <span className="truncate">
                       {row.invoiceNumber} · {row.invoiceDate}
                     </span>
-                    <span className="shrink-0 tabular-nums text-red-600">
+                    <span className="shrink-0 tabular-nums text-destructive">
                       {formatInr(row.outstandingAmount)}
                     </span>
                   </div>

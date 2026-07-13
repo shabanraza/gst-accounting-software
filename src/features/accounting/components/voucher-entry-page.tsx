@@ -6,13 +6,6 @@ import { toast } from 'sonner'
 
 import { Badge } from '#/components/ui/badge.tsx'
 import { Button } from '#/components/ui/button.tsx'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '#/components/ui/card.tsx'
 import { Input } from '#/components/ui/input.tsx'
 import {
   Select,
@@ -57,7 +50,11 @@ import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
 import { useItemsList, usePartiesList } from '#/features/masters/use-master-data.ts'
 import { VoucherPreviewSheet } from '#/features/documents/components/voucher-preview-sheet.tsx'
 import type { VoucherPreviewTarget } from '#/features/documents/components/voucher-preview-sheet.tsx'
+import { CreateItemDialog } from '#/features/inventory/components/create-item-dialog.tsx'
+import { CreatePartyDialog } from '#/features/parties/components/create-party-dialog.tsx'
 import { useTRPC } from '#/integrations/trpc/react.ts'
+import type { ItemRecord } from '#/features/inventory/item-service.ts'
+import type { PartyRecord } from '#/features/parties/party-service.ts'
 import type {
   SupplyRegion,
   TaxMode,
@@ -82,6 +79,7 @@ export function VoucherEntryPage({
     useWorkspace()
   const godownNames =
     godowns.length > 0 ? godowns.map((entry) => entry.name) : demoGodowns
+  const showLineGodown = godownNames.length > 1
   const seriesOptions = isSales ? salesSeriesOptions : purchaseSeriesOptions
 
   const partiesQuery = usePartiesList()
@@ -143,6 +141,11 @@ export function VoucherEntryPage({
     React.useState<VoucherPreviewTarget | null>(null)
   const [previewOpen, setPreviewOpen] = React.useState(false)
   const [attachmentFile, setAttachmentFile] = React.useState<File | null>(null)
+  const [partyCreateOpen, setPartyCreateOpen] = React.useState(false)
+  const [itemCreateOpen, setItemCreateOpen] = React.useState(false)
+  const [itemCreateLineKey, setItemCreateLineKey] = React.useState<string | null>(
+    null,
+  )
   const formRef = React.useRef<HTMLFormElement>(null)
   const activeRowIndexRef = React.useRef(0)
   const companyState = company?.stateCode ?? COMPANY_STATE_CODE
@@ -390,10 +393,22 @@ export function VoucherEntryPage({
     }
   }
 
-  function selectItem(key: string, itemId: string) {
-    const item = items.find((entry) => entry.id === itemId)
-    if (!item) return
+  function applyCreatedParty(createdParty: PartyRecord) {
+    selectParty(createdParty.id)
+    setPlaceOfSupply(createdParty.stateCode)
+    setRegion(
+      createdParty.stateCode === (company?.stateCode ?? COMPANY_STATE_CODE)
+        ? 'local'
+        : 'central',
+    )
+    if (!isSales && createdParty.paymentTermsDays > 0) {
+      const due = new Date()
+      due.setDate(due.getDate() + createdParty.paymentTermsDays)
+      setDueDate(due.toISOString().slice(0, 10))
+    }
+  }
 
+  function applyItemToLine(key: string, item: ItemRecord) {
     const listRate = activePriceListId ? priceListRates[item.id] : undefined
     const rate =
       listRate ??
@@ -409,6 +424,25 @@ export function VoucherEntryPage({
       rate,
       godownName: godown,
     })
+  }
+
+  function selectItem(key: string, itemId: string) {
+    const item = items.find((entry) => entry.id === itemId)
+    if (!item) return
+    applyItemToLine(key, item)
+  }
+
+  function openItemCreate(lineKey: string) {
+    setItemCreateLineKey(lineKey)
+    setItemCreateOpen(true)
+  }
+
+  function handleItemCreated(item: ItemRecord) {
+    const lineKey = itemCreateLineKey
+    setItemCreateLineKey(null)
+    if (lineKey) {
+      applyItemToLine(lineKey, item)
+    }
   }
 
   function selectLineGodown(key: string, godownName: string) {
@@ -455,8 +489,8 @@ export function VoucherEntryPage({
     if (!party) {
       reportSaveError(
         isSales
-          ? 'Select a customer (add one under Masters → Customers & suppliers).'
-          : 'Select a supplier (add one under Masters → Customers & suppliers).',
+          ? 'Select a customer or add one from the lookup.'
+          : 'Select a supplier or add one from the lookup.',
       )
       return
     }
@@ -665,36 +699,14 @@ export function VoucherEntryPage({
           </Link>
         </Button>
       }
-      description={
-        isSales
-          ? 'F2 save · F2 on party/item opens lookup · Enter moves across the grid · F9 removes row'
-          : 'F2 save · F2 on supplier/item opens lookup · Enter moves across the grid · F9 removes row'
-      }
       title={isSales ? 'New sales bill' : 'New purchase bill'}
     >
       <form
-        className="flex flex-col gap-2 pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] sm:pb-24"
+        className="flex flex-col gap-4 pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] sm:pb-24"
         onSubmit={handleSave}
         ref={formRef}
       >
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-          <kbd className="rounded border bg-background px-1.5 py-0.5 font-mono">F2</kbd>
-          <span>Save bill</span>
-          <span aria-hidden>·</span>
-          <kbd className="rounded border bg-background px-1.5 py-0.5 font-mono">F9</kbd>
-          <span>Remove row</span>
-          <span aria-hidden>·</span>
-          <kbd className="rounded border bg-background px-1.5 py-0.5 font-mono">Enter</kbd>
-          <span>Next field</span>
-        </div>
-        <Card className="py-0">
-          <CardHeader className="py-3">
-            <CardTitle className="text-base">Bill details</CardTitle>
-            <CardDescription className="text-xs">
-              Series, date, {isSales ? 'customer' : 'supplier'}, and GST type
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 pb-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="flex flex-col gap-1.5">
               <span className="text-xs font-medium">Series</span>
               <Select onValueChange={setSeries} value={series}>
@@ -759,7 +771,11 @@ export function VoucherEntryPage({
                 {isSales ? 'Customer' : 'Supplier'}
               </span>
               <MasterLookup
-                emptyText="No contacts. Add under Customers & suppliers."
+                createAction={{
+                  label: isSales ? 'Add new customer…' : 'Add new supplier…',
+                  onSelect: () => setPartyCreateOpen(true),
+                }}
+                emptyText="No contacts yet."
                 onValueChange={selectParty}
                 options={partyOptions}
                 placeholder={`Select ${isSales ? 'customer' : 'supplier'}`}
@@ -800,21 +816,27 @@ export function VoucherEntryPage({
               </Select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium">Default godown</span>
-              <Select onValueChange={handleHeaderGodownChange} value={godown}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {godownNames.map((entry) => (
-                      <SelectItem key={entry} value={entry}>
-                        {entry}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+              <span className="text-xs font-medium">Godown</span>
+              {showLineGodown ? (
+                <Select onValueChange={handleHeaderGodownChange} value={godown}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {godownNames.map((entry) => (
+                        <SelectItem key={entry} value={entry}>
+                          {entry}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <span className="flex h-8 items-center rounded-md border bg-muted/40 px-2.5 text-xs">
+                  {godownNames[0] ?? 'Main Godown'}
+                </span>
+              )}
             </div>
             {party?.priceListId ? (
               <div className="flex flex-col gap-1.5 md:col-span-2">
@@ -911,23 +933,16 @@ export function VoucherEntryPage({
                 </div>
               </>
             )}
-          </CardContent>
-        </Card>
+        </section>
 
-        <Card className="py-0">
-          <CardHeader className="flex flex-row items-center justify-between gap-3 py-3">
-            <div className="flex flex-col gap-0.5">
-              <CardTitle className="text-base">Items</CardTitle>
-              <CardDescription className="text-xs">
-                Qty → Rate → Disc → next row
-              </CardDescription>
-            </div>
-            <Button onClick={addLine} size="sm" type="button" variant="outline">
+        <section className="flex flex-col gap-2">
+          <div className="flex items-center justify-end gap-3">
+            <Button onClick={addLine} size="sm" type="button">
               <PlusIcon data-icon="inline-start" />
               Add row
             </Button>
-          </CardHeader>
-          <CardContent className="overflow-x-auto px-0 pb-2" data-voucher-grid>
+          </div>
+          <div data-voucher-grid>
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -935,7 +950,9 @@ export function VoucherEntryPage({
                   <TableHead className="h-8">HSN</TableHead>
                   <TableHead className="h-8">Qty</TableHead>
                   <TableHead className="h-8">Unit</TableHead>
-                  <TableHead className="h-8 min-w-28">Godown</TableHead>
+                  {showLineGodown ? (
+                    <TableHead className="h-8 min-w-28">Godown</TableHead>
+                  ) : null}
                   <TableHead className="h-8">Rate</TableHead>
                   <TableHead className="h-8">Disc %</TableHead>
                   <TableHead className="h-8">Taxable</TableHead>
@@ -952,7 +969,11 @@ export function VoucherEntryPage({
                     <TableCell className="py-1">
                       <MasterLookup
                         className="h-8"
-                        emptyText="No items. Add under Products & stock."
+                        createAction={{
+                          label: 'Add new item…',
+                          onSelect: () => openItemCreate(line.key),
+                        }}
+                        emptyText="No items yet."
                         onFocus={() => {
                           activeRowIndexRef.current = rowIndex
                         }}
@@ -987,52 +1008,20 @@ export function VoucherEntryPage({
                     </TableCell>
                     <TableCell>
                       {line.itemId ? (
-                        <div className="flex flex-col gap-1">
-                          <Select
-                            onValueChange={(value) =>
-                              selectUnit(line.key, value)
-                            }
-                            value={line.unit}
-                          >
-                            <SelectTrigger className="min-w-28">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectGroup>
-                                <SelectItem value={line.unit}>
-                                  {line.unit}
-                                </SelectItem>
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                          {line.uqc ? (
-                            <Badge className="w-fit" variant="outline">
-                              {line.uqc}
-                            </Badge>
-                          ) : null}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="py-1">
-                      {line.itemId ? (
                         <Select
                           onValueChange={(value) =>
-                            selectLineGodown(line.key, value)
+                            selectUnit(line.key, value)
                           }
-                          value={line.godownName || godown}
+                          value={line.unit}
                         >
-                          <SelectTrigger className="min-w-28 h-8">
+                          <SelectTrigger className="min-w-28">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectGroup>
-                              {godownNames.map((entry) => (
-                                <SelectItem key={entry} value={entry}>
-                                  {entry}
-                                </SelectItem>
-                              ))}
+                              <SelectItem value={line.unit}>
+                                {line.unit}
+                              </SelectItem>
                             </SelectGroup>
                           </SelectContent>
                         </Select>
@@ -1040,6 +1029,33 @@ export function VoucherEntryPage({
                         <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
+                    {showLineGodown ? (
+                      <TableCell className="py-1">
+                        {line.itemId ? (
+                          <Select
+                            onValueChange={(value) =>
+                              selectLineGodown(line.key, value)
+                            }
+                            value={line.godownName || godown}
+                          >
+                            <SelectTrigger className="min-w-28 h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectGroup>
+                                {godownNames.map((entry) => (
+                                  <SelectItem key={entry} value={entry}>
+                                    {entry}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    ) : null}
                     <TableCell className="py-1">
                       <Input
                         className="h-8 w-24"
@@ -1091,6 +1107,7 @@ export function VoucherEntryPage({
                     </TableCell>
                     <TableCell className="py-1">
                       <Button
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                         onClick={() => removeLine(line.key)}
                         size="icon-sm"
                         type="button"
@@ -1104,15 +1121,13 @@ export function VoucherEntryPage({
                 ))}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        <div className="grid gap-2 xl:grid-cols-[1.2fr_0.8fr]">
-          <Card className="py-0">
-            <CardHeader className="py-3">
-              <CardTitle className="text-base">Charges & notes</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-3 pb-4 sm:grid-cols-4">
+        <div className="grid gap-3 xl:grid-cols-[1.2fr_0.8fr]">
+          <section className="flex flex-col gap-3 rounded-lg bg-muted/30 p-3">
+            <h2 className="text-sm font-medium">Charges & notes</h2>
+            <div className="grid gap-3 sm:grid-cols-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium" htmlFor="freight">
                   Freight
@@ -1165,17 +1180,17 @@ export function VoucherEntryPage({
                   value={narration}
                 />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </section>
 
-          <Card className="py-0">
-            <CardHeader className="py-3">
-              <CardTitle className="text-base">GST summary</CardTitle>
-              <CardDescription className="text-xs">
+          <section className="flex flex-col gap-2 rounded-lg bg-muted/30 p-3">
+            <div className="flex flex-col gap-0.5">
+              <h2 className="text-sm font-medium">GST summary</h2>
+              <p className="text-xs text-muted-foreground">
                 {region === 'local' ? 'CGST + SGST' : 'IGST'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2 pb-4 text-sm">
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 text-sm">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-muted-foreground">Taxable</span>
                 <span className="font-medium">
@@ -1209,11 +1224,11 @@ export function VoucherEntryPage({
                   {saveError}
                 </p>
               ) : null}
-            </CardContent>
-          </Card>
+            </div>
+          </section>
         </div>
 
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] backdrop-blur supports-[backdrop-filter]:bg-background/80 print:hidden md:left-[var(--sidebar-width)]">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] backdrop-blur supports-[backdrop-filter]:bg-background/80 print:hidden md:left-[var(--sidebar-width)] md:transition-[left] md:duration-200 md:ease-linear group-has-data-[state=collapsed]/sidebar-wrapper:md:left-[var(--sidebar-width-icon)]">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
             <div className="flex flex-col gap-0.5">
               <span className="text-xs text-muted-foreground">Grand total</span>
@@ -1222,11 +1237,8 @@ export function VoucherEntryPage({
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="hidden text-xs text-muted-foreground sm:inline">
-                Press <kbd className="rounded border px-1 font-mono">F2</kbd> to save
-              </span>
               <Button disabled={saving} type="submit">
-                {saving ? 'Saving…' : 'Save bill (F2)'}
+                {saving ? 'Saving…' : 'Save bill'}
               </Button>
             </div>
           </div>
@@ -1237,6 +1249,22 @@ export function VoucherEntryPage({
         onOpenChange={setPreviewOpen}
         open={previewOpen}
         target={previewTarget}
+      />
+
+      <CreatePartyDialog
+        defaultPartyType={isSales ? 'customer' : 'supplier'}
+        lockPartyType
+        onCreated={applyCreatedParty}
+        onOpenChange={setPartyCreateOpen}
+        open={partyCreateOpen}
+      />
+      <CreateItemDialog
+        onCreated={handleItemCreated}
+        onOpenChange={(next) => {
+          setItemCreateOpen(next)
+          if (!next) setItemCreateLineKey(null)
+        }}
+        open={itemCreateOpen}
       />
     </WorkspacePage>
   )

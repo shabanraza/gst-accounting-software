@@ -248,6 +248,7 @@ export function SalesPanel() {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
+                                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                                 disabled={cancelInvoiceMutation.isPending}
                                 onClick={() =>
                                   setCancelTarget({

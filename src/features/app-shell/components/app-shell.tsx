@@ -48,6 +48,7 @@ import {
 import {
   appNav,
   isAppNavPathActive,
+  navLinkActiveOptions,
 } from '#/features/app-shell/data/app-shell-nav.ts'
 import type {
   AppNavItem,
@@ -74,7 +75,7 @@ function NavItemButton({
         isActive={isAppNavPathActive(pathname, item.path)}
         tooltip={item.label}
       >
-        <Link to={item.path}>
+        <Link activeOptions={navLinkActiveOptions(item.path)} to={item.path}>
           <Icon />
           <span>{item.label}</span>
         </Link>
@@ -93,17 +94,23 @@ function CollapsibleNavGroup({
   const isGroupActive = group.items.some((item) =>
     isAppNavPathActive(pathname, item.path),
   )
+  const [open, setOpen] = React.useState(isGroupActive)
   const Icon = group.icon
+
+  React.useEffect(() => {
+    setOpen(isGroupActive)
+  }, [isGroupActive])
 
   return (
     <Collapsible
       className="group/collapsible"
-      defaultOpen={isGroupActive}
       key={group.label}
+      onOpenChange={setOpen}
+      open={open}
     >
       <SidebarMenuItem>
         <CollapsibleTrigger asChild>
-          <SidebarMenuButton isActive={isGroupActive} tooltip={group.label}>
+          <SidebarMenuButton tooltip={group.label}>
             <Icon />
             <span>{group.label}</span>
             <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -120,7 +127,7 @@ function CollapsibleNavGroup({
                     asChild
                     isActive={isAppNavPathActive(pathname, item.path)}
                   >
-                    <Link to={item.path}>
+                    <Link activeOptions={navLinkActiveOptions(item.path)} to={item.path}>
                       <ItemIcon />
                       <span>{item.label}</span>
                     </Link>
@@ -289,25 +296,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </SidebarFooter>
           <SidebarRail />
         </Sidebar>
-        <SidebarInset>
-          <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-11 print:hidden">
+        <SidebarInset className="min-h-0 overflow-hidden">
+          <header className="flex h-11 shrink-0 items-center gap-2 px-3 print:hidden">
             <SidebarTrigger className="-ml-1" />
-            <div className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-sm font-medium">
-                {displayCompany?.tradeName ??
-                  (isReady ? 'Workspace' : 'Loading…')}
-              </span>
-              {displayCompany ? (
-                <span className="truncate text-xs text-muted-foreground">
-                  FY {displayCompany.financialYearStart.slice(0, 4)}–
-                  {String(
-                    Number(displayCompany.financialYearStart.slice(0, 4)) + 1,
-                  ).slice(-2)}
-                </span>
-              ) : null}
-            </div>
+            <div className="flex-1" />
             <Button
-              className="ml-auto gap-2 text-muted-foreground"
+              className="gap-2"
               onClick={() => setPaletteOpen(true)}
               size="sm"
               variant="outline"
@@ -355,7 +349,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
-          {children}
+          <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
+            {children}
+          </div>
         </SidebarInset>
       </SidebarProvider>
       <CommandPalette onOpenChange={setPaletteOpen} open={paletteOpen} />

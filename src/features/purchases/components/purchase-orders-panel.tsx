@@ -35,6 +35,22 @@ import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
+function workflowStatusBadgeVariant(status: string) {
+  if (status === 'open') {
+    return 'info' as const
+  }
+
+  if (status === 'converted' || status === 'closed') {
+    return 'success' as const
+  }
+
+  if (status === 'cancelled') {
+    return 'destructive' as const
+  }
+
+  return 'outline' as const
+}
+
 export function PurchaseOrdersPanel() {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
@@ -245,7 +261,9 @@ export function PurchaseOrdersPanel() {
                     <TableCell>{order.orderNumber}</TableCell>
                     <TableCell>{order.orderDate}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{order.status}</Badge>
+                      <Badge variant={workflowStatusBadgeVariant(order.status)}>
+                        {order.status}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       {formatInr(order.totalAmount)}

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ChevronsUpDownIcon } from 'lucide-react'
+import { ChevronsUpDownIcon, PlusIcon } from 'lucide-react'
 
 import { Button } from '#/components/ui/button.tsx'
 import {
@@ -10,6 +10,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandSeparator,
 } from '#/components/ui/command.tsx'
 import { cn } from '#/lib/utils.ts'
 
@@ -31,6 +32,10 @@ type MasterLookupProps = {
   className?: string
   disabled?: boolean
   onFocus?: () => void
+  createAction?: {
+    label: string
+    onSelect: () => void
+  }
 }
 
 export function MasterLookup({
@@ -44,6 +49,7 @@ export function MasterLookup({
   className,
   disabled,
   onFocus,
+  createAction,
 }: MasterLookupProps) {
   const [open, setOpen] = React.useState(false)
   const selected = options.find((option) => option.value === value)
@@ -111,6 +117,23 @@ export function MasterLookup({
                 </CommandItem>
               ))}
             </CommandGroup>
+            {createAction ? (
+              <>
+                <CommandSeparator />
+                <CommandGroup>
+                  <CommandItem
+                    onSelect={() => {
+                      setOpen(false)
+                      createAction.onSelect()
+                    }}
+                    value={`__create__ ${createAction.label}`}
+                  >
+                    <PlusIcon className="text-muted-foreground" />
+                    <span>{createAction.label}</span>
+                  </CommandItem>
+                </CommandGroup>
+              </>
+            ) : null}
           </CommandList>
         </Command>
       </CommandDialog>

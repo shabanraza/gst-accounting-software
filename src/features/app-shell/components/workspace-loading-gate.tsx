@@ -1,6 +1,18 @@
 import { Skeleton } from '#/components/ui/skeleton.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 
+function WorkspacePageSkeleton() {
+  return (
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-4">
+      <div className="flex flex-col gap-1">
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-4 w-72 max-w-full" />
+      </div>
+      <Skeleton className="h-64 w-full" />
+    </div>
+  )
+}
+
 export function WorkspaceLoadingGate({
   children,
 }: {
@@ -9,35 +21,19 @@ export function WorkspaceLoadingGate({
   const { accountId, isLoading, error, company } = useWorkspace()
 
   if (!accountId) {
-    return (
-      <div className="flex flex-1 flex-col gap-3 p-3 pt-0">
-        <div className="flex flex-col gap-2 border-b pb-3">
-          <Skeleton className="h-7 w-48" />
-          <Skeleton className="h-4 w-72 max-w-full" />
-        </div>
-        <Skeleton className="h-64 w-full" />
-      </div>
-    )
+    return <WorkspacePageSkeleton />
   }
 
   if (error && !company) {
     return (
-      <div className="flex flex-1 flex-col gap-2 p-3 pt-0 text-sm text-destructive">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 p-4 text-sm text-destructive">
         {error}
       </div>
     )
   }
 
   if (!company && isLoading) {
-    return (
-      <div className="flex flex-1 flex-col gap-3 p-3 pt-0">
-        <div className="flex flex-col gap-2 border-b pb-3">
-          <Skeleton className="h-7 w-48" />
-          <Skeleton className="h-4 w-72 max-w-full" />
-        </div>
-        <Skeleton className="h-64 w-full" />
-      </div>
-    )
+    return <WorkspacePageSkeleton />
   }
 
   return children

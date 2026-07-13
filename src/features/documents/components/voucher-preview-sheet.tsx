@@ -142,12 +142,12 @@ export function VoucherPreviewSheet({
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent
-        className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl lg:max-w-6xl xl:max-w-7xl"
+        className="flex w-full max-w-none flex-col gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:w-[60vw] data-[side=right]:sm:max-w-[60vw]"
         showCloseButton
       >
         <SheetHeader className="shrink-0 border-b px-6 py-4">
           <div className="flex items-start gap-3 pr-8">
-            <CheckCircle2Icon className="mt-0.5 size-5 shrink-0 text-emerald-600" />
+            <CheckCircle2Icon className="mt-0.5 size-5 shrink-0 text-emerald-700 dark:text-emerald-300" />
             <div className="flex flex-col gap-1">
               <SheetTitle className="text-base">
                 {target?.kind === 'sales' ? 'Invoice saved' : 'Bill saved'}
@@ -164,20 +164,20 @@ export function VoucherPreviewSheet({
             <VoucherPrintToolbar fullPageHref={fullPageHref} pdfHref={pdfHref} />
           </div>
 
-          <div className="flex min-h-0 flex-1 overflow-y-auto bg-muted/50 px-4 py-6 sm:px-8 sm:py-8">
+          <div className="flex min-h-0 flex-1 justify-center overflow-y-auto bg-muted/50 px-4 py-6 sm:px-6 sm:py-8">
             {isLoading ? (
-              <div className="mx-auto flex w-full max-w-4xl items-center justify-center rounded-lg border border-dashed bg-background p-10 text-center text-sm text-muted-foreground">
+              <div className="mx-auto flex aspect-[210/297] w-full max-w-[min(794px,calc(60vw-3rem))] shrink-0 items-center justify-center rounded-lg border border-dashed bg-background p-10 text-center text-sm text-muted-foreground">
                 Loading preview…
               </div>
             ) : printDocument ? (
-              <div className="mx-auto w-full">
+              <div className="mx-auto aspect-[210/297] w-full max-w-[min(794px,calc(60vw-3rem))] shrink-0">
                 <VoucherDocumentPaper
-                  className="shadow-md"
+                  className="h-full min-h-0 overflow-y-auto shadow-md print:h-auto print:overflow-visible"
                   document={printDocument}
                 />
               </div>
             ) : (
-              <div className="mx-auto flex w-full max-w-4xl items-center justify-center rounded-lg border border-dashed bg-background p-10 text-center text-sm text-destructive">
+              <div className="mx-auto flex aspect-[210/297] w-full max-w-[min(794px,calc(60vw-3rem))] shrink-0 items-center justify-center rounded-lg border border-dashed bg-background p-10 text-center text-sm text-destructive">
                 Could not load voucher preview.
               </div>
             )}

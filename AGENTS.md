@@ -16,7 +16,7 @@
 - Runtime target: Cloudflare Workers via `@cloudflare/vite-plugin`.
 - Database: PostgreSQL/Neon with Drizzle ORM.
 - UI: shadcn/ui with Tailwind CSS v4.
-- shadcn preset/style: `radix-mira`.
+- shadcn preset/style: `radix-lyra` with teal theme.
 - Icon library: `lucide-react`.
 - Import alias: `#/*`.
 - Current app shell lives under `src/features/app-shell/`.
@@ -24,7 +24,7 @@
 ## Design And UI Rules
 
 - Follow the current theme and design pattern already in the app.
-- Preserve the shadcn `radix-mira` look unless the user explicitly requests a new preset or theme.
+- Preserve the shadcn `radix-lyra` teal look unless the user explicitly requests a new preset or theme.
 - Use shadcn/ui components first. Do not build custom UI primitives when a shadcn component exists.
 - Keep route files thin; route files should compose feature components only.
 - Put reusable product UI under feature folders such as `src/features/<feature-name>/components`.

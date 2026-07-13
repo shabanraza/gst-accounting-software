@@ -41,6 +41,18 @@ const documentTypeLabels = {
   delivery_challan: 'Delivery challan',
 } as const
 
+function documentStatusBadgeVariant(status: string) {
+  if (status === 'open') {
+    return 'info' as const
+  }
+
+  if (status === 'converted') {
+    return 'success' as const
+  }
+
+  return 'outline' as const
+}
+
 export function SalesDocumentsPanel() {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
@@ -252,7 +264,9 @@ export function SalesDocumentsPanel() {
                     <TableCell>{document.documentNumber}</TableCell>
                     <TableCell>{document.documentDate}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{document.status}</Badge>
+                      <Badge variant={documentStatusBadgeVariant(document.status)}>
+                        {document.status}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       {formatInr(document.totalAmount)}

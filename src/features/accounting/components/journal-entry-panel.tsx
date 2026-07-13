@@ -182,6 +182,7 @@ export function JournalEntryPanel() {
                     value={line.credit}
                   />
                   <Button
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                     onClick={() =>
                       setLines((current) =>
                         current.length <= 2
@@ -202,7 +203,6 @@ export function JournalEntryPanel() {
               <Button
                 onClick={() => setLines((current) => [...current, emptyLine()])}
                 type="button"
-                variant="outline"
               >
                 <PlusIcon data-icon="inline-start" />
                 Add line

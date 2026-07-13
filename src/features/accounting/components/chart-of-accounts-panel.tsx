@@ -21,6 +21,7 @@ import {
   TableRow,
 } from '#/components/ui/table.tsx'
 import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs.tsx'
+import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
@@ -145,17 +146,10 @@ export function ChartOfAccountsPanel() {
   const isLoading = accountsQuery.isLoading || !isReady
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <div className="flex flex-col gap-1 py-4">
-        <h1 className="text-2xl font-semibold tracking-normal">
-          Chart of accounts
-        </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Company ledgers used for posting sales, purchases, GST, and cash
-          movements.
-        </p>
-      </div>
-
+    <WorkspacePage
+      description="Company ledgers used for posting sales, purchases, GST, and cash movements."
+      title="Chart of accounts"
+    >
       {isLoading ? (
         <Card className="flex flex-1 items-center justify-center">
           <CardContent className="py-16 text-center text-sm text-muted-foreground">
@@ -276,6 +270,6 @@ export function ChartOfAccountsPanel() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </WorkspacePage>
   )
 }

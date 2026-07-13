@@ -112,10 +112,16 @@ export const appNav: Array<AppNavSection> = [
     ],
   },
   {
-    kind: 'link',
-    label: 'Customers & suppliers',
-    path: '/app/masters/parties',
+    kind: 'group',
+    label: 'Parties',
     icon: UsersIcon,
+    items: [
+      {
+        label: 'Customers & suppliers',
+        path: '/app/masters/parties',
+        icon: UsersIcon,
+      },
+    ],
   },
   {
     kind: 'group',
@@ -160,21 +166,46 @@ export const appNavItems: Array<AppNavItem> = appNav.flatMap((section) =>
 )
 
 export function isAppNavPathActive(pathname: string, path: AppNavPath) {
+  const normalizedPathname = pathname.replace(/\/$/, '') || '/'
+
   if (path === '/app/sales') {
     return (
-      pathname === path ||
-      (pathname.startsWith('/app/sales/') &&
-        !pathname.startsWith('/app/sales/documents'))
+      normalizedPathname === path ||
+      (normalizedPathname.startsWith('/app/sales/') &&
+        !normalizedPathname.startsWith('/app/sales/documents'))
     )
   }
 
   if (path === '/app/sales/documents') {
-    return pathname === path || pathname.startsWith(`${path}/`)
+    return (
+      normalizedPathname === path ||
+      normalizedPathname.startsWith(`${path}/`)
+    )
   }
 
   if (path === '/app/purchases') {
-    return pathname === path || pathname.startsWith('/app/purchases/')
+    return (
+      normalizedPathname === path ||
+      normalizedPathname.startsWith(`${path}/`)
+    )
   }
 
-  return pathname === path || pathname.startsWith(`${path}/`)
+  // Sibling routes under /app/masters/ must not prefix-match each other.
+  if (path.startsWith('/app/masters/')) {
+    return normalizedPathname === path
+  }
+
+  return normalizedPathname === path || normalizedPathname.startsWith(`${path}/`)
+}
+
+export function navLinkActiveOptions(path: AppNavPath) {
+  if (
+    path === '/app/sales' ||
+    path === '/app/sales/documents' ||
+    path === '/app/purchases'
+  ) {
+    return undefined
+  }
+
+  return { exact: true } as const
 }

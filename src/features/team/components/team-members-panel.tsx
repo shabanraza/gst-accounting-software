@@ -245,6 +245,7 @@ export function TeamMembersPanel() {
                   <TableCell>
                     {isOwner || isSelf ? null : (
                       <Button
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                         onClick={() =>
                           companyId &&
                           removeMutation.mutate({
@@ -294,6 +295,7 @@ export function TeamMembersPanel() {
                 </div>
                 <div className="flex items-center gap-1">
                   <Button
+                    className="text-muted-foreground"
                     disabled={resendMutation.isPending}
                     onClick={() =>
                       companyId &&
@@ -309,6 +311,7 @@ export function TeamMembersPanel() {
                     <span className="sr-only">Resend invite</span>
                   </Button>
                   <Button
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                     onClick={() =>
                       companyId &&
                       revokeMutation.mutate({
