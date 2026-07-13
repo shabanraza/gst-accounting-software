@@ -2,7 +2,11 @@ import Decimal from 'decimal.js'
 
 import { createItem } from '#/features/inventory/item-service.ts'
 import { createParty } from '#/features/parties/party-service.ts'
-import { postPurchaseBill } from '#/features/purchases/purchase-bill-service.ts'
+import { postPurchaseBill, DuplicateSupplierBillError } from '#/features/purchases/purchase-bill-service.ts'
+import { assertLedgerAccountsBelongToCompany } from '#/features/accounting/ledger-account-guards.ts'
+
+import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
+import type { DocumentAttachmentRepository } from '#/features/documents/document-attachment-service.ts'
 
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
@@ -51,6 +55,7 @@ export interface OcrDraftRepository {
 export type OcrConfirmDependencies = PurchaseBillDependencies & {
   parties: PartyRepository
   items: ItemRepository
+  ledgers: LedgerAccountRepository
 }
 
 export type ConfirmOcrDraftInput = {
@@ -145,12 +150,18 @@ async function resolveOcrItem(items: ItemRepository, companyId: string) {
 
 export async function createOcrDraft(
   repository: OcrDraftRepository,
+  attachments: DocumentAttachmentRepository,
   input: {
     companyId: string
     attachmentId: string
     fields: OcrDraftFields
   },
 ): Promise<OcrDraftRecord> {
+  const attachment = await attachments.findById(input.attachmentId)
+  if (!attachment || attachment.companyId !== input.companyId) {
+    throw new Error('Attachment not found for company')
+  }
+
   const lowConfidenceFields = (
     Object.entries(input.fields) as Array<[keyof OcrDraftFields, OcrFieldValue]>
   )
@@ -188,6 +199,13 @@ export async function confirmOcrDraft(
     return draft
   }
 
+  await assertLedgerAccountsBelongToCompany(deps.ledgers, input.companyId, [
+    input.purchaseAccountId,
+    input.inputGstAccountId,
+    input.payableAccountId,
+    input.stockAccountId,
+  ])
+
   const { fields } = draft
   const supplier = await resolveOcrSupplier(deps.parties, {
     companyId: input.companyId,
@@ -200,7 +218,9 @@ export async function confirmOcrDraft(
   const billDate = fields.billDate.value
   const taxableAmount = fields.taxableAmount.value
 
-  const bill: PurchaseBillRecord = await postPurchaseBill(deps, {
+  let bill: PurchaseBillRecord
+  try {
+    bill = await postPurchaseBill(deps, {
     companyId: input.companyId,
     companyStateCode: input.companyStateCode,
     financialYearStart: input.financialYearStart,
@@ -226,7 +246,24 @@ export async function confirmOcrDraft(
         gstRate,
       },
     ],
-  })
+    })
+  } catch (error) {
+    if (error instanceof DuplicateSupplierBillError) {
+      const existing = await deps.bills.findBySupplierBillNumber({
+        companyId: input.companyId,
+        supplierId: supplier.id,
+        supplierBillNumber: fields.billNumber.value,
+        financialYearStart: input.financialYearStart,
+      })
+      if (existing) {
+        bill = existing
+      } else {
+        throw error
+      }
+    } else {
+      throw error
+    }
+  }
 
   return repository.save({
     ...draft,

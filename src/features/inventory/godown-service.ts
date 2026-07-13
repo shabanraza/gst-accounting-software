@@ -52,6 +52,13 @@ export class CannotDeleteDefaultGodownError extends Error {
   }
 }
 
+export class GodownInUseError extends Error {
+  constructor(name: string) {
+    super(`Godown is referenced by stock movements and cannot be deleted: ${name}`)
+    this.name = 'GodownInUseError'
+  }
+}
+
 export class CannotDeleteLastGodownError extends Error {
   constructor() {
     super('Cannot delete the only godown for this company')
@@ -133,6 +140,11 @@ export async function deleteGodown(
   repository: GodownRepository,
   companyId: string,
   godownId: string,
+  movements?: {
+    listByCompanyId: (
+      companyId: string,
+    ) => Promise<Array<{ godownName: string | null }>>
+  },
 ): Promise<void> {
   const existing = await repository.findById(godownId)
   if (!existing || existing.companyId !== companyId) {
@@ -145,6 +157,15 @@ export async function deleteGodown(
   }
   if (existing.isDefault) {
     throw new CannotDeleteDefaultGodownError()
+  }
+
+  if (movements) {
+    const inUse = (await movements.listByCompanyId(companyId)).some(
+      (movement) => movement.godownName === existing.name,
+    )
+    if (inUse) {
+      throw new GodownInUseError(existing.name)
+    }
   }
 
   await repository.delete(godownId)

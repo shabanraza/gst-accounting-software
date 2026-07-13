@@ -24,8 +24,11 @@ export function PurchaseBillPrintView({
   const { companyId, company, isReady } = useWorkspace()
 
   const billQuery = useQuery({
-    ...trpc.purchases.getById.queryOptions({ id: billId }),
-    enabled: Boolean(billId),
+    ...trpc.purchases.getById.queryOptions({
+      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
+      id: billId,
+    }),
+    enabled: Boolean(billId) && Boolean(companyId) && isReady,
   })
   const partiesQuery = useQuery({
     ...trpc.parties.list.queryOptions({

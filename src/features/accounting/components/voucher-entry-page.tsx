@@ -236,9 +236,10 @@ export function VoucherEntryPage({
 
   const priceListItemsQuery = useQuery({
     ...trpc.inventory.listPriceListItems.queryOptions({
+      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
       priceListId: activePriceListId ?? '00000000-0000-4000-8000-000000000000',
     }),
-    enabled: Boolean(activePriceListId) && isReady,
+    enabled: Boolean(companyId) && Boolean(activePriceListId) && isReady,
   })
 
   React.useEffect(() => {

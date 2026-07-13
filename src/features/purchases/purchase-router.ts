@@ -3,7 +3,8 @@ import { z } from 'zod'
 import { recordPurchaseSummary } from '#/features/dashboard/dashboard-summary-service.ts'
 import { postPurchaseBill } from '#/features/purchases/purchase-bill-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
-import { publicProcedure } from '#/integrations/trpc/init.ts'
+import { companyProcedure } from '#/integrations/trpc/init.ts'
+import { TRPCError } from '@trpc/server'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
@@ -61,6 +62,7 @@ const listPurchasesInputSchema = z.object({
 })
 
 const getPurchaseBillInputSchema = z.object({
+  companyId: z.string().uuid(),
   id: z.string().uuid(),
 })
 
@@ -72,13 +74,17 @@ export const createPurchasesRouter = (
   items: ItemRepository,
 ) =>
   ({
-    list: publicProcedure.input(listPurchasesInputSchema).query(({ input }) => {
+    list: companyProcedure.input(listPurchasesInputSchema).query(({ input }) => {
       return bills.listByCompanyId(input.companyId)
     }),
-    getById: publicProcedure
+    getById: companyProcedure
       .input(getPurchaseBillInputSchema)
-      .query(({ input }) => {
-        return bills.findById(input.id)
+      .query(async ({ input }) => {
+        const bill = await bills.findById(input.id)
+        if (!bill || bill.companyId !== input.companyId) {
+          throw new TRPCError({ code: 'NOT_FOUND' })
+        }
+        return bill
       }),
     postBill: capabilityProcedure('post_purchase')
       .input(postPurchaseBillInputSchema)

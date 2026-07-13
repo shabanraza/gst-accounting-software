@@ -86,8 +86,20 @@ describe('document attachments', () => {
 describe('ocr drafts', () => {
   test('stores extracted fields with confidence and does not auto-post', async () => {
     const repository = new InMemoryOcrDraftRepository()
+    const attachments = new InMemoryDocumentAttachmentRepository()
+    await attachments.create({
+      id: 'att-1',
+      companyId: 'company-1',
+      linkedDocumentType: 'purchase_bill',
+      linkedDocumentId: 'bill-1',
+      storageKey: 'attachments/company-1/x',
+      originalFilename: 'scan.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 100,
+      createdAt: new Date(),
+    })
 
-    const draft = await createOcrDraft(repository, {
+    const draft = await createOcrDraft(repository, attachments, {
       companyId: 'company-1',
       attachmentId: 'att-1',
       fields: {
@@ -109,8 +121,20 @@ describe('ocr drafts', () => {
 
   test('confirmation posts a purchase bill from reviewed OCR fields', async () => {
     const repository = new InMemoryOcrDraftRepository()
+    const attachments = new InMemoryDocumentAttachmentRepository()
+    await attachments.create({
+      id: 'att-1',
+      companyId: 'company-1',
+      linkedDocumentType: 'purchase_bill',
+      linkedDocumentId: 'bill-1',
+      storageKey: 'attachments/company-1/x',
+      originalFilename: 'scan.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 100,
+      createdAt: new Date(),
+    })
 
-    const draft = await createOcrDraft(repository, {
+    const draft = await createOcrDraft(repository, attachments, {
       companyId: 'company-1',
       attachmentId: 'att-1',
       fields: {

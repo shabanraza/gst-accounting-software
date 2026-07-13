@@ -9,7 +9,8 @@ import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 import { companyProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
-import type { ItemRepository } from '#/features/inventory/item-service.ts'
+import type { DocumentAttachmentRepository } from '#/features/documents/document-attachment-service.ts'
+import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 import type {
   OcrConfirmDependencies,
   OcrDraftRepository,
@@ -52,7 +53,11 @@ const confirmOcrDraftInputSchema = z.object({
 
 export const createOcrRouter = (
   repository: OcrDraftRepository,
-  deps: Pick<OcrConfirmDependencies, 'parties' | 'items' | 'bills' | 'posting' | 'stock'>,
+  attachments: DocumentAttachmentRepository,
+  deps: Pick<
+    OcrConfirmDependencies,
+    'parties' | 'items' | 'bills' | 'posting' | 'stock' | 'ledgers'
+  >,
 ) =>
   ({
     list: companyProcedure.input(listOcrDraftsInputSchema).query(({ input }) => {
@@ -60,7 +65,9 @@ export const createOcrRouter = (
     }),
     createOcrDraft: capabilityProcedure('post_purchase')
       .input(createOcrDraftInputSchema)
-      .mutation(({ input }) => createOcrDraft(repository, input)),
+      .mutation(({ input }) =>
+        createOcrDraft(repository, attachments, input),
+      ),
     confirm: capabilityProcedure('post_purchase')
       .input(confirmOcrDraftInputSchema)
       .mutation(({ input, ctx }) =>

@@ -24,7 +24,7 @@ import {
   recordStockMovement,
 } from '#/features/inventory/stock-movement-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
-import { publicProcedure } from '#/integrations/trpc/init.ts'
+import { companyProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { GodownRepository } from '#/features/inventory/godown-service.ts'
@@ -110,6 +110,7 @@ const createPriceListInputSchema = z.object({
 })
 
 const listPriceListItemsInputSchema = z.object({
+  companyId: z.string().uuid(),
   priceListId: z.string().uuid(),
 })
 
@@ -121,12 +122,24 @@ const setPriceListItemRateInputSchema = z.object({
 })
 
 const resolveItemRateInputSchema = z.object({
+  companyId: z.string().uuid(),
   priceListId: z.string().uuid().nullable().optional(),
   itemId: z.string().uuid(),
   mode: z.enum(['sales', 'purchase']),
   saleRate: z.string().min(1),
   purchaseRate: z.string().min(1),
 })
+
+async function assertPriceListForCompany(
+  priceListRepository: PriceListRepository,
+  companyId: string,
+  priceListId: string,
+) {
+  const lists = await listPriceListsByCompany(priceListRepository, companyId)
+  if (!lists.some((list) => list.id === priceListId)) {
+    throw new Error('Price list not found for company')
+  }
+}
 
 export const createInventoryRouter = (
   itemRepository: ItemRepository,
@@ -157,6 +170,7 @@ export const createInventoryRouter = (
           godownRepository,
           input.companyId,
           input.godownId,
+          stockStore,
         )
       }),
     setDefaultGodown: capabilityProcedure('manage_inventory')
@@ -168,7 +182,7 @@ export const createInventoryRouter = (
           input.godownId,
         )
       }),
-    listPriceLists: publicProcedure
+    listPriceLists: companyProcedure
       .input(listByCompanyInputSchema)
       .query(({ input }) => {
         return listPriceListsByCompany(priceListRepository, input.companyId)
@@ -178,26 +192,43 @@ export const createInventoryRouter = (
       .mutation(({ input }) => {
         return createPriceList(priceListRepository, input)
       }),
-    listPriceListItems: publicProcedure
+    listPriceListItems: companyProcedure
       .input(listPriceListItemsInputSchema)
-      .query(({ input }) => {
+      .query(async ({ input }) => {
+        await assertPriceListForCompany(
+          priceListRepository,
+          input.companyId,
+          input.priceListId,
+        )
         return listPriceListItems(priceListRepository, input.priceListId)
       }),
     setPriceListItemRate: capabilityProcedure('manage_masters')
       .input(setPriceListItemRateInputSchema)
-      .mutation(({ input }) => {
+      .mutation(async ({ input }) => {
+        await assertPriceListForCompany(
+          priceListRepository,
+          input.companyId,
+          input.priceListId,
+        )
         return setPriceListItemRate(priceListRepository, {
           priceListId: input.priceListId,
           itemId: input.itemId,
           rate: input.rate,
         })
       }),
-    resolveItemRate: publicProcedure
+    resolveItemRate: companyProcedure
       .input(resolveItemRateInputSchema)
-      .query(({ input }) => {
+      .query(async ({ input }) => {
+        if (input.priceListId) {
+          await assertPriceListForCompany(
+            priceListRepository,
+            input.companyId,
+            input.priceListId,
+          )
+        }
         return resolveItemRateForVoucher(priceListRepository, input)
       }),
-    listItems: publicProcedure
+    listItems: companyProcedure
       .input(listByCompanyInputSchema)
       .query(({ input }) => {
         return listItemsByCompany(itemRepository, input.companyId)
@@ -217,12 +248,12 @@ export const createInventoryRouter = (
       .mutation(({ input }) => {
         return recordStockMovement(stockStore, stockStore, input)
       }),
-    getCurrentStock: publicProcedure
+    getCurrentStock: companyProcedure
       .input(stockBalanceInputSchema)
       .query(({ input }) => {
         return getCurrentStock(stockStore, input.companyId, input.itemId)
       }),
-    listStockBalances: publicProcedure
+    listStockBalances: companyProcedure
       .input(listByCompanyInputSchema)
       .query(async ({ input }) => {
         const [items, balances] = await Promise.all([

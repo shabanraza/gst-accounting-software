@@ -12,6 +12,7 @@ import { companyProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { DocumentSequenceRepository } from '#/features/documents/document-sequence-service.ts'
+import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
 
 const nextNumberInputSchema = z.object({
   companyId: z.string().uuid(),
@@ -34,6 +35,24 @@ const uploadAttachmentInputSchema = createAttachmentInputSchema.extend({
   contentBase64: z.string().min(1).max(14_000_000),
 })
 
+async function assertLinkedDocument(
+  bills: PurchaseBillRepository,
+  input: {
+    companyId: string
+    linkedDocumentType: string
+    linkedDocumentId: string
+  },
+) {
+  if (input.linkedDocumentType !== 'purchase_bill') {
+    return
+  }
+
+  const bill = await bills.findById(input.linkedDocumentId)
+  if (!bill || bill.companyId !== input.companyId) {
+    throw new Error('Linked purchase bill not found for company')
+  }
+}
+
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
 function safeAttachmentFilename(filename: string): string {
@@ -44,6 +63,7 @@ function safeAttachmentFilename(filename: string): string {
 export const createDocumentsRouter = (
   sequences: DocumentSequenceRepository,
   attachments: DocumentAttachmentRepository,
+  bills: PurchaseBillRepository,
   storage: ObjectStorageAdapter = new InMemoryObjectStorageAdapter(),
 ) =>
   ({
@@ -64,6 +84,7 @@ export const createDocumentsRouter = (
     uploadAttachment: capabilityProcedure('post_purchase')
       .input(uploadAttachmentInputSchema)
       .mutation(async ({ input }) => {
+        await assertLinkedDocument(bills, input)
         const safeFilename = safeAttachmentFilename(input.originalFilename)
         const storageKey = `attachments/${input.companyId}/${input.linkedDocumentType}/${crypto.randomUUID()}/${safeFilename}`
         const body = Uint8Array.from(atob(input.contentBase64), (char) =>

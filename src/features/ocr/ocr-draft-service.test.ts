@@ -82,6 +82,29 @@ class InMemoryPurchaseBillRepository implements PurchaseBillRepository {
   }
 }
 
+import type { DocumentAttachmentRepository } from '#/features/documents/document-attachment-service.ts'
+import type { DocumentAttachmentRecord } from '#/features/documents/document-attachment-service.ts'
+
+class InMemoryAttachmentRepository implements DocumentAttachmentRepository {
+  async create(attachment: DocumentAttachmentRecord) {
+    return attachment
+  }
+
+  async findById(id: string) {
+    return {
+      id,
+      companyId: 'company-1',
+      linkedDocumentType: 'purchase_bill',
+      linkedDocumentId: 'bill-1',
+      storageKey: 'attachments/company-1/x',
+      originalFilename: 'scan.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 100,
+      createdAt: new Date(),
+    }
+  }
+}
+
 const sampleFields = {
   supplierName: { value: 'Textile Mills', confidence: 0.92 },
   supplierGstin: { value: '24AABCU9603R1ZM', confidence: 0.88 },
@@ -120,7 +143,8 @@ describe('confirmOcrDraft', () => {
       (account) => account.systemKey === 'stock_in_hand',
     )!.id
 
-    const draft = await createOcrDraft(repository, {
+    const attachments = new InMemoryAttachmentRepository()
+    const draft = await createOcrDraft(repository, attachments, {
       companyId,
       attachmentId: 'att-1',
       fields: sampleFields,
@@ -128,7 +152,7 @@ describe('confirmOcrDraft', () => {
 
     const confirmed = await confirmOcrDraft(
       repository,
-      { parties, items, bills, posting, stock },
+      { parties, items, bills, posting, stock, ledgers },
       {
         draftId: draft.id,
         companyId,
