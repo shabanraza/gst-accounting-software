@@ -100,12 +100,12 @@ export function VoucherEntryPage({
     trpc.documents.createAttachment.mutationOptions(),
   )
 
-  const parties = (partiesQuery.data ?? []).filter((party) =>
+  const parties = (partiesQuery.data).filter((party) =>
     isSales
       ? party.partyType === 'customer' || party.partyType === 'both'
       : party.partyType === 'supplier' || party.partyType === 'both',
   )
-  const items = itemsQuery.data ?? []
+  const items = itemsQuery.data
 
   const [series, setSeries] = React.useState<string>(seriesOptions[0])
   const [voucherNoPreview, setVoucherNoPreview] = React.useState('Auto')
@@ -673,7 +673,7 @@ export function VoucherEntryPage({
       title={isSales ? 'New sales bill' : 'New purchase bill'}
     >
       <form
-        className="flex flex-col gap-2 pb-20"
+        className="flex flex-col gap-2 pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] sm:pb-24"
         onSubmit={handleSave}
         ref={formRef}
       >
@@ -1213,7 +1213,7 @@ export function VoucherEntryPage({
           </Card>
         </div>
 
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 print:hidden md:left-[var(--sidebar-width)]">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] backdrop-blur supports-[backdrop-filter]:bg-background/80 print:hidden md:left-[var(--sidebar-width)]">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
             <div className="flex flex-col gap-0.5">
               <span className="text-xs text-muted-foreground">Grand total</span>
