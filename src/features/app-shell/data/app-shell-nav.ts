@@ -112,16 +112,10 @@ export const appNav: Array<AppNavSection> = [
     ],
   },
   {
-    kind: 'group',
-    label: 'Parties',
+    kind: 'link',
+    label: 'Customers & suppliers',
+    path: '/app/masters/parties',
     icon: UsersIcon,
-    items: [
-      {
-        label: 'Customers & suppliers',
-        path: '/app/masters/parties',
-        icon: UsersIcon,
-      },
-    ],
   },
   {
     kind: 'group',

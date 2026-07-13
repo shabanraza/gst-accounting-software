@@ -328,13 +328,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               ) : (
                 <MoonStarIcon data-icon="inline-start" />
               )}
-              {themeMounted ? (isDark ? 'Light' : 'Dark') : 'Theme'}
+              <span className="hidden md:inline">
+                {themeMounted ? (isDark ? 'Light' : 'Dark') : 'Theme'}
+              </span>
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="secondary">
+                <Button aria-label="New bill" variant="secondary">
                   <PlusIcon data-icon="inline-start" />
-                  New bill
+                  <span className="hidden sm:inline">New bill</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">

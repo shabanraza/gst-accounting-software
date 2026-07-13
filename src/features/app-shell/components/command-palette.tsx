@@ -1,6 +1,5 @@
 import * as React from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
 import { FilePlusIcon, TruckIcon, BanknoteIcon } from 'lucide-react'
 
 import {
@@ -14,7 +13,7 @@ import {
 } from '#/components/ui/command.tsx'
 import { appNavItems } from '#/features/app-shell/data/app-shell-nav.ts'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { useTRPC } from '#/integrations/trpc/react.ts'
+import { useItemsList, usePartiesList } from '#/features/masters/use-master-data.ts'
 
 import type { AppNavItem } from '#/features/app-shell/data/app-shell-nav.ts'
 
@@ -27,7 +26,6 @@ type CommandPaletteProps = {
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const navigate = useNavigate()
-  const trpc = useTRPC()
   const { companyId, isReady } = useWorkspace()
 
   React.useEffect(() => {
@@ -41,18 +39,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [onOpenChange, open])
 
-  const partiesQuery = useQuery({
-    ...trpc.parties.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady && open,
-  })
-  const itemsQuery = useQuery({
-    ...trpc.inventory.listItems.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady && open,
-  })
+  const partiesQuery = usePartiesList()
+  const itemsQuery = useItemsList()
 
   function go(
     to: AppNavItem['path'] | '/app/sales/new' | '/app/purchases/new',
@@ -105,10 +93,10 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             )
           })}
         </CommandGroup>
-        {partiesQuery.data && partiesQuery.data.length > 0 ? (
+        {partiesQuery.data.length > 0 ? (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Parties">
+            <CommandGroup heading="Customers & suppliers">
               {partiesQuery.data.slice(0, 8).map((party) => (
                 <CommandItem
                   key={party.id}
@@ -121,7 +109,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             </CommandGroup>
           </>
         ) : null}
-        {itemsQuery.data && itemsQuery.data.length > 0 ? (
+        {itemsQuery.data.length > 0 ? (
           <>
             <CommandSeparator />
             <CommandGroup heading="Items">
