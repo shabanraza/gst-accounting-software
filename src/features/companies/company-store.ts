@@ -68,6 +68,7 @@ function mapRowToCompanyRecord(row: CompanyRow): CompanyRecord {
     bankIfsc: row.bankIfsc,
     authorizedSignatory: row.authorizedSignatory,
     logoUrl: row.logoUrl,
+    invoiceTerms: row.invoiceTerms,
     createdAt: row.createdAt,
   }
 }
@@ -118,6 +119,7 @@ export class DrizzleCompanyRepository implements CompanyRepository {
         bankIfsc: company.bankIfsc,
         authorizedSignatory: company.authorizedSignatory,
         logoUrl: company.logoUrl,
+        invoiceTerms: company.invoiceTerms,
         createdAt: company.createdAt,
       })
       .returning()

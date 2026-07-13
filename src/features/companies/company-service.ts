@@ -20,6 +20,7 @@ export type CompanyProfile = {
   bankIfsc: string
   authorizedSignatory: string
   logoUrl: string
+  invoiceTerms: string
 }
 
 export const emptyCompanyProfile: CompanyProfile = {
@@ -35,6 +36,7 @@ export const emptyCompanyProfile: CompanyProfile = {
   bankIfsc: '',
   authorizedSignatory: '',
   logoUrl: '',
+  invoiceTerms: '',
 }
 
 export type CreateCompanyInput = {

@@ -90,6 +90,18 @@ export function VoucherDocumentPaper({
               <span className="font-medium">{document.dueDate}</span>
             </>
           ) : null}
+          {document.poReference ? (
+            <>
+              <span className="text-muted-foreground">PO / Ref</span>
+              <span className="font-medium">{document.poReference}</span>
+            </>
+          ) : null}
+          {document.challanRef ? (
+            <>
+              <span className="text-muted-foreground">Challan</span>
+              <span className="font-medium">{document.challanRef}</span>
+            </>
+          ) : null}
           <span className="text-muted-foreground">Place of supply</span>
           <span className="font-medium">
             {document.placeOfSupplyLabel || '—'}
@@ -119,6 +131,11 @@ export function VoucherDocumentPaper({
           <p className="text-muted-foreground">
             State: {stateLabel(party.stateCode) || party.stateCode}
           </p>
+          {party.contactPhone || party.contactEmail ? (
+            <p className="text-muted-foreground">
+              {[party.contactPhone, party.contactEmail].filter(Boolean).join(' · ')}
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-col gap-0.5">
           <p className="text-xs font-medium uppercase text-muted-foreground">
@@ -130,6 +147,31 @@ export function VoucherDocumentPaper({
           </p>
         </div>
       </div>
+
+      {document.transportMode ||
+      document.vehicleNo ||
+      document.lrNumber ? (
+        <div className="grid gap-2 border-b pb-4 text-xs sm:grid-cols-4">
+          {document.transportMode ? (
+            <div>
+              <span className="text-muted-foreground">Transport </span>
+              <span className="font-medium">{document.transportMode}</span>
+            </div>
+          ) : null}
+          {document.vehicleNo ? (
+            <div>
+              <span className="text-muted-foreground">Vehicle </span>
+              <span className="font-medium">{document.vehicleNo}</span>
+            </div>
+          ) : null}
+          {document.lrNumber ? (
+            <div>
+              <span className="text-muted-foreground">LR / AWB </span>
+              <span className="font-medium">{document.lrNumber}</span>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px] border-collapse text-left text-xs">
@@ -374,9 +416,10 @@ export function VoucherDocumentPaper({
           {document.narration ? (
             <p className="mt-2 text-muted-foreground">{document.narration}</p>
           ) : null}
-          <p className="mt-2 text-muted-foreground">
-            Terms: Goods once sold will not be taken back. Interest at 18% p.a.
-            is charged on overdue bills. Subject to local jurisdiction.
+          <p className="mt-2 whitespace-pre-line text-muted-foreground">
+            {company.invoiceTerms?.trim()
+              ? company.invoiceTerms
+              : 'Goods once sold will not be taken back. Interest at 18% p.a. is charged on overdue bills. Subject to local jurisdiction.'}
           </p>
         </div>
         <div className="flex flex-col justify-end gap-8 text-right text-xs">

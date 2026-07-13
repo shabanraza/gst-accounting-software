@@ -26,6 +26,7 @@ import { Route as AppPurchasesRouteImport } from './routes/app/purchases'
 import { Route as AppPurchaseOrdersRouteImport } from './routes/app/purchase-orders'
 import { Route as AppPurchaseGrnsRouteImport } from './routes/app/purchase-grns'
 import { Route as AppPaymentsRouteImport } from './routes/app/payments'
+import { Route as AppOcrRouteImport } from './routes/app/ocr'
 import { Route as AppInventoryRouteImport } from './routes/app/inventory'
 import { Route as AppImportsRouteImport } from './routes/app/imports'
 import { Route as AppExpensesRouteImport } from './routes/app/expenses'
@@ -38,6 +39,8 @@ import { Route as AppSalesDocumentsRouteImport } from './routes/app/sales/docume
 import { Route as AppPurchasesNewRouteImport } from './routes/app/purchases/new'
 import { Route as AppMastersPartiesRouteImport } from './routes/app/masters/parties'
 import { Route as AppMastersItemsRouteImport } from './routes/app/masters/items'
+import { Route as AppMastersGodownsRouteImport } from './routes/app/masters/godowns'
+import { Route as AppMastersCompanyProfileRouteImport } from './routes/app/masters/company-profile'
 import { Route as AppMastersCompaniesRouteImport } from './routes/app/masters/companies'
 import { Route as AppMastersChartOfAccountsRouteImport } from './routes/app/masters/chart-of-accounts'
 import { Route as AppAccountingJournalRouteImport } from './routes/app/accounting/journal'
@@ -131,6 +134,11 @@ const AppPaymentsRoute = AppPaymentsRouteImport.update({
   path: '/payments',
   getParentRoute: () => AppRoute,
 } as any)
+const AppOcrRoute = AppOcrRouteImport.update({
+  id: '/ocr',
+  path: '/ocr',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppInventoryRoute = AppInventoryRouteImport.update({
   id: '/inventory',
   path: '/inventory',
@@ -191,6 +199,17 @@ const AppMastersItemsRoute = AppMastersItemsRouteImport.update({
   path: '/masters/items',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMastersGodownsRoute = AppMastersGodownsRouteImport.update({
+  id: '/masters/godowns',
+  path: '/masters/godowns',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMastersCompanyProfileRoute =
+  AppMastersCompanyProfileRouteImport.update({
+    id: '/masters/company-profile',
+    path: '/masters/company-profile',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppMastersCompaniesRoute = AppMastersCompaniesRouteImport.update({
   id: '/masters/companies',
   path: '/masters/companies',
@@ -241,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/app/expenses': typeof AppExpensesRoute
   '/app/imports': typeof AppImportsRoute
   '/app/inventory': typeof AppInventoryRoute
+  '/app/ocr': typeof AppOcrRoute
   '/app/payments': typeof AppPaymentsRoute
   '/app/purchase-grns': typeof AppPurchaseGrnsRoute
   '/app/purchase-orders': typeof AppPurchaseOrdersRoute
@@ -255,6 +275,8 @@ export interface FileRoutesByFullPath {
   '/app/accounting/journal': typeof AppAccountingJournalRoute
   '/app/masters/chart-of-accounts': typeof AppMastersChartOfAccountsRoute
   '/app/masters/companies': typeof AppMastersCompaniesRoute
+  '/app/masters/company-profile': typeof AppMastersCompanyProfileRoute
+  '/app/masters/godowns': typeof AppMastersGodownsRoute
   '/app/masters/items': typeof AppMastersItemsRoute
   '/app/masters/parties': typeof AppMastersPartiesRoute
   '/app/purchases/new': typeof AppPurchasesNewRoute
@@ -279,6 +301,7 @@ export interface FileRoutesByTo {
   '/app/expenses': typeof AppExpensesRoute
   '/app/imports': typeof AppImportsRoute
   '/app/inventory': typeof AppInventoryRoute
+  '/app/ocr': typeof AppOcrRoute
   '/app/payments': typeof AppPaymentsRoute
   '/app/purchase-grns': typeof AppPurchaseGrnsRoute
   '/app/purchase-orders': typeof AppPurchaseOrdersRoute
@@ -291,6 +314,8 @@ export interface FileRoutesByTo {
   '/app/accounting/journal': typeof AppAccountingJournalRoute
   '/app/masters/chart-of-accounts': typeof AppMastersChartOfAccountsRoute
   '/app/masters/companies': typeof AppMastersCompaniesRoute
+  '/app/masters/company-profile': typeof AppMastersCompanyProfileRoute
+  '/app/masters/godowns': typeof AppMastersGodownsRoute
   '/app/masters/items': typeof AppMastersItemsRoute
   '/app/masters/parties': typeof AppMastersPartiesRoute
   '/app/purchases/new': typeof AppPurchasesNewRoute
@@ -316,6 +341,7 @@ export interface FileRoutesById {
   '/app/expenses': typeof AppExpensesRoute
   '/app/imports': typeof AppImportsRoute
   '/app/inventory': typeof AppInventoryRoute
+  '/app/ocr': typeof AppOcrRoute
   '/app/payments': typeof AppPaymentsRoute
   '/app/purchase-grns': typeof AppPurchaseGrnsRoute
   '/app/purchase-orders': typeof AppPurchaseOrdersRoute
@@ -330,6 +356,8 @@ export interface FileRoutesById {
   '/app/accounting/journal': typeof AppAccountingJournalRoute
   '/app/masters/chart-of-accounts': typeof AppMastersChartOfAccountsRoute
   '/app/masters/companies': typeof AppMastersCompaniesRoute
+  '/app/masters/company-profile': typeof AppMastersCompanyProfileRoute
+  '/app/masters/godowns': typeof AppMastersGodownsRoute
   '/app/masters/items': typeof AppMastersItemsRoute
   '/app/masters/parties': typeof AppMastersPartiesRoute
   '/app/purchases/new': typeof AppPurchasesNewRoute
@@ -356,6 +384,7 @@ export interface FileRouteTypes {
     | '/app/expenses'
     | '/app/imports'
     | '/app/inventory'
+    | '/app/ocr'
     | '/app/payments'
     | '/app/purchase-grns'
     | '/app/purchase-orders'
@@ -370,6 +399,8 @@ export interface FileRouteTypes {
     | '/app/accounting/journal'
     | '/app/masters/chart-of-accounts'
     | '/app/masters/companies'
+    | '/app/masters/company-profile'
+    | '/app/masters/godowns'
     | '/app/masters/items'
     | '/app/masters/parties'
     | '/app/purchases/new'
@@ -394,6 +425,7 @@ export interface FileRouteTypes {
     | '/app/expenses'
     | '/app/imports'
     | '/app/inventory'
+    | '/app/ocr'
     | '/app/payments'
     | '/app/purchase-grns'
     | '/app/purchase-orders'
@@ -406,6 +438,8 @@ export interface FileRouteTypes {
     | '/app/accounting/journal'
     | '/app/masters/chart-of-accounts'
     | '/app/masters/companies'
+    | '/app/masters/company-profile'
+    | '/app/masters/godowns'
     | '/app/masters/items'
     | '/app/masters/parties'
     | '/app/purchases/new'
@@ -430,6 +464,7 @@ export interface FileRouteTypes {
     | '/app/expenses'
     | '/app/imports'
     | '/app/inventory'
+    | '/app/ocr'
     | '/app/payments'
     | '/app/purchase-grns'
     | '/app/purchase-orders'
@@ -444,6 +479,8 @@ export interface FileRouteTypes {
     | '/app/accounting/journal'
     | '/app/masters/chart-of-accounts'
     | '/app/masters/companies'
+    | '/app/masters/company-profile'
+    | '/app/masters/godowns'
     | '/app/masters/items'
     | '/app/masters/parties'
     | '/app/purchases/new'
@@ -591,6 +628,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPaymentsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/ocr': {
+      id: '/app/ocr'
+      path: '/ocr'
+      fullPath: '/app/ocr'
+      preLoaderRoute: typeof AppOcrRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/inventory': {
       id: '/app/inventory'
       path: '/inventory'
@@ -673,6 +717,20 @@ declare module '@tanstack/react-router' {
       path: '/masters/items'
       fullPath: '/app/masters/items'
       preLoaderRoute: typeof AppMastersItemsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/masters/godowns': {
+      id: '/app/masters/godowns'
+      path: '/masters/godowns'
+      fullPath: '/app/masters/godowns'
+      preLoaderRoute: typeof AppMastersGodownsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/masters/company-profile': {
+      id: '/app/masters/company-profile'
+      path: '/masters/company-profile'
+      fullPath: '/app/masters/company-profile'
+      preLoaderRoute: typeof AppMastersCompanyProfileRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/masters/companies': {
@@ -766,6 +824,7 @@ interface AppRouteChildren {
   AppExpensesRoute: typeof AppExpensesRoute
   AppImportsRoute: typeof AppImportsRoute
   AppInventoryRoute: typeof AppInventoryRoute
+  AppOcrRoute: typeof AppOcrRoute
   AppPaymentsRoute: typeof AppPaymentsRoute
   AppPurchaseGrnsRoute: typeof AppPurchaseGrnsRoute
   AppPurchaseOrdersRoute: typeof AppPurchaseOrdersRoute
@@ -777,6 +836,8 @@ interface AppRouteChildren {
   AppAccountingJournalRoute: typeof AppAccountingJournalRoute
   AppMastersChartOfAccountsRoute: typeof AppMastersChartOfAccountsRoute
   AppMastersCompaniesRoute: typeof AppMastersCompaniesRoute
+  AppMastersCompanyProfileRoute: typeof AppMastersCompanyProfileRoute
+  AppMastersGodownsRoute: typeof AppMastersGodownsRoute
   AppMastersItemsRoute: typeof AppMastersItemsRoute
   AppMastersPartiesRoute: typeof AppMastersPartiesRoute
 }
@@ -786,6 +847,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppExpensesRoute: AppExpensesRoute,
   AppImportsRoute: AppImportsRoute,
   AppInventoryRoute: AppInventoryRoute,
+  AppOcrRoute: AppOcrRoute,
   AppPaymentsRoute: AppPaymentsRoute,
   AppPurchaseGrnsRoute: AppPurchaseGrnsRoute,
   AppPurchaseOrdersRoute: AppPurchaseOrdersRoute,
@@ -797,6 +859,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppAccountingJournalRoute: AppAccountingJournalRoute,
   AppMastersChartOfAccountsRoute: AppMastersChartOfAccountsRoute,
   AppMastersCompaniesRoute: AppMastersCompaniesRoute,
+  AppMastersCompanyProfileRoute: AppMastersCompanyProfileRoute,
+  AppMastersGodownsRoute: AppMastersGodownsRoute,
   AppMastersItemsRoute: AppMastersItemsRoute,
   AppMastersPartiesRoute: AppMastersPartiesRoute,
 }

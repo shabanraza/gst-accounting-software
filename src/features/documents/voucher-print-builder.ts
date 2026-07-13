@@ -36,6 +36,11 @@ type BuildVoucherInput = {
   documentNumber: string
   documentDate: string
   dueDate?: string
+  poReference?: string
+  transportMode?: string
+  vehicleNo?: string
+  lrNumber?: string
+  challanRef?: string
   paymentMode?: string
   narration: string
   company: VoucherPrintCompanyInfo
@@ -131,6 +136,11 @@ export function buildVoucherPrintDocument(
     documentNumber: input.documentNumber,
     documentDate: input.documentDate,
     dueDate: input.dueDate,
+    poReference: input.poReference,
+    transportMode: input.transportMode,
+    vehicleNo: input.vehicleNo,
+    lrNumber: input.lrNumber,
+    challanRef: input.challanRef,
     paymentMode: input.paymentMode,
     narration: input.narration,
     company: input.company,

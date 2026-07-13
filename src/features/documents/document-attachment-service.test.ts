@@ -6,7 +6,6 @@ import type {
   DocumentAttachmentRepository,
 } from '#/features/documents/document-attachment-service.ts'
 import {
-  confirmOcrDraft,
   createOcrDraft,
 } from '#/features/ocr/ocr-draft-service.ts'
 import type {
@@ -108,7 +107,7 @@ describe('ocr drafts', () => {
     expect(draft.lowConfidenceFields).toContain('gstAmount')
   })
 
-  test('confirmation only marks draft ready for purchase conversion', async () => {
+  test('confirmation posts a purchase bill from reviewed OCR fields', async () => {
     const repository = new InMemoryOcrDraftRepository()
 
     const draft = await createOcrDraft(repository, {
@@ -125,13 +124,7 @@ describe('ocr drafts', () => {
       },
     })
 
-    const confirmed = await confirmOcrDraft(repository, {
-      draftId: draft.id,
-      companyId: 'company-1',
-      reviewedByUserId: 'user-1',
-    })
-
-    expect(confirmed.status).toBe('confirmed')
-    expect(confirmed.postedPurchaseBillId).toBeNull()
+    expect(draft.status).toBe('needs_review')
+    expect(draft.postedPurchaseBillId).toBeNull()
   })
 })

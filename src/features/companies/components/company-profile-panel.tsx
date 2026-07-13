@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from '#/components/ui/card.tsx'
 import { Input } from '#/components/ui/input.tsx'
+import { Textarea } from '#/components/ui/textarea.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
@@ -29,6 +30,7 @@ type ProfileFields = {
   bankIfsc: string
   authorizedSignatory: string
   logoUrl: string
+  invoiceTerms: string
 }
 
 const emptyProfile: ProfileFields = {
@@ -44,6 +46,7 @@ const emptyProfile: ProfileFields = {
   bankIfsc: '',
   authorizedSignatory: '',
   logoUrl: '',
+  invoiceTerms: '',
 }
 
 const fields: Array<{ key: keyof ProfileFields; label: string; placeholder?: string }> = [
@@ -59,6 +62,11 @@ const fields: Array<{ key: keyof ProfileFields; label: string; placeholder?: str
   { key: 'bankAccountNumber', label: 'Bank account number' },
   { key: 'bankIfsc', label: 'IFSC' },
   { key: 'logoUrl', label: 'Logo URL' },
+  {
+    key: 'invoiceTerms',
+    label: 'Invoice terms',
+    placeholder: 'Payment due in 30 days. Goods once sold will not be taken back.',
+  },
 ]
 
 export function CompanyProfilePanel() {
@@ -82,6 +90,7 @@ export function CompanyProfilePanel() {
       bankIfsc: company.bankIfsc,
       authorizedSignatory: company.authorizedSignatory,
       logoUrl: company.logoUrl,
+      invoiceTerms: company.invoiceTerms,
     })
   }, [company])
 
@@ -110,24 +119,46 @@ export function CompanyProfilePanel() {
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-2">
         {fields.map((field) => (
-          <div className="flex flex-col gap-1.5" key={field.key}>
+          <div
+            className={
+              field.key === 'invoiceTerms'
+                ? 'flex flex-col gap-1.5 sm:col-span-2'
+                : 'flex flex-col gap-1.5'
+            }
+            key={field.key}
+          >
             <label
               className="text-xs font-medium"
               htmlFor={`company-${field.key}`}
             >
               {field.label}
             </label>
-            <Input
-              id={`company-${field.key}`}
-              onChange={(event) =>
-                setProfile((current) => ({
-                  ...current,
-                  [field.key]: event.target.value,
-                }))
-              }
-              placeholder={field.placeholder}
-              value={profile[field.key]}
-            />
+            {field.key === 'invoiceTerms' ? (
+              <Textarea
+                id={`company-${field.key}`}
+                onChange={(event) =>
+                  setProfile((current) => ({
+                    ...current,
+                    [field.key]: event.target.value,
+                  }))
+                }
+                placeholder={field.placeholder}
+                rows={3}
+                value={profile[field.key]}
+              />
+            ) : (
+              <Input
+                id={`company-${field.key}`}
+                onChange={(event) =>
+                  setProfile((current) => ({
+                    ...current,
+                    [field.key]: event.target.value,
+                  }))
+                }
+                placeholder={field.placeholder}
+                value={profile[field.key]}
+              />
+            )}
           </div>
         ))}
       </CardContent>

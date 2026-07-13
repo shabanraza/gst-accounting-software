@@ -13,6 +13,10 @@ import type {
 export class InMemoryPartyRepository implements PartyRepository {
   private readonly parties: Array<PartyRecord> = []
 
+  async findById(id: string) {
+    return this.parties.find((party) => party.id === id) ?? null
+  }
+
   async findByCompanyAndName(companyId: string, name: string) {
     return (
       this.parties.find(
@@ -25,6 +29,15 @@ export class InMemoryPartyRepository implements PartyRepository {
 
   async create(party: PartyRecord) {
     this.parties.push(party)
+    return party
+  }
+
+  async update(party: PartyRecord) {
+    const index = this.parties.findIndex((entry) => entry.id === party.id)
+    if (index === -1) {
+      throw new Error(`Party not found: ${party.id}`)
+    }
+    this.parties[index] = party
     return party
   }
 
@@ -44,6 +57,12 @@ function mapRowToPartyRecord(row: PartyRow): PartyRecord {
     gstin: row.gstin,
     pan: row.pan,
     stateCode: row.stateCode,
+    addressLine1: row.addressLine1,
+    addressLine2: row.addressLine2,
+    city: row.city,
+    pincode: row.pincode,
+    contactPhone: row.contactPhone,
+    contactEmail: row.contactEmail,
     billingAddress: row.billingAddress,
     shippingAddress: row.shippingAddress,
     creditLimit: row.creditLimit,
@@ -57,6 +76,20 @@ function mapRowToPartyRecord(row: PartyRow): PartyRecord {
 
 export class DrizzlePartyRepository implements PartyRepository {
   constructor(private readonly database: AppDatabase) {}
+
+  async findById(id: string) {
+    const parties = await this.database
+      .select()
+      .from(schema.parties)
+      .where(eq(schema.parties.id, id))
+      .limit(1)
+
+    if (parties.length === 0) {
+      return null
+    }
+
+    return mapRowToPartyRecord(parties[0])
+  }
 
   async findByCompanyAndName(companyId: string, name: string) {
     const parties = await this.database
@@ -88,6 +121,12 @@ export class DrizzlePartyRepository implements PartyRepository {
         gstin: party.gstin,
         pan: party.pan ?? '',
         stateCode: party.stateCode,
+        addressLine1: party.addressLine1 ?? '',
+        addressLine2: party.addressLine2 ?? '',
+        city: party.city ?? '',
+        pincode: party.pincode ?? '',
+        contactPhone: party.contactPhone ?? '',
+        contactEmail: party.contactEmail ?? '',
         billingAddress: party.billingAddress ?? '',
         shippingAddress: party.shippingAddress ?? '',
         creditLimit: party.creditLimit,
@@ -100,6 +139,33 @@ export class DrizzlePartyRepository implements PartyRepository {
       .returning()
 
     return mapRowToPartyRecord(createdParty)
+  }
+
+  async update(party: PartyRecord) {
+    const [updatedParty] = await this.database
+      .update(schema.parties)
+      .set({
+        name: party.name,
+        partyType: party.partyType,
+        gstin: party.gstin,
+        pan: party.pan ?? '',
+        stateCode: party.stateCode,
+        addressLine1: party.addressLine1 ?? '',
+        addressLine2: party.addressLine2 ?? '',
+        city: party.city ?? '',
+        pincode: party.pincode ?? '',
+        contactPhone: party.contactPhone ?? '',
+        contactEmail: party.contactEmail ?? '',
+        billingAddress: party.billingAddress ?? '',
+        shippingAddress: party.shippingAddress ?? '',
+        creditLimit: party.creditLimit,
+        paymentTermsDays: party.paymentTermsDays,
+        priceListId: party.priceListId,
+      })
+      .where(eq(schema.parties.id, party.id))
+      .returning()
+
+    return mapRowToPartyRecord(updatedParty)
   }
 
   async listByCompanyId(companyId: string) {

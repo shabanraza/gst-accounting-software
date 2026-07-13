@@ -18,6 +18,10 @@
     "deploy": "bun run build && ./scripts/with-node-runtime.sh wrangler deploy",
     "db:generate": "./scripts/with-node-runtime.sh drizzle-kit generate",
     "db:migrate": "./scripts/with-node-runtime.sh drizzle-kit migrate",
+    "db:apply-0007": "bun scripts/apply-migration-0007.ts",
+    "db:apply-0008": "bun scripts/apply-migration-0008.ts",
+    "db:apply-0009": "bun scripts/apply-migration-0009.ts",
+    "db:reconcile": "bun scripts/reconcile-drizzle-migrations.ts",
     "db:push": "./scripts/with-node-runtime.sh drizzle-kit push",
     "db:pull": "./scripts/with-node-runtime.sh drizzle-kit pull",
     "db:studio": "./scripts/with-node-runtime.sh drizzle-kit studio"

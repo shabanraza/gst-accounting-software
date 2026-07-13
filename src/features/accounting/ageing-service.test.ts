@@ -7,10 +7,16 @@ import type { SalesInvoiceRecord, SalesInvoiceRepository } from '#/features/sale
 
 class FakeParties implements PartyRepository {
   constructor(private readonly parties: Array<PartyRecord>) {}
+  async findById(id: string) {
+    return this.parties.find((party) => party.id === id) ?? null
+  }
   async findByCompanyAndName() {
     return null
   }
   async create(party: PartyRecord) {
+    return party
+  }
+  async update(party: PartyRecord) {
     return party
   }
   async listByCompanyId() {

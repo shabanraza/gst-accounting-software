@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { PlusIcon, SearchIcon, UsersIcon } from 'lucide-react'
+import { PencilIcon, PlusIcon, SearchIcon, UsersIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
 import { Button } from '#/components/ui/button.tsx'
@@ -31,7 +31,7 @@ import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { usePartiesList } from '#/features/masters/use-master-data.ts'
 import { CreatePartyDialog } from '#/features/parties/components/create-party-dialog.tsx'
 import { useTRPC } from '#/integrations/trpc/react.ts'
-import type { PartyType } from '#/features/parties/party-service.ts'
+import type { PartyRecord, PartyType } from '#/features/parties/party-service.ts'
 
 function partyTypeBadge(partyType: PartyType) {
   if (partyType === 'customer') return <Badge variant="info">Customer</Badge>
@@ -44,6 +44,7 @@ export function PartiesPanel() {
   const { companyId, isReady, error: workspaceError } = useWorkspace()
   const [query, setQuery] = React.useState('')
   const [filter, setFilter] = React.useState<'all' | PartyType>('all')
+  const [editParty, setEditParty] = React.useState<PartyRecord | null>(null)
 
   const partiesQuery = usePartiesList()
   const salesQuery = useQuery({
@@ -108,7 +109,7 @@ export function PartiesPanel() {
           }
         />
       }
-      description="People you buy from and sell to — GSTIN, credit limit, and outstanding balance."
+      description="GST billing address, PAN, and contact details for tax invoices."
       title="Customers & suppliers"
     >
       {workspaceError ? (
@@ -156,10 +157,12 @@ export function PartiesPanel() {
                 <TableHead>Type</TableHead>
                 <TableHead>GSTIN</TableHead>
                 <TableHead>State</TableHead>
+                <TableHead>City</TableHead>
                 <TableHead>Credit limit</TableHead>
                 <TableHead>Terms</TableHead>
                 <TableHead>Price list</TableHead>
                 <TableHead className="text-right">Outstanding</TableHead>
+                <TableHead className="w-12" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -167,7 +170,7 @@ export function PartiesPanel() {
                 <TableRow>
                   <TableCell
                     className="py-10 text-center text-muted-foreground"
-                    colSpan={8}
+                    colSpan={9}
                   >
                     Loading…
                   </TableCell>
@@ -176,7 +179,7 @@ export function PartiesPanel() {
                 <TableRow>
                   <TableCell
                     className="py-10 text-center text-muted-foreground"
-                    colSpan={8}
+                    colSpan={9}
                   >
                     No customers or suppliers yet.
                   </TableCell>
@@ -191,6 +194,9 @@ export function PartiesPanel() {
                     </TableCell>
                     <TableCell className="truncate">
                       {stateLabel(party.stateCode)}
+                    </TableCell>
+                    <TableCell className="truncate">
+                      {party.city || '—'}
                     </TableCell>
                     <TableCell>
                       {party.creditLimit
@@ -210,6 +216,18 @@ export function PartiesPanel() {
                     <TableCell className="text-right tabular-nums">
                       {formatInr(outstandingByPartyId.get(party.id) ?? 0)}
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        aria-label={`Edit ${party.name}`}
+                        className="text-muted-foreground"
+                        onClick={() => setEditParty(party)}
+                        size="icon-sm"
+                        type="button"
+                        variant="ghost"
+                      >
+                        <PencilIcon />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -217,6 +235,13 @@ export function PartiesPanel() {
           </Table>
         </CardContent>
       </Card>
+      <CreatePartyDialog
+        onOpenChange={(next) => {
+          if (!next) setEditParty(null)
+        }}
+        open={Boolean(editParty)}
+        party={editParty}
+      />
     </WorkspacePage>
   )
 }

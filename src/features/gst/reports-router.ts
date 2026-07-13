@@ -14,11 +14,13 @@ import {
 import { buildPayablesAgeing, buildReceivablesAgeing } from '#/features/accounting/ageing-service.ts'
 import { buildPartyLedger } from '#/features/parties/party-ledger-service.ts'
 import { buildStockLedger, buildStockSummary } from '#/features/inventory/stock-ledger-service.ts'
+import { buildStockValuation } from '#/features/inventory/stock-valuation-service.ts'
 import { reconcileGstr2b } from '#/features/gst/gstr2b-reconciliation-service.ts'
 import { generateEInvoice, generateEWayBill } from '#/features/gst/e-invoice-service.ts'
 import { z } from 'zod'
 
-import { publicProcedure } from '#/integrations/trpc/init.ts'
+import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
+import { companyProcedure, publicProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
@@ -144,6 +146,11 @@ const generateEWayBillInputSchema = z.object({
   vehicleNumber: z.string().optional(),
 })
 
+const salesInvoiceLookupSchema = z.object({
+  companyId: z.string().uuid(),
+  salesInvoiceId: z.string().uuid(),
+})
+
 export const createReportsRouter = (deps: {
   invoices: SalesInvoiceRepository
   bills: PurchaseBillRepository
@@ -255,6 +262,14 @@ export const createReportsRouter = (deps: {
           input.companyId,
         )
       }),
+    stockValuation: publicProcedure
+      .input(z.object({ companyId: z.string().uuid() }))
+      .query(({ input }) => {
+        return buildStockValuation(
+          { balances: deps.stockBalances, items: deps.items },
+          input.companyId,
+        )
+      }),
     stockLedger: publicProcedure
       .input(companyAndItemInputSchema)
       .query(({ input }) => {
@@ -282,7 +297,7 @@ export const createReportsRouter = (deps: {
         })
         return buildGstr1Json(report)
       }),
-    gstr2bReconciliation: publicProcedure
+    gstr2bReconciliation: companyProcedure
       .input(gstr2bReconciliationInputSchema)
       .mutation(({ input }) => {
         return reconcileGstr2b(
@@ -291,12 +306,12 @@ export const createReportsRouter = (deps: {
           input.portalRows,
         )
       }),
-    generateEInvoice: publicProcedure
+    generateEInvoice: capabilityProcedure('post_sales')
       .input(generateEInvoiceInputSchema)
       .mutation(({ input }) => {
         return generateEInvoice(deps.eInvoices, input)
       }),
-    generateEWayBill: publicProcedure
+    generateEWayBill: capabilityProcedure('post_sales')
       .input(generateEWayBillInputSchema)
       .mutation(({ input }) => {
         return generateEWayBill(deps.eWayBills, {
@@ -304,6 +319,24 @@ export const createReportsRouter = (deps: {
           salesInvoiceId: input.salesInvoiceId,
           vehicleNumber: input.vehicleNumber ?? null,
         })
+      }),
+    getEInvoice: companyProcedure
+      .input(salesInvoiceLookupSchema)
+      .query(async ({ input }) => {
+        const record = await deps.eInvoices.findBySalesInvoiceId(
+          input.salesInvoiceId,
+        )
+        if (!record || record.companyId !== input.companyId) return null
+        return record
+      }),
+    getEWayBill: companyProcedure
+      .input(salesInvoiceLookupSchema)
+      .query(async ({ input }) => {
+        const record = await deps.eWayBills.findBySalesInvoiceId(
+          input.salesInvoiceId,
+        )
+        if (!record || record.companyId !== input.companyId) return null
+        return record
       }),
     dayBook: publicProcedure.input(reportInputSchema).query(async ({ input }) => {
       return buildDayBook(deps.postings, input.companyId, {

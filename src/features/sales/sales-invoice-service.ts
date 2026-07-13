@@ -48,6 +48,12 @@ export type PostSalesInvoiceInput = {
   roundOff?: string
   billDiscount?: string
   godownName?: string | null
+  dueDate?: string
+  poReference?: string
+  transportMode?: string
+  vehicleNo?: string
+  lrNumber?: string
+  challanRef?: string
   salesAccountId: string
   outputGstAccountId: string
   receivableAccountId: string
@@ -84,6 +90,12 @@ export type SalesInvoiceRecord = {
   roundOff: string
   billDiscount: string
   godownName: string | null
+  dueDate: string
+  poReference: string
+  transportMode: string
+  vehicleNo: string
+  lrNumber: string
+  challanRef: string
   status: SalesInvoiceStatus
   taxableAmount: string
   totalGstAmount: string
@@ -320,6 +332,12 @@ export async function postSalesInvoice(
     roundOff: formatMoney(roundOff),
     billDiscount: formatMoney(billDiscount),
     godownName: input.godownName ?? null,
+    dueDate: input.dueDate?.trim() || input.invoiceDate,
+    poReference: input.poReference?.trim() || '',
+    transportMode: input.transportMode?.trim() || '',
+    vehicleNo: input.vehicleNo?.trim() || '',
+    lrNumber: input.lrNumber?.trim() || '',
+    challanRef: input.challanRef?.trim() || '',
     status: 'posted',
     taxableAmount: formatMoney(taxableTotal),
     totalGstAmount: formatMoney(gstTotal),

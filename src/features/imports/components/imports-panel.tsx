@@ -16,6 +16,7 @@ import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { parseBusyExport } from '#/features/imports/busy-format-parser.ts'
 import { parseCsvRows } from '#/features/imports/csv-parser.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
@@ -49,33 +50,53 @@ Imported Cotton,100,Meter,80.00`
 const sampleCsvItems = `name,hsn,rate,unit
 Imported Yarn,5205,120.00,Kg`
 
-const sampleCsvOpeningBalances = `ledgerCode,openingDebit,openingCredit
-1000,5000.00,0.00
-3000,0.00,5000.00`
+const sampleBusyParties = `Account Name\tGST No.\tState\tAccount Type
+Imported Retail\t27AAAAA0000A1Z5\tMaharashtra\tCustomer
+Imported Mill\t24BBBBB0000B1Z5\tGujarat\tSupplier`
+
+const sampleBusyItems = `Item Name\tHSN/SAC\tSale Rate\tUnit
+Imported Yarn\t5205\t120.00\tKg`
 
 export function ImportsPanel() {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const { companyId, ledgerBySystemKey } = useWorkspace()
   const [mode, setMode] = React.useState<ImportMode>('parties')
-  const [format, setFormat] = React.useState<'json' | 'csv'>('json')
+  const [format, setFormat] = React.useState<'json' | 'csv' | 'busy'>('json')
   const [jsonText, setJsonText] = React.useState(sampleParties)
   const [result, setResult] = React.useState<string | null>(null)
   const [error, setError] = React.useState<string | null>(null)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   function parseRows(text: string): Array<Record<string, unknown>> {
+    if (format === 'busy') {
+      if (mode !== 'parties' && mode !== 'items') {
+        throw new Error('BUSY format supports parties and items only')
+      }
+      return parseBusyExport(text, mode) as Array<Record<string, unknown>>
+    }
     if (format === 'csv') {
       return parseCsvRows(text)
     }
     return JSON.parse(text) as Array<Record<string, unknown>>
   }
 
-  function sampleTextFor(nextMode: ImportMode, nextFormat: 'json' | 'csv') {
+  function sampleTextFor(
+    nextMode: ImportMode,
+    nextFormat: 'json' | 'csv' | 'busy',
+  ) {
+    if (nextFormat === 'busy') {
+      if (nextMode === 'parties') return sampleBusyParties
+      if (nextMode === 'items') return sampleBusyItems
+      return sampleCsvParties
+    }
     if (nextFormat === 'csv') {
       if (nextMode === 'parties') return sampleCsvParties
       if (nextMode === 'stock') return sampleCsvStock
       if (nextMode === 'items') return sampleCsvItems
-      return sampleCsvOpeningBalances
+      return `ledgerCode,openingDebit,openingCredit
+1000,5000.00,0.00
+3000,0.00,5000.00`
     }
     if (nextMode === 'parties') return sampleParties
     if (nextMode === 'stock') return sampleStock
@@ -99,6 +120,21 @@ export function ImportsPanel() {
   const commitOpeningBalances = useMutation(
     trpc.imports.commitOpeningBalances.mutationOptions(),
   )
+
+  async function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setError(null)
+    setResult(null)
+    try {
+      const text = await file.text()
+      setJsonText(text)
+    } catch {
+      setError('Could not read the selected file')
+    } finally {
+      event.target.value = ''
+    }
+  }
 
   async function handleDryRun() {
     setError(null)
@@ -223,7 +259,7 @@ export function ImportsPanel() {
             </Tabs>
             <Tabs
               onValueChange={(value) => {
-                const next = value as 'json' | 'csv'
+                const next = value as 'json' | 'csv' | 'busy'
                 setFormat(next)
                 setJsonText(sampleTextFor(mode, next))
                 setResult(null)
@@ -234,11 +270,36 @@ export function ImportsPanel() {
               <TabsList>
                 <TabsTrigger value="json">JSON</TabsTrigger>
                 <TabsTrigger value="csv">CSV</TabsTrigger>
+                <TabsTrigger value="busy">BUSY/EZY</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
+          <input
+            accept=".csv,.tsv,.txt,.json"
+            className="hidden"
+            onChange={handleFileUpload}
+            ref={fileInputRef}
+            type="file"
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              type="button"
+              variant="outline"
+            >
+              <UploadIcon data-icon="inline-start" />
+              Upload file
+            </Button>
+            <Badge variant="outline">
+              {format === 'busy'
+                ? 'BUSY/EZY export'
+                : format === 'csv'
+                  ? 'CSV rows'
+                  : 'JSON rows'}
+            </Badge>
+          </div>
           <Textarea
             className="min-h-48 font-mono text-xs"
             onChange={(event) => setJsonText(event.target.value)}
@@ -251,7 +312,13 @@ export function ImportsPanel() {
             <Button disabled={!companyId} onClick={handleCommit} type="button">
               Commit
             </Button>
-            <Badge variant="outline">{format === 'csv' ? 'CSV rows' : 'JSON rows'}</Badge>
+            <Badge variant="outline">
+              {format === 'busy'
+                ? 'BUSY/EZY'
+                : format === 'csv'
+                  ? 'CSV'
+                  : 'JSON'}
+            </Badge>
           </div>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           {result ? (

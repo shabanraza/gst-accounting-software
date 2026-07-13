@@ -18,6 +18,7 @@ Living status vs [BUSY 21](https://busy.in/) wholesale/trading features. The ori
 | Returns / credit-debit notes | Done | Document picker |
 | Expenses | Done | Cash/bank payment |
 | GSTR-1 / GSTR-3B working reports | Done | Reports UI |
+| GSTR-2B reconciliation UI | Done | Reports tab; paste/upload portal JSON |
 | Trial balance, P&L, balance sheet, ageing | Done | Reports UI |
 | Day book / cash book | Done | Reports tabs |
 | HSN summary | Done | Reports tab |
@@ -34,10 +35,10 @@ Living status vs [BUSY 21](https://busy.in/) wholesale/trading features. The ori
 | Per-line godown on voucher | Done | Godown column per row in voucher grid |
 | Price list auto-rate | Done | Party price list applies on item pick |
 | Credit limit on party | Done | Blocked on credit sales in service |
-| CSV import (parties, opening stock) | Partial | No BUSY/EZY native format |
-| Bill attachment + OCR | Partial | Metadata service; purchase upload optional |
-| Role-based permissions | Partial | Types exist; not on all mutations |
-| e-Invoice / e-way / GSTR-2B | Stub | Beyond MVP |
+| CSV + BUSY/EZY native import | Done | Parties/items TSV/CSV; file upload on Import |
+| Bill attachment + OCR | Done | Upload + `/app/ocr` review; confirm posts bill |
+| Role-based permissions | Partial | Capability on posting mutations; not every read |
+| e-Invoice / e-way | Stub UI | Local IRN/EWB generation; no live GSP API |
 | POS / barcode / BOM | Not started | Later |
 
 ## Still open (priority)
@@ -46,15 +47,15 @@ Living status vs [BUSY 21](https://busy.in/) wholesale/trading features. The ori
 _All four P1 workflow items are complete (Jul 2026)._
 
 ### P2 — Data & compliance
-5. Drizzle persistence for sequences, attachments, FY, memberships, expenses, sales docs, POs
-6. `mutatingProcedure` on all posting mutations
-7. Native BUSY/EZY import
+5. Drizzle persistence for sequences, attachments, FY, memberships, expenses, sales docs, POs — **mostly done**; e-invoice/e-way now in Drizzle (`0009_e_invoice`)
+6. `capabilityProcedure` on posting mutations — **done** for OCR, e-invoice/e-way, price lists, GSTR-2B reconcile
+7. Native BUSY/EZY import — **done** (`busy-format-parser.ts`, Import panel)
 
 ### P3 — Later BUSY parity
-8. OCR draft UI on purchase
-9. POS / barcode / BOM
-10. Live e-invoice / e-way integrations
+8. OCR draft UI on purchase — **done** (`/app/ocr`)
+9. POS / barcode / BOM — not started
+10. Live e-invoice / e-way GSP integrations — **stub** (pseudo IRN/EWB; wire real NIC/GSP later)
 
 ## What not to rebuild
 
-Core voucher engine, preview/print, returns, GST posting, and standard reports are **done**. Extend only for the items above or bug fixes.
+Core voucher engine, preview/print, returns, GST posting, and standard reports are **done**. Extend only for live GSP, POS/BOM, or bug fixes.

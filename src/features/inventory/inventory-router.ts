@@ -3,7 +3,10 @@ import { z } from 'zod'
 import { createItemWithOpening } from '#/features/inventory/create-item-with-opening.ts'
 import {
   createGodown,
+  deleteGodown,
   listGodownsByCompany,
+  setDefaultGodown,
+  updateGodown,
 } from '#/features/inventory/godown-service.ts'
 import {
   createItem,
@@ -21,7 +24,7 @@ import {
   recordStockMovement,
 } from '#/features/inventory/stock-movement-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
-import { mutatingProcedure, publicProcedure } from '#/integrations/trpc/init.ts'
+import { publicProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { GodownRepository } from '#/features/inventory/godown-service.ts'
@@ -87,6 +90,18 @@ const listByCompanyInputSchema = z.object({
 const createGodownInputSchema = z.object({
   companyId: z.string().uuid(),
   name: z.string().min(1),
+  isDefault: z.boolean().optional(),
+})
+
+const updateGodownInputSchema = z.object({
+  companyId: z.string().uuid(),
+  godownId: z.string().uuid(),
+  name: z.string().min(1),
+})
+
+const godownIdInputSchema = z.object({
+  companyId: z.string().uuid(),
+  godownId: z.string().uuid(),
 })
 
 const createPriceListInputSchema = z.object({
@@ -99,6 +114,7 @@ const listPriceListItemsInputSchema = z.object({
 })
 
 const setPriceListItemRateInputSchema = z.object({
+  companyId: z.string().uuid(),
   priceListId: z.string().uuid(),
   itemId: z.string().uuid(),
   rate: z.string().min(1),
@@ -129,6 +145,29 @@ export const createInventoryRouter = (
       .mutation(({ input }) => {
         return createGodown(godownRepository, input)
       }),
+    updateGodown: capabilityProcedure('manage_inventory')
+      .input(updateGodownInputSchema)
+      .mutation(({ input }) => {
+        return updateGodown(godownRepository, input)
+      }),
+    deleteGodown: capabilityProcedure('manage_inventory')
+      .input(godownIdInputSchema)
+      .mutation(({ input }) => {
+        return deleteGodown(
+          godownRepository,
+          input.companyId,
+          input.godownId,
+        )
+      }),
+    setDefaultGodown: capabilityProcedure('manage_inventory')
+      .input(godownIdInputSchema)
+      .mutation(({ input }) => {
+        return setDefaultGodown(
+          godownRepository,
+          input.companyId,
+          input.godownId,
+        )
+      }),
     listPriceLists: publicProcedure
       .input(listByCompanyInputSchema)
       .query(({ input }) => {
@@ -144,10 +183,14 @@ export const createInventoryRouter = (
       .query(({ input }) => {
         return listPriceListItems(priceListRepository, input.priceListId)
       }),
-    setPriceListItemRate: mutatingProcedure
+    setPriceListItemRate: capabilityProcedure('manage_masters')
       .input(setPriceListItemRateInputSchema)
       .mutation(({ input }) => {
-        return setPriceListItemRate(priceListRepository, input)
+        return setPriceListItemRate(priceListRepository, {
+          priceListId: input.priceListId,
+          itemId: input.itemId,
+          rate: input.rate,
+        })
       }),
     resolveItemRate: publicProcedure
       .input(resolveItemRateInputSchema)

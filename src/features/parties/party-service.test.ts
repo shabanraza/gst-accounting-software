@@ -9,6 +9,10 @@ import type {
 class InMemoryPartyRepository implements PartyRepository {
   private parties: Array<PartyRecord> = []
 
+  async findById(id: string) {
+    return this.parties.find((party) => party.id === id) ?? null
+  }
+
   async findByCompanyAndName(companyId: string, name: string) {
     return (
       this.parties.find(
@@ -21,6 +25,13 @@ class InMemoryPartyRepository implements PartyRepository {
 
   async create(party: PartyRecord) {
     this.parties.push(party)
+    return party
+  }
+
+  async update(party: PartyRecord) {
+    const index = this.parties.findIndex((entry) => entry.id === party.id)
+    if (index === -1) throw new Error('not found')
+    this.parties[index] = party
     return party
   }
 

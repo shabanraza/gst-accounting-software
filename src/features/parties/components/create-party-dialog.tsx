@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '#/components/ui/select.tsx'
+import { Textarea } from '#/components/ui/textarea.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import {
   indianStates,
@@ -34,6 +35,8 @@ type CreatePartyDialogProps = {
   onOpenChange?: (open: boolean) => void
   trigger?: React.ReactNode
   onCreated?: (party: PartyRecord) => void
+  onUpdated?: (party: PartyRecord) => void
+  party?: PartyRecord | null
   defaultPartyType?: PartyType
   lockPartyType?: boolean
 }
@@ -43,6 +46,8 @@ export function CreatePartyDialog({
   onOpenChange: controlledOnOpenChange,
   trigger,
   onCreated,
+  onUpdated,
+  party,
   defaultPartyType = 'customer',
   lockPartyType = false,
 }: CreatePartyDialogProps) {
@@ -50,6 +55,7 @@ export function CreatePartyDialog({
   const queryClient = useQueryClient()
   const { companyId, ledgerBySystemKey, isReady, error: workspaceError } =
     useWorkspace()
+  const isEdit = Boolean(party)
   const [internalOpen, setInternalOpen] = React.useState(false)
   const open = controlledOpen ?? internalOpen
   const setOpen = controlledOnOpenChange ?? setInternalOpen
@@ -57,7 +63,16 @@ export function CreatePartyDialog({
   const [name, setName] = React.useState('')
   const [partyType, setPartyType] = React.useState<PartyType>(defaultPartyType)
   const [gstin, setGstin] = React.useState('')
+  const [pan, setPan] = React.useState('')
   const [stateCode, setStateCode] = React.useState('27')
+  const [addressLine1, setAddressLine1] = React.useState('')
+  const [addressLine2, setAddressLine2] = React.useState('')
+  const [city, setCity] = React.useState('')
+  const [pincode, setPincode] = React.useState('')
+  const [contactPhone, setContactPhone] = React.useState('')
+  const [contactEmail, setContactEmail] = React.useState('')
+  const [shipSameAsBilling, setShipSameAsBilling] = React.useState(true)
+  const [shippingAddress, setShippingAddress] = React.useState('')
   const [creditLimit, setCreditLimit] = React.useState('')
   const [paymentTermsDays, setPaymentTermsDays] = React.useState('30')
   const [priceListId, setPriceListId] = React.useState('')
@@ -71,18 +86,58 @@ export function CreatePartyDialog({
   })
 
   const createParty = useMutation(trpc.parties.create.mutationOptions())
+  const updateParty = useMutation(trpc.parties.update.mutationOptions())
+
+  function loadPartyValues(entry: PartyRecord | null | undefined) {
+    if (!entry) {
+      resetForm()
+      return
+    }
+    setName(entry.name)
+    setPartyType(entry.partyType)
+    setGstin(entry.gstin ?? '')
+    setPan(entry.pan ?? '')
+    setStateCode(entry.stateCode)
+    setAddressLine1(entry.addressLine1 ?? '')
+    setAddressLine2(entry.addressLine2 ?? '')
+    setCity(entry.city ?? '')
+    setPincode(entry.pincode ?? '')
+    setContactPhone(entry.contactPhone ?? '')
+    setContactEmail(entry.contactEmail ?? '')
+    const hasDistinctShipping =
+      Boolean(entry.shippingAddress?.trim()) &&
+      entry.shippingAddress.trim() !== entry.billingAddress?.trim()
+    setShipSameAsBilling(!hasDistinctShipping)
+    setShippingAddress(hasDistinctShipping ? entry.shippingAddress : '')
+    setCreditLimit(entry.creditLimit ?? '')
+    setPaymentTermsDays(String(entry.paymentTermsDays))
+    setPriceListId(entry.priceListId ?? '')
+    setFormError(null)
+  }
 
   React.useEffect(() => {
     if (open) {
-      setPartyType(defaultPartyType)
+      loadPartyValues(party)
+      if (!party) {
+        setPartyType(defaultPartyType)
+      }
     }
-  }, [open, defaultPartyType])
+  }, [open, party, defaultPartyType])
 
   function resetForm() {
     setName('')
     setPartyType(defaultPartyType)
     setGstin('')
+    setPan('')
     setStateCode('27')
+    setAddressLine1('')
+    setAddressLine2('')
+    setCity('')
+    setPincode('')
+    setContactPhone('')
+    setContactEmail('')
+    setShipSameAsBilling(true)
+    setShippingAddress('')
     setCreditLimit('')
     setPaymentTermsDays('30')
     setPriceListId('')
@@ -94,7 +149,7 @@ export function CreatePartyDialog({
     if (!next) resetForm()
   }
 
-  async function handleCreate(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!companyId) {
       setFormError(
@@ -110,6 +165,7 @@ export function CreatePartyDialog({
     const payableAccountId = ledgerBySystemKey.supplier_payable ?? null
 
     if (
+      !isEdit &&
       (partyType === 'customer' || partyType === 'both') &&
       !receivableAccountId
     ) {
@@ -117,6 +173,7 @@ export function CreatePartyDialog({
       return
     }
     if (
+      !isEdit &&
       (partyType === 'supplier' || partyType === 'both') &&
       !payableAccountId
     ) {
@@ -124,9 +181,43 @@ export function CreatePartyDialog({
       return
     }
 
+    const contactPayload = {
+      pan: pan.trim(),
+      addressLine1: addressLine1.trim(),
+      addressLine2: addressLine2.trim(),
+      city: city.trim(),
+      pincode: pincode.trim(),
+      contactPhone: contactPhone.trim(),
+      contactEmail: contactEmail.trim(),
+      billingAddress: '',
+      shippingAddress: shipSameAsBilling ? '' : shippingAddress.trim(),
+    }
+
     setFormError(null)
     try {
-      const party = await createParty.mutateAsync({
+      if (isEdit && party) {
+        const updated = await updateParty.mutateAsync({
+          id: party.id,
+          companyId,
+          name: name.trim(),
+          partyType,
+          gstin: gstin.trim() ? gstin.trim().toUpperCase() : null,
+          stateCode,
+          creditLimit: creditLimit.trim() || null,
+          paymentTermsDays: Number(paymentTermsDays) || 0,
+          priceListId: priceListId || null,
+          ...contactPayload,
+        })
+        await queryClient.invalidateQueries({
+          queryKey: trpc.parties.list.queryKey({ companyId }),
+        })
+        resetForm()
+        setOpen(false)
+        onUpdated?.(updated)
+        return
+      }
+
+      const created = await createParty.mutateAsync({
         companyId,
         name: name.trim(),
         partyType,
@@ -138,40 +229,43 @@ export function CreatePartyDialog({
           partyType === 'supplier' ? null : receivableAccountId,
         payableAccountId: partyType === 'customer' ? null : payableAccountId,
         priceListId: priceListId || null,
+        ...contactPayload,
       })
       await queryClient.invalidateQueries({
         queryKey: trpc.parties.list.queryKey({ companyId }),
       })
       resetForm()
       setOpen(false)
-      onCreated?.(party)
+      onCreated?.(created)
     } catch (error) {
       setFormError(getFormErrorMessage(error))
     }
   }
 
+  const saving = createParty.isPending || updateParty.isPending
+
   const dialog = (
-    <DialogContent className="sm:max-w-lg">
+    <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
       <DialogHeader>
-        <DialogTitle>New party</DialogTitle>
+        <DialogTitle>{isEdit ? 'Edit party' : 'New party'}</DialogTitle>
         <DialogDescription>
-          Customer / supplier master with GST state and credit terms.
+          Billing address, GST/PAN, and contact details print on tax invoices.
         </DialogDescription>
       </DialogHeader>
-      <form className="flex flex-col gap-3" onSubmit={handleCreate}>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium" htmlFor="party-name">
-            Name
-          </label>
-          <Input
-            id="party-name"
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Party legal / trade name"
-            required
-            value={name}
-          />
-        </div>
+      <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <div className="grid gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <label className="text-xs font-medium" htmlFor="party-name">
+              Name
+            </label>
+            <Input
+              id="party-name"
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Legal / trade name"
+              required
+              value={name}
+            />
+          </div>
           {!lockPartyType ? (
             <div className="flex flex-col gap-1.5">
               <span className="text-xs font-medium">Type</span>
@@ -192,11 +286,7 @@ export function CreatePartyDialog({
               </Select>
             </div>
           ) : null}
-          <div
-            className={
-              lockPartyType ? 'flex flex-col gap-1.5 sm:col-span-2' : 'flex flex-col gap-1.5'
-            }
-          >
+          <div className="flex flex-col gap-1.5">
             <span className="text-xs font-medium">State / POS</span>
             <Select onValueChange={setStateCode} value={stateCode}>
               <SelectTrigger className="w-full">
@@ -213,8 +303,6 @@ export function CreatePartyDialog({
               </SelectContent>
             </Select>
           </div>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium" htmlFor="party-gstin">
               GSTIN
@@ -226,6 +314,118 @@ export function CreatePartyDialog({
               value={gstin}
             />
           </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium" htmlFor="party-pan">
+              PAN
+            </label>
+            <Input
+              id="party-pan"
+              onChange={(event) => setPan(event.target.value)}
+              placeholder="ABCDE1234F"
+              value={pan}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <p className="text-xs font-medium">Billing address</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
+              <label className="text-xs font-medium" htmlFor="party-addr1">
+                Address line 1
+              </label>
+              <Input
+                id="party-addr1"
+                onChange={(event) => setAddressLine1(event.target.value)}
+                placeholder="Shop / building / street"
+                value={addressLine1}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
+              <label className="text-xs font-medium" htmlFor="party-addr2">
+                Address line 2
+              </label>
+              <Input
+                id="party-addr2"
+                onChange={(event) => setAddressLine2(event.target.value)}
+                placeholder="Area, landmark"
+                value={addressLine2}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium" htmlFor="party-city">
+                City
+              </label>
+              <Input
+                id="party-city"
+                onChange={(event) => setCity(event.target.value)}
+                value={city}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium" htmlFor="party-pincode">
+                PIN code
+              </label>
+              <Input
+                id="party-pincode"
+                onChange={(event) => setPincode(event.target.value)}
+                value={pincode}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium" htmlFor="party-phone">
+              Phone
+            </label>
+            <Input
+              id="party-phone"
+              onChange={(event) => setContactPhone(event.target.value)}
+              value={contactPhone}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium" htmlFor="party-email">
+              Email
+            </label>
+            <Input
+              id="party-email"
+              onChange={(event) => setContactEmail(event.target.value)}
+              type="email"
+              value={contactEmail}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              checked={shipSameAsBilling}
+              className="size-4 rounded border"
+              onChange={(event) => setShipSameAsBilling(event.target.checked)}
+              type="checkbox"
+            />
+            Ship-to same as billing
+          </label>
+          {!shipSameAsBilling ? (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium" htmlFor="party-ship">
+                Shipping address
+              </label>
+              <Textarea
+                id="party-ship"
+                onChange={(event) => setShippingAddress(event.target.value)}
+                placeholder="Full ship-to address if different"
+                rows={3}
+                value={shippingAddress}
+              />
+            </div>
+          ) : null}
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <span className="text-xs font-medium">Payment terms</span>
             <Select
@@ -246,18 +446,19 @@ export function CreatePartyDialog({
               </SelectContent>
             </Select>
           </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium" htmlFor="party-credit">
+              Credit limit
+            </label>
+            <Input
+              id="party-credit"
+              onChange={(event) => setCreditLimit(event.target.value)}
+              placeholder="e.g. 100000.00"
+              value={creditLimit}
+            />
+          </div>
         </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium" htmlFor="party-credit">
-            Credit limit
-          </label>
-          <Input
-            id="party-credit"
-            onChange={(event) => setCreditLimit(event.target.value)}
-            placeholder="e.g. 100000.00"
-            value={creditLimit}
-          />
-        </div>
+
         {(partyType === 'customer' || partyType === 'both') &&
         (priceListsQuery.data ?? []).length > 0 ? (
           <div className="flex flex-col gap-1.5">
@@ -284,12 +485,13 @@ export function CreatePartyDialog({
             </Select>
           </div>
         ) : null}
+
         {formError ? (
           <p className="text-sm text-destructive">{formError}</p>
         ) : null}
         <DialogFooter>
-          <Button disabled={createParty.isPending} type="submit">
-            {createParty.isPending ? 'Saving…' : 'Save'}
+          <Button disabled={saving} type="submit">
+            {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Save'}
           </Button>
         </DialogFooter>
       </form>

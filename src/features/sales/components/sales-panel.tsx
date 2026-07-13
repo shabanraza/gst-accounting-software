@@ -4,10 +4,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   BanIcon,
   EyeIcon,
-  FileTextIcon,
+  FileCheckIcon,
   PlusIcon,
   PrinterIcon,
   SearchIcon,
+  TruckIcon,
 } from 'lucide-react'
 
 import {
@@ -22,13 +23,6 @@ import {
 } from '#/components/ui/alert-dialog.tsx'
 import { Badge } from '#/components/ui/badge.tsx'
 import { Button } from '#/components/ui/button.tsx'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '#/components/ui/card.tsx'
 import { Input } from '#/components/ui/input.tsx'
 import {
   Table,
@@ -48,6 +42,7 @@ import { VoucherPreviewSheet } from '#/features/documents/components/voucher-pre
 import type { VoucherPreviewTarget } from '#/features/documents/components/voucher-preview-sheet.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
+import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
@@ -66,6 +61,7 @@ export function SalesPanel() {
     id: string
     invoiceNumber: string
   } | null>(null)
+  const [actionError, setActionError] = React.useState<string | null>(null)
 
   const salesQuery = useQuery({
     ...trpc.sales.list.queryOptions({
@@ -81,6 +77,12 @@ export function SalesPanel() {
       })
     },
   })
+  const generateEInvoiceMutation = useMutation(
+    trpc.reports.generateEInvoice.mutationOptions(),
+  )
+  const generateEWayBillMutation = useMutation(
+    trpc.reports.generateEWayBill.mutationOptions(),
+  )
   const partiesQuery = useQuery({
     ...trpc.parties.list.queryOptions({
       companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
@@ -112,6 +114,42 @@ export function SalesPanel() {
     setPreviewOpen(true)
   }
 
+  async function handleGenerateIrn(row: {
+    id: string
+    totalAmount: string
+  }) {
+    if (!companyId) return
+    setActionError(null)
+    try {
+      await generateEInvoiceMutation.mutateAsync({
+        companyId,
+        salesInvoiceId: row.id,
+        totalAmount: row.totalAmount,
+      })
+      await queryClient.invalidateQueries({
+        queryKey: trpc.reports.getEInvoice.queryKey({
+          companyId,
+          salesInvoiceId: row.id,
+        }),
+      })
+    } catch (err) {
+      setActionError(getFormErrorMessage(err, 'Failed to generate IRN'))
+    }
+  }
+
+  async function handleGenerateEWay(row: { id: string }) {
+    if (!companyId) return
+    setActionError(null)
+    try {
+      await generateEWayBillMutation.mutateAsync({
+        companyId,
+        salesInvoiceId: row.id,
+      })
+    } catch (err) {
+      setActionError(getFormErrorMessage(err, 'Failed to generate e-way bill'))
+    }
+  }
+
   return (
     <WorkspacePage
       actions={
@@ -125,42 +163,35 @@ export function SalesPanel() {
       description="Sales register from posted invoices."
       title="Sales"
     >
-      <Card>
-        <CardHeader className="gap-3">
-          <div className="flex flex-col gap-1">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <FileTextIcon className="size-4 text-muted-foreground" />
-              Sales invoices
-            </CardTitle>
-            <CardDescription>{filtered.length} posted vouchers</CardDescription>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <Tabs
+            onValueChange={(value) =>
+              setFilter(value as 'all' | 'Paid' | 'Part paid' | 'Pending')
+            }
+            value={filter}
+          >
+            <TabsList>
+              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="Pending">Pending</TabsTrigger>
+              <TabsTrigger value="Part paid">Part paid</TabsTrigger>
+              <TabsTrigger value="Paid">Paid</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="relative w-full max-w-sm">
+            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search invoice or party"
+              value={query}
+            />
           </div>
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <Tabs
-              onValueChange={(value) =>
-                setFilter(value as 'all' | 'Paid' | 'Part paid' | 'Pending')
-              }
-              value={filter}
-            >
-              <TabsList>
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="Pending">Pending</TabsTrigger>
-                <TabsTrigger value="Part paid">Part paid</TabsTrigger>
-                <TabsTrigger value="Paid">Paid</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <div className="relative w-full max-w-sm">
-              <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search invoice or party"
-                value={query}
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="px-0">
-          <Table>
+        </div>
+        {actionError ? (
+          <p className="text-sm text-destructive">{actionError}</p>
+        ) : null}
+        <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Invoice</TableHead>
@@ -245,6 +276,42 @@ export function SalesPanel() {
                           <TooltipContent>Print</TooltipContent>
                         </Tooltip>
                         {row.status === 'cancelled' ? null : (
+                          <>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  disabled={generateEInvoiceMutation.isPending}
+                                  onClick={() => handleGenerateIrn(row)}
+                                  size="icon-sm"
+                                  type="button"
+                                  variant="ghost"
+                                >
+                                  <FileCheckIcon />
+                                  <span className="sr-only">Generate IRN</span>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Generate IRN</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  disabled={generateEWayBillMutation.isPending}
+                                  onClick={() => handleGenerateEWay(row)}
+                                  size="icon-sm"
+                                  type="button"
+                                  variant="ghost"
+                                >
+                                  <TruckIcon />
+                                  <span className="sr-only">
+                                    Generate e-way bill
+                                  </span>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Generate e-way</TooltipContent>
+                            </Tooltip>
+                          </>
+                        )}
+                        {row.status === 'cancelled' ? null : (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
@@ -272,9 +339,8 @@ export function SalesPanel() {
                 ))
               )}
             </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+        </Table>
+      </div>
 
       <VoucherPreviewSheet
         onOpenChange={setPreviewOpen}

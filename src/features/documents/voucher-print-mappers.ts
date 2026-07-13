@@ -25,6 +25,7 @@ export function toPrintCompany(
     bankIfsc: company.bankIfsc,
     authorizedSignatory: company.authorizedSignatory,
     logoUrl: company.logoUrl,
+    invoiceTerms: company.invoiceTerms,
   }
 }
 
@@ -36,5 +37,7 @@ export function toPrintParty(party: PartyRecord): VoucherPrintPartyInfo {
     pan: party.pan,
     billingAddress: party.billingAddress,
     shippingAddress: party.shippingAddress,
+    contactPhone: party.contactPhone,
+    contactEmail: party.contactEmail,
   }
 }

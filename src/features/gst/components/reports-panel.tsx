@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { DownloadIcon, FileBarChartIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
+import { Textarea } from '#/components/ui/textarea.tsx'
 import {
   Table,
   TableBody,
@@ -27,13 +28,20 @@ import {
 } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
+import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import type { Gstr2bReconciliationReport } from '#/features/gst/gstr2b-reconciliation-service.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function ReportsPanel() {
   const trpc = useTRPC()
   const { companyId, company, isReady } = useWorkspace()
   const [tab, setTab] = React.useState('gstr1')
+  const [gstr2bText, setGstr2bText] = React.useState('')
+  const [gstr2bError, setGstr2bError] = React.useState<string | null>(null)
+  const [gstr2bReport, setGstr2bReport] =
+    React.useState<Gstr2bReconciliationReport | null>(null)
+  const gstr2bFileRef = React.useRef<HTMLInputElement>(null)
   const periodStart = '2026-04-01'
   const periodEnd = '2027-03-31'
 
@@ -91,6 +99,12 @@ export function ReportsPanel() {
     }),
     enabled: Boolean(companyId) && isReady && tab === 'stock',
   })
+  const stockValuationQuery = useQuery({
+    ...trpc.reports.stockValuation.queryOptions({
+      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
+    }),
+    enabled: Boolean(companyId) && isReady && tab === 'valuation',
+  })
   const dayBookQuery = useQuery({
     ...trpc.reports.dayBook.queryOptions({
       companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
@@ -125,6 +139,77 @@ export function ReportsPanel() {
     enabled: Boolean(companyId) && isReady && tab === 'export',
   })
 
+  const gstr2bMutation = useMutation(
+    trpc.reports.gstr2bReconciliation.mutationOptions(),
+  )
+
+  function parseGstr2bPortalRows(
+    text: string,
+  ): Array<{
+    supplierGstin: string
+    supplierInvoiceNumber: string
+    invoiceDate: string
+    taxableAmount: string
+    totalGstAmount: string
+  }> {
+    const parsed = JSON.parse(text) as unknown
+    if (Array.isArray(parsed)) {
+      return parsed as Array<{
+        supplierGstin: string
+        supplierInvoiceNumber: string
+        invoiceDate: string
+        taxableAmount: string
+        totalGstAmount: string
+      }>
+    }
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      'rows' in parsed &&
+      Array.isArray((parsed as { rows: unknown }).rows)
+    ) {
+      return (parsed as { rows: Array<Record<string, string>> }).rows.map(
+        (row) => ({
+          supplierGstin: row.supplierGstin ?? row.ctin ?? '',
+          supplierInvoiceNumber:
+            row.supplierInvoiceNumber ?? row.inum ?? row.invoiceNumber ?? '',
+          invoiceDate: row.invoiceDate ?? row.idt ?? '',
+          taxableAmount: row.taxableAmount ?? row.txval ?? '0.00',
+          totalGstAmount: row.totalGstAmount ?? row.iamt ?? row.camt ?? '0.00',
+        }),
+      )
+    }
+    throw new Error('Paste a JSON array or { rows: [...] } from the GST portal')
+  }
+
+  async function handleGstr2bFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setGstr2bError(null)
+    try {
+      setGstr2bText(await file.text())
+    } catch {
+      setGstr2bError('Could not read the uploaded file')
+    } finally {
+      event.target.value = ''
+    }
+  }
+
+  async function runGstr2bReconciliation() {
+    if (!companyId) return
+    setGstr2bError(null)
+    try {
+      const portalRows = parseGstr2bPortalRows(gstr2bText)
+      const report = await gstr2bMutation.mutateAsync({
+        companyId,
+        portalRows,
+      })
+      setGstr2bReport(report)
+    } catch (err) {
+      setGstr2bError(getFormErrorMessage(err, 'GSTR-2B reconciliation failed'))
+    }
+  }
+
   function downloadExport() {
     if (!exportQuery.data || !companyId) return
     const blob = new Blob([JSON.stringify(exportQuery.data, null, 2)], {
@@ -152,9 +237,11 @@ export function ReportsPanel() {
           <TabsTrigger value="bs">Balance sheet</TabsTrigger>
           <TabsTrigger value="ageing">Ageing</TabsTrigger>
           <TabsTrigger value="stock">Stock summary</TabsTrigger>
+          <TabsTrigger value="valuation">Stock valuation</TabsTrigger>
           <TabsTrigger value="daybook">Day book</TabsTrigger>
           <TabsTrigger value="cashbook">Cash book</TabsTrigger>
           <TabsTrigger value="hsn">HSN summary</TabsTrigger>
+          <TabsTrigger value="gstr2b">GSTR-2B</TabsTrigger>
           <TabsTrigger value="export">Export</TabsTrigger>
         </TabsList>
 
@@ -565,6 +652,59 @@ export function ReportsPanel() {
           </Card>
         </TabsContent>
 
+        <TabsContent className="mt-4" value="valuation">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Stock valuation</CardTitle>
+              <CardDescription>
+                Quantity on hand valued at item purchase rate (weighted average
+                placeholder)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead>Unit</TableHead>
+                    <TableHead className="text-right">Qty</TableHead>
+                    <TableHead className="text-right">Avg rate</TableHead>
+                    <TableHead className="text-right">Value</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(stockValuationQuery.data ?? []).length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        className="py-10 text-center text-muted-foreground"
+                        colSpan={5}
+                      >
+                        No inventory to value.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    (stockValuationQuery.data ?? []).map((row) => (
+                      <TableRow key={row.itemId}>
+                        <TableCell className="font-medium">
+                          {row.itemName}
+                        </TableCell>
+                        <TableCell>{row.unit}</TableCell>
+                        <TableCell className="text-right">{row.quantity}</TableCell>
+                        <TableCell className="text-right">
+                          {formatInr(row.avgRate)}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatInr(row.stockValue)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent className="mt-4" value="daybook">
           <Card>
             <CardHeader>
@@ -716,6 +856,100 @@ export function ReportsPanel() {
                   )}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent className="mt-4" value="gstr2b">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">GSTR-2B reconciliation</CardTitle>
+              <CardDescription>
+                Paste portal JSON or upload a file, then reconcile against posted
+                purchase bills
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <input
+                accept=".json,.csv,.txt"
+                className="hidden"
+                onChange={handleGstr2bFile}
+                ref={gstr2bFileRef}
+                type="file"
+              />
+              <Textarea
+                className="min-h-40 font-mono text-xs"
+                onChange={(event) => setGstr2bText(event.target.value)}
+                placeholder='[{"supplierGstin":"24AAAA...","supplierInvoiceNumber":"SB-1","invoiceDate":"2026-01-06","taxableAmount":"500.00","totalGstAmount":"90.00"}]'
+                value={gstr2bText}
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => gstr2bFileRef.current?.click()}
+                  type="button"
+                  variant="outline"
+                >
+                  Upload portal file
+                </Button>
+                <Button
+                  disabled={!companyId || gstr2bMutation.isPending}
+                  onClick={runGstr2bReconciliation}
+                  type="button"
+                >
+                  Reconcile
+                </Button>
+              </div>
+              {gstr2bError ? (
+                <p className="text-sm text-destructive">{gstr2bError}</p>
+              ) : null}
+              {gstr2bReport ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Invoice</TableHead>
+                      <TableHead>GSTIN</TableHead>
+                      <TableHead>Books taxable</TableHead>
+                      <TableHead>2B taxable</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {gstr2bReport.rows.map((row) => (
+                      <TableRow key={row.supplierInvoiceNumber}>
+                        <TableCell className="font-medium">
+                          {row.supplierInvoiceNumber}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {row.supplierGstin ?? '—'}
+                        </TableCell>
+                        <TableCell>
+                          {row.bookTaxableAmount
+                            ? formatInr(row.bookTaxableAmount)
+                            : '—'}
+                        </TableCell>
+                        <TableCell>
+                          {row.portalTaxableAmount
+                            ? formatInr(row.portalTaxableAmount)
+                            : '—'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              row.status === 'matched'
+                                ? 'success'
+                                : row.status === 'mismatched'
+                                  ? 'warning'
+                                  : 'outline'
+                            }
+                          >
+                            {row.status.replaceAll('_', ' ')}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : null}
             </CardContent>
           </Card>
         </TabsContent>

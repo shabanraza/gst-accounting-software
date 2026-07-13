@@ -12,12 +12,22 @@ export type CreateGodownInput = {
   isDefault?: boolean
 }
 
+export type UpdateGodownInput = {
+  companyId: string
+  godownId: string
+  name: string
+}
+
 export interface GodownRepository {
+  findById: (id: string) => Promise<GodownRecord | null>
   findByCompanyAndName: (
     companyId: string,
     name: string,
   ) => Promise<GodownRecord | null>
   create: (godown: GodownRecord) => Promise<GodownRecord>
+  update: (godown: GodownRecord) => Promise<GodownRecord>
+  delete: (id: string) => Promise<void>
+  clearDefaultForCompany: (companyId: string) => Promise<void>
   listByCompanyId: (companyId: string) => Promise<Array<GodownRecord>>
 }
 
@@ -28,10 +38,24 @@ export class DuplicateGodownNameError extends Error {
   }
 }
 
-export class InvalidGodownError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'InvalidGodownError'
+export class GodownNotFoundError extends Error {
+  constructor() {
+    super('Godown not found')
+    this.name = 'GodownNotFoundError'
+  }
+}
+
+export class CannotDeleteDefaultGodownError extends Error {
+  constructor() {
+    super('Cannot delete the default godown')
+    this.name = 'CannotDeleteDefaultGodownError'
+  }
+}
+
+export class CannotDeleteLastGodownError extends Error {
+  constructor() {
+    super('Cannot delete the only godown for this company')
+    this.name = 'CannotDeleteLastGodownError'
   }
 }
 
@@ -58,6 +82,10 @@ export async function createGodown(
     throw new DuplicateGodownNameError(name)
   }
 
+  if (input.isDefault) {
+    await repository.clearDefaultForCompany(input.companyId)
+  }
+
   return repository.create({
     id: crypto.randomUUID(),
     companyId: input.companyId,
@@ -65,6 +93,75 @@ export async function createGodown(
     isDefault: input.isDefault ?? false,
     createdAt: new Date(),
   })
+}
+
+export class InvalidGodownError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'InvalidGodownError'
+  }
+}
+
+export async function updateGodown(
+  repository: GodownRepository,
+  input: UpdateGodownInput,
+): Promise<GodownRecord> {
+  const name = normalizeName(input.name)
+  if (!name) {
+    throw new InvalidGodownError('Godown name is required')
+  }
+
+  const existing = await repository.findById(input.godownId)
+  if (!existing || existing.companyId !== input.companyId) {
+    throw new GodownNotFoundError()
+  }
+
+  if (existing.name !== name) {
+    const duplicate = await repository.findByCompanyAndName(
+      input.companyId,
+      name,
+    )
+    if (duplicate) {
+      throw new DuplicateGodownNameError(name)
+    }
+  }
+
+  return repository.update({ ...existing, name })
+}
+
+export async function deleteGodown(
+  repository: GodownRepository,
+  companyId: string,
+  godownId: string,
+): Promise<void> {
+  const existing = await repository.findById(godownId)
+  if (!existing || existing.companyId !== companyId) {
+    throw new GodownNotFoundError()
+  }
+
+  const all = await repository.listByCompanyId(companyId)
+  if (all.length <= 1) {
+    throw new CannotDeleteLastGodownError()
+  }
+  if (existing.isDefault) {
+    throw new CannotDeleteDefaultGodownError()
+  }
+
+  await repository.delete(godownId)
+}
+
+export async function setDefaultGodown(
+  repository: GodownRepository,
+  companyId: string,
+  godownId: string,
+): Promise<GodownRecord> {
+  const existing = await repository.findById(godownId)
+  if (!existing || existing.companyId !== companyId) {
+    throw new GodownNotFoundError()
+  }
+
+  await repository.clearDefaultForCompany(companyId)
+  return repository.update({ ...existing, isDefault: true })
 }
 
 export async function listGodownsByCompany(

@@ -5,6 +5,8 @@ export type VoucherPrintPartyInfo = {
   pan?: string
   billingAddress?: string
   shippingAddress?: string
+  contactPhone?: string
+  contactEmail?: string
 }
 
 export type VoucherPrintCompanyInfo = {
@@ -24,6 +26,7 @@ export type VoucherPrintCompanyInfo = {
   bankIfsc?: string
   authorizedSignatory?: string
   logoUrl?: string
+  invoiceTerms?: string
 }
 
 export type VoucherPrintLine = {
@@ -68,6 +71,11 @@ export type VoucherPrintDocument = {
   documentNumber: string
   documentDate: string
   dueDate?: string
+  poReference?: string
+  transportMode?: string
+  vehicleNo?: string
+  lrNumber?: string
+  challanRef?: string
   paymentMode?: string
   narration: string
   company: VoucherPrintCompanyInfo

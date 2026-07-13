@@ -40,6 +40,11 @@ export type PostPurchaseBillInput = {
   roundOff?: string
   billDiscount?: string
   godownName?: string | null
+  poReference?: string
+  transportMode?: string
+  vehicleNo?: string
+  lrNumber?: string
+  challanRef?: string
   purchaseAccountId: string
   inputGstAccountId: string
   payableAccountId: string
@@ -76,6 +81,11 @@ export type PurchaseBillRecord = {
   roundOff: string
   billDiscount: string
   godownName: string | null
+  poReference: string
+  transportMode: string
+  vehicleNo: string
+  lrNumber: string
+  challanRef: string
   taxableAmount: string
   totalGstAmount: string
   totalAmount: string
@@ -252,6 +262,11 @@ export async function postPurchaseBill(
     roundOff: formatMoney(roundOff),
     billDiscount: formatMoney(billDiscount),
     godownName: input.godownName ?? null,
+    poReference: input.poReference?.trim() || '',
+    transportMode: input.transportMode?.trim() || '',
+    vehicleNo: input.vehicleNo?.trim() || '',
+    lrNumber: input.lrNumber?.trim() || '',
+    challanRef: input.challanRef?.trim() || '',
     taxableAmount: formatMoney(taxableTotal),
     totalGstAmount: formatMoney(gstTotal),
     totalAmount: formatMoney(totalAmount),

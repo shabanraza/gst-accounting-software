@@ -6,10 +6,15 @@ import {
   listOcrDraftsByCompany,
 } from '#/features/ocr/ocr-draft-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
-import { companyProcedure, publicProcedure } from '#/integrations/trpc/init.ts'
+import { companyProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
-import type { OcrDraftRepository } from '#/features/ocr/ocr-draft-service.ts'
+import type { ItemRepository } from '#/features/inventory/item-service.ts'
+import type {
+  OcrConfirmDependencies,
+  OcrDraftRepository,
+} from '#/features/ocr/ocr-draft-service.ts'
+import type { PartyRepository } from '#/features/parties/party-service.ts'
 
 const ocrFieldSchema = z.object({
   value: z.string(),
@@ -37,23 +42,44 @@ const listOcrDraftsInputSchema = z.object({
 const confirmOcrDraftInputSchema = z.object({
   companyId: z.string().uuid(),
   draftId: z.string().uuid(),
+  companyStateCode: z.string().length(2),
+  financialYearStart: z.string().min(1),
+  purchaseAccountId: z.string().uuid(),
+  inputGstAccountId: z.string().uuid(),
+  payableAccountId: z.string().uuid(),
+  stockAccountId: z.string().uuid(),
 })
 
-export const createOcrRouter = (repository: OcrDraftRepository) =>
+export const createOcrRouter = (
+  repository: OcrDraftRepository,
+  deps: Pick<OcrConfirmDependencies, 'parties' | 'items' | 'bills' | 'posting' | 'stock'>,
+) =>
   ({
-    list: publicProcedure.input(listOcrDraftsInputSchema).query(({ input }) => {
+    list: companyProcedure.input(listOcrDraftsInputSchema).query(({ input }) => {
       return listOcrDraftsByCompany(repository, input.companyId)
     }),
-    createOcrDraft: companyProcedure
+    createOcrDraft: capabilityProcedure('post_purchase')
       .input(createOcrDraftInputSchema)
       .mutation(({ input }) => createOcrDraft(repository, input)),
     confirm: capabilityProcedure('post_purchase')
       .input(confirmOcrDraftInputSchema)
       .mutation(({ input, ctx }) =>
-        confirmOcrDraft(repository, {
+        confirmOcrDraft(repository, { ...deps }, {
           draftId: input.draftId,
           companyId: input.companyId,
           reviewedByUserId: ctx.userId,
+          companyStateCode: input.companyStateCode,
+          financialYearStart: input.financialYearStart,
+          purchaseAccountId: input.purchaseAccountId,
+          inputGstAccountId: input.inputGstAccountId,
+          payableAccountId: input.payableAccountId,
+          stockAccountId: input.stockAccountId,
         }),
       ),
   }) satisfies TRPCRouterRecord
+
+export type OcrRouterDeps = {
+  repository: OcrDraftRepository
+  parties: PartyRepository
+  items: ItemRepository
+} & Pick<OcrConfirmDependencies, 'bills' | 'posting' | 'stock'>

@@ -88,6 +88,7 @@ export const companies = pgTable(
     bankIfsc: text('bank_ifsc').notNull().default(''),
     authorizedSignatory: text('authorized_signatory').notNull().default(''),
     logoUrl: text('logo_url').notNull().default(''),
+    invoiceTerms: text('invoice_terms').notNull().default(''),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
@@ -161,6 +162,12 @@ export const parties = pgTable(
     gstin: text(),
     pan: text('pan').notNull().default(''),
     stateCode: text('state_code').notNull(),
+    addressLine1: text('address_line1').notNull().default(''),
+    addressLine2: text('address_line2').notNull().default(''),
+    city: text('city').notNull().default(''),
+    pincode: text('pincode').notNull().default(''),
+    contactPhone: text('contact_phone').notNull().default(''),
+    contactEmail: text('contact_email').notNull().default(''),
     billingAddress: text('billing_address').notNull().default(''),
     shippingAddress: text('shipping_address').notNull().default(''),
     creditLimit: text('credit_limit'),
@@ -311,6 +318,11 @@ export const purchaseBills = pgTable(
     supplierBillNumber: text('supplier_bill_number').notNull(),
     billDate: text('bill_date').notNull(),
     dueDate: text('due_date').notNull(),
+    poReference: text('po_reference').notNull().default(''),
+    transportMode: text('transport_mode').notNull().default(''),
+    vehicleNo: text('vehicle_no').notNull().default(''),
+    lrNumber: text('lr_number').notNull().default(''),
+    challanRef: text('challan_ref').notNull().default(''),
     placeOfSupply: text('place_of_supply').notNull().default(''),
     reverseCharge: boolean('reverse_charge').notNull().default(false),
     paymentStatus: text('payment_status').notNull().default('Pending'),
@@ -373,6 +385,12 @@ export const salesInvoices = pgTable(
       .references(() => parties.id),
     invoiceNumber: text('invoice_number').notNull(),
     invoiceDate: text('invoice_date').notNull(),
+    dueDate: text('due_date').notNull().default(''),
+    poReference: text('po_reference').notNull().default(''),
+    transportMode: text('transport_mode').notNull().default(''),
+    vehicleNo: text('vehicle_no').notNull().default(''),
+    lrNumber: text('lr_number').notNull().default(''),
+    challanRef: text('challan_ref').notNull().default(''),
     placeOfSupply: text('place_of_supply').notNull().default(''),
     reverseCharge: boolean('reverse_charge').notNull().default(false),
     paymentMode: text('payment_mode').notNull(),
@@ -749,3 +767,45 @@ export const purchaseGrnLines = pgTable('purchase_grn_lines', {
   rate: text('rate').notNull(),
   gstRate: text('gst_rate').notNull(),
 })
+
+export const eInvoices = pgTable(
+  'e_invoices',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id),
+    salesInvoiceId: uuid('sales_invoice_id')
+      .notNull()
+      .references(() => salesInvoices.id),
+    irn: text('irn').notNull(),
+    ackNumber: text('ack_number').notNull(),
+    ackDate: text('ack_date').notNull(),
+    qrCodeData: text('qr_code_data').notNull(),
+    generatedAt: timestamp('generated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('e_invoices_sales_invoice_idx').on(table.salesInvoiceId),
+  ],
+)
+
+export const eWayBills = pgTable(
+  'e_way_bills',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id),
+    salesInvoiceId: uuid('sales_invoice_id')
+      .notNull()
+      .references(() => salesInvoices.id),
+    ewbNumber: text('ewb_number').notNull(),
+    ewbDate: text('ewb_date').notNull(),
+    vehicleNumber: text('vehicle_number'),
+    validUntil: text('valid_until').notNull(),
+    generatedAt: timestamp('generated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('e_way_bills_sales_invoice_idx').on(table.salesInvoiceId),
+  ],
+)

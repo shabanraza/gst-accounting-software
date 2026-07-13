@@ -10,6 +10,7 @@ import {
   PackageCheckIcon,
   PackageIcon,
   ReceiptIcon,
+  ScanTextIcon,
   Settings2Icon,
   ShoppingCartIcon,
   TruckIcon,
@@ -23,8 +24,10 @@ export type AppNavPath =
   | '/app/dashboard'
   | '/app/masters/chart-of-accounts'
   | '/app/masters/companies'
+  | '/app/masters/company-profile'
   | '/app/masters/parties'
   | '/app/masters/items'
+  | '/app/masters/godowns'
   | '/app/accounting/journal'
   | '/app/sales'
   | '/app/sales/documents'
@@ -36,6 +39,7 @@ export type AppNavPath =
   | '/app/returns'
   | '/app/inventory'
   | '/app/imports'
+  | '/app/ocr'
   | '/app/reports'
   | '/app/settings'
 
@@ -81,6 +85,7 @@ export const appNav: Array<AppNavSection> = [
     icon: TruckIcon,
     items: [
       { label: 'Bills', path: '/app/purchases', icon: ReceiptIcon },
+      { label: 'OCR review', path: '/app/ocr', icon: ScanTextIcon },
       {
         label: 'Purchase orders',
         path: '/app/purchase-orders',
@@ -108,6 +113,7 @@ export const appNav: Array<AppNavSection> = [
     icon: WarehouseIcon,
     items: [
       { label: 'Items', path: '/app/masters/items', icon: PackageIcon },
+      { label: 'Godowns', path: '/app/masters/godowns', icon: WarehouseIcon },
       { label: 'Stock', path: '/app/inventory', icon: WarehouseIcon },
     ],
   },
@@ -141,6 +147,11 @@ export const appNav: Array<AppNavSection> = [
         label: 'Chart of accounts',
         path: '/app/masters/chart-of-accounts',
         icon: BookOpenIcon,
+      },
+      {
+        label: 'Company profile',
+        path: '/app/masters/company-profile',
+        icon: Building2Icon,
       },
       { label: 'Companies', path: '/app/masters/companies', icon: Building2Icon },
     ],

@@ -95,7 +95,7 @@ export function VoucherEntryPage({
   )
   const nextNumber = useMutation(trpc.documents.nextNumber.mutationOptions())
   const createAttachment = useMutation(
-    trpc.documents.createAttachment.mutationOptions(),
+    trpc.documents.uploadAttachment.mutationOptions(),
   )
 
   const parties = (partiesQuery.data).filter((party) =>
@@ -124,6 +124,11 @@ export function VoucherEntryPage({
   )
   const [supplierBillNo, setSupplierBillNo] = React.useState('')
   const [dueDate, setDueDate] = React.useState('')
+  const [poReference, setPoReference] = React.useState('')
+  const [transportMode, setTransportMode] = React.useState('')
+  const [vehicleNo, setVehicleNo] = React.useState('')
+  const [lrNumber, setLrNumber] = React.useState('')
+  const [challanRef, setChallanRef] = React.useState('')
   const [narration, setNarration] = React.useState('')
   const [freight, setFreight] = React.useState('0.00')
   const [packing, setPacking] = React.useState('0.00')
@@ -552,6 +557,12 @@ export function VoucherEntryPage({
           placeOfSupply,
           invoiceNumber: allocatedNumber,
           invoiceDate: voucherDate,
+          dueDate: dueDate || voucherDate,
+          poReference,
+          transportMode,
+          vehicleNo,
+          lrNumber,
+          challanRef,
           paymentMode,
           taxMode,
           narration,
@@ -612,6 +623,11 @@ export function VoucherEntryPage({
           supplierBillNumber: supplierBillNo.trim(),
           billDate: voucherDate,
           dueDate: dueDate || voucherDate,
+          poReference,
+          transportMode,
+          vehicleNo,
+          lrNumber,
+          challanRef,
           taxMode,
           narration,
           freight,
@@ -646,6 +662,12 @@ export function VoucherEntryPage({
           })
         }
         if (attachmentFile) {
+          const buffer = await attachmentFile.arrayBuffer()
+          const bytes = new Uint8Array(buffer)
+          let binary = ''
+          for (const byte of bytes) {
+            binary += String.fromCharCode(byte)
+          }
           await createAttachment.mutateAsync({
             companyId,
             linkedDocumentType: 'purchase_bill',
@@ -653,6 +675,7 @@ export function VoucherEntryPage({
             originalFilename: attachmentFile.name,
             contentType: attachmentFile.type || 'application/octet-stream',
             sizeBytes: attachmentFile.size,
+            contentBase64: btoa(binary),
           })
           setAttachmentFile(null)
         }
@@ -933,6 +956,73 @@ export function VoucherEntryPage({
                 </div>
               </>
             )}
+        </section>
+
+        <section className="grid gap-3 border-t pt-3 md:grid-cols-3 lg:grid-cols-6">
+          {isSales ? (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium" htmlFor="sales-due-date">
+                Due date
+              </label>
+              <Input
+                id="sales-due-date"
+                onChange={(event) => setDueDate(event.target.value)}
+                type="date"
+                value={dueDate}
+              />
+            </div>
+          ) : null}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium" htmlFor="po-ref">
+              PO / order ref
+            </label>
+            <Input
+              id="po-ref"
+              onChange={(event) => setPoReference(event.target.value)}
+              value={poReference}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium" htmlFor="challan-ref">
+              Challan ref
+            </label>
+            <Input
+              id="challan-ref"
+              onChange={(event) => setChallanRef(event.target.value)}
+              value={challanRef}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium" htmlFor="transport-mode">
+              Transport
+            </label>
+            <Input
+              id="transport-mode"
+              onChange={(event) => setTransportMode(event.target.value)}
+              placeholder="Road / Rail"
+              value={transportMode}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium" htmlFor="vehicle-no">
+              Vehicle no.
+            </label>
+            <Input
+              id="vehicle-no"
+              onChange={(event) => setVehicleNo(event.target.value)}
+              value={vehicleNo}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium" htmlFor="lr-number">
+              LR / AWB
+            </label>
+            <Input
+              id="lr-number"
+              onChange={(event) => setLrNumber(event.target.value)}
+              value={lrNumber}
+            />
+          </div>
         </section>
 
         <section className="flex flex-col gap-2">
