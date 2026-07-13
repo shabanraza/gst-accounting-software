@@ -69,7 +69,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const godowns = workspaceQuery.data?.godowns ?? []
   const activeFinancialYearId =
     workspaceQuery.data?.activeFinancialYearId ?? null
-  const isLoading = workspaceQuery.isLoading || workspaceQuery.isFetching
+  const isLoading =
+    workspaceQuery.isPending ||
+    (workspaceQuery.isFetching && workspaceQuery.data === undefined)
   const isReady = workspaceQuery.isSuccess || workspaceQuery.isError
   const error = workspaceQuery.error
     ? workspaceQuery.error instanceof Error

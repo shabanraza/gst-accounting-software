@@ -6,9 +6,9 @@ export function WorkspaceLoadingGate({
 }: {
   children: React.ReactNode
 }) {
-  const { isReady, isLoading, error } = useWorkspace()
+  const { isReady, isLoading, error, company } = useWorkspace()
 
-  if (!isReady || isLoading) {
+  if (!isReady || (isLoading && !company)) {
     return (
       <div className="flex flex-1 flex-col gap-3 p-3 pt-0">
         <div className="flex flex-col gap-2 border-b pb-3">
