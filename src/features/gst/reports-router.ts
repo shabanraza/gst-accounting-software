@@ -20,7 +20,7 @@ import { generateEInvoice, generateEWayBill } from '#/features/gst/e-invoice-ser
 import { z } from 'zod'
 
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
-import { companyProcedure, publicProcedure } from '#/integrations/trpc/init.ts'
+import { companyProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
@@ -165,7 +165,7 @@ export const createReportsRouter = (deps: {
   eWayBills: EWayBillRepository
 }) =>
   ({
-    gstr1: publicProcedure.input(reportInputSchema).query(async ({ input }) => {
+    gstr1: companyProcedure.input(reportInputSchema).query(async ({ input }) => {
       const documents = await buildGstDocuments({
         companyId: input.companyId,
         companyStateCode: input.companyStateCode,
@@ -180,7 +180,7 @@ export const createReportsRouter = (deps: {
         documents,
       })
     }),
-    gstr3b: publicProcedure
+    gstr3b: companyProcedure
       .input(reportInputSchema)
       .query(async ({ input }) => {
         const documents = await buildGstDocuments({
@@ -197,7 +197,7 @@ export const createReportsRouter = (deps: {
           documents,
         })
       }),
-    trialBalance: publicProcedure
+    trialBalance: companyProcedure
       .input(z.object({ companyId: z.string().uuid() }))
       .query(async ({ input }) => {
         const report = await buildTrialBalance(
@@ -213,7 +213,7 @@ export const createReportsRouter = (deps: {
           credit: row.balanceType === 'credit' ? row.balance : '0.00',
         }))
       }),
-    profitAndLoss: publicProcedure
+    profitAndLoss: companyProcedure
       .input(z.object({ companyId: z.string().uuid() }))
       .query(({ input }) => {
         return buildProfitAndLoss(
@@ -221,7 +221,7 @@ export const createReportsRouter = (deps: {
           input.companyId,
         )
       }),
-    balanceSheet: publicProcedure
+    balanceSheet: companyProcedure
       .input(z.object({ companyId: z.string().uuid() }))
       .query(({ input }) => {
         return buildBalanceSheet(
@@ -229,7 +229,7 @@ export const createReportsRouter = (deps: {
           input.companyId,
         )
       }),
-    partyLedger: publicProcedure
+    partyLedger: companyProcedure
       .input(companyAndPartyInputSchema)
       .query(({ input }) => {
         return buildPartyLedger(
@@ -238,7 +238,7 @@ export const createReportsRouter = (deps: {
           input.partyId,
         )
       }),
-    receivablesAgeing: publicProcedure
+    receivablesAgeing: companyProcedure
       .input(z.object({ companyId: z.string().uuid() }))
       .query(({ input }) => {
         return buildReceivablesAgeing(
@@ -246,7 +246,7 @@ export const createReportsRouter = (deps: {
           input.companyId,
         )
       }),
-    payablesAgeing: publicProcedure
+    payablesAgeing: companyProcedure
       .input(z.object({ companyId: z.string().uuid() }))
       .query(({ input }) => {
         return buildPayablesAgeing(
@@ -254,7 +254,7 @@ export const createReportsRouter = (deps: {
           input.companyId,
         )
       }),
-    stockSummary: publicProcedure
+    stockSummary: companyProcedure
       .input(z.object({ companyId: z.string().uuid() }))
       .query(({ input }) => {
         return buildStockSummary(
@@ -262,7 +262,7 @@ export const createReportsRouter = (deps: {
           input.companyId,
         )
       }),
-    stockValuation: publicProcedure
+    stockValuation: companyProcedure
       .input(z.object({ companyId: z.string().uuid() }))
       .query(({ input }) => {
         return buildStockValuation(
@@ -270,7 +270,7 @@ export const createReportsRouter = (deps: {
           input.companyId,
         )
       }),
-    stockLedger: publicProcedure
+    stockLedger: companyProcedure
       .input(companyAndItemInputSchema)
       .query(({ input }) => {
         return buildStockLedger(
@@ -279,7 +279,7 @@ export const createReportsRouter = (deps: {
           input.itemId,
         )
       }),
-    gstr1Json: publicProcedure
+    gstr1Json: companyProcedure
       .input(reportInputSchema)
       .query(async ({ input }) => {
         const documents = await buildGstDocuments({
@@ -308,12 +308,30 @@ export const createReportsRouter = (deps: {
       }),
     generateEInvoice: capabilityProcedure('post_sales')
       .input(generateEInvoiceInputSchema)
-      .mutation(({ input }) => {
-        return generateEInvoice(deps.eInvoices, input)
+      .mutation(async ({ input }) => {
+        const invoice = await deps.invoices.findById(input.salesInvoiceId)
+        if (!invoice || invoice.companyId !== input.companyId) {
+          throw new Error('Sales invoice not found for company')
+        }
+        if (invoice.status === 'cancelled') {
+          throw new Error('Cannot generate e-invoice for a cancelled invoice')
+        }
+        return generateEInvoice(deps.eInvoices, {
+          companyId: input.companyId,
+          salesInvoiceId: input.salesInvoiceId,
+          totalAmount: invoice.totalAmount,
+        })
       }),
     generateEWayBill: capabilityProcedure('post_sales')
       .input(generateEWayBillInputSchema)
-      .mutation(({ input }) => {
+      .mutation(async ({ input }) => {
+        const invoice = await deps.invoices.findById(input.salesInvoiceId)
+        if (!invoice || invoice.companyId !== input.companyId) {
+          throw new Error('Sales invoice not found for company')
+        }
+        if (invoice.status === 'cancelled') {
+          throw new Error('Cannot generate e-way bill for a cancelled invoice')
+        }
         return generateEWayBill(deps.eWayBills, {
           companyId: input.companyId,
           salesInvoiceId: input.salesInvoiceId,
@@ -338,27 +356,27 @@ export const createReportsRouter = (deps: {
         if (!record || record.companyId !== input.companyId) return null
         return record
       }),
-    dayBook: publicProcedure.input(reportInputSchema).query(async ({ input }) => {
+    dayBook: companyProcedure.input(reportInputSchema).query(async ({ input }) => {
       return buildDayBook(deps.postings, input.companyId, {
         startDate: input.periodStart,
         endDate: input.periodEnd,
       })
     }),
-    cashBook: publicProcedure.input(reportInputSchema).query(async ({ input }) => {
+    cashBook: companyProcedure.input(reportInputSchema).query(async ({ input }) => {
       return buildCashBook(
         { postings: deps.postings, ledgers: deps.ledgers },
         input.companyId,
         { startDate: input.periodStart, endDate: input.periodEnd },
       )
     }),
-    hsnSummary: publicProcedure.input(reportInputSchema).query(async ({ input }) => {
+    hsnSummary: companyProcedure.input(reportInputSchema).query(async ({ input }) => {
       return buildHsnSummary(
         { invoices: deps.invoices, items: deps.items },
         input.companyId,
         { startDate: input.periodStart, endDate: input.periodEnd },
       )
     }),
-    accountantExport: publicProcedure
+    accountantExport: companyProcedure
       .input(z.object({ companyId: z.string().uuid() }))
       .query(async ({ input }) => {
         return buildAccountantExport(

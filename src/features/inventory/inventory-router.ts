@@ -135,7 +135,7 @@ export const createInventoryRouter = (
   priceListRepository: PriceListRepository & PriceListItemRepository,
 ) =>
   ({
-    listGodowns: publicProcedure
+    listGodowns: companyProcedure
       .input(listByCompanyInputSchema)
       .query(({ input }) => {
         return listGodownsByCompany(godownRepository, input.companyId)

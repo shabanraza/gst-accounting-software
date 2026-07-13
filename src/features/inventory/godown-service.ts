@@ -180,6 +180,15 @@ export async function ensureDefaultGodowns(
   const existing = await repository.listByCompanyId(companyId)
 
   if (existing.length > 0) {
+    if (!existing.some((godown) => godown.isDefault)) {
+      const promoted = await repository.update({
+        ...existing[0],
+        isDefault: true,
+      })
+      return existing.map((godown) =>
+        godown.id === promoted.id ? promoted : godown,
+      )
+    }
     return existing
   }
 

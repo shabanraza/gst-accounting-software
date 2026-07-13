@@ -10,6 +10,7 @@ import type {
   StockBalanceRepository,
   StockMovementRepository,
 } from '#/features/inventory/stock-movement-service.ts'
+import type { ItemRepository } from '#/features/inventory/item-service.ts'
 
 export type PurchaseBillLineInput = {
   itemId: string
@@ -112,6 +113,7 @@ export type PurchaseBillDependencies = {
   bills: PurchaseBillRepository
   posting: LedgerPostingRepository
   stock: StockMovementRepository & StockBalanceRepository
+  items?: ItemRepository
 }
 
 export class DuplicateSupplierBillError extends Error {
@@ -196,9 +198,12 @@ export async function postPurchaseBill(
   const billId = crypto.randomUUID()
 
   const inventoryDebit = taxableTotal.plus(sundryNet)
+  const inventoryAccountId = input.skipStockMovement
+    ? input.purchaseAccountId
+    : input.stockAccountId
   const ledgerLines = [
     {
-      ledgerAccountId: input.stockAccountId,
+      ledgerAccountId: inventoryAccountId,
       debit: formatMoney(inventoryDebit),
       credit: '0.00',
     },
@@ -214,9 +219,6 @@ export async function postPurchaseBill(
     },
   ]
 
-  // Keep purchaseAccountId available for expense-only bills; unused when stock posts.
-  void input.purchaseAccountId
-
   const ledgerEntry = await postLedgerEntry(deps.posting, {
     companyId: input.companyId,
     entryDate: input.billDate,
@@ -228,6 +230,11 @@ export async function postPurchaseBill(
 
   for (const line of lines) {
     if (input.skipStockMovement) {
+      continue
+    }
+
+    const item = deps.items ? await deps.items.findById(line.itemId) : null
+    if (item && !item.tracksInventory) {
       continue
     }
 

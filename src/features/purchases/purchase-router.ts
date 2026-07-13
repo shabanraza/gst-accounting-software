@@ -13,6 +13,7 @@ import type {
   StockMovementRepository,
 } from '#/features/inventory/stock-movement-service.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
+import type { ItemRepository } from '#/features/inventory/item-service.ts'
 
 const lineSchema = z.object({
   itemId: z.string().uuid(),
@@ -68,6 +69,7 @@ export const createPurchasesRouter = (
   posting: LedgerPostingRepository,
   stock: StockMovementRepository & StockBalanceRepository,
   dashboard: DashboardSummaryRepository,
+  items: ItemRepository,
 ) =>
   ({
     list: publicProcedure.input(listPurchasesInputSchema).query(({ input }) => {
@@ -81,7 +83,7 @@ export const createPurchasesRouter = (
     postBill: capabilityProcedure('post_purchase')
       .input(postPurchaseBillInputSchema)
       .mutation(async ({ input }) => {
-        const bill = await postPurchaseBill({ bills, posting, stock }, input)
+        const bill = await postPurchaseBill({ bills, posting, stock, items }, input)
         const stockInQuantity = bill.lines
           .reduce((sum, line) => sum + Number(line.quantity), 0)
           .toFixed(0)

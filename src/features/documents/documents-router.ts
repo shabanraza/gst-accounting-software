@@ -31,8 +31,15 @@ const createAttachmentInputSchema = z.object({
 })
 
 const uploadAttachmentInputSchema = createAttachmentInputSchema.extend({
-  contentBase64: z.string().min(1),
+  contentBase64: z.string().min(1).max(14_000_000),
 })
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+
+function safeAttachmentFilename(filename: string): string {
+  const base = filename.split(/[/\\]/).pop()?.trim() || 'attachment'
+  return base.replace(/[^\w.\- ()]/g, '_').slice(0, 200) || 'attachment'
+}
 
 export const createDocumentsRouter = (
   sequences: DocumentSequenceRepository,
@@ -57,10 +64,14 @@ export const createDocumentsRouter = (
     uploadAttachment: capabilityProcedure('post_purchase')
       .input(uploadAttachmentInputSchema)
       .mutation(async ({ input }) => {
-        const storageKey = `attachments/${input.companyId}/${input.linkedDocumentType}/${crypto.randomUUID()}/${input.originalFilename}`
+        const safeFilename = safeAttachmentFilename(input.originalFilename)
+        const storageKey = `attachments/${input.companyId}/${input.linkedDocumentType}/${crypto.randomUUID()}/${safeFilename}`
         const body = Uint8Array.from(atob(input.contentBase64), (char) =>
           char.charCodeAt(0),
         )
+        if (body.byteLength > MAX_UPLOAD_BYTES) {
+          throw new Error('Attachment exceeds maximum upload size')
+        }
         await storage.putObject({
           key: storageKey,
           body,
@@ -71,7 +82,7 @@ export const createDocumentsRouter = (
           linkedDocumentType: input.linkedDocumentType,
           linkedDocumentId: input.linkedDocumentId,
           storageKey,
-          originalFilename: input.originalFilename,
+          originalFilename: safeFilename,
           contentType: input.contentType,
           sizeBytes: body.byteLength,
         })

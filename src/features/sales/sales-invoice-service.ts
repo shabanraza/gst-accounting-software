@@ -266,7 +266,14 @@ export async function postSalesInvoice(
   ]
 
   if (input.cogsAccountId && input.stockAccountId) {
-    cogsTotal = taxableTotal
+    for (const line of lines) {
+      const item = await deps.items?.findById(line.itemId)
+      if (item && !item.tracksInventory) {
+        continue
+      }
+      const rate = item?.purchaseRate ?? line.rate
+      cogsTotal = cogsTotal.plus(money(line.quantity).mul(money(rate)))
+    }
     ledgerLines.push(
       {
         ledgerAccountId: input.cogsAccountId,
@@ -414,6 +421,11 @@ export async function cancelSalesInvoice(
   })
 
   for (const line of invoice.lines) {
+    const item = await deps.items?.findById(line.itemId)
+    if (item && !item.tracksInventory) {
+      continue
+    }
+
     await recordStockMovement(deps.stock, deps.stock, {
       companyId: invoice.companyId,
       itemId: line.itemId,
