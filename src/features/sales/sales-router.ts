@@ -34,6 +34,11 @@ const lineSchema = z.object({
 const postSalesInvoiceInputSchema = z.object({
   companyId: z.string().uuid(),
   companyStateCode: z.string().length(2),
+  companyGstin: z.string().nullable().optional(),
+  companyAddressLine1: z.string().optional(),
+  companyAddressLine2: z.string().optional(),
+  companyCity: z.string().optional(),
+  companyPincode: z.string().optional(),
   customerId: z.string().uuid(),
   customerStateCode: z.string().length(2),
   placeOfSupply: z.string().length(2).optional(),
@@ -65,6 +70,12 @@ const postSalesInvoiceInputSchema = z.object({
 
 const listSalesInputSchema = z.object({
   companyId: z.string().uuid(),
+  includeLines: z.boolean().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  partyId: z.string().uuid().optional(),
+  limit: z.number().int().min(1).max(500).optional(),
+  cursor: z.string().optional(),
 })
 
 const getSalesInvoiceInputSchema = z.object({
@@ -98,7 +109,14 @@ export const createSalesRouter = (
     list: capabilityProcedure('view')
       .input(listSalesInputSchema)
       .query(({ input }) => {
-        return invoices.listByCompanyId(input.companyId)
+        return invoices.listByCompanyId(input.companyId, {
+          includeLines: input.includeLines ?? false,
+          startDate: input.startDate,
+          endDate: input.endDate,
+          partyId: input.partyId,
+          limit: input.limit,
+          cursor: input.cursor,
+        })
       }),
     getById: capabilityProcedure('view')
       .input(getSalesInvoiceInputSchema)

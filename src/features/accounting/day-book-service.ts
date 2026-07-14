@@ -29,13 +29,11 @@ export async function buildDayBook(
   companyId: string,
   period: DayBookPeriod,
 ): Promise<DayBookReport> {
-  const allEntries = await postings.listByCompanyId(companyId)
+  const allEntries = await postings.listByCompanyId(companyId, {
+    startDate: period.startDate,
+    endDate: period.endDate,
+  })
   const entries = allEntries
-    .filter(
-      (entry) =>
-        entry.entryDate >= period.startDate &&
-        entry.entryDate <= period.endDate,
-    )
     .sort((left, right) => left.entryDate.localeCompare(right.entryDate))
     .map((entry) => ({
       entryId: entry.id,

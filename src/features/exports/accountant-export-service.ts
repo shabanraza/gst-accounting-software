@@ -27,8 +27,8 @@ export async function buildAccountantExport(
       { ledgers: deps.ledgers, postings: deps.postings },
       companyId,
     ),
-    deps.invoices.listByCompanyId(companyId),
-    deps.bills.listByCompanyId(companyId),
+    deps.invoices.listByCompanyId(companyId, { includeLines: true }),
+    deps.bills.listByCompanyId(companyId, { includeLines: true }),
   ])
 
   return {

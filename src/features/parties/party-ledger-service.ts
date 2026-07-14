@@ -33,15 +33,20 @@ export async function buildPartyLedger(
   partyId: string,
 ): Promise<PartyLedgerReport> {
   const [invoices, bills, notes] = await Promise.all([
-    deps.invoices.listByCompanyId(companyId),
-    deps.bills.listByCompanyId(companyId),
+    deps.invoices.listByCompanyId(companyId, {
+      partyId,
+      includeLines: false,
+    }),
+    deps.bills.listByCompanyId(companyId, {
+      partyId,
+      includeLines: false,
+    }),
     deps.notes.listByCompanyId(companyId),
   ])
 
   const entries: Array<PartyLedgerEntry> = []
 
   for (const invoice of invoices) {
-    if (invoice.customerId !== partyId) continue
     entries.push({
       documentType: 'sales_invoice',
       documentId: invoice.id,
@@ -53,7 +58,6 @@ export async function buildPartyLedger(
   }
 
   for (const bill of bills) {
-    if (bill.supplierId !== partyId) continue
     entries.push({
       documentType: 'purchase_bill',
       documentId: bill.id,

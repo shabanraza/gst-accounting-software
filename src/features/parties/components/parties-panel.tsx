@@ -31,12 +31,17 @@ import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { usePartiesList } from '#/features/masters/use-master-data.ts'
 import { CreatePartyDialog } from '#/features/parties/components/create-party-dialog.tsx'
 import { useTRPC } from '#/integrations/trpc/react.ts'
+import { partyTypeBadgeIntent } from '#/lib/badge-intent.ts'
 import type { PartyRecord, PartyType } from '#/features/parties/party-service.ts'
 
 function partyTypeBadge(partyType: PartyType) {
-  if (partyType === 'customer') return <Badge variant="info">Customer</Badge>
-  if (partyType === 'supplier') return <Badge variant="warning">Supplier</Badge>
-  return <Badge variant="secondary">Both</Badge>
+  const label =
+    partyType === 'customer'
+      ? 'Customer'
+      : partyType === 'supplier'
+        ? 'Supplier'
+        : 'Both'
+  return <Badge variant={partyTypeBadgeIntent(partyType)}>{label}</Badge>
 }
 
 export function PartiesPanel() {
@@ -89,7 +94,7 @@ export function PartiesPanel() {
     return map
   }, [purchasesQuery.data, salesQuery.data])
 
-  const parties = partiesQuery.data ?? []
+  const parties = partiesQuery.data
   const filtered = parties.filter((party) => {
     const matchesFilter = filter === 'all' || party.partyType === filter
     const haystack =

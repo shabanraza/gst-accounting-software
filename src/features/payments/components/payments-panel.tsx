@@ -45,17 +45,7 @@ import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
-function paymentStatusBadgeVariant(status: string) {
-  if (status === 'Paid') {
-    return 'success' as const
-  }
-
-  if (status === 'Part paid') {
-    return 'warning' as const
-  }
-
-  return 'info' as const
-}
+import { paymentStatusBadgeIntent } from '#/lib/badge-intent.ts'
 
 export function PaymentsPanel() {
   const trpc = useTRPC()
@@ -307,7 +297,7 @@ export function PaymentsPanel() {
                         {formatInr(row.outstandingAmount)}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={paymentStatusBadgeVariant(row.paymentStatus)}>
+                        <Badge variant={paymentStatusBadgeIntent(row.paymentStatus)}>
                           {row.paymentStatus}
                         </Badge>
                       </TableCell>
@@ -324,7 +314,7 @@ export function PaymentsPanel() {
                         {formatInr(row.outstandingAmount)}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={paymentStatusBadgeVariant(row.paymentStatus)}>
+                        <Badge variant={paymentStatusBadgeIntent(row.paymentStatus)}>
                           {row.paymentStatus}
                         </Badge>
                       </TableCell>

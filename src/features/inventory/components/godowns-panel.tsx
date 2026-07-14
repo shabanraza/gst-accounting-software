@@ -158,7 +158,7 @@ export function GodownsPanel() {
               <TableCell className="font-medium">{godown.name}</TableCell>
               <TableCell>
                 {godown.isDefault ? (
-                  <Badge variant="secondary">Default</Badge>
+                  <Badge variant="info">Default</Badge>
                 ) : (
                   <Button
                     onClick={() => {

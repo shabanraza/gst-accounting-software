@@ -214,7 +214,7 @@ export function TeamMembersPanel() {
                   </TableCell>
                   <TableCell>
                     {isOwner || isSelf ? (
-                      <Badge variant="outline">{member.role}</Badge>
+                      <Badge variant="neutral">{member.role}</Badge>
                     ) : (
                       <Select
                         onValueChange={(value) =>

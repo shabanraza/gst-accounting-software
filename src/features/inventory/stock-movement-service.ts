@@ -33,7 +33,10 @@ export interface StockMovementRepository {
   createMovement: (
     movement: StockMovementRecord,
   ) => Promise<StockMovementRecord>
-  listByCompanyId: (companyId: string) => Promise<Array<StockMovementRecord>>
+  listByCompanyId: (
+    companyId: string,
+    options?: { itemId?: string },
+  ) => Promise<Array<StockMovementRecord>>
 }
 
 export interface StockBalanceRepository {

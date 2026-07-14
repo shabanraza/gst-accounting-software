@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { SearchIcon, WarehouseIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
+import { stockStatusBadgeIntent } from '#/lib/badge-intent.ts'
 import {
   Card,
   CardContent,
@@ -167,11 +168,9 @@ export function InventoryPanel() {
                       <TableCell>{formatInr(row.avgRate)}</TableCell>
                       <TableCell>{formatInr(value)}</TableCell>
                       <TableCell>
-                        {isLow ? (
-                          <Badge variant="warning">Low / zero</Badge>
-                        ) : (
-                          <Badge variant="success">In stock</Badge>
-                        )}
+                        <Badge variant={stockStatusBadgeIntent({ isLowOrZero: isLow })}>
+                          {isLow ? 'Low / zero' : 'In stock'}
+                        </Badge>
                       </TableCell>
                     </TableRow>
                   )

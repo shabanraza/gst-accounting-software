@@ -27,14 +27,12 @@ export async function buildStockLedger(
   companyId: string,
   itemId: string,
 ): Promise<StockLedgerReport> {
-  const movements = await deps.movements.listByCompanyId(companyId)
-  const itemMovements = movements
-    .filter((movement) => movement.itemId === itemId)
-    .sort(
-      (left, right) =>
-        left.occurredOn.localeCompare(right.occurredOn) ||
-        left.createdAt.getTime() - right.createdAt.getTime(),
-    )
+  const movements = await deps.movements.listByCompanyId(companyId, { itemId })
+  const itemMovements = movements.sort(
+    (left, right) =>
+      left.occurredOn.localeCompare(right.occurredOn) ||
+      left.createdAt.getTime() - right.createdAt.getTime(),
+  )
 
   let runningBalance = new Decimal(0)
   const rows: Array<StockLedgerRow> = itemMovements.map((movement) => {

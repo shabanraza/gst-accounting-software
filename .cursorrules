@@ -6,4 +6,4 @@ Use the latest version of Shadcn with Bun to install new components, like this c
 bunx --bun shadcn@latest add button
 ```
 
-Follow `AGENTS.md` for project rules. Use Bun for project commands, preserve shadcn preset `b7BF22kWv2` (radix-mira + teal), and use shadcn components before custom UI primitives.
+Follow `AGENTS.md` for project rules. Use Bun for project commands, preserve shadcn preset `b77BPLeYwy` (radix-mira + olive + teal + blue charts), and use shadcn components before custom UI primitives.

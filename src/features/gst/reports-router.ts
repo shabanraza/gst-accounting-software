@@ -49,8 +49,8 @@ async function buildGstDocuments(input: {
   parties: PartyRepository
 }): Promise<Array<GstReportDocument>> {
   const [sales, purchases, partyList] = await Promise.all([
-    input.invoices.listByCompanyId(input.companyId),
-    input.bills.listByCompanyId(input.companyId),
+    input.invoices.listByCompanyId(input.companyId, { includeLines: false }),
+    input.bills.listByCompanyId(input.companyId, { includeLines: false }),
     input.parties.listByCompanyId(input.companyId),
   ])
   const partyById = new Map(partyList.map((party) => [party.id, party]))

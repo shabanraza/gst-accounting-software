@@ -1,9 +1,10 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { EyeIcon, PlusIcon, PrinterIcon, SearchIcon, TruckIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
+import { paymentStatusBadgeIntent } from '#/lib/badge-intent.ts'
 import { Button } from '#/components/ui/button.tsx'
 import {
   Card,
@@ -29,6 +30,10 @@ import {
 } from '#/components/ui/tooltip.tsx'
 import { VoucherPreviewSheet } from '#/features/documents/components/voucher-preview-sheet.tsx'
 import type { VoucherPreviewTarget } from '#/features/documents/components/voucher-preview-sheet.tsx'
+import {
+  nextVoucherListCursor,
+  VOUCHER_LIST_PAGE_SIZE,
+} from '#/features/documents/voucher-list-pagination.ts'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
@@ -44,16 +49,29 @@ export function PurchasesPanel() {
   const [previewTarget, setPreviewTarget] =
     React.useState<VoucherPreviewTarget | null>(null)
   const [previewOpen, setPreviewOpen] = React.useState(false)
+  const resolvedCompanyId =
+    companyId ?? '00000000-0000-4000-8000-000000000099'
 
-  const purchasesQuery = useQuery({
-    ...trpc.purchases.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const purchasesQuery = useInfiniteQuery(
+    trpc.purchases.list.infiniteQueryOptions(
+      {
+        companyId: resolvedCompanyId,
+        limit: VOUCHER_LIST_PAGE_SIZE,
+      },
+      {
+        enabled: Boolean(companyId) && isReady,
+        getNextPageParam: (lastPage) =>
+          nextVoucherListCursor(
+            lastPage,
+            VOUCHER_LIST_PAGE_SIZE,
+            (row) => row.billDate,
+          ),
+      },
+    ),
+  )
   const partiesQuery = useQuery({
     ...trpc.parties.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
+      companyId: resolvedCompanyId,
     }),
     enabled: Boolean(companyId) && isReady,
   })
@@ -65,7 +83,7 @@ export function PurchasesPanel() {
     return (id: string) => map.get(id) ?? id.slice(0, 8)
   }, [partiesQuery.data])
 
-  const rows = purchasesQuery.data ?? []
+  const rows = purchasesQuery.data?.pages.flat() ?? []
   const filtered = rows.filter((row) => {
     const matchesFilter = filter === 'all' || row.paymentStatus === filter
     const haystack =
@@ -102,7 +120,7 @@ export function PurchasesPanel() {
               <TruckIcon className="size-4 text-muted-foreground" />
               Purchase bills
             </CardTitle>
-            <CardDescription>{filtered.length} posted vouchers</CardDescription>
+            <CardDescription>{filtered.length} loaded vouchers</CardDescription>
           </div>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <Tabs
@@ -129,7 +147,7 @@ export function PurchasesPanel() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="px-0">
+        <CardContent className="flex flex-col gap-4 px-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -176,13 +194,9 @@ export function PurchasesPanel() {
                     <TableCell>{formatInr(row.totalGstAmount)}</TableCell>
                     <TableCell>{formatInr(row.totalAmount)}</TableCell>
                     <TableCell>
-                      {row.paymentStatus === 'Paid' ? (
-                        <Badge variant="success">Paid</Badge>
-                      ) : row.paymentStatus === 'Part paid' ? (
-                        <Badge variant="warning">Part paid</Badge>
-                      ) : (
-                        <Badge variant="info">Pending</Badge>
-                      )}
+                      <Badge variant={paymentStatusBadgeIntent(row.paymentStatus)}>
+                        {row.paymentStatus}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
@@ -221,6 +235,18 @@ export function PurchasesPanel() {
               )}
             </TableBody>
           </Table>
+          {purchasesQuery.hasNextPage ? (
+            <div className="flex justify-center px-4">
+              <Button
+                disabled={purchasesQuery.isFetchingNextPage}
+                onClick={() => void purchasesQuery.fetchNextPage()}
+                type="button"
+                variant="outline"
+              >
+                {purchasesQuery.isFetchingNextPage ? 'Loading…' : 'Load more'}
+              </Button>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

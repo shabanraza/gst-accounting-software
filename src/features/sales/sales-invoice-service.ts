@@ -2,6 +2,11 @@ import Decimal from 'decimal.js'
 
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
 import { calculateGst } from '#/features/gst/gst-calculator.ts'
+import {
+  assertTaxInvoiceCompanyAddress,
+  assertTaxInvoicePartyAddress,
+  buildInvoicePartySnapshot,
+} from '#/features/gst/tax-invoice-compliance.ts'
 import { ensureOpeningStockForItemIds } from '#/features/inventory/opening-stock.ts'
 import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
 
@@ -15,6 +20,7 @@ import type {
 } from '#/features/inventory/stock-movement-service.ts'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
+import type { InvoicePartySnapshot } from '#/features/gst/tax-invoice-compliance.ts'
 
 export type PaymentMode = 'credit' | 'cash'
 export type PaymentStatus = 'Paid' | 'Part paid' | 'Pending'
@@ -34,6 +40,11 @@ export type SalesInvoiceLineInput = {
 export type PostSalesInvoiceInput = {
   companyId: string
   companyStateCode: string
+  companyGstin?: string | null
+  companyAddressLine1?: string
+  companyAddressLine2?: string
+  companyCity?: string
+  companyPincode?: string
   customerId: string
   customerStateCode: string
   invoiceNumber: string
@@ -104,13 +115,20 @@ export type SalesInvoiceRecord = {
   ledgerEntryId: string
   lines: Array<SalesInvoiceLineRecord>
   createdAt: Date
-}
+} & InvoicePartySnapshot
 
 export interface SalesInvoiceRepository {
   create: (invoice: SalesInvoiceRecord) => Promise<SalesInvoiceRecord>
   findById: (id: string) => Promise<SalesInvoiceRecord | null>
   save: (invoice: SalesInvoiceRecord) => Promise<SalesInvoiceRecord>
-  listByCompanyId: (companyId: string) => Promise<Array<SalesInvoiceRecord>>
+  listByCompanyId: (
+    companyId: string,
+    options?: import('#/lib/list-query.ts').ListQueryOptions,
+  ) => Promise<Array<SalesInvoiceRecord>>
+  sumOutstandingByCustomer?: (
+    companyId: string,
+    customerId: string,
+  ) => Promise<string>
 }
 
 export type SalesInvoiceDependencies = {
@@ -145,15 +163,27 @@ async function projectedCustomerOutstanding(
   customerId: string,
   additional: Decimal,
 ) {
-  const existing = await invoices.listByCompanyId(companyId)
+  if (invoices.sumOutstandingByCustomer) {
+    const current = await invoices.sumOutstandingByCustomer(
+      companyId,
+      customerId,
+    )
+    return money(current).plus(additional)
+  }
+
+  const existing = await invoices.listByCompanyId(companyId, {
+    partyId: customerId,
+    includeLines: false,
+  })
   const current = existing
     .filter(
       (invoice) =>
-        invoice.customerId === customerId &&
-        invoice.status !== 'cancelled' &&
-        invoice.paymentMode === 'credit',
+        invoice.status !== 'cancelled' && invoice.paymentMode === 'credit',
     )
-    .reduce((sum, invoice) => sum.plus(invoice.outstandingAmount), new Decimal(0))
+    .reduce(
+      (sum, invoice) => sum.plus(invoice.outstandingAmount),
+      new Decimal(0),
+    )
 
   return current.plus(additional)
 }
@@ -220,10 +250,33 @@ export async function postSalesInvoice(
   const invoiceId = crypto.randomUUID()
   const isCash = input.paymentMode === 'cash'
 
-  if (!isCash && deps.parties) {
-    const partyList = await deps.parties.listByCompanyId(input.companyId)
-    const customer = partyList.find((party) => party.id === input.customerId)
-    if (customer?.creditLimit) {
+  assertTaxInvoiceCompanyAddress({
+    gstin: input.companyGstin ?? null,
+    addressLine1: input.companyAddressLine1,
+    addressLine2: input.companyAddressLine2,
+    city: input.companyCity,
+    pincode: input.companyPincode,
+  })
+
+  if (!deps.parties) {
+    throw new Error('Party repository is required to post sales invoices')
+  }
+
+  const customer = await deps.parties.findById(input.customerId)
+  if (!customer) {
+    throw new Error(`Customer not found: ${input.customerId}`)
+  }
+
+  const partySnapshot = buildInvoicePartySnapshot(customer)
+  assertTaxInvoicePartyAddress({
+    partyName: customer.name,
+    partyGstin: customer.gstin,
+    billingAddress: partySnapshot.partyBillingAddressSnapshot,
+    invoiceTotal: formatMoney(totalAmount),
+  })
+
+  if (!isCash) {
+    if (customer.creditLimit) {
       const limit = new Decimal(customer.creditLimit)
       if (limit.gt(0)) {
         const projected = await projectedCustomerOutstanding(
@@ -346,6 +399,7 @@ export async function postSalesInvoice(
     lrNumber: input.lrNumber?.trim() || '',
     challanRef: input.challanRef?.trim() || '',
     status: 'posted',
+    ...partySnapshot,
     taxableAmount: formatMoney(taxableTotal),
     totalGstAmount: formatMoney(gstTotal),
     totalAmount: formatMoney(totalAmount),

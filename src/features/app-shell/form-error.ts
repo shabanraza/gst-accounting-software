@@ -59,6 +59,15 @@ const MESSAGE_RULES: Array<{ test: RegExp; message: string }> = [
     message: 'A company with this GSTIN already exists.',
   },
   {
+    test: /TaxInvoiceAddressRequired/i,
+    message:
+      'Billing address is required for GST tax invoices. Update company or party master.',
+  },
+  {
+    test: /CreditLimitExceeded/i,
+    message: 'Credit limit exceeded for this customer.',
+  },
+  {
     test: /LedgerAccountNotFound/i,
     message: 'One or more ledger accounts could not be found.',
   },

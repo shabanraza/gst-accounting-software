@@ -6,6 +6,7 @@ import { InMemoryLedgerPostingRepository } from '#/features/accounting/ledger-po
 import { InMemoryItemRepository } from '#/features/inventory/inventory-store.ts'
 import { InMemoryStockStore } from '#/features/inventory/inventory-store.ts'
 import { InMemoryPartyRepository } from '#/features/parties/party-store.ts'
+import { createParty } from '#/features/parties/party-service.ts'
 import {
   confirmOcrDraft,
   createOcrDraft,
@@ -142,6 +143,21 @@ describe('confirmOcrDraft', () => {
     const stockAccountId = accounts.find(
       (account) => account.systemKey === 'stock_in_hand',
     )!.id
+
+    await createParty(parties, {
+      companyId,
+      name: 'Textile Mills',
+      partyType: 'supplier',
+      gstin: '24AABCU9603R1ZM',
+      stateCode: '24',
+      addressLine1: 'GIDC Road, Unit 4',
+      city: 'Surat',
+      pincode: '395001',
+      creditLimit: null,
+      paymentTermsDays: 30,
+      payableAccountId,
+      receivableAccountId: null,
+    })
 
     const attachments = new InMemoryAttachmentRepository()
     const draft = await createOcrDraft(repository, attachments, {

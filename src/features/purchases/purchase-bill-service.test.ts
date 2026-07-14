@@ -99,6 +99,9 @@ async function seedPurchaseContext() {
     partyType: 'supplier',
     gstin: '24AABCU9603R1ZM',
     stateCode: '24',
+    addressLine1: 'GIDC Road, Unit 4',
+    city: 'Surat',
+    pincode: '395001',
     creditLimit: null,
     paymentTermsDays: 15,
     receivableAccountId: null,
@@ -128,6 +131,7 @@ async function seedPurchaseContext() {
     ledgerPosting,
     stock,
     bills,
+    parties,
   }
 }
 
@@ -140,6 +144,7 @@ describe('postPurchaseBill', () => {
         bills: context.bills,
         posting: context.ledgerPosting,
         stock: context.stock,
+        parties: context.parties,
       },
       {
         companyId: context.companyId,
@@ -222,6 +227,7 @@ describe('postPurchaseBill', () => {
         bills: context.bills,
         posting: context.ledgerPosting,
         stock: context.stock,
+        parties: context.parties,
       },
       input,
     )
@@ -232,6 +238,7 @@ describe('postPurchaseBill', () => {
           bills: context.bills,
           posting: context.ledgerPosting,
           stock: context.stock,
+          parties: context.parties,
         },
         input,
       ),
