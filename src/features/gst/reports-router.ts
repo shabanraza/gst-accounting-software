@@ -16,16 +16,13 @@ import { buildPartyLedger } from '#/features/parties/party-ledger-service.ts'
 import { buildStockLedger, buildStockSummary } from '#/features/inventory/stock-ledger-service.ts'
 import { buildStockValuation } from '#/features/inventory/stock-valuation-service.ts'
 import { reconcileGstr2b } from '#/features/gst/gstr2b-reconciliation-service.ts'
-import { generateEInvoice, generateEWayBill } from '#/features/gst/e-invoice-service.ts'
 import { z } from 'zod'
 
-import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 import { companyProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
-import type { EInvoiceRepository, EWayBillRepository } from '#/features/gst/e-invoice-service.ts'
 import type { GstReportDocument } from '#/features/gst/gst-report-types.ts'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
 import type {
@@ -134,23 +131,6 @@ const gstr2bReconciliationInputSchema = z.object({
   ),
 })
 
-const generateEInvoiceInputSchema = z.object({
-  companyId: z.string().uuid(),
-  salesInvoiceId: z.string().uuid(),
-  totalAmount: z.string(),
-})
-
-const generateEWayBillInputSchema = z.object({
-  companyId: z.string().uuid(),
-  salesInvoiceId: z.string().uuid(),
-  vehicleNumber: z.string().optional(),
-})
-
-const salesInvoiceLookupSchema = z.object({
-  companyId: z.string().uuid(),
-  salesInvoiceId: z.string().uuid(),
-})
-
 export const createReportsRouter = (deps: {
   invoices: SalesInvoiceRepository
   bills: PurchaseBillRepository
@@ -161,8 +141,6 @@ export const createReportsRouter = (deps: {
   stockMovements: StockMovementRepository
   stockBalances: StockBalanceRepository
   items: ItemRepository
-  eInvoices: EInvoiceRepository
-  eWayBills: EWayBillRepository
 }) =>
   ({
     gstr1: companyProcedure.input(reportInputSchema).query(async ({ input }) => {
@@ -305,56 +283,6 @@ export const createReportsRouter = (deps: {
           input.companyId,
           input.portalRows,
         )
-      }),
-    generateEInvoice: capabilityProcedure('post_sales')
-      .input(generateEInvoiceInputSchema)
-      .mutation(async ({ input }) => {
-        const invoice = await deps.invoices.findById(input.salesInvoiceId)
-        if (!invoice || invoice.companyId !== input.companyId) {
-          throw new Error('Sales invoice not found for company')
-        }
-        if (invoice.status === 'cancelled') {
-          throw new Error('Cannot generate e-invoice for a cancelled invoice')
-        }
-        return generateEInvoice(deps.eInvoices, {
-          companyId: input.companyId,
-          salesInvoiceId: input.salesInvoiceId,
-          totalAmount: invoice.totalAmount,
-        })
-      }),
-    generateEWayBill: capabilityProcedure('post_sales')
-      .input(generateEWayBillInputSchema)
-      .mutation(async ({ input }) => {
-        const invoice = await deps.invoices.findById(input.salesInvoiceId)
-        if (!invoice || invoice.companyId !== input.companyId) {
-          throw new Error('Sales invoice not found for company')
-        }
-        if (invoice.status === 'cancelled') {
-          throw new Error('Cannot generate e-way bill for a cancelled invoice')
-        }
-        return generateEWayBill(deps.eWayBills, {
-          companyId: input.companyId,
-          salesInvoiceId: input.salesInvoiceId,
-          vehicleNumber: input.vehicleNumber ?? null,
-        })
-      }),
-    getEInvoice: companyProcedure
-      .input(salesInvoiceLookupSchema)
-      .query(async ({ input }) => {
-        const record = await deps.eInvoices.findBySalesInvoiceId(
-          input.salesInvoiceId,
-        )
-        if (!record || record.companyId !== input.companyId) return null
-        return record
-      }),
-    getEWayBill: companyProcedure
-      .input(salesInvoiceLookupSchema)
-      .query(async ({ input }) => {
-        const record = await deps.eWayBills.findBySalesInvoiceId(
-          input.salesInvoiceId,
-        )
-        if (!record || record.companyId !== input.companyId) return null
-        return record
       }),
     dayBook: companyProcedure.input(reportInputSchema).query(async ({ input }) => {
       return buildDayBook(deps.postings, input.companyId, {

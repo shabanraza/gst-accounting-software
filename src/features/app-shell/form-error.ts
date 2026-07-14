@@ -1,35 +1,192 @@
-/** Extract a readable message from tRPC / Zod / Error failures. */
-export function getFormErrorMessage(error: unknown, fallback = 'Save failed') {
-  if (!(error instanceof Error)) {
-    return fallback
+import { TRPCClientError } from '@trpc/client'
+import { toast } from 'sonner'
+
+const UUID_PATTERN =
+  /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi
+
+const MESSAGE_RULES: Array<{ test: RegExp; message: string }> = [
+  {
+    test: /e-way bill already exists/i,
+    message: 'An e-way bill is already generated for this invoice.',
+  },
+  {
+    test: /e-invoice already exists/i,
+    message: 'An e-invoice is already generated for this invoice.',
+  },
+  {
+    test: /supplier bill number already exists|DuplicateSupplierBill/i,
+    message: 'This supplier bill number is already recorded.',
+  },
+  {
+    test: /invoice already cancelled/i,
+    message: 'This invoice is already cancelled.',
+  },
+  {
+    test: /InsufficientStock|insufficient stock/i,
+    message: 'Insufficient stock for one or more items.',
+  },
+  {
+    test: /DuplicateGodownName|godown name already exists/i,
+    message: 'A godown with this name already exists.',
+  },
+  {
+    test: /GodownInUse|godown is in use/i,
+    message:
+      'This godown cannot be deleted because stock movements reference it.',
+  },
+  {
+    test: /CannotDeleteDefaultGodown/i,
+    message: 'The default godown cannot be deleted.',
+  },
+  {
+    test: /CannotDeleteLastGodown/i,
+    message: 'At least one godown must remain.',
+  },
+  {
+    test: /GodownNotFound/i,
+    message: 'Godown not found.',
+  },
+  {
+    test: /DuplicatePartyName/i,
+    message: 'A party with this name already exists.',
+  },
+  {
+    test: /PartyNotFound/i,
+    message: 'Party not found.',
+  },
+  {
+    test: /DuplicateCompanyGstin/i,
+    message: 'A company with this GSTIN already exists.',
+  },
+  {
+    test: /LedgerAccountNotFound/i,
+    message: 'One or more ledger accounts could not be found.',
+  },
+  {
+    test: /InsufficientRole|FORBIDDEN|permission denied/i,
+    message: 'You do not have permission to perform this action.',
+  },
+  {
+    test: /Invitation not found/i,
+    message: 'This invitation is invalid or has expired.',
+  },
+  {
+    test: /UNAUTHORIZED|unauthorized/i,
+    message: 'Please sign in to continue.',
+  },
+]
+
+function extractRawMessage(error: unknown): string {
+  if (error instanceof TRPCClientError) {
+    return error.message
+  }
+  if (error instanceof Error) {
+    return error.message
+  }
+  if (typeof error === 'string') {
+    return error
+  }
+  return ''
+}
+
+function parseZodIssues(message: string): string | null {
+  if (!message.startsWith('[')) {
+    return null
   }
 
-  const message = error.message.trim()
-  if (!message) {
-    return fallback
-  }
+  try {
+    const parsed = JSON.parse(message) as Array<{
+      message?: string
+      path?: Array<string | number>
+    }>
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return null
+    }
 
-  if (message.startsWith('[')) {
-    try {
-      const parsed = JSON.parse(message) as Array<{
-        message?: string
-        path?: Array<string | number>
-      }>
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed
-          .map((issue) => {
-            const path =
-              issue.path && issue.path.length > 0
-                ? `${issue.path.join('.')}: `
-                : ''
-            return `${path}${issue.message ?? 'Invalid value'}`
-          })
-          .join('; ')
-      }
-    } catch {
-      // fall through
+    return parsed
+      .map((issue) => {
+        const path =
+          issue.path && issue.path.length > 0 ? `${issue.path.join('.')}: ` : ''
+        return `${path}${issue.message ?? 'Invalid value'}`
+      })
+      .join('; ')
+  } catch {
+    return null
+  }
+}
+
+function mapToFriendlyMessage(rawMessage: string): string | null {
+  for (const rule of MESSAGE_RULES) {
+    if (rule.test.test(rawMessage)) {
+      return rule.message
     }
   }
+  return null
+}
 
+function sanitizeMessage(message: string): string {
   return message
+    .replace(/^TRPCClientError:\s*/i, '')
+    .replace(/^Error:\s*/i, '')
+    .replace(UUID_PATTERN, '')
+    .replace(/\s+for sales invoice:\s*\.?/gi, '.')
+    .replace(/\s+for invoice:\s*\.?/gi, '.')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/:\s*\.?$/, '.')
+    .trim()
+}
+
+function looksLikeInternalError(message: string): boolean {
+  if (!message) {
+    return true
+  }
+  if (UUID_PATTERN.test(message)) {
+    return true
+  }
+  if (/^[A-Z][A-Za-z]+Error(?::|\s|$)/.test(message)) {
+    return true
+  }
+  if (/\/src\/|\.ts:\d+|at\s+\w+/.test(message)) {
+    return true
+  }
+  if (message.length > 200) {
+    return true
+  }
+  return false
+}
+
+/** Extract a user-safe message from tRPC / Zod / Error failures. */
+export function getFormErrorMessage(
+  error: unknown,
+  fallback = 'Something went wrong. Please try again.',
+) {
+  const raw = extractRawMessage(error).trim()
+  if (!raw) {
+    return fallback
+  }
+
+  const zodMessage = parseZodIssues(raw)
+  if (zodMessage) {
+    return zodMessage
+  }
+
+  const friendly = mapToFriendlyMessage(raw)
+  if (friendly) {
+    return friendly
+  }
+
+  const sanitized = sanitizeMessage(raw)
+  if (looksLikeInternalError(sanitized)) {
+    return fallback
+  }
+
+  return sanitized || fallback
+}
+
+/** Show a toast for action failures without leaking backend details. */
+export function toastActionError(
+  error: unknown,
+  fallback = 'Something went wrong. Please try again.',
+) {
+  toast.error(getFormErrorMessage(error, fallback))
 }

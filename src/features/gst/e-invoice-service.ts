@@ -13,6 +13,7 @@ export interface EInvoiceRepository {
   findBySalesInvoiceId: (
     salesInvoiceId: string,
   ) => Promise<EInvoiceRecord | null>
+  listByCompanyId: (companyId: string) => Promise<Array<EInvoiceRecord>>
   create: (record: EInvoiceRecord) => Promise<EInvoiceRecord>
 }
 
@@ -73,6 +74,7 @@ export interface EWayBillRepository {
   findBySalesInvoiceId: (
     salesInvoiceId: string,
   ) => Promise<EWayBillRecord | null>
+  listByCompanyId: (companyId: string) => Promise<Array<EWayBillRecord>>
   create: (record: EWayBillRecord) => Promise<EWayBillRecord>
 }
 

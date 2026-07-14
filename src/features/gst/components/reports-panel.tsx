@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { DownloadIcon, FileBarChartIcon } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { Badge } from '#/components/ui/badge.tsx'
 import { Button } from '#/components/ui/button.tsx'
@@ -28,7 +29,7 @@ import {
 } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import type { Gstr2bReconciliationReport } from '#/features/gst/gstr2b-reconciliation-service.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
@@ -38,7 +39,6 @@ export function ReportsPanel() {
   const { companyId, company, isReady } = useWorkspace()
   const [tab, setTab] = React.useState('gstr1')
   const [gstr2bText, setGstr2bText] = React.useState('')
-  const [gstr2bError, setGstr2bError] = React.useState<string | null>(null)
   const [gstr2bReport, setGstr2bReport] =
     React.useState<Gstr2bReconciliationReport | null>(null)
   const gstr2bFileRef = React.useRef<HTMLInputElement>(null)
@@ -185,11 +185,10 @@ export function ReportsPanel() {
   async function handleGstr2bFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     if (!file) return
-    setGstr2bError(null)
     try {
       setGstr2bText(await file.text())
     } catch {
-      setGstr2bError('Could not read the uploaded file')
+      toast.error('Could not read the uploaded file')
     } finally {
       event.target.value = ''
     }
@@ -197,7 +196,6 @@ export function ReportsPanel() {
 
   async function runGstr2bReconciliation() {
     if (!companyId) return
-    setGstr2bError(null)
     try {
       const portalRows = parseGstr2bPortalRows(gstr2bText)
       const report = await gstr2bMutation.mutateAsync({
@@ -206,7 +204,7 @@ export function ReportsPanel() {
       })
       setGstr2bReport(report)
     } catch (err) {
-      setGstr2bError(getFormErrorMessage(err, 'GSTR-2B reconciliation failed'))
+      toastActionError(err, 'GSTR-2B reconciliation failed')
     }
   }
 
@@ -899,9 +897,6 @@ export function ReportsPanel() {
                   Reconcile
                 </Button>
               </div>
-              {gstr2bError ? (
-                <p className="text-sm text-destructive">{gstr2bError}</p>
-              ) : null}
               {gstr2bReport ? (
                 <Table>
                   <TableHeader>

@@ -23,7 +23,7 @@ import {
 import { Textarea } from '#/components/ui/textarea.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 type JournalLine = {
@@ -54,7 +54,6 @@ export function JournalEntryPanel() {
     emptyLine(),
     emptyLine(),
   ])
-  const [error, setError] = React.useState<string | null>(null)
 
   const ledgersQuery = useQuery({
     ...trpc.accounting.listLedgerAccounts.queryOptions({
@@ -78,13 +77,12 @@ export function JournalEntryPanel() {
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
     if (!companyId) return
-    setError(null)
 
     const filled = lines.filter(
       (line) => line.ledgerAccountId && (line.debit || line.credit),
     )
     if (filled.length < 2) {
-      setError('Add at least two ledger lines')
+      toast.error('Add at least two ledger lines')
       return
     }
 
@@ -107,7 +105,7 @@ export function JournalEntryPanel() {
       setNarration('')
       setLines([emptyLine(), emptyLine()])
     } catch (err) {
-      setError(getFormErrorMessage(err, 'Post failed'))
+      toastActionError(err, 'Post failed')
     }
   }
 
@@ -211,7 +209,6 @@ export function JournalEntryPanel() {
                 Post journal
               </Button>
             </div>
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
           </form>
         </CardContent>
       </Card>

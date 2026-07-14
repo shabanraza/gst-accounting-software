@@ -22,6 +22,10 @@ export class InMemoryEInvoiceRepository implements EInvoiceRepository {
     )
   }
 
+  async listByCompanyId(companyId: string) {
+    return this.records.filter((record) => record.companyId === companyId)
+  }
+
   async create(record: EInvoiceRecord) {
     this.records.push(record)
     return record
@@ -37,6 +41,10 @@ export class InMemoryEWayBillRepository implements EWayBillRepository {
         (record) => record.salesInvoiceId === salesInvoiceId,
       ) ?? null
     )
+  }
+
+  async listByCompanyId(companyId: string) {
+    return this.records.filter((record) => record.companyId === companyId)
   }
 
   async create(record: EWayBillRecord) {
@@ -88,6 +96,15 @@ export class DrizzleEInvoiceRepository implements EInvoiceRepository {
     return mapEInvoiceRow(rows[0])
   }
 
+  async listByCompanyId(companyId: string) {
+    const rows = await this.database
+      .select()
+      .from(schema.eInvoices)
+      .where(eq(schema.eInvoices.companyId, companyId))
+
+    return rows.map(mapEInvoiceRow)
+  }
+
   async create(record: EInvoiceRecord) {
     const [created] = await this.database
       .insert(schema.eInvoices)
@@ -119,6 +136,15 @@ export class DrizzleEWayBillRepository implements EWayBillRepository {
 
     if (rows.length === 0) return null
     return mapEWayBillRow(rows[0])
+  }
+
+  async listByCompanyId(companyId: string) {
+    const rows = await this.database
+      .select()
+      .from(schema.eWayBills)
+      .where(eq(schema.eWayBills.companyId, companyId))
+
+    return rows.map(mapEWayBillRow)
   }
 
   async create(record: EWayBillRecord) {

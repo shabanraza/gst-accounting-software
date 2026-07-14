@@ -80,18 +80,6 @@ export function VoucherPreviewSheet({
     }),
     enabled: Boolean(companyId) && isReady && open,
   })
-  const eInvoiceQuery = useQuery({
-    ...trpc.reports.getEInvoice.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      salesInvoiceId: target?.kind === 'sales' ? target.id : '',
-    }),
-    enabled:
-      open &&
-      target?.kind === 'sales' &&
-      Boolean(target.id) &&
-      Boolean(companyId) &&
-      isReady,
-  })
 
   const itemById = React.useMemo(
     () => new Map((itemsQuery.data ?? []).map((item) => [item.id, item])),
@@ -115,7 +103,6 @@ export function VoucherPreviewSheet({
         company: companyInfo,
         customer: toPrintParty(customer),
         itemById,
-        eInvoice: eInvoiceQuery.data,
       })
     }
 
@@ -133,7 +120,6 @@ export function VoucherPreviewSheet({
     })
   }, [
     company,
-    eInvoiceQuery.data,
     itemById,
     partiesQuery.data,
     purchaseQuery.data,

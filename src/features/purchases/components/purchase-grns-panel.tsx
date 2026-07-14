@@ -32,7 +32,7 @@ import {
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
-import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 function workflowStatusBadgeVariant(status: string) {
@@ -61,7 +61,6 @@ export function PurchaseGrnsPanel() {
   )
   const [purchaseOrderId, setPurchaseOrderId] = React.useState('')
   const [godownName, setGodownName] = React.useState('')
-  const [error, setError] = React.useState<string | null>(null)
 
   const grnsQuery = useQuery({
     ...trpc.purchaseGrns.list.queryOptions({
@@ -97,7 +96,6 @@ export function PurchaseGrnsPanel() {
   async function handleReceive(event: React.FormEvent) {
     event.preventDefault()
     if (!companyId || !purchaseOrderId) return
-    setError(null)
 
     try {
       await receiveFromPo.mutateAsync({
@@ -115,7 +113,7 @@ export function PurchaseGrnsPanel() {
       })
       setGrnNumber('')
     } catch (err) {
-      setError(getFormErrorMessage(err, 'Receive failed'))
+      toastActionError(err, 'Receive failed')
     }
   }
 
@@ -174,9 +172,6 @@ export function PurchaseGrnsPanel() {
                     </SelectGroup>
                   </SelectContent>
                 </Select>
-              ) : null}
-              {error ? (
-                <p className="text-sm text-destructive">{error}</p>
               ) : null}
               <Button disabled={receiveFromPo.isPending} type="submit">
                 <PlusIcon data-icon="inline-start" />

@@ -40,7 +40,7 @@ import {
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
-import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function ExpensesPanel() {
@@ -54,7 +54,6 @@ export function ExpensesPanel() {
     new Date().toISOString().slice(0, 10),
   )
   const [paymentAccountId, setPaymentAccountId] = React.useState('')
-  const [error, setError] = React.useState<string | null>(null)
 
   const expensesQuery = useQuery({
     ...trpc.expenses.list.queryOptions({
@@ -85,10 +84,9 @@ export function ExpensesPanel() {
   async function handleCreate(event: React.FormEvent) {
     event.preventDefault()
     if (!companyId || !expenseAccountId || !paymentAccountId) {
-      setError('Workspace or expense ledgers are not ready yet.')
+      toast.error('Workspace or expense ledgers are not ready yet.')
       return
     }
-    setError(null)
     try {
       await postExpense.mutateAsync({
         companyId,
@@ -106,7 +104,7 @@ export function ExpensesPanel() {
       setAmount('')
       toast.success('Expense posted')
     } catch (err) {
-      setError(getFormErrorMessage(err, 'Failed to post expense'))
+      toastActionError(err, 'Failed to post expense')
     }
   }
 
@@ -129,7 +127,7 @@ export function ExpensesPanel() {
             </DialogHeader>
             <form className="flex flex-col gap-4" onSubmit={handleCreate}>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium" htmlFor="exp-narr">
+                <label className="text-sm font-medium" htmlFor="exp-narr">
                   Narration
                 </label>
                 <Input
@@ -141,7 +139,7 @@ export function ExpensesPanel() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium" htmlFor="exp-amt">
+                  <label className="text-sm font-medium" htmlFor="exp-amt">
                     Amount
                   </label>
                   <Input
@@ -152,7 +150,7 @@ export function ExpensesPanel() {
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium" htmlFor="exp-date">
+                  <label className="text-sm font-medium" htmlFor="exp-date">
                     Date
                   </label>
                   <Input
@@ -165,7 +163,7 @@ export function ExpensesPanel() {
                 </div>
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className="text-xs font-medium">Paid from</span>
+                <span className="text-sm font-medium">Paid from</span>
                 <Select
                   onValueChange={setPaymentAccountId}
                   value={paymentAccountId}
@@ -184,9 +182,6 @@ export function ExpensesPanel() {
                   </SelectContent>
                 </Select>
               </div>
-              {error ? (
-                <p className="text-sm text-destructive">{error}</p>
-              ) : null}
               <DialogFooter>
                 <Button type="submit">Post expense</Button>
               </DialogFooter>

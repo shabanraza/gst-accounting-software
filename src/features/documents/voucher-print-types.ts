@@ -58,13 +58,6 @@ export type VoucherPrintHsnRow = {
   totalTax: string
 }
 
-export type VoucherEInvoiceInfo = {
-  irn: string
-  ackNumber: string
-  ackDate: string
-  qrText: string
-}
-
 export type VoucherPrintDocument = {
   kind: 'sales' | 'purchase'
   title: string
@@ -99,5 +92,4 @@ export type VoucherPrintDocument = {
   totalAmount: string
   amountInWords: string
   outstandingAmount: string
-  eInvoice?: VoucherEInvoiceInfo
 }

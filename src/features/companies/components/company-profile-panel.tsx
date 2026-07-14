@@ -128,7 +128,7 @@ export function CompanyProfilePanel() {
             key={field.key}
           >
             <label
-              className="text-xs font-medium"
+              className="text-sm font-medium"
               htmlFor={`company-${field.key}`}
             >
               {field.label}

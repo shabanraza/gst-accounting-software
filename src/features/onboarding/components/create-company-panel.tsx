@@ -2,6 +2,7 @@ import * as React from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { Button } from '#/components/ui/button.tsx'
 import {
@@ -22,7 +23,7 @@ import {
   SelectValue,
 } from '#/components/ui/select.tsx'
 import { indianStates } from '#/features/app-shell/data/india-masters.ts'
-import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { WORKSPACE_COMPANY_KEY } from '#/features/app-shell/workspace.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
@@ -54,13 +55,11 @@ export function CreateCompanyPanel() {
   const [financialYearStart, setFinancialYearStart] = React.useState('2026-04-01')
   const [businessType, setBusinessType] =
     React.useState<BusinessType>('wholesale')
-  const [error, setError] = React.useState<string | null>(null)
 
   const canContinueStep0 = legalName.trim() && tradeName.trim()
   const canContinueStep1 = stateCode && financialYearStart
 
   async function handleFinish() {
-    setError(null)
     try {
       const result = await createWithSetup.mutateAsync({
         legalName: legalName.trim(),
@@ -73,7 +72,7 @@ export function CreateCompanyPanel() {
       window.localStorage.setItem(WORKSPACE_COMPANY_KEY, result.company.id)
       void navigate({ to: '/app/dashboard' })
     } catch (err) {
-      setError(getFormErrorMessage(err, 'Unable to create company'))
+      toastActionError(err, 'Unable to create company')
     }
   }
 
@@ -85,7 +84,7 @@ export function CreateCompanyPanel() {
             {steps.map((label, index) => (
               <div className="flex flex-1 items-center gap-2" key={label}>
                 <span
-                  className={`flex size-6 items-center justify-center rounded-full text-xs font-medium ${
+                  className={`flex size-6 items-center justify-center rounded-full text-sm font-medium ${
                     index <= step
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted text-muted-foreground'
@@ -110,7 +109,7 @@ export function CreateCompanyPanel() {
           {step === 0 ? (
             <>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium" htmlFor="ob-legal">
+                <label className="text-sm font-medium" htmlFor="ob-legal">
                   Legal name
                 </label>
                 <Input
@@ -121,7 +120,7 @@ export function CreateCompanyPanel() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium" htmlFor="ob-trade">
+                <label className="text-sm font-medium" htmlFor="ob-trade">
                   Trade name
                 </label>
                 <Input
@@ -137,7 +136,7 @@ export function CreateCompanyPanel() {
           {step === 1 ? (
             <>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium" htmlFor="ob-gstin">
+                <label className="text-sm font-medium" htmlFor="ob-gstin">
                   GSTIN (optional)
                 </label>
                 <Input
@@ -148,7 +147,7 @@ export function CreateCompanyPanel() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className="text-xs font-medium">State</span>
+                <span className="text-sm font-medium">State</span>
                 <Select onValueChange={setStateCode} value={stateCode}>
                   <SelectTrigger className="w-full">
                     <SelectValue />
@@ -165,7 +164,7 @@ export function CreateCompanyPanel() {
                 </Select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium" htmlFor="ob-fy">
+                <label className="text-sm font-medium" htmlFor="ob-fy">
                   Financial year start
                 </label>
                 <Input
@@ -195,12 +194,6 @@ export function CreateCompanyPanel() {
                 </button>
               ))}
             </div>
-          ) : null}
-
-          {error ? (
-            <p className="text-xs text-destructive" role="alert">
-              {error}
-            </p>
           ) : null}
         </CardContent>
 

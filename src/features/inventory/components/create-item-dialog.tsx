@@ -165,7 +165,7 @@ export function CreateItemDialog({
       <form className="flex flex-col gap-4" onSubmit={handleCreate}>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5 sm:col-span-2">
-            <label className="text-xs font-medium" htmlFor="item-name">
+            <label className="text-sm font-medium" htmlFor="item-name">
               Item name
             </label>
             <Input
@@ -176,7 +176,7 @@ export function CreateItemDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium" htmlFor="item-alias">
+            <label className="text-sm font-medium" htmlFor="item-alias">
               Alias / code
             </label>
             <Input
@@ -186,7 +186,7 @@ export function CreateItemDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium">Item group</span>
+            <span className="text-sm font-medium">Item group</span>
             <Select
               onValueChange={(value) => updateForm('group', value)}
               value={form.group}
@@ -206,7 +206,7 @@ export function CreateItemDialog({
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium" htmlFor="item-hsn">
+            <label className="text-sm font-medium" htmlFor="item-hsn">
               HSN / SAC
             </label>
             <Input
@@ -217,7 +217,7 @@ export function CreateItemDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium">GST tax slab</span>
+            <span className="text-sm font-medium">GST tax slab</span>
             <Select
               onValueChange={(value) => updateForm('gstRate', value)}
               value={form.gstRate}
@@ -237,7 +237,7 @@ export function CreateItemDialog({
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium">Main unit</span>
+            <span className="text-sm font-medium">Main unit</span>
             <Select
               onValueChange={(value) => updateForm('baseUnit', value)}
               value={form.baseUnit}
@@ -257,11 +257,11 @@ export function CreateItemDialog({
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium">UQC (GST return)</span>
+            <span className="text-sm font-medium">UQC (GST return)</span>
             <Input readOnly value={form.uqc} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium">Alternate unit</span>
+            <span className="text-sm font-medium">Alternate unit</span>
             <Select
               onValueChange={(value) => updateForm('altUnit', value)}
               value={form.altUnit}
@@ -284,7 +284,7 @@ export function CreateItemDialog({
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium" htmlFor="item-conv">
+            <label className="text-sm font-medium" htmlFor="item-conv">
               Conversion (1 alt = ? main)
             </label>
             <Input
@@ -298,7 +298,7 @@ export function CreateItemDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium" htmlFor="item-pur">
+            <label className="text-sm font-medium" htmlFor="item-pur">
               Purchase rate
             </label>
             <Input
@@ -310,7 +310,7 @@ export function CreateItemDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium" htmlFor="item-sale">
+            <label className="text-sm font-medium" htmlFor="item-sale">
               Sale rate
             </label>
             <Input
@@ -320,7 +320,7 @@ export function CreateItemDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium" htmlFor="item-mrp">
+            <label className="text-sm font-medium" htmlFor="item-mrp">
               MRP
             </label>
             <Input
@@ -331,7 +331,7 @@ export function CreateItemDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium" htmlFor="item-reorder">
+            <label className="text-sm font-medium" htmlFor="item-reorder">
               Reorder level
             </label>
             <Input
@@ -344,7 +344,7 @@ export function CreateItemDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium">Track inventory</span>
+            <span className="text-sm font-medium">Track inventory</span>
             <Select
               onValueChange={(value) => updateForm('tracksInventory', value)}
               value={form.tracksInventory}
@@ -361,7 +361,7 @@ export function CreateItemDialog({
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium" htmlFor="item-open">
+            <label className="text-sm font-medium" htmlFor="item-open">
               Opening stock qty
             </label>
             <Input
@@ -375,7 +375,7 @@ export function CreateItemDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium">Opening godown</span>
+            <span className="text-sm font-medium">Opening godown</span>
             <Select
               disabled={form.tracksInventory !== 'yes'}
               onValueChange={(value) => updateForm('openingGodown', value)}

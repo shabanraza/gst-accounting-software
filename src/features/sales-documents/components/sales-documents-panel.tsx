@@ -3,6 +3,8 @@ import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FileTextIcon, PlusIcon } from 'lucide-react'
 
+import { toast } from 'sonner'
+
 import { Badge } from '#/components/ui/badge.tsx'
 import { Button } from '#/components/ui/button.tsx'
 import {
@@ -32,7 +34,7 @@ import {
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
-import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 const documentTypeLabels = {
@@ -67,7 +69,6 @@ export function SalesDocumentsPanel() {
   const [itemId, setItemId] = React.useState('')
   const [quantity, setQuantity] = React.useState('1')
   const [rate, setRate] = React.useState('')
-  const [error, setError] = React.useState<string | null>(null)
 
   const documentsQuery = useQuery({
     ...trpc.salesDocuments.list.queryOptions({
@@ -108,10 +109,9 @@ export function SalesDocumentsPanel() {
   async function handleCreate(event: React.FormEvent) {
     event.preventDefault()
     if (!companyId) return
-    setError(null)
     const item = items.find((entry) => entry.id === itemId)
     if (!item) {
-      setError('Select an item')
+      toast.error('Select an item')
       return
     }
 
@@ -137,7 +137,7 @@ export function SalesDocumentsPanel() {
       })
       setDocumentNumber('')
     } catch (err) {
-      setError(getFormErrorMessage(err, 'Create failed'))
+      toastActionError(err, 'Create failed')
     }
   }
 
@@ -225,9 +225,6 @@ export function SalesDocumentsPanel() {
                   value={rate}
                 />
               </div>
-              {error ? (
-                <p className="text-sm text-destructive">{error}</p>
-              ) : null}
               <Button disabled={createDocument.isPending} type="submit">
                 <PlusIcon data-icon="inline-start" />
                 Create

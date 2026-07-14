@@ -46,7 +46,7 @@ import {
   emptyVoucherLine,
   partyStateForRegion,
 } from '#/features/accounting/voucher-math.ts'
-import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { useItemsList, usePartiesList } from '#/features/masters/use-master-data.ts'
 import { VoucherPreviewSheet } from '#/features/documents/components/voucher-preview-sheet.tsx'
 import type { VoucherPreviewTarget } from '#/features/documents/components/voucher-preview-sheet.tsx'
@@ -141,7 +141,6 @@ export function VoucherEntryPage({
     Record<string, string>
   >({})
   const [prefillApplied, setPrefillApplied] = React.useState(false)
-  const [saveError, setSaveError] = React.useState<string | null>(null)
   const [previewTarget, setPreviewTarget] =
     React.useState<VoucherPreviewTarget | null>(null)
   const [previewOpen, setPreviewOpen] = React.useState(false)
@@ -155,9 +154,12 @@ export function VoucherEntryPage({
   const activeRowIndexRef = React.useRef(0)
   const companyState = company?.stateCode ?? COMPANY_STATE_CODE
 
-  function reportSaveError(message: string) {
-    setSaveError(message)
-    toast.error(message)
+  function reportSaveError(error: unknown, fallback = 'Save failed') {
+    if (typeof error === 'string') {
+      toast.error(error)
+      return
+    }
+    toastActionError(error, fallback)
   }
 
   React.useEffect(() => {
@@ -532,7 +534,6 @@ export function VoucherEntryPage({
     const stockAccountId = ledgerBySystemKey.stock_in_hand as string
     const cogsAccountId = ledgerBySystemKey.cogs
 
-    setSaveError(null)
     try {
       const allocatedNumber = await nextNumber.mutateAsync({
         companyId,
@@ -694,7 +695,7 @@ export function VoucherEntryPage({
         queryKey: trpc.inventory.listStockBalances.queryKey({ companyId }),
       })
     } catch (error) {
-      reportSaveError(getFormErrorMessage(error, 'Save failed'))
+      reportSaveError(error, 'Save failed')
     }
   }
 
@@ -732,7 +733,7 @@ export function VoucherEntryPage({
       >
         <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium">Series</span>
+              <span className="text-sm font-medium">Series</span>
               <Select onValueChange={setSeries} value={series}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -749,7 +750,7 @@ export function VoucherEntryPage({
               </Select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium">Voucher no.</span>
+              <span className="text-sm font-medium">Voucher no.</span>
               <Input
                 readOnly
                 value={
@@ -760,7 +761,7 @@ export function VoucherEntryPage({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium" htmlFor="vch-date">
+              <label className="text-sm font-medium" htmlFor="vch-date">
                 Date
               </label>
               <Input
@@ -772,7 +773,7 @@ export function VoucherEntryPage({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium">
+              <span className="text-sm font-medium">
                 {isSales ? 'Sale type' : 'Purchase type'}
               </span>
               <Select
@@ -791,7 +792,7 @@ export function VoucherEntryPage({
               </Select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium">
+              <span className="text-sm font-medium">
                 {isSales ? 'Customer' : 'Supplier'}
               </span>
               <MasterLookup
@@ -810,9 +811,9 @@ export function VoucherEntryPage({
             </div>
             {party ? (
               <div className="flex flex-col gap-1.5">
-                <span className="text-xs font-medium">Party GSTIN</span>
+                <span className="text-sm font-medium">Party GSTIN</span>
                 {party.gstin ? (
-                  <span className="flex h-7 items-center rounded-md border bg-muted/40 px-2 font-mono text-xs">
+                  <span className="flex h-9 items-center rounded-md border bg-muted/40 px-2.5 font-mono text-sm">
                     {party.gstin}
                   </span>
                 ) : (
@@ -823,7 +824,7 @@ export function VoucherEntryPage({
               </div>
             ) : null}
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium">Place of supply</span>
+              <span className="text-sm font-medium">Place of supply</span>
               <Select onValueChange={setPlaceOfSupply} value={placeOfSupply}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -840,7 +841,7 @@ export function VoucherEntryPage({
               </Select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium">Godown</span>
+              <span className="text-sm font-medium">Godown</span>
               {showLineGodown ? (
                 <Select onValueChange={handleHeaderGodownChange} value={godown}>
                   <SelectTrigger className="w-full">
@@ -857,21 +858,21 @@ export function VoucherEntryPage({
                   </SelectContent>
                 </Select>
               ) : (
-                <span className="flex h-8 items-center rounded-md border bg-muted/40 px-2.5 text-xs">
+                <span className="flex h-9 items-center rounded-md border bg-muted/40 px-2.5 text-sm">
                   {godownNames[0] ?? 'Main Godown'}
                 </span>
               )}
             </div>
             {party?.priceListId ? (
               <div className="flex flex-col gap-1.5 md:col-span-2">
-                <span className="text-xs font-medium">Price list</span>
-                <span className="flex h-7 items-center rounded-md border bg-muted/40 px-2 text-xs">
+                <span className="text-sm font-medium">Price list</span>
+                <span className="flex h-9 items-center rounded-md border bg-muted/40 px-2.5 text-sm">
                   Party price list active — item rates auto-apply on pick
                 </span>
               </div>
             ) : null}
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium">Tax type</span>
+              <span className="text-sm font-medium">Tax type</span>
               <Select
                 onValueChange={(value) => setTaxMode(value as TaxMode)}
                 value={taxMode}
@@ -889,7 +890,7 @@ export function VoucherEntryPage({
             </div>
             {isSales ? (
               <div className="flex flex-col gap-1.5">
-                <span className="text-xs font-medium">Payment mode</span>
+                <span className="text-sm font-medium">Payment mode</span>
                 <Select
                   onValueChange={(value) =>
                     setPaymentMode(value as 'credit' | 'cash')
@@ -916,7 +917,7 @@ export function VoucherEntryPage({
             ) : (
               <>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium" htmlFor="sup-bill">
+                  <label className="text-sm font-medium" htmlFor="sup-bill">
                     Supplier bill no.
                   </label>
                   <Input
@@ -927,7 +928,7 @@ export function VoucherEntryPage({
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium" htmlFor="due-date">
+                  <label className="text-sm font-medium" htmlFor="due-date">
                     Due date
                   </label>
                   <Input
@@ -938,7 +939,7 @@ export function VoucherEntryPage({
                   />
                 </div>
                 <div className="flex flex-col gap-1.5 md:col-span-2">
-                  <label className="text-xs font-medium" htmlFor="bill-attachment">
+                  <label className="text-sm font-medium" htmlFor="bill-attachment">
                     Bill attachment
                   </label>
                   <Input
@@ -962,7 +963,7 @@ export function VoucherEntryPage({
         <section className="grid gap-3 border-t pt-3 md:grid-cols-3 lg:grid-cols-6">
           {isSales ? (
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium" htmlFor="sales-due-date">
+              <label className="text-sm font-medium" htmlFor="sales-due-date">
                 Due date
               </label>
               <Input
@@ -974,7 +975,7 @@ export function VoucherEntryPage({
             </div>
           ) : null}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium" htmlFor="po-ref">
+            <label className="text-sm font-medium" htmlFor="po-ref">
               PO / order ref
             </label>
             <Input
@@ -984,7 +985,7 @@ export function VoucherEntryPage({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium" htmlFor="challan-ref">
+            <label className="text-sm font-medium" htmlFor="challan-ref">
               Challan ref
             </label>
             <Input
@@ -994,7 +995,7 @@ export function VoucherEntryPage({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium" htmlFor="transport-mode">
+            <label className="text-sm font-medium" htmlFor="transport-mode">
               Transport
             </label>
             <Input
@@ -1005,7 +1006,7 @@ export function VoucherEntryPage({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium" htmlFor="vehicle-no">
+            <label className="text-sm font-medium" htmlFor="vehicle-no">
               Vehicle no.
             </label>
             <Input
@@ -1015,7 +1016,7 @@ export function VoucherEntryPage({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium" htmlFor="lr-number">
+            <label className="text-sm font-medium" htmlFor="lr-number">
               LR / AWB
             </label>
             <Input
@@ -1037,21 +1038,21 @@ export function VoucherEntryPage({
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="h-8 min-w-48">Item</TableHead>
-                  <TableHead className="h-8">HSN</TableHead>
-                  <TableHead className="h-8">Qty</TableHead>
-                  <TableHead className="h-8">Unit</TableHead>
+                  <TableHead className="min-w-48">Item</TableHead>
+                  <TableHead>HSN</TableHead>
+                  <TableHead>Qty</TableHead>
+                  <TableHead>Unit</TableHead>
                   {showLineGodown ? (
-                    <TableHead className="h-8 min-w-28">Godown</TableHead>
+                    <TableHead className="min-w-28">Godown</TableHead>
                   ) : null}
-                  <TableHead className="h-8">Rate</TableHead>
-                  <TableHead className="h-8">Disc %</TableHead>
-                  <TableHead className="h-8">Taxable</TableHead>
-                  <TableHead className="h-8">CGST</TableHead>
-                  <TableHead className="h-8">SGST</TableHead>
-                  <TableHead className="h-8">IGST</TableHead>
-                  <TableHead className="h-8">Total</TableHead>
-                  <TableHead className="h-8 w-10" />
+                  <TableHead>Rate</TableHead>
+                  <TableHead>Disc %</TableHead>
+                  <TableHead>Taxable</TableHead>
+                  <TableHead>CGST</TableHead>
+                  <TableHead>SGST</TableHead>
+                  <TableHead>IGST</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1076,7 +1077,7 @@ export function VoucherEntryPage({
                         value={line.itemId}
                       />
                     </TableCell>
-                    <TableCell className="font-mono text-xs">
+                    <TableCell className="font-mono text-sm">
                       {line.hsnCode || '—'}
                     </TableCell>
                     <TableCell className="py-1">
@@ -1129,7 +1130,7 @@ export function VoucherEntryPage({
                             }
                             value={line.godownName || godown}
                           >
-                            <SelectTrigger className="min-w-28 h-8">
+                            <SelectTrigger className="h-8 min-w-28">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -1220,7 +1221,7 @@ export function VoucherEntryPage({
             <h2 className="text-sm font-medium">Charges & notes</h2>
             <div className="grid gap-3 sm:grid-cols-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium" htmlFor="freight">
+                <label className="text-sm font-medium" htmlFor="freight">
                   Freight
                 </label>
                 <Input
@@ -1230,7 +1231,7 @@ export function VoucherEntryPage({
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium" htmlFor="packing">
+                <label className="text-sm font-medium" htmlFor="packing">
                   Packing
                 </label>
                 <Input
@@ -1240,7 +1241,7 @@ export function VoucherEntryPage({
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium" htmlFor="roundoff">
+                <label className="text-sm font-medium" htmlFor="roundoff">
                   Round off
                 </label>
                 <Input
@@ -1250,7 +1251,7 @@ export function VoucherEntryPage({
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium" htmlFor="bill-discount">
+                <label className="text-sm font-medium" htmlFor="bill-discount">
                   Bill discount
                 </label>
                 <Input
@@ -1260,7 +1261,7 @@ export function VoucherEntryPage({
                 />
               </div>
               <div className="flex flex-col gap-1.5 sm:col-span-4">
-                <label className="text-xs font-medium" htmlFor="narration">
+                <label className="text-sm font-medium" htmlFor="narration">
                   Narration
                 </label>
                 <Textarea
@@ -1310,11 +1311,6 @@ export function VoucherEntryPage({
                   {formatInr(totals.grandTotal)}
                 </span>
               </div>
-              {saveError ? (
-                <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-                  {saveError}
-                </p>
-              ) : null}
             </div>
           </section>
         </div>

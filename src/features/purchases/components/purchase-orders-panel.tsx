@@ -3,6 +3,8 @@ import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ClipboardListIcon, PackageCheckIcon, PlusIcon } from 'lucide-react'
 
+import { toast } from 'sonner'
+
 import { Badge } from '#/components/ui/badge.tsx'
 import { Button } from '#/components/ui/button.tsx'
 import {
@@ -32,7 +34,7 @@ import {
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
-import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 function workflowStatusBadgeVariant(status: string) {
@@ -63,7 +65,6 @@ export function PurchaseOrdersPanel() {
   const [itemId, setItemId] = React.useState('')
   const [quantity, setQuantity] = React.useState('1')
   const [rate, setRate] = React.useState('')
-  const [error, setError] = React.useState<string | null>(null)
 
   const ordersQuery = useQuery({
     ...trpc.purchaseOrders.list.queryOptions({
@@ -107,10 +108,9 @@ export function PurchaseOrdersPanel() {
   async function handleCreate(event: React.FormEvent) {
     event.preventDefault()
     if (!companyId) return
-    setError(null)
     const item = items.find((entry) => entry.id === itemId)
     if (!item) {
-      setError('Select an item')
+      toast.error('Select an item')
       return
     }
 
@@ -136,13 +136,12 @@ export function PurchaseOrdersPanel() {
       })
       setOrderNumber('')
     } catch (err) {
-      setError(getFormErrorMessage(err, 'Create failed'))
+      toastActionError(err, 'Create failed')
     }
   }
 
   async function handleReceive(orderId: string) {
     if (!companyId) return
-    setError(null)
 
     try {
       await receiveFromPo.mutateAsync({
@@ -159,7 +158,7 @@ export function PurchaseOrdersPanel() {
         queryKey: trpc.purchaseGrns.list.queryKey({ companyId }),
       })
     } catch (err) {
-      setError(getFormErrorMessage(err, 'Receive failed'))
+      toastActionError(err, 'Receive failed')
     }
   }
 
@@ -228,9 +227,6 @@ export function PurchaseOrdersPanel() {
                   value={rate}
                 />
               </div>
-              {error ? (
-                <p className="text-sm text-destructive">{error}</p>
-              ) : null}
               <Button disabled={createOrder.isPending} type="submit">
                 <PlusIcon data-icon="inline-start" />
                 Create PO

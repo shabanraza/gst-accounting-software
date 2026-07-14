@@ -138,7 +138,7 @@ export function TeamMembersPanel() {
             </DialogHeader>
             <form className="flex flex-col gap-4" onSubmit={handleInvite}>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium" htmlFor="invite-email">
+                <label className="text-sm font-medium" htmlFor="invite-email">
                   Email
                 </label>
                 <Input
@@ -151,7 +151,7 @@ export function TeamMembersPanel() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className="text-xs font-medium">Role</span>
+                <span className="text-sm font-medium">Role</span>
                 <Select
                   onValueChange={(value) =>
                     setInviteRole(value as AssignableRole)
@@ -279,7 +279,7 @@ export function TeamMembersPanel() {
 
         {invitations.length > 0 ? (
           <div className="flex flex-col gap-2 px-6">
-            <span className="text-xs font-medium text-muted-foreground">
+            <span className="text-sm font-medium text-muted-foreground">
               Pending invitations
             </span>
             {invitations.map((invitation) => (

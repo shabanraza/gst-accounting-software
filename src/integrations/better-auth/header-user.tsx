@@ -16,7 +16,7 @@ export default function BetterAuthHeader() {
           <img src={session.user.image} alt="" className="h-8 w-8" />
         ) : (
           <div className="h-8 w-8 bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
-            <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
+            <span className="text-xs text-muted-foreground">
               {session.user.name.charAt(0).toUpperCase() || 'U'}
             </span>
           </div>

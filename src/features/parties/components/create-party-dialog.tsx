@@ -255,7 +255,7 @@ export function CreatePartyDialog({
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5 sm:col-span-2">
-            <label className="text-xs font-medium" htmlFor="party-name">
+            <label className="text-sm font-medium" htmlFor="party-name">
               Name
             </label>
             <Input
@@ -268,7 +268,7 @@ export function CreatePartyDialog({
           </div>
           {!lockPartyType ? (
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium">Type</span>
+              <span className="text-sm font-medium">Type</span>
               <Select
                 onValueChange={(value) => setPartyType(value as PartyType)}
                 value={partyType}
@@ -287,7 +287,7 @@ export function CreatePartyDialog({
             </div>
           ) : null}
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium">State / POS</span>
+            <span className="text-sm font-medium">State / POS</span>
             <Select onValueChange={setStateCode} value={stateCode}>
               <SelectTrigger className="w-full">
                 <SelectValue />
@@ -304,7 +304,7 @@ export function CreatePartyDialog({
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium" htmlFor="party-gstin">
+            <label className="text-sm font-medium" htmlFor="party-gstin">
               GSTIN
             </label>
             <Input
@@ -315,7 +315,7 @@ export function CreatePartyDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium" htmlFor="party-pan">
+            <label className="text-sm font-medium" htmlFor="party-pan">
               PAN
             </label>
             <Input
@@ -328,10 +328,10 @@ export function CreatePartyDialog({
         </div>
 
         <div className="flex flex-col gap-3">
-          <p className="text-xs font-medium">Billing address</p>
+          <p className="text-sm font-medium">Billing address</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <label className="text-xs font-medium" htmlFor="party-addr1">
+              <label className="text-sm font-medium" htmlFor="party-addr1">
                 Address line 1
               </label>
               <Input
@@ -342,7 +342,7 @@ export function CreatePartyDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <label className="text-xs font-medium" htmlFor="party-addr2">
+              <label className="text-sm font-medium" htmlFor="party-addr2">
                 Address line 2
               </label>
               <Input
@@ -353,7 +353,7 @@ export function CreatePartyDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium" htmlFor="party-city">
+              <label className="text-sm font-medium" htmlFor="party-city">
                 City
               </label>
               <Input
@@ -363,7 +363,7 @@ export function CreatePartyDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium" htmlFor="party-pincode">
+              <label className="text-sm font-medium" htmlFor="party-pincode">
                 PIN code
               </label>
               <Input
@@ -377,7 +377,7 @@ export function CreatePartyDialog({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium" htmlFor="party-phone">
+            <label className="text-sm font-medium" htmlFor="party-phone">
               Phone
             </label>
             <Input
@@ -387,7 +387,7 @@ export function CreatePartyDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium" htmlFor="party-email">
+            <label className="text-sm font-medium" htmlFor="party-email">
               Email
             </label>
             <Input
@@ -411,7 +411,7 @@ export function CreatePartyDialog({
           </label>
           {!shipSameAsBilling ? (
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium" htmlFor="party-ship">
+              <label className="text-sm font-medium" htmlFor="party-ship">
                 Shipping address
               </label>
               <Textarea
@@ -427,7 +427,7 @@ export function CreatePartyDialog({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium">Payment terms</span>
+            <span className="text-sm font-medium">Payment terms</span>
             <Select
               onValueChange={setPaymentTermsDays}
               value={paymentTermsDays}
@@ -447,7 +447,7 @@ export function CreatePartyDialog({
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium" htmlFor="party-credit">
+            <label className="text-sm font-medium" htmlFor="party-credit">
               Credit limit
             </label>
             <Input
@@ -462,7 +462,7 @@ export function CreatePartyDialog({
         {(partyType === 'customer' || partyType === 'both') &&
         (priceListsQuery.data ?? []).length > 0 ? (
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium">Price list</span>
+            <span className="text-sm font-medium">Price list</span>
             <Select
               onValueChange={(value) =>
                 setPriceListId(value === 'none' ? '' : value)

@@ -2,6 +2,8 @@ import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { BookOpenIcon, SearchIcon, WalletCardsIcon } from 'lucide-react'
 
+import { toast } from 'sonner'
+
 import { Badge } from '#/components/ui/badge.tsx'
 import { Button } from '#/components/ui/button.tsx'
 import {
@@ -23,7 +25,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 import type {
@@ -72,7 +74,6 @@ export function ChartOfAccountsPanel() {
   const { companyId, company, isReady, refresh } = useWorkspace()
   const [typeFilter, setTypeFilter] = React.useState<AccountTypeFilter>('all')
   const [searchQuery, setSearchQuery] = React.useState('')
-  const [error, setError] = React.useState<string | null>(null)
 
   const accountsQuery = useQuery({
     ...trpc.accounting.listLedgerAccounts.queryOptions({
@@ -120,11 +121,10 @@ export function ChartOfAccountsPanel() {
 
   async function handleSetupDefaultAccounts() {
     if (!companyId || !company) {
-      setError('Workspace is still loading. Try again in a moment.')
+      toast.error('Workspace is still loading. Try again in a moment.')
       return
     }
 
-    setError(null)
     try {
       await setupChart.mutateAsync({
         companyId,
@@ -137,7 +137,7 @@ export function ChartOfAccountsPanel() {
       setTypeFilter('all')
       setSearchQuery('')
     } catch (err) {
-      setError(getFormErrorMessage(err, 'Failed to set up chart of accounts'))
+      toastActionError(err, 'Failed to set up chart of accounts')
     }
   }
 
@@ -169,9 +169,6 @@ export function ChartOfAccountsPanel() {
                 sales, purchase, and stock ledgers.
               </p>
             </div>
-            {error ? (
-              <p className="text-sm text-destructive">{error}</p>
-            ) : null}
             <Button
               disabled={setupChart.isPending}
               onClick={handleSetupDefaultAccounts}

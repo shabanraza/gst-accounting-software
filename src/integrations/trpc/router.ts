@@ -34,7 +34,6 @@ import { grnRepository } from '#/features/purchases/grn-store.ts'
 import { createPurchasesRouter } from '#/features/purchases/purchase-router.ts'
 import { purchaseBillRepository } from '#/features/purchases/purchase-bill-store.ts'
 import { createReportsRouter } from '#/features/gst/reports-router.ts'
-import { eInvoiceRepository, eWayBillRepository } from '#/features/gst/e-invoice-store.ts'
 import { creditDebitNoteRepository } from '#/features/returns/credit-debit-note-store.ts'
 import { createReturnsRouter } from '#/features/returns/returns-router.ts'
 import { createSalesRouter } from '#/features/sales/sales-router.ts'
@@ -121,8 +120,6 @@ export const trpcRouter = createTRPCRouter({
     stockMovements: stockStore,
     stockBalances: stockStore,
     items: itemRepository,
-    eInvoices: eInvoiceRepository,
-    eWayBills: eWayBillRepository,
   }),
   dashboard: createDashboardRouter(dashboardSummaryRepository),
   documents: createDocumentsRouter(

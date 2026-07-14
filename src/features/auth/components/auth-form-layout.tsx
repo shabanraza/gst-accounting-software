@@ -65,7 +65,7 @@ export function AuthFieldGroup({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex min-h-6 items-center justify-between gap-2">
-        <label className="text-xs font-medium" htmlFor={htmlFor}>
+        <label className="text-sm font-medium" htmlFor={htmlFor}>
           {label}
         </label>
         {hint}

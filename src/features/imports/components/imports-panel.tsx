@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { UploadIcon } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { Badge } from '#/components/ui/badge.tsx'
 import { Button } from '#/components/ui/button.tsx'
@@ -15,7 +16,7 @@ import { Textarea } from '#/components/ui/textarea.tsx'
 import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { parseBusyExport } from '#/features/imports/busy-format-parser.ts'
 import { parseCsvRows } from '#/features/imports/csv-parser.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
@@ -65,7 +66,6 @@ export function ImportsPanel() {
   const [format, setFormat] = React.useState<'json' | 'csv' | 'busy'>('json')
   const [jsonText, setJsonText] = React.useState(sampleParties)
   const [result, setResult] = React.useState<string | null>(null)
-  const [error, setError] = React.useState<string | null>(null)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   function parseRows(text: string): Array<Record<string, unknown>> {
@@ -124,20 +124,18 @@ export function ImportsPanel() {
   async function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     if (!file) return
-    setError(null)
     setResult(null)
     try {
       const text = await file.text()
       setJsonText(text)
     } catch {
-      setError('Could not read the selected file')
+      toast.error('Could not read the selected file')
     } finally {
       event.target.value = ''
     }
   }
 
   async function handleDryRun() {
-    setError(null)
     setResult(null)
     try {
       const rows = parseRows(jsonText)
@@ -153,13 +151,12 @@ export function ImportsPanel() {
         `Dry-run: ${report.validCount} valid, ${report.errors.length} errors, wroteData=${report.wroteData}`,
       )
     } catch (err) {
-      setError(getFormErrorMessage(err, 'Invalid rows / dry-run failed'))
+      toastActionError(err, 'Invalid rows / dry-run failed')
     }
   }
 
   async function handleCommit() {
     if (!companyId) return
-    setError(null)
     setResult(null)
     try {
       const rows = parseRows(jsonText)
@@ -219,7 +216,7 @@ export function ImportsPanel() {
         )
       }
     } catch (err) {
-      setError(getFormErrorMessage(err, 'Commit failed'))
+      toastActionError(err, 'Commit failed')
     }
   }
 
@@ -246,7 +243,6 @@ export function ImportsPanel() {
                 setMode(next)
                 setJsonText(sampleTextFor(next, format))
                 setResult(null)
-                setError(null)
               }}
               value={mode}
             >
@@ -263,7 +259,6 @@ export function ImportsPanel() {
                 setFormat(next)
                 setJsonText(sampleTextFor(mode, next))
                 setResult(null)
-                setError(null)
               }}
               value={format}
             >
@@ -320,7 +315,6 @@ export function ImportsPanel() {
                   : 'JSON'}
             </Badge>
           </div>
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
           {result ? (
             <p className="text-sm text-muted-foreground">{result}</p>
           ) : null}

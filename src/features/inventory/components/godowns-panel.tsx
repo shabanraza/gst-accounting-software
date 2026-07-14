@@ -29,6 +29,7 @@ import {
 } from '#/components/ui/table.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
+import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 import type { GodownRecord } from '#/features/inventory/godown-service.ts'
 
@@ -59,7 +60,7 @@ export function GodownsPanel() {
         setName('')
         toast.success('Godown created')
       },
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toastActionError(error, 'Action failed'),
     }),
   )
 
@@ -75,7 +76,7 @@ export function GodownsPanel() {
         setName('')
         toast.success('Godown updated')
       },
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toastActionError(error, 'Action failed'),
     }),
   )
 
@@ -89,7 +90,7 @@ export function GodownsPanel() {
         })
         toast.success('Godown deleted')
       },
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toastActionError(error, 'Action failed'),
     }),
   )
 
@@ -103,7 +104,7 @@ export function GodownsPanel() {
         })
         toast.success('Default godown updated')
       },
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toastActionError(error, 'Action failed'),
     }),
   )
 

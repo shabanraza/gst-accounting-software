@@ -2,6 +2,8 @@ import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckIcon, ScanTextIcon } from 'lucide-react'
 
+import { toast } from 'sonner'
+
 import { Badge } from '#/components/ui/badge.tsx'
 import { Button } from '#/components/ui/button.tsx'
 import {
@@ -21,7 +23,7 @@ import {
 } from '#/components/ui/table.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
@@ -34,7 +36,6 @@ export function OcrReviewPanel() {
     ledgerBySystemKey,
     isReady,
   } = useWorkspace()
-  const [error, setError] = React.useState<string | null>(null)
 
   const draftsQuery = useQuery({
     ...trpc.ocr.list.queryOptions({
@@ -47,7 +48,6 @@ export function OcrReviewPanel() {
 
   async function handleConfirm(draftId: string) {
     if (!companyId || !company) return
-    setError(null)
 
     const purchaseAccountId = ledgerBySystemKey.purchase
     const inputGstAccountId = ledgerBySystemKey.input_gst
@@ -60,7 +60,7 @@ export function OcrReviewPanel() {
       !payableAccountId ||
       !stockAccountId
     ) {
-      setError('Ledger mappings required before posting OCR bills')
+      toast.error('Ledger mappings required before posting OCR bills')
       return
     }
 
@@ -82,7 +82,7 @@ export function OcrReviewPanel() {
         queryKey: trpc.purchases.list.queryKey(),
       })
     } catch (err) {
-      setError(getFormErrorMessage(err, 'Failed to confirm OCR draft'))
+      toastActionError(err, 'Failed to confirm OCR draft')
     }
   }
 
@@ -185,9 +185,6 @@ export function OcrReviewPanel() {
               )}
             </TableBody>
           </Table>
-          {error ? (
-            <p className="px-6 pt-4 text-sm text-destructive">{error}</p>
-          ) : null}
         </CardContent>
       </Card>
     </WorkspacePage>

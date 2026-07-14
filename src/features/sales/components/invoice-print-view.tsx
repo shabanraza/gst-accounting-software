@@ -39,13 +39,6 @@ export function InvoicePrintView({ invoiceId, autoprint }: InvoicePrintViewProps
     }),
     enabled: Boolean(companyId) && isReady,
   })
-  const eInvoiceQuery = useQuery({
-    ...trpc.reports.getEInvoice.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      salesInvoiceId: invoiceId,
-    }),
-    enabled: Boolean(companyId) && isReady && Boolean(invoiceId),
-  })
 
   const invoice = invoiceQuery.data
   const customer = (partiesQuery.data ?? []).find(
@@ -63,9 +56,8 @@ export function InvoicePrintView({ invoiceId, autoprint }: InvoicePrintViewProps
       company: toPrintCompany(company),
       customer: toPrintParty(customer),
       itemById,
-      eInvoice: eInvoiceQuery.data,
     })
-  }, [company, customer, eInvoiceQuery.data, invoice, itemById])
+  }, [company, customer, invoice, itemById])
 
   React.useEffect(() => {
     if (autoprint && printDoc) {

@@ -387,18 +387,6 @@ export function VoucherDocumentPaper({
         <span className="font-medium">{document.amountInWords}</span>
       </p>
 
-      {document.eInvoice ? (
-        <div className="flex flex-col gap-1 rounded border p-3 text-xs">
-          <p className="font-medium">e-Invoice</p>
-          <p className="break-all text-muted-foreground">
-            IRN: {document.eInvoice.irn}
-          </p>
-          <p className="text-muted-foreground">
-            Ack No: {document.eInvoice.ackNumber} · {document.eInvoice.ackDate}
-          </p>
-        </div>
-      ) : null}
-
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1 text-xs">
           {company.bankName ? (

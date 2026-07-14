@@ -23,7 +23,7 @@ import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
-import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function ReturnsPanel() {
@@ -37,7 +37,6 @@ export function ReturnsPanel() {
     new Date().toISOString().slice(0, 10),
   )
   const [message, setMessage] = React.useState<string | null>(null)
-  const [error, setError] = React.useState<string | null>(null)
 
   const salesQuery = useQuery({
     ...trpc.sales.list.queryOptions({
@@ -75,7 +74,6 @@ export function ReturnsPanel() {
   async function handleReturn(event: React.FormEvent) {
     event.preventDefault()
     if (!companyId || !company || !documentId) return
-    setError(null)
     setMessage(null)
 
     try {
@@ -151,7 +149,7 @@ export function ReturnsPanel() {
         )
       }
     } catch (err) {
-      setError(getFormErrorMessage(err, 'Return failed'))
+      toastActionError(err, 'Return failed')
     }
   }
 
@@ -187,7 +185,7 @@ export function ReturnsPanel() {
         <CardContent>
           <form className="grid max-w-xl gap-4" onSubmit={handleReturn}>
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium">
+              <span className="text-sm font-medium">
                 {mode === 'sales' ? 'Sales invoice' : 'Purchase bill'}
               </span>
               <Select onValueChange={setDocumentId} value={documentId}>
@@ -214,7 +212,7 @@ export function ReturnsPanel() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium" htmlFor="ret-qty">
+                <label className="text-sm font-medium" htmlFor="ret-qty">
                   Return qty (first line)
                 </label>
                 <Input
@@ -225,7 +223,7 @@ export function ReturnsPanel() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium" htmlFor="ret-date">
+                <label className="text-sm font-medium" htmlFor="ret-date">
                   Return date
                 </label>
                 <Input
@@ -237,9 +235,6 @@ export function ReturnsPanel() {
                 />
               </div>
             </div>
-            {error ? (
-              <p className="text-sm text-destructive">{error}</p>
-            ) : null}
             {message ? (
               <p className="text-sm text-muted-foreground">{message}</p>
             ) : null}

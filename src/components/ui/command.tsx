@@ -1,16 +1,21 @@
-import * as React from 'react'
-import { Command as CommandPrimitive } from 'cmdk'
+"use client"
 
-import { cn } from '#/lib/utils.ts'
+import * as React from "react"
+import { Command as CommandPrimitive } from "cmdk"
+
+import { cn } from "#/lib/utils.ts"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '#/components/ui/dialog.tsx'
-import { InputGroup, InputGroupAddon } from '#/components/ui/input-group.tsx'
-import { SearchIcon, CheckIcon } from 'lucide-react'
+} from "#/components/ui/dialog.tsx"
+import {
+  InputGroup,
+  InputGroupAddon,
+} from "#/components/ui/input-group.tsx"
+import { SearchIcon, CheckIcon } from "lucide-react"
 
 function Command({
   className,
@@ -20,8 +25,8 @@ function Command({
     <CommandPrimitive
       data-slot="command"
       className={cn(
-        'flex size-full flex-col overflow-hidden rounded-xl bg-popover p-1 text-popover-foreground',
-        className,
+        "flex size-full flex-col overflow-hidden rounded-xl bg-popover p-1 text-popover-foreground",
+        className
       )}
       {...props}
     />
@@ -29,8 +34,8 @@ function Command({
 }
 
 function CommandDialog({
-  title = 'Command Palette',
-  description = 'Search for a command to run...',
+  title = "Command Palette",
+  description = "Search for a command to run...",
   children,
   className,
   showCloseButton = false,
@@ -43,17 +48,17 @@ function CommandDialog({
 }) {
   return (
     <Dialog {...props}>
+      <DialogHeader className="sr-only">
+        <DialogTitle>{title}</DialogTitle>
+        <DialogDescription>{description}</DialogDescription>
+      </DialogHeader>
       <DialogContent
         className={cn(
-          'top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0',
-          className,
+          "top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0",
+          className
         )}
         showCloseButton={showCloseButton}
       >
-        <DialogHeader className="sr-only">
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
         {children}
       </DialogContent>
     </Dialog>
@@ -70,8 +75,8 @@ function CommandInput({
         <CommandPrimitive.Input
           data-slot="command-input"
           className={cn(
-            'w-full text-xs/relaxed outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
-            className,
+            "w-full text-xs/relaxed outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+            className
           )}
           {...props}
         />
@@ -91,8 +96,8 @@ function CommandList({
     <CommandPrimitive.List
       data-slot="command-list"
       className={cn(
-        'no-scrollbar max-h-72 scroll-py-1 overflow-x-hidden overflow-y-auto outline-none',
-        className,
+        "no-scrollbar max-h-72 scroll-py-1 overflow-x-hidden overflow-y-auto outline-none",
+        className
       )}
       {...props}
     />
@@ -106,7 +111,7 @@ function CommandEmpty({
   return (
     <CommandPrimitive.Empty
       data-slot="command-empty"
-      className={cn('py-6 text-center text-xs/relaxed', className)}
+      className={cn("py-6 text-center text-xs/relaxed", className)}
       {...props}
     />
   )
@@ -120,8 +125,8 @@ function CommandGroup({
     <CommandPrimitive.Group
       data-slot="command-group"
       className={cn(
-        'overflow-hidden p-1 text-foreground **:[[cmdk-group-heading]]:px-2.5 **:[[cmdk-group-heading]]:py-1.5 **:[[cmdk-group-heading]]:text-xs **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:text-muted-foreground',
-        className,
+        "overflow-hidden p-1 text-foreground **:[[cmdk-group-heading]]:px-2.5 **:[[cmdk-group-heading]]:py-1.5 **:[[cmdk-group-heading]]:text-xs **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:text-muted-foreground",
+        className
       )}
       {...props}
     />
@@ -135,7 +140,7 @@ function CommandSeparator({
   return (
     <CommandPrimitive.Separator
       data-slot="command-separator"
-      className={cn('-mx-1 my-1 h-px bg-border/50', className)}
+      className={cn("-mx-1 my-1 h-px bg-border/50", className)}
       {...props}
     />
   )
@@ -151,7 +156,7 @@ function CommandItem({
       data-slot="command-item"
       className={cn(
         "group/command-item relative flex min-h-7 cursor-default items-center gap-2 rounded-md px-2.5 py-1.5 text-xs/relaxed outline-hidden select-none in-data-[slot=dialog-content]:rounded-md data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-selected:bg-muted data-selected:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5 data-selected:*:[svg]:text-foreground",
-        className,
+        className
       )}
       {...props}
     >
@@ -164,13 +169,13 @@ function CommandItem({
 function CommandShortcut({
   className,
   ...props
-}: React.ComponentProps<'span'>) {
+}: React.ComponentProps<"span">) {
   return (
     <span
       data-slot="command-shortcut"
       className={cn(
-        'ml-auto text-[0.625rem] tracking-widest text-muted-foreground group-data-selected/command-item:text-foreground',
-        className,
+        "ml-auto text-[0.625rem] tracking-widest text-muted-foreground group-data-selected/command-item:text-foreground",
+        className
       )}
       {...props}
     />

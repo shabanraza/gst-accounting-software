@@ -129,7 +129,7 @@ export function CompaniesPanel() {
             </DialogHeader>
             <form className="flex flex-col gap-4" onSubmit={handleCreate}>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium" htmlFor="co-legal">
+                <label className="text-sm font-medium" htmlFor="co-legal">
                   Legal name
                 </label>
                 <Input
@@ -140,7 +140,7 @@ export function CompaniesPanel() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium" htmlFor="co-trade">
+                <label className="text-sm font-medium" htmlFor="co-trade">
                   Trade name
                 </label>
                 <Input
@@ -152,7 +152,7 @@ export function CompaniesPanel() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium" htmlFor="co-gstin">
+                  <label className="text-sm font-medium" htmlFor="co-gstin">
                     GSTIN
                   </label>
                   <Input
@@ -162,7 +162,7 @@ export function CompaniesPanel() {
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-xs font-medium">State</span>
+                  <span className="text-sm font-medium">State</span>
                   <Select onValueChange={setStateCode} value={stateCode}>
                     <SelectTrigger className="w-full">
                       <SelectValue />
@@ -181,7 +181,7 @@ export function CompaniesPanel() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-xs font-medium">Business type</span>
+                  <span className="text-sm font-medium">Business type</span>
                   <Select
                     onValueChange={(value) =>
                       setBusinessType(value as BusinessType)
@@ -209,7 +209,7 @@ export function CompaniesPanel() {
                   </Select>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium" htmlFor="co-fy">
+                  <label className="text-sm font-medium" htmlFor="co-fy">
                     FY start
                   </label>
                   <Input

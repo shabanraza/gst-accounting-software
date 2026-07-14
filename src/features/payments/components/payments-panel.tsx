@@ -42,7 +42,7 @@ import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
-import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 function paymentStatusBadgeVariant(status: string) {
@@ -66,7 +66,6 @@ export function PaymentsPanel() {
   const [documentId, setDocumentId] = React.useState('')
   const [amount, setAmount] = React.useState('')
   const [date, setDate] = React.useState(new Date().toISOString().slice(0, 10))
-  const [error, setError] = React.useState<string | null>(null)
 
   const salesQuery = useQuery({
     ...trpc.sales.list.queryOptions({
@@ -111,14 +110,13 @@ export function PaymentsPanel() {
   async function handleAllocate(event: React.FormEvent) {
     event.preventDefault()
     if (!companyId) {
-      setError('Workspace is still loading. Try again in a moment.')
+      toast.error('Workspace is still loading. Try again in a moment.')
       return
     }
     if (!documentId || !amount) {
-      setError('Select a document and enter an amount.')
+      toast.error('Select a document and enter an amount.')
       return
     }
-    setError(null)
     try {
       if (mode === 'receipts') {
         if (
@@ -161,7 +159,7 @@ export function PaymentsPanel() {
         mode === 'receipts' ? 'Receipt posted' : 'Payment posted',
       )
     } catch (err) {
-      setError(getFormErrorMessage(err, 'Allocation failed'))
+      toastActionError(err, 'Allocation failed')
     }
   }
 
@@ -186,7 +184,7 @@ export function PaymentsPanel() {
             </DialogHeader>
             <form className="flex flex-col gap-4" onSubmit={handleAllocate}>
               <div className="flex flex-col gap-1.5">
-                <span className="text-xs font-medium">Document</span>
+                <span className="text-sm font-medium">Document</span>
                 {(mode === 'receipts' ? openSales : openPurchases).length ===
                 0 ? (
                   <p className="rounded-md border border-dashed bg-muted/30 px-3 py-2.5 text-sm text-muted-foreground">
@@ -221,7 +219,7 @@ export function PaymentsPanel() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium" htmlFor="pay-amt">
+                  <label className="text-sm font-medium" htmlFor="pay-amt">
                     Amount
                   </label>
                   <Input
@@ -232,7 +230,7 @@ export function PaymentsPanel() {
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium" htmlFor="pay-date">
+                  <label className="text-sm font-medium" htmlFor="pay-date">
                     Date
                   </label>
                   <Input
@@ -244,9 +242,6 @@ export function PaymentsPanel() {
                   />
                 </div>
               </div>
-              {error ? (
-                <p className="text-sm text-destructive">{error}</p>
-              ) : null}
               <DialogFooter>
                 <Button
                   disabled={
