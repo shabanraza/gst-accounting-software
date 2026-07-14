@@ -6,20 +6,13 @@ import { createTRPCOptionsProxy } from '@trpc/tanstack-react-query'
 
 import type { TRPCRouter } from '#/integrations/trpc/router'
 import { TRPCProvider } from '#/integrations/trpc/react'
-
-function getUrl() {
-  const base = (() => {
-    if (typeof window !== 'undefined') return ''
-    return `http://localhost:${process.env.PORT ?? 3000}`
-  })()
-  return `${base}/api/trpc`
-}
+import { getTrpcUrl } from '#/lib/server-base-url.ts'
 
 export const trpcClient = createTRPCClient<TRPCRouter>({
   links: [
     httpBatchLink({
       transformer: superjson,
-      url: getUrl(),
+      url: getTrpcUrl(),
     }),
   ],
 })
