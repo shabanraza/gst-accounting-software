@@ -1,0 +1,19 @@
+ALTER TABLE "companies" ADD COLUMN "address_line1" text DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "address_line2" text DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "city" text DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "pincode" text DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "pan" text DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "contact_phone" text DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "contact_email" text DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "bank_name" text DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "bank_account_number" text DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "bank_ifsc" text DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "authorized_signatory" text DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "companies" ADD COLUMN "logo_url" text DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "parties" ADD COLUMN "pan" text DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "parties" ADD COLUMN "billing_address" text DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "parties" ADD COLUMN "shipping_address" text DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "purchase_bills" ADD COLUMN "place_of_supply" text DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "purchase_bills" ADD COLUMN "reverse_charge" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "sales_invoices" ADD COLUMN "place_of_supply" text DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "sales_invoices" ADD COLUMN "reverse_charge" boolean DEFAULT false NOT NULL;
