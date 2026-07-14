@@ -61,6 +61,19 @@ export function stateLabel(code: string | null | undefined): string {
   return name ? `${normalized} - ${name}` : normalized
 }
 
+/** Formats ISO dates (YYYY-MM-DD) for Indian tax invoices (DD-MM-YYYY). */
+export function formatIndianDate(value: string | null | undefined): string {
+  const raw = (value ?? '').trim().slice(0, 10)
+  if (!raw) return ''
+
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw)
+  if (isoMatch) {
+    return `${isoMatch[3]}-${isoMatch[2]}-${isoMatch[1]}`
+  }
+
+  return raw
+}
+
 export function isInterStateSupply(
   companyStateCode: string | null | undefined,
   placeOfSupplyCode: string | null | undefined,
