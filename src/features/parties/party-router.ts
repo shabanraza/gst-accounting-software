@@ -6,7 +6,6 @@ import {
   updateParty,
 } from '#/features/parties/party-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
-import { publicProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
@@ -62,7 +61,7 @@ const listPartiesInputSchema = z.object({
 
 export const createPartiesRouter = (repository: PartyRepository) =>
   ({
-    list: publicProcedure.input(listPartiesInputSchema).query(({ input }) => {
+    list: capabilityProcedure('view').input(listPartiesInputSchema).query(({ input }) => {
       return listPartiesByCompany(repository, input.companyId)
     }),
     create: capabilityProcedure('manage_masters')

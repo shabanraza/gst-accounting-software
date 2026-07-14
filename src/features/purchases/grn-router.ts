@@ -8,7 +8,6 @@ import {
   markGrnConverted,
 } from '#/features/purchases/grn-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
-import { publicProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
@@ -48,13 +47,13 @@ export const createGrnRouter = (
   itemRepository: ItemRepository,
 ) =>
   ({
-    list: publicProcedure.input(listInputSchema).query(({ input }) => {
+    list: capabilityProcedure('view').input(listInputSchema).query(({ input }) => {
       return listGrnsByCompany(grnRepository, input.companyId)
     }),
-    getById: publicProcedure.input(byIdInputSchema).query(({ input }) => {
+    getById: capabilityProcedure('view').input(byIdInputSchema).query(({ input }) => {
       return getGrnById(grnRepository, input.companyId, input.grnId)
     }),
-    buildBillDraft: publicProcedure
+    buildBillDraft: capabilityProcedure('view')
       .input(byIdInputSchema)
       .query(({ input }) => {
         return buildPurchaseBillDraftFromGrn(

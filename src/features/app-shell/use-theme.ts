@@ -2,11 +2,14 @@ import * as React from 'react'
 
 export type ThemePreference = 'light' | 'dark' | 'system'
 
-const STORAGE_KEY = 'clothbooks-theme'
+const STORAGE_KEY = 'gst-books-theme'
+const LEGACY_STORAGE_KEY = 'clothbooks-theme'
 
 function readStoredPreference(): ThemePreference {
   if (typeof window === 'undefined') return 'light'
-  const value = window.localStorage.getItem(STORAGE_KEY)
+  const value =
+    window.localStorage.getItem(STORAGE_KEY) ??
+    window.localStorage.getItem(LEGACY_STORAGE_KEY)
   if (value === 'light' || value === 'dark' || value === 'system') {
     return value
   }

@@ -31,6 +31,7 @@ import { Route as AppInventoryRouteImport } from './routes/app/inventory'
 import { Route as AppImportsRouteImport } from './routes/app/imports'
 import { Route as AppExpensesRouteImport } from './routes/app/expenses'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
+import { Route as AppBankReconciliationRouteImport } from './routes/app/bank-reconciliation'
 import { Route as AppSalesIndexRouteImport } from './routes/app/sales/index'
 import { Route as AppPurchasesIndexRouteImport } from './routes/app/purchases/index'
 import { Route as DesignAccountingSidebarRouteImport } from './routes/design/accounting/sidebar'
@@ -159,6 +160,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBankReconciliationRoute = AppBankReconciliationRouteImport.update({
+  id: '/bank-reconciliation',
+  path: '/bank-reconciliation',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSalesIndexRoute = AppSalesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -256,6 +262,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/app/bank-reconciliation': typeof AppBankReconciliationRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/expenses': typeof AppExpensesRoute
   '/app/imports': typeof AppImportsRoute
@@ -297,6 +304,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/app/bank-reconciliation': typeof AppBankReconciliationRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/expenses': typeof AppExpensesRoute
   '/app/imports': typeof AppImportsRoute
@@ -337,6 +345,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/app/bank-reconciliation': typeof AppBankReconciliationRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/expenses': typeof AppExpensesRoute
   '/app/imports': typeof AppImportsRoute
@@ -380,6 +389,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/reset-password'
     | '/signup'
+    | '/app/bank-reconciliation'
     | '/app/dashboard'
     | '/app/expenses'
     | '/app/imports'
@@ -421,6 +431,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/reset-password'
     | '/signup'
+    | '/app/bank-reconciliation'
     | '/app/dashboard'
     | '/app/expenses'
     | '/app/imports'
@@ -460,6 +471,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/reset-password'
     | '/signup'
+    | '/app/bank-reconciliation'
     | '/app/dashboard'
     | '/app/expenses'
     | '/app/imports'
@@ -663,6 +675,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/bank-reconciliation': {
+      id: '/app/bank-reconciliation'
+      path: '/bank-reconciliation'
+      fullPath: '/app/bank-reconciliation'
+      preLoaderRoute: typeof AppBankReconciliationRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/sales/': {
       id: '/app/sales/'
       path: '/'
@@ -820,6 +839,7 @@ const AppSalesRouteWithChildren = AppSalesRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
+  AppBankReconciliationRoute: typeof AppBankReconciliationRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppExpensesRoute: typeof AppExpensesRoute
   AppImportsRoute: typeof AppImportsRoute
@@ -843,6 +863,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppBankReconciliationRoute: AppBankReconciliationRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppExpensesRoute: AppExpensesRoute,
   AppImportsRoute: AppImportsRoute,

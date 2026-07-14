@@ -30,6 +30,7 @@ import {
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
+import { requireTrimmed, requireWorkspace } from '#/lib/form-validation.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 import type { GodownRecord } from '#/features/inventory/godown-service.ts'
 
@@ -119,16 +120,20 @@ export function GodownsPanel() {
   }
 
   function submitCreate() {
-    if (!companyId || !name.trim()) return
-    createMutation.mutate({ companyId, name: name.trim() })
+    if (!requireWorkspace(companyId)) return
+    const godownName = requireTrimmed(name, 'Godown name')
+    if (!godownName) return
+    createMutation.mutate({ companyId, name: godownName })
   }
 
   function submitEdit() {
-    if (!companyId || !editGodown || !name.trim()) return
+    if (!requireWorkspace(companyId) || !editGodown) return
+    const godownName = requireTrimmed(name, 'Godown name')
+    if (!godownName) return
     updateMutation.mutate({
       companyId,
       godownId: editGodown.id,
-      name: name.trim(),
+      name: godownName,
     })
   }
 
@@ -137,7 +142,7 @@ export function GodownsPanel() {
   return (
     <WorkspacePage
       actions={
-        <Button onClick={openCreate} size="sm">
+        <Button onClick={openCreate}>
           <PlusIcon data-icon="inline-start" />
           Add godown
         </Button>
@@ -162,7 +167,7 @@ export function GodownsPanel() {
                 ) : (
                   <Button
                     onClick={() => {
-                      if (!companyId) return
+                      if (!requireWorkspace(companyId)) return
                       setDefaultMutation.mutate({
                         companyId,
                         godownId: godown.id,
@@ -190,7 +195,7 @@ export function GodownsPanel() {
                   <Button
                     disabled={godown.isDefault}
                     onClick={() => {
-                      if (!companyId) return
+                      if (!requireWorkspace(companyId)) return
                       deleteMutation.mutate({
                         companyId,
                         godownId: godown.id,

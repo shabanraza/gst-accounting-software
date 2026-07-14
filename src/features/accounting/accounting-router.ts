@@ -5,13 +5,11 @@ import {
   setupDefaultChartOfAccounts,
 } from '#/features/accounting/chart-of-accounts.ts'
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
-import { assertCapability } from '#/features/companies/membership-service.ts'
-import { mutatingProcedure, publicProcedure } from '#/integrations/trpc/init.ts'
+import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
-import type { MembershipRepository } from '#/features/companies/membership-service.ts'
 
 const companyIdInputSchema = z.object({
   companyId: z.string().uuid(),
@@ -56,10 +54,9 @@ const postLedgerEntryInputSchema = z.object({
 export const createAccountingRouter = (
   ledgerAccountRepository: LedgerAccountRepository,
   ledgerPostingRepository: LedgerPostingRepository,
-  memberships?: MembershipRepository,
 ) =>
   ({
-    listLedgerAccounts: publicProcedure
+    listLedgerAccounts: capabilityProcedure('view')
       .input(companyIdInputSchema)
       .query(({ input }) => {
         return listLedgerAccountsByCompany(
@@ -67,22 +64,14 @@ export const createAccountingRouter = (
           input.companyId,
         )
       }),
-    setupChartOfAccounts: mutatingProcedure
+    setupChartOfAccounts: capabilityProcedure('manage_masters')
       .input(setupChartInputSchema)
       .mutation(({ input }) => {
         return setupDefaultChartOfAccounts(ledgerAccountRepository, input)
       }),
-    postLedgerEntry: mutatingProcedure
+    postLedgerEntry: capabilityProcedure('post_voucher')
       .input(postLedgerEntryInputSchema)
-      .mutation(async ({ input, ctx }) => {
-        if (memberships) {
-          await assertCapability(memberships, {
-            companyId: input.companyId,
-            userId: ctx.userId,
-            capability: 'post_voucher',
-          })
-        }
-
+      .mutation(({ input }) => {
         return postLedgerEntry(ledgerPostingRepository, input)
       }),
   }) satisfies TRPCRouterRecord

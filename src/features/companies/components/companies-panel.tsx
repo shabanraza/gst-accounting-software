@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Building2Icon, PlusIcon } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { Badge } from '#/components/ui/badge.tsx'
 import { Button } from '#/components/ui/button.tsx'
@@ -20,7 +21,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '#/components/ui/dialog.tsx'
+import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
+import { formatMediumDate } from '#/lib/calendar-date.ts'
 import {
   Select,
   SelectContent,
@@ -44,6 +47,7 @@ import {
   stateLabel,
 } from '#/features/app-shell/data/india-masters.ts'
 import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { failForm, requireStateCode } from '#/lib/form-validation.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 import type { BusinessType } from '#/features/companies/company-service.ts'
 
@@ -81,7 +85,13 @@ export function CompaniesPanel() {
 
   async function handleCreate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!legalName.trim() || !tradeName.trim()) return
+    if (!legalName.trim()) {
+      return failForm(setFormError, 'Legal name is required.')
+    }
+    if (!tradeName.trim()) {
+      return failForm(setFormError, 'Trade name is required.')
+    }
+    if (!requireStateCode(stateCode, 'State')) return
 
     setFormError(null)
     try {
@@ -99,6 +109,7 @@ export function CompaniesPanel() {
       await refresh()
       resetForm()
       setOpen(false)
+      toast.success('Company created.')
     } catch (error) {
       setFormError(getFormErrorMessage(error, 'Create failed'))
     }
@@ -212,13 +223,11 @@ export function CompaniesPanel() {
                   <label className="text-sm font-medium" htmlFor="co-fy">
                     FY start
                   </label>
-                  <Input
+                  <DatePicker
+                    formatValue={formatMediumDate}
                     id="co-fy"
-                    onChange={(event) =>
-                      setFinancialYearStart(event.target.value)
-                    }
+                    onChange={setFinancialYearStart}
                     required
-                    type="date"
                     value={financialYearStart}
                   />
                 </div>

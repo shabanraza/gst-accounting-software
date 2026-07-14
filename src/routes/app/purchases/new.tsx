@@ -5,6 +5,10 @@ import { VoucherEntryPage } from '#/features/accounting/components/voucher-entry
 
 const searchSchema = z.object({
   fromGrn: z.string().uuid().optional(),
+  supplierGstin: z.string().optional(),
+  supplierBillNumber: z.string().optional(),
+  billDate: z.string().optional(),
+  taxableAmount: z.string().optional(),
 })
 
 export const Route = createFileRoute('/app/purchases/new')({
@@ -13,7 +17,22 @@ export const Route = createFileRoute('/app/purchases/new')({
 })
 
 function NewPurchaseVoucherRoute() {
-  const { fromGrn } = Route.useSearch()
+  const search = Route.useSearch()
 
-  return <VoucherEntryPage mode="purchase" sourceGrnId={fromGrn} />
+  return (
+    <VoucherEntryPage
+      gstr2bPrefill={
+        search.supplierBillNumber
+          ? {
+              supplierGstin: search.supplierGstin,
+              supplierBillNumber: search.supplierBillNumber,
+              billDate: search.billDate,
+              taxableAmount: search.taxableAmount,
+            }
+          : undefined
+      }
+      mode="purchase"
+      sourceGrnId={search.fromGrn}
+    />
+  )
 }

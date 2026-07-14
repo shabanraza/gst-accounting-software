@@ -55,7 +55,15 @@ export function itemTrackingBadgeIntent(tracksInventory: boolean): BadgeIntent {
 export function gstReconciliationBadgeIntent(status: string): BadgeIntent {
   if (status === 'matched') return 'success'
   if (status === 'mismatched') return 'warning'
-  if (status === 'missing' || status === 'extra') return 'destructive'
+  if (
+    status === 'missing' ||
+    status === 'extra' ||
+    status === 'missing_in_books' ||
+    status === 'missing_in_2b' ||
+    status === 'missing_in_gstr1'
+  ) {
+    return 'destructive'
+  }
   return 'neutral'
 }
 

@@ -186,7 +186,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SidebarProvider>
-        <Sidebar className="print:hidden" collapsible="icon" variant="sidebar">
+        <Sidebar
+          className="print:hidden"
+          collapsible="icon"
+          data-ui="chrome"
+          variant="sidebar"
+        >
           <SidebarHeader>
             <SidebarMenu>
               <SidebarMenuItem>
@@ -330,7 +335,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button aria-label="New bill" variant="secondary">
+                <Button aria-label="New bill" variant="default">
                   <PlusIcon data-icon="inline-start" />
                   <span className="hidden sm:inline">New bill</span>
                 </Button>

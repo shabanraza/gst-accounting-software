@@ -5,7 +5,6 @@ import {
   listPurchaseOrdersByCompany,
 } from '#/features/purchases/purchase-order-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
-import { publicProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { PurchaseOrderRepository } from '#/features/purchases/purchase-order-service.ts'
@@ -36,7 +35,7 @@ export const createPurchaseOrdersRouter = (
   repository: PurchaseOrderRepository,
 ) =>
   ({
-    list: publicProcedure.input(listInputSchema).query(({ input }) => {
+    list: capabilityProcedure('view').input(listInputSchema).query(({ input }) => {
       return listPurchaseOrdersByCompany(repository, input.companyId)
     }),
     create: capabilityProcedure('post_purchase')

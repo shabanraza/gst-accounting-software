@@ -56,7 +56,7 @@ export function SignupForm() {
 
   return (
     <AuthPage
-      description="Start a ClothBooks workspace for GST-ready books and inventory."
+      description="Start a GST Books workspace for GST-ready books and inventory."
       title="Create account"
     >
       <AuthForm onSubmit={(event) => void handleSubmit(event)}>

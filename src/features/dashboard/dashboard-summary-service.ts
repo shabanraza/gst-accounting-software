@@ -17,6 +17,11 @@ export interface DashboardSummaryRepository {
     summaryDate: string,
   ) => Promise<DailyDashboardSummary>
   save: (summary: DailyDashboardSummary) => Promise<DailyDashboardSummary>
+  listBetween: (
+    companyId: string,
+    startDate: string,
+    endDate: string,
+  ) => Promise<Array<DailyDashboardSummary>>
 }
 
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP })
@@ -107,4 +112,13 @@ export async function getDashboardSummary(
   summaryDate: string,
 ) {
   return repository.get(companyId, summaryDate)
+}
+
+export async function listDashboardSummariesBetween(
+  repository: DashboardSummaryRepository,
+  companyId: string,
+  startDate: string,
+  endDate: string,
+) {
+  return repository.listBetween(companyId, startDate, endDate)
 }

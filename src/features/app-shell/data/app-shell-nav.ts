@@ -6,6 +6,7 @@ import {
   ClipboardListIcon,
   FileBarChartIcon,
   FileTextIcon,
+  LandmarkIcon,
   LayoutDashboardIcon,
   PackageCheckIcon,
   PackageIcon,
@@ -35,6 +36,7 @@ export type AppNavPath =
   | '/app/purchase-orders'
   | '/app/purchase-grns'
   | '/app/payments'
+  | '/app/bank-reconciliation'
   | '/app/expenses'
   | '/app/returns'
   | '/app/inventory'
@@ -104,6 +106,11 @@ export const appNav: Array<AppNavSection> = [
     icon: BanknoteIcon,
     items: [
       { label: 'Payments', path: '/app/payments', icon: BanknoteIcon },
+      {
+        label: 'Bank reconciliation',
+        path: '/app/bank-reconciliation',
+        icon: LandmarkIcon,
+      },
       { label: 'Expenses', path: '/app/expenses', icon: ReceiptIcon },
     ],
   },

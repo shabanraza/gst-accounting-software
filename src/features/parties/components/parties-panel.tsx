@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { PencilIcon, PlusIcon, SearchIcon, UsersIcon } from 'lucide-react'
+import { PencilIcon, PlusIcon, UsersIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
 import { Button } from '#/components/ui/button.tsx'
@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
-import { Input } from '#/components/ui/input.tsx'
+import { SearchInput } from '#/components/ui/search-input.tsx'
 import {
   Table,
   TableBody,
@@ -146,15 +146,12 @@ export function PartiesPanel() {
                 <TabsTrigger value="both">Both</TabsTrigger>
               </TabsList>
             </Tabs>
-            <div className="relative w-full max-w-sm">
-              <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search name or GSTIN"
-                value={query}
-              />
-            </div>
+            <SearchInput
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search name or GSTIN"
+              value={query}
+              wrapperClassName="w-full max-w-sm"
+            />
           </div>
         </CardHeader>
         <CardContent className="px-0">

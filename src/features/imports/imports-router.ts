@@ -13,7 +13,7 @@ import {
   commitImportParties,
 } from '#/features/imports/import-commit-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
-import { publicProcedure } from '#/integrations/trpc/init.ts'
+import { protectedProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
@@ -60,7 +60,7 @@ export const createImportsRouter = (
   postings: LedgerPostingRepository,
 ) =>
   ({
-    dryRunParties: publicProcedure
+    dryRunParties: protectedProcedure
       .input(z.object({ rows: z.array(partyRowSchema) }))
       .mutation(({ input }) => dryRunImportParties(input.rows)),
     commitParties: capabilityProcedure('manage_masters')
@@ -73,7 +73,7 @@ export const createImportsRouter = (
         }),
       )
       .mutation(({ input }) => commitImportParties(parties, input)),
-    dryRunOpeningStock: publicProcedure
+    dryRunOpeningStock: protectedProcedure
       .input(z.object({ rows: z.array(stockRowSchema) }))
       .mutation(({ input }) => dryRunImportOpeningStock(input.rows)),
     commitOpeningStock: capabilityProcedure('manage_inventory')
@@ -85,7 +85,7 @@ export const createImportsRouter = (
         }),
       )
       .mutation(({ input }) => commitImportOpeningStock(items, stock, input)),
-    dryRunItems: publicProcedure
+    dryRunItems: protectedProcedure
       .input(z.object({ rows: z.array(itemRowSchema) }))
       .mutation(({ input }) => dryRunImportItems(input.rows)),
     commitItems: capabilityProcedure('manage_inventory')
@@ -96,7 +96,7 @@ export const createImportsRouter = (
         }),
       )
       .mutation(({ input }) => commitImportItems(items, input)),
-    dryRunOpeningBalances: publicProcedure
+    dryRunOpeningBalances: protectedProcedure
       .input(z.object({ rows: z.array(openingBalanceRowSchema) }))
       .mutation(({ input }) => dryRunImportOpeningBalances(input.rows)),
     commitOpeningBalances: capabilityProcedure('post_voucher')

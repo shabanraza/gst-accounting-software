@@ -8,7 +8,6 @@ import {
   markSalesDocumentConverted,
 } from '#/features/sales-documents/sales-document-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
-import { publicProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
@@ -57,17 +56,17 @@ export const createSalesDocumentsRouter = (
   itemRepository: ItemRepository,
 ) =>
   ({
-    list: publicProcedure.input(listInputSchema).query(({ input }) => {
+    list: capabilityProcedure('view').input(listInputSchema).query(({ input }) => {
       return listSalesDocumentsByCompany(
         repository,
         input.companyId,
         input.documentType,
       )
     }),
-    getById: publicProcedure.input(byIdInputSchema).query(({ input }) => {
+    getById: capabilityProcedure('view').input(byIdInputSchema).query(({ input }) => {
       return getSalesDocumentById(repository, input.companyId, input.documentId)
     }),
-    buildInvoiceDraft: publicProcedure
+    buildInvoiceDraft: capabilityProcedure('view')
       .input(byIdInputSchema)
       .query(({ input }) => {
         return buildSalesInvoiceDraftFromDocument(

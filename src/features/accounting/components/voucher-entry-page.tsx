@@ -11,6 +11,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '#/components/ui/collapsible.tsx'
+import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
 import {
   Select,
@@ -49,9 +50,13 @@ import {
   computeVoucherTotals,
   createEmptyVoucherLines,
   emptyVoucherLine,
+  isValidStateCode,
   partyStateForRegion,
+  resolvePlaceOfSupply,
+  resolveStateCode,
 } from '#/features/accounting/voucher-math.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
+import { requireVoucherLines } from '#/lib/form-validation.ts'
 import { cn } from '#/lib/utils.ts'
 import {
   useItemsList,
@@ -74,6 +79,12 @@ type SalesVoucherProps = {
   mode: 'sales' | 'purchase'
   sourceDocumentId?: string
   sourceGrnId?: string
+  gstr2bPrefill?: {
+    supplierGstin?: string
+    supplierBillNumber?: string
+    billDate?: string
+    taxableAmount?: string
+  }
 }
 
 function lineGstAmount(
@@ -123,6 +134,7 @@ export function VoucherEntryPage({
   mode,
   sourceDocumentId,
   sourceGrnId,
+  gstr2bPrefill,
 }: SalesVoucherProps) {
   const isSales = mode === 'sales'
   const trpc = useTRPC()
@@ -209,7 +221,32 @@ export function VoucherEntryPage({
   >(null)
   const formRef = React.useRef<HTMLFormElement>(null)
   const activeRowIndexRef = React.useRef(0)
-  const companyState = company?.stateCode ?? COMPANY_STATE_CODE
+  const companyState = resolveStateCode(
+    company?.stateCode,
+    COMPANY_STATE_CODE,
+  )
+  const party = parties.find((item) => item.id === partyId)
+
+  function syncPlaceOfSupplyForParty(
+    partyStateCode: string,
+    nextRegion?: SupplyRegion,
+  ) {
+    const activeRegion = nextRegion ?? region
+    setPlaceOfSupply(
+      resolvePlaceOfSupply({
+        region: activeRegion,
+        selectedPlaceOfSupply: '',
+        partyStateCode,
+        companyStateCode: companyState,
+        fallbackStateCode: COMPANY_STATE_CODE,
+      }),
+    )
+  }
+
+  function handleRegionChange(nextRegion: SupplyRegion) {
+    setRegion(nextRegion)
+    syncPlaceOfSupplyForParty(party?.stateCode ?? '', nextRegion)
+  }
 
   function reportSaveError(error: unknown, fallback = 'Save failed') {
     if (typeof error === 'string') {
@@ -251,10 +288,16 @@ export function VoucherEntryPage({
   React.useEffect(() => {
     if (!partyId && parties[0]) {
       setPartyId(parties[0].id)
-      setPlaceOfSupply(parties[0].stateCode)
+      syncPlaceOfSupplyForParty(parties[0].stateCode)
       setRegion(parties[0].stateCode === companyState ? 'local' : 'central')
     }
   }, [parties, partyId, companyState])
+
+  React.useEffect(() => {
+    if (!isValidStateCode(placeOfSupply)) {
+      syncPlaceOfSupplyForParty(party?.stateCode ?? '')
+    }
+  }, [companyState, party?.stateCode, region])
 
   React.useEffect(() => {
     if (godowns.length > 0 && !godowns.some((entry) => entry.name === godown)) {
@@ -262,7 +305,6 @@ export function VoucherEntryPage({
     }
   }, [godowns, godown])
 
-  const party = parties.find((item) => item.id === partyId)
   const activePriceListId = party?.priceListId ?? null
 
   const salesDraftQuery = useQuery({
@@ -311,6 +353,35 @@ export function VoucherEntryPage({
     }
     setPriceListRates(nextRates)
   }, [priceListItemsQuery.data])
+
+  React.useEffect(() => {
+    if (
+      prefillApplied ||
+      isSales ||
+      !gstr2bPrefill ||
+      sourceGrnId ||
+      parties.length === 0
+    ) {
+      return
+    }
+
+    if (gstr2bPrefill.supplierBillNumber) {
+      setSupplierBillNo(gstr2bPrefill.supplierBillNumber)
+    }
+    if (gstr2bPrefill.billDate) {
+      setVoucherDate(gstr2bPrefill.billDate)
+    }
+    if (gstr2bPrefill.supplierGstin) {
+      const normalizedGstin = gstr2bPrefill.supplierGstin.trim().toUpperCase()
+      const match = parties.find(
+        (entry) => entry.gstin?.trim().toUpperCase() === normalizedGstin,
+      )
+      if (match) {
+        setPartyId(match.id)
+      }
+    }
+    setPrefillApplied(true)
+  }, [gstr2bPrefill, isSales, parties, prefillApplied, sourceGrnId])
 
   React.useEffect(() => {
     if (prefillApplied) return
@@ -444,12 +515,10 @@ export function VoucherEntryPage({
     const nextParty = parties.find((entry) => entry.id === nextPartyId)
     setPartyId(nextPartyId)
     if (nextParty) {
-      setPlaceOfSupply(nextParty.stateCode)
-      setRegion(
-        nextParty.stateCode === (company?.stateCode ?? COMPANY_STATE_CODE)
-          ? 'local'
-          : 'central',
-      )
+      const nextRegion =
+        nextParty.stateCode === companyState ? 'local' : 'central'
+      setRegion(nextRegion)
+      syncPlaceOfSupplyForParty(nextParty.stateCode, nextRegion)
       if (!isSales && nextParty.paymentTermsDays > 0) {
         const due = new Date()
         due.setDate(due.getDate() + nextParty.paymentTermsDays)
@@ -460,12 +529,6 @@ export function VoucherEntryPage({
 
   function applyCreatedParty(createdParty: PartyRecord) {
     selectParty(createdParty.id)
-    setPlaceOfSupply(createdParty.stateCode)
-    setRegion(
-      createdParty.stateCode === (company?.stateCode ?? COMPANY_STATE_CODE)
-        ? 'local'
-        : 'central',
-    )
     if (!isSales && createdParty.paymentTermsDays > 0) {
       const due = new Date()
       due.setDate(due.getDate() + createdParty.paymentTermsDays)
@@ -555,12 +618,36 @@ export function VoucherEntryPage({
     }
 
     const filledLines = computedLines.filter((line) => line.itemId)
-    if (filledLines.length === 0) {
-      reportSaveError('Add at least one item row')
-      return
-    }
+    if (!requireVoucherLines(filledLines)) return
     if (!isSales && !supplierBillNo.trim()) {
       reportSaveError('Supplier bill no. is required')
+      return
+    }
+
+    const companyStateCode = resolveStateCode(
+      company.stateCode,
+      COMPANY_STATE_CODE,
+    )
+    if (!isValidStateCode(companyStateCode)) {
+      reportSaveError(
+        'Set a valid company state code in Company settings before posting.',
+      )
+      return
+    }
+
+    const resolvedPlaceOfSupply = resolvePlaceOfSupply({
+      region,
+      selectedPlaceOfSupply: placeOfSupply,
+      partyStateCode: party.stateCode,
+      companyStateCode,
+      fallbackStateCode: COMPANY_STATE_CODE,
+    })
+    if (!isValidStateCode(resolvedPlaceOfSupply)) {
+      reportSaveError(
+        isSales
+          ? 'Select a place of supply or set the customer state.'
+          : 'Select a place of supply or set the supplier state.',
+      )
       return
     }
 
@@ -598,12 +685,18 @@ export function VoucherEntryPage({
       if (isSales) {
         const gstPartyState = partyStateForRegion(
           region,
-          placeOfSupply,
-          company.stateCode,
+          resolvedPlaceOfSupply,
+          companyStateCode,
         )
+        if (!isValidStateCode(gstPartyState)) {
+          reportSaveError(
+            'Customer state is missing. Update the customer master or place of supply.',
+          )
+          return
+        }
         const invoice = await postSales.mutateAsync({
           companyId,
-          companyStateCode: company.stateCode,
+          companyStateCode,
           companyGstin: company.gstin,
           companyAddressLine1: company.addressLine1,
           companyAddressLine2: company.addressLine2,
@@ -611,7 +704,7 @@ export function VoucherEntryPage({
           companyPincode: company.pincode,
           customerId: party.id,
           customerStateCode: gstPartyState,
-          placeOfSupply,
+          placeOfSupply: resolvedPlaceOfSupply,
           invoiceNumber: allocatedNumber,
           invoiceDate: voucherDate,
           dueDate: dueDate || voucherDate,
@@ -667,12 +760,12 @@ export function VoucherEntryPage({
       } else {
         const gstPartyState = partyStateForRegion(
           region,
-          placeOfSupply,
-          company.stateCode,
+          resolvedPlaceOfSupply,
+          companyStateCode,
         )
         const bill = await postPurchase.mutateAsync({
           companyId,
-          companyStateCode: company.stateCode,
+          companyStateCode,
           companyGstin: company.gstin,
           companyAddressLine1: company.addressLine1,
           companyAddressLine2: company.addressLine2,
@@ -681,7 +774,7 @@ export function VoucherEntryPage({
           financialYearStart: company.financialYearStart,
           supplierId: party.id,
           supplierStateCode: gstPartyState,
-          placeOfSupply,
+          placeOfSupply: resolvedPlaceOfSupply,
           supplierBillNumber: supplierBillNo.trim(),
           billDate: voucherDate,
           dueDate: dueDate || voucherDate,
@@ -849,11 +942,10 @@ export function VoucherEntryPage({
                     >
                       Date
                     </label>
-                    <Input
+                    <DatePicker
                       id="vch-date"
-                      onChange={(event) => setVoucherDate(event.target.value)}
+                      onChange={setVoucherDate}
                       required
-                      type="date"
                       value={voucherDate}
                     />
                   </div>
@@ -882,7 +974,7 @@ export function VoucherEntryPage({
                     </span>
                     <Select
                       onValueChange={(value) =>
-                        setRegion(value as SupplyRegion)
+                        handleRegionChange(value as SupplyRegion)
                       }
                       value={region}
                     >
@@ -1034,11 +1126,10 @@ export function VoucherEntryPage({
                     >
                       Date
                     </label>
-                    <Input
+                    <DatePicker
                       id="vch-date"
-                      onChange={(event) => setVoucherDate(event.target.value)}
+                      onChange={setVoucherDate}
                       required
-                      type="date"
                       value={voucherDate}
                     />
                   </div>
@@ -1179,10 +1270,9 @@ export function VoucherEntryPage({
                     >
                       Due date
                     </label>
-                    <Input
+                    <DatePicker
                       id="due-date"
-                      onChange={(event) => setDueDate(event.target.value)}
-                      type="date"
+                      onChange={setDueDate}
                       value={dueDate}
                     />
                   </div>
@@ -1229,10 +1319,9 @@ export function VoucherEntryPage({
                     >
                       Due date
                     </label>
-                    <Input
+                    <DatePicker
                       id="sales-due-date"
-                      onChange={(event) => setDueDate(event.target.value)}
-                      type="date"
+                      onChange={setDueDate}
                       value={dueDate}
                     />
                   </div>
@@ -1628,7 +1717,10 @@ export function VoucherEntryPage({
           </section>
         </div>
 
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] backdrop-blur supports-[backdrop-filter]:bg-background/80 print:hidden md:left-[var(--sidebar-width)] md:transition-[left] md:duration-200 md:ease-linear group-has-data-[state=collapsed]/sidebar-wrapper:md:left-[var(--sidebar-width-icon)]">
+        <div
+          className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] backdrop-blur supports-[backdrop-filter]:bg-background/80 print:hidden md:left-[var(--sidebar-width)] md:transition-[left] md:duration-200 md:ease-linear group-has-data-[state=collapsed]/sidebar-wrapper:md:left-[var(--sidebar-width-icon)]"
+          data-ui="chrome"
+        >
           <div className="mx-auto flex max-w-6xl items-center justify-end gap-4">
             <div className="flex flex-col items-end gap-0.5">
               <span className="text-xs text-muted-foreground">Grand total</span>

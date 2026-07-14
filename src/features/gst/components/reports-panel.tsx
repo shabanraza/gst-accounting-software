@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { DownloadIcon, FileBarChartIcon } from 'lucide-react'
 import { toast } from 'sonner'
@@ -13,6 +14,8 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
+import { DatePicker } from '#/components/ui/date-picker.tsx'
+import { Input } from '#/components/ui/input.tsx'
 import { Textarea } from '#/components/ui/textarea.tsx'
 import {
   Table,
@@ -31,18 +34,43 @@ import {
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
+import { requireTrimmed, requireWorkspace } from '#/lib/form-validation.ts'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
-import type { Gstr2bReconciliationReport } from '#/features/gst/gstr2b-reconciliation-service.ts'
+import { Label } from '#/components/ui/label.tsx'
+import { currentGstMonthPeriod } from '#/lib/gst-period.ts'
+import { parseGstr1PortalJson } from '#/features/gst/gstr1-portal-parser.ts'
+import type { Gstr1ReconciliationReport } from '#/features/gst/gstr1-reconciliation-service.ts'
+import { parseGstr2bPortalJson } from '#/features/gst/gstr2b-portal-parser.ts'
+import type { Gstr2bItcStatus } from '#/features/gst/gst-reconciliation-store.ts'
+import type {
+  Gstr2bReconciliationReport,
+  Gstr2bRow,
+} from '#/features/gst/gstr2b-reconciliation-service.ts'
+import type { Gstr3bWorkingReport } from '#/features/gst/gstr3b-working-service.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function ReportsPanel() {
   const trpc = useTRPC()
   const { companyId, company, isReady } = useWorkspace()
   const [tab, setTab] = React.useState('gstr1')
+  const defaultReconPeriod = React.useMemo(() => currentGstMonthPeriod(), [])
+  const [reconPeriodStart, setReconPeriodStart] = React.useState(
+    defaultReconPeriod.periodStart,
+  )
+  const [reconPeriodEnd, setReconPeriodEnd] = React.useState(
+    defaultReconPeriod.periodEnd,
+  )
   const [gstr2bText, setGstr2bText] = React.useState('')
+  const [gstr2bPortalRows, setGstr2bPortalRows] = React.useState<Array<Gstr2bRow>>(
+    [],
+  )
   const [gstr2bReport, setGstr2bReport] =
     React.useState<Gstr2bReconciliationReport | null>(null)
-  const gstr2bFileRef = React.useRef<HTMLInputElement>(null)
+  const [gstr3bWorking, setGstr3bWorking] =
+    React.useState<Gstr3bWorkingReport | null>(null)
+  const [gstr1ReconText, setGstr1ReconText] = React.useState('')
+  const [gstr1ReconReport, setGstr1ReconReport] =
+    React.useState<Gstr1ReconciliationReport | null>(null)
   const periodStart = '2026-04-01'
   const periodEnd = '2027-03-31'
 
@@ -143,42 +171,35 @@ export function ReportsPanel() {
   const gstr2bMutation = useMutation(
     trpc.reports.gstr2bReconciliation.mutationOptions(),
   )
+  const gstr2bItcMutation = useMutation(
+    trpc.reports.setGstr2bItcDecision.mutationOptions(),
+  )
+  const gstr3bWorkingMutation = useMutation(
+    trpc.reports.gstr3bWorking.mutationOptions(),
+  )
+  const gstr1ReconMutation = useMutation(
+    trpc.reports.gstr1Reconciliation.mutationOptions(),
+  )
 
-  function parseGstr2bPortalRows(text: string): Array<{
-    supplierGstin: string
-    supplierInvoiceNumber: string
-    invoiceDate: string
-    taxableAmount: string
-    totalGstAmount: string
-  }> {
-    const parsed = JSON.parse(text) as unknown
-    if (Array.isArray(parsed)) {
-      return parsed as Array<{
-        supplierGstin: string
-        supplierInvoiceNumber: string
-        invoiceDate: string
-        taxableAmount: string
-        totalGstAmount: string
-      }>
-    }
-    if (
-      parsed &&
-      typeof parsed === 'object' &&
-      'rows' in parsed &&
-      Array.isArray((parsed).rows)
-    ) {
-      return (parsed as { rows: Array<Record<string, string>> }).rows.map(
-        (row) => ({
-          supplierGstin: row.supplierGstin ?? row.ctin ?? '',
-          supplierInvoiceNumber:
-            row.supplierInvoiceNumber ?? row.inum ?? row.invoiceNumber ?? '',
-          invoiceDate: row.invoiceDate ?? row.idt ?? '',
-          taxableAmount: row.taxableAmount ?? row.txval ?? '0.00',
-          totalGstAmount: row.totalGstAmount ?? row.iamt ?? row.camt ?? '0.00',
-        }),
-      )
-    }
-    throw new Error('Paste a JSON array or { rows: [...] } from the GST portal')
+  async function refreshGstr2bReport(portalRows: Array<Gstr2bRow>) {
+    if (!companyId) return null
+    const report = await gstr2bMutation.mutateAsync({
+      companyId,
+      companyStateCode: company?.stateCode ?? '27',
+      periodStart: reconPeriodStart,
+      periodEnd: reconPeriodEnd,
+      portalRows,
+    })
+    setGstr2bReport(report)
+    const working = await gstr3bWorkingMutation.mutateAsync({
+      companyId,
+      companyStateCode: company?.stateCode ?? '27',
+      periodStart: reconPeriodStart,
+      periodEnd: reconPeriodEnd,
+      portalRows,
+    })
+    setGstr3bWorking(working)
+    return report
   }
 
   async function handleGstr2bFile(event: React.ChangeEvent<HTMLInputElement>) {
@@ -194,21 +215,52 @@ export function ReportsPanel() {
   }
 
   async function runGstr2bReconciliation() {
-    if (!companyId) return
+    if (!requireWorkspace(companyId)) return
+    if (!requireTrimmed(gstr2bText, 'GSTR-2B portal data')) return
     try {
-      const portalRows = parseGstr2bPortalRows(gstr2bText)
-      const report = await gstr2bMutation.mutateAsync({
-        companyId,
-        portalRows,
-      })
-      setGstr2bReport(report)
+      const portalRows = parseGstr2bPortalJson(gstr2bText)
+      setGstr2bPortalRows(portalRows)
+      await refreshGstr2bReport(portalRows)
     } catch (err) {
       toastActionError(err, 'GSTR-2B reconciliation failed')
     }
   }
 
+  async function setGstr2bItcStatus(rowKey: string, status: Gstr2bItcStatus) {
+    if (!requireWorkspace(companyId) || gstr2bPortalRows.length === 0) return
+    try {
+      await gstr2bItcMutation.mutateAsync({
+        companyId,
+        periodStart: reconPeriodStart,
+        periodEnd: reconPeriodEnd,
+        rowKey,
+        status,
+      })
+      await refreshGstr2bReport(gstr2bPortalRows)
+    } catch (err) {
+      toastActionError(err, 'Could not update ITC decision')
+    }
+  }
+
+  async function runGstr1Reconciliation() {
+    if (!requireWorkspace(companyId)) return
+    if (!requireTrimmed(gstr1ReconText, 'GSTR-1 portal data')) return
+    try {
+      const portalRows = parseGstr1PortalJson(gstr1ReconText)
+      const report = await gstr1ReconMutation.mutateAsync({
+        companyId,
+        periodStart: reconPeriodStart,
+        periodEnd: reconPeriodEnd,
+        portalRows,
+      })
+      setGstr1ReconReport(report)
+    } catch (err) {
+      toastActionError(err, 'GSTR-1 reconciliation failed')
+    }
+  }
+
   function downloadExport() {
-    if (!exportQuery.data || !companyId) return
+    if (!requireWorkspace(companyId) || !exportQuery.data) return
     const blob = new Blob([JSON.stringify(exportQuery.data, null, 2)], {
       type: 'application/json',
     })
@@ -294,6 +346,122 @@ export function ReportsPanel() {
               </Table>
             </CardContent>
           </Card>
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle className="text-base">GSTR-1 vs books</CardTitle>
+              <CardDescription>
+                Paste filed GSTR-1 JSON and reconcile against sales invoices for{' '}
+                {reconPeriodStart} to {reconPeriodEnd}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label>Period start</Label>
+                  <DatePicker
+                    onChange={setReconPeriodStart}
+                    value={reconPeriodStart}
+                    variant="toolbar"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>Period end</Label>
+                  <DatePicker
+                    onChange={setReconPeriodEnd}
+                    value={reconPeriodEnd}
+                    variant="toolbar"
+                  />
+                </div>
+              </div>
+              <Textarea
+                className="min-h-32 font-mono text-xs"
+                onChange={(event) => setGstr1ReconText(event.target.value)}
+                placeholder='[{"customerGstin":"24AAAA...","invoiceNumber":"INV-1","invoiceDate":"2026-01-06","taxableAmount":"1000.00","totalGstAmount":"180.00"}]'
+                value={gstr1ReconText}
+              />
+              <Button
+                disabled={!companyId || gstr1ReconMutation.isPending}
+                onClick={runGstr1Reconciliation}
+                type="button"
+              >
+                Reconcile GSTR-1
+              </Button>
+              {gstr1ReconReport ? (
+                <>
+                  <div className="grid gap-3 sm:grid-cols-4">
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">Matched</p>
+                      <p className="text-lg font-semibold">
+                        {gstr1ReconReport.summary.matchedCount}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">Mismatched</p>
+                      <p className="text-lg font-semibold">
+                        {gstr1ReconReport.summary.mismatchedCount}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">
+                        Missing in books
+                      </p>
+                      <p className="text-lg font-semibold">
+                        {gstr1ReconReport.summary.missingInBooksCount}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">
+                        Missing in GSTR-1
+                      </p>
+                      <p className="text-lg font-semibold">
+                        {gstr1ReconReport.summary.missingInGstr1Count}
+                      </p>
+                    </div>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Invoice</TableHead>
+                        <TableHead>GSTIN</TableHead>
+                        <TableHead>Books taxable</TableHead>
+                        <TableHead>GSTR-1 taxable</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {gstr1ReconReport.rows.map((row) => (
+                        <TableRow key={row.rowKey}>
+                          <TableCell className="font-medium">
+                            {row.invoiceNumber}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {row.customerGstin ?? '—'}
+                          </TableCell>
+                          <TableCell>
+                            {row.bookTaxableAmount
+                              ? formatInr(row.bookTaxableAmount)
+                              : '—'}
+                          </TableCell>
+                          <TableCell>
+                            {row.portalTaxableAmount
+                              ? formatInr(row.portalTaxableAmount)
+                              : '—'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={gstReconciliationBadgeIntent(row.status)}
+                            >
+                              {row.status.replaceAll('_', ' ')}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </>
+              ) : null}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent className="mt-4" value="gstr3b">
@@ -308,7 +476,7 @@ export function ReportsPanel() {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Input GST / ITC</CardDescription>
+                <CardDescription>Input GST / ITC (books)</CardDescription>
                 <CardTitle className="text-2xl">
                   {formatInr(gstr3bQuery.data?.inputGst ?? 0)}
                 </CardTitle>
@@ -316,13 +484,49 @@ export function ReportsPanel() {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Net payable</CardDescription>
+                <CardDescription>Net payable (books ITC)</CardDescription>
                 <CardTitle className="text-2xl">
                   {formatInr(gstr3bQuery.data?.netGstPayable ?? 0)}
                 </CardTitle>
               </CardHeader>
             </Card>
           </div>
+          {gstr3bWorking ? (
+            <div className="mt-4 grid gap-4 md:grid-cols-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>Accepted ITC (2B)</CardDescription>
+                  <CardTitle className="text-2xl">
+                    {formatInr(gstr3bWorking.acceptedInputGst)}
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>Pending ITC</CardDescription>
+                  <CardTitle className="text-2xl">
+                    {formatInr(gstr3bWorking.pendingInputGst)}
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>Rejected ITC</CardDescription>
+                  <CardTitle className="text-2xl">
+                    {formatInr(gstr3bWorking.rejectedInputGst)}
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>Net payable (accepted ITC)</CardDescription>
+                  <CardTitle className="text-2xl">
+                    {formatInr(gstr3bWorking.netGstPayableWithAcceptedItc)}
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+            </div>
+          ) : null}
         </TabsContent>
 
         <TabsContent className="mt-4" value="trial">
@@ -872,18 +1076,38 @@ export function ReportsPanel() {
                 GSTR-2B reconciliation
               </CardTitle>
               <CardDescription>
-                Paste portal JSON or upload a file, then reconcile against
-                posted purchase bills
+                Import portal JSON, reconcile purchase bills for the return
+                period, and accept or reject ITC before filing GSTR-3B
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              <input
-                accept=".json,.csv,.txt"
-                className="hidden"
-                onChange={handleGstr2bFile}
-                ref={gstr2bFileRef}
-                type="file"
-              />
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label>Period start</Label>
+                  <DatePicker
+                    onChange={setReconPeriodStart}
+                    value={reconPeriodStart}
+                    variant="toolbar"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>Period end</Label>
+                  <DatePicker
+                    onChange={setReconPeriodEnd}
+                    value={reconPeriodEnd}
+                    variant="toolbar"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="gstr2b-file">Portal file</Label>
+                <Input
+                  accept=".json,.csv,.txt"
+                  id="gstr2b-file"
+                  onChange={handleGstr2bFile}
+                  type="file"
+                />
+              </div>
               <Textarea
                 className="min-h-40 font-mono text-xs"
                 onChange={(event) => setGstr2bText(event.target.value)}
@@ -891,13 +1115,6 @@ export function ReportsPanel() {
                 value={gstr2bText}
               />
               <div className="flex flex-wrap gap-2">
-                <Button
-                  onClick={() => gstr2bFileRef.current?.click()}
-                  type="button"
-                  variant="outline"
-                >
-                  Upload portal file
-                </Button>
                 <Button
                   disabled={!companyId || gstr2bMutation.isPending}
                   onClick={runGstr2bReconciliation}
@@ -907,46 +1124,162 @@ export function ReportsPanel() {
                 </Button>
               </div>
               {gstr2bReport ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Invoice</TableHead>
-                      <TableHead>GSTIN</TableHead>
-                      <TableHead>Books taxable</TableHead>
-                      <TableHead>2B taxable</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {gstr2bReport.rows.map((row) => (
-                      <TableRow key={row.supplierInvoiceNumber}>
-                        <TableCell className="font-medium">
-                          {row.supplierInvoiceNumber}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {row.supplierGstin ?? '—'}
-                        </TableCell>
-                        <TableCell>
-                          {row.bookTaxableAmount
-                            ? formatInr(row.bookTaxableAmount)
-                            : '—'}
-                        </TableCell>
-                        <TableCell>
-                          {row.portalTaxableAmount
-                            ? formatInr(row.portalTaxableAmount)
-                            : '—'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={gstReconciliationBadgeIntent(row.status)}
-                          >
-                            {row.status.replaceAll('_', ' ')}
-                          </Badge>
-                        </TableCell>
+                <>
+                  <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">Matched</p>
+                      <p className="text-lg font-semibold">
+                        {gstr2bReport.summary.matchedCount}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">Mismatched</p>
+                      <p className="text-lg font-semibold">
+                        {gstr2bReport.summary.mismatchedCount}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">
+                        Missing in books
+                      </p>
+                      <p className="text-lg font-semibold">
+                        {gstr2bReport.summary.missingInBooksCount}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">
+                        Missing in 2B
+                      </p>
+                      <p className="text-lg font-semibold">
+                        {gstr2bReport.summary.missingIn2bCount}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">2B ITC</p>
+                      <p className="text-lg font-semibold">
+                        {formatInr(gstr2bReport.summary.portalItcTotal)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">
+                        Claimable ITC
+                      </p>
+                      <p className="text-lg font-semibold">
+                        {formatInr(gstr2bReport.summary.claimableItcTotal)}
+                      </p>
+                    </div>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Invoice</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>GSTIN</TableHead>
+                        <TableHead>Books GST</TableHead>
+                        <TableHead>2B GST</TableHead>
+                        <TableHead>CGST / SGST / IGST (2B)</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>ITC</TableHead>
+                        <TableHead />
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {gstr2bReport.rows.map((row) => (
+                        <TableRow key={row.rowKey}>
+                          <TableCell className="font-medium">
+                            {row.supplierInvoiceNumber}
+                          </TableCell>
+                          <TableCell>{row.invoiceDate ?? '—'}</TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {row.supplierGstin ?? '—'}
+                          </TableCell>
+                          <TableCell>
+                            {row.bookTotalGstAmount
+                              ? formatInr(row.bookTotalGstAmount)
+                              : '—'}
+                          </TableCell>
+                          <TableCell>
+                            {row.portalTotalGstAmount
+                              ? formatInr(row.portalTotalGstAmount)
+                              : '—'}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {row.portalCgstAmount
+                              ? `${formatInr(row.portalCgstAmount)} / ${formatInr(row.portalSgstAmount ?? 0)} / ${formatInr(row.portalIgstAmount ?? 0)}`
+                              : '—'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={gstReconciliationBadgeIntent(row.status)}
+                            >
+                              {row.status.replaceAll('_', ' ')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                row.itcStatus === 'accepted'
+                                  ? 'default'
+                                  : row.itcStatus === 'rejected'
+                                    ? 'destructive'
+                                    : 'secondary'
+                              }
+                            >
+                              {row.itcStatus}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {row.portalTotalGstAmount ? (
+                                <>
+                                  <Button
+                                    disabled={gstr2bItcMutation.isPending}
+                                    onClick={() =>
+                                      setGstr2bItcStatus(row.rowKey, 'accepted')
+                                    }
+                                    size="sm"
+                                    type="button"
+                                    variant="outline"
+                                  >
+                                    Accept
+                                  </Button>
+                                  <Button
+                                    disabled={gstr2bItcMutation.isPending}
+                                    onClick={() =>
+                                      setGstr2bItcStatus(row.rowKey, 'rejected')
+                                    }
+                                    size="sm"
+                                    type="button"
+                                    variant="outline"
+                                  >
+                                    Reject
+                                  </Button>
+                                </>
+                              ) : null}
+                              {row.status === 'missing_in_books' ? (
+                                <Button asChild size="sm" variant="outline">
+                                  <Link
+                                    search={{
+                                      supplierGstin: row.supplierGstin ?? '',
+                                      supplierBillNumber:
+                                        row.supplierInvoiceNumber,
+                                      billDate: row.invoiceDate ?? '',
+                                      taxableAmount:
+                                        row.portalTaxableAmount ?? '',
+                                    }}
+                                    to="/app/purchases/new"
+                                  >
+                                    Create bill
+                                  </Link>
+                                </Button>
+                              ) : null}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </>
               ) : null}
             </CardContent>
           </Card>

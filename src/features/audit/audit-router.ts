@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { publicProcedure } from '#/integrations/trpc/init.ts'
+import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { AuditLogRepository } from '#/features/audit/audit-service.ts'
@@ -11,7 +11,9 @@ const listByCompanyInputSchema = z.object({
 
 export const createAuditRouter = (repository: AuditLogRepository) =>
   ({
-    list: publicProcedure.input(listByCompanyInputSchema).query(({ input }) => {
+    list: capabilityProcedure('view_audit')
+      .input(listByCompanyInputSchema)
+      .query(({ input }) => {
       return repository.listByCompanyId(input.companyId)
     }),
   }) satisfies TRPCRouterRecord

@@ -21,6 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '#/components/ui/dialog.tsx'
+import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
 import {
   Select,
@@ -43,6 +44,12 @@ import { WorkspacePage } from '#/features/app-shell/components/workspace-page.ts
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
+import {
+  requireAmountNotExceeding,
+  requirePositiveAmount,
+  requireSelection,
+  requireWorkspace,
+} from '#/lib/form-validation.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 import { paymentStatusBadgeIntent } from '#/lib/badge-intent.ts'
@@ -99,14 +106,29 @@ export function PaymentsPanel() {
 
   async function handleAllocate(event: React.FormEvent) {
     event.preventDefault()
-    if (!companyId) {
-      toast.error('Workspace is still loading. Try again in a moment.')
+    if (!requireWorkspace(companyId, isReady)) return
+
+    const selectedDocumentId = requireSelection(documentId, 'a document')
+    if (!selectedDocumentId) return
+
+    const paymentAmount = requirePositiveAmount(amount, 'Amount')
+    if (!paymentAmount) return
+
+    const selectedDoc =
+      mode === 'receipts'
+        ? openSales.find((row) => row.id === selectedDocumentId)
+        : openPurchases.find((row) => row.id === selectedDocumentId)
+    if (
+      selectedDoc &&
+      !requireAmountNotExceeding(
+        paymentAmount,
+        selectedDoc.outstandingAmount,
+        mode === 'receipts' ? 'Receipt' : 'Payment',
+      )
+    ) {
       return
     }
-    if (!documentId || !amount) {
-      toast.error('Select a document and enter an amount.')
-      return
-    }
+
     try {
       if (mode === 'receipts') {
         if (!ledgerBySystemKey.cash || !ledgerBySystemKey.customer_receivable) {
@@ -114,8 +136,8 @@ export function PaymentsPanel() {
         }
         await allocateReceipt.mutateAsync({
           companyId,
-          invoiceId: documentId,
-          amount,
+          invoiceId: selectedDocumentId,
+          amount: paymentAmount,
           receiptDate: date,
           cashAccountId: ledgerBySystemKey.cash,
           receivableAccountId: ledgerBySystemKey.customer_receivable,
@@ -129,8 +151,8 @@ export function PaymentsPanel() {
         }
         await allocatePayment.mutateAsync({
           companyId,
-          purchaseBillId: documentId,
-          amount,
+          purchaseBillId: selectedDocumentId,
+          amount: paymentAmount,
           paymentDate: date,
           cashAccountId: ledgerBySystemKey.cash,
           payableAccountId: ledgerBySystemKey.supplier_payable,
@@ -218,11 +240,10 @@ export function PaymentsPanel() {
                   <label className="text-sm font-medium" htmlFor="pay-date">
                     Date
                   </label>
-                  <Input
+                  <DatePicker
                     id="pay-date"
-                    onChange={(event) => setDate(event.target.value)}
+                    onChange={setDate}
                     required
-                    type="date"
                     value={date}
                   />
                 </div>

@@ -44,4 +44,17 @@ describe('getFormErrorMessage', () => {
 
     expect(message).toBe('Save failed')
   })
+
+  it('maps zod state code validation to a friendly message', () => {
+    const message = getFormErrorMessage(
+      new Error(
+        '[{"path":["placeOfSupply"],"message":"Too small: expected string to have >=2 characters"}]',
+      ),
+      'Save failed',
+    )
+
+    expect(message).toBe(
+      'Place of supply must be a valid 2-digit Indian state code.',
+    )
+  })
 })

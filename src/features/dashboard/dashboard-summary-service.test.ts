@@ -39,6 +39,26 @@ class InMemoryDashboardSummaryRepository implements DashboardSummaryRepository {
     )
     return summary
   }
+
+  async listBetween(
+    companyId: string,
+    startDate: string,
+    endDate: string,
+  ) {
+    const rows: Array<DailyDashboardSummary> = []
+    for (const summary of this.summaries.values()) {
+      if (
+        summary.companyId === companyId &&
+        summary.summaryDate >= startDate &&
+        summary.summaryDate <= endDate
+      ) {
+        rows.push(summary)
+      }
+    }
+    return rows.sort((left, right) =>
+      left.summaryDate.localeCompare(right.summaryDate),
+    )
+  }
 }
 
 describe('dashboard summary service', () => {

@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
+import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
 import {
   Select,
@@ -35,6 +36,11 @@ import { WorkspacePage } from '#/features/app-shell/components/workspace-page.ts
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
+import {
+  requirePositiveQuantity,
+  requireSelection,
+  requireWorkspace,
+} from '#/lib/form-validation.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 function workflowStatusBadgeVariant(status: string) {
@@ -107,24 +113,31 @@ export function PurchaseOrdersPanel() {
 
   async function handleCreate(event: React.FormEvent) {
     event.preventDefault()
-    if (!companyId) return
+    if (!requireWorkspace(companyId, isReady)) return
+
+    const selectedSupplierId = requireSelection(supplierId, 'a supplier')
+    if (!selectedSupplierId) return
+
     const item = items.find((entry) => entry.id === itemId)
     if (!item) {
-      toast.error('Select an item')
+      toast.error('Select an item.')
       return
     }
+
+    const lineQuantity = requirePositiveQuantity(quantity, 'Quantity')
+    if (!lineQuantity) return
 
     try {
       await createOrder.mutateAsync({
         companyId,
-        supplierId,
+        supplierId: selectedSupplierId,
         orderNumber: orderNumber.trim() || `PO-${Date.now()}`,
         orderDate,
         lines: [
           {
             itemId: item.id,
             description: item.name,
-            quantity,
+            quantity: lineQuantity,
             unit: item.baseUnit,
             rate: rate || item.purchaseRate,
             gstRate: item.gstRate,
@@ -135,13 +148,18 @@ export function PurchaseOrdersPanel() {
         queryKey: trpc.purchaseOrders.list.queryKey({ companyId }),
       })
       setOrderNumber('')
+      toast.success('Purchase order created.')
     } catch (err) {
       toastActionError(err, 'Create failed')
     }
   }
 
   async function handleReceive(orderId: string) {
-    if (!companyId) return
+    if (!requireWorkspace(companyId, isReady)) return
+    if (!godownNames[0]) {
+      toast.error('Add a godown before receiving stock.')
+      return
+    }
 
     try {
       await receiveFromPo.mutateAsync({
@@ -157,6 +175,7 @@ export function PurchaseOrdersPanel() {
       await queryClient.invalidateQueries({
         queryKey: trpc.purchaseGrns.list.queryKey({ companyId }),
       })
+      toast.success('Goods received into stock.')
     } catch (err) {
       toastActionError(err, 'Receive failed')
     }
@@ -183,9 +202,9 @@ export function PurchaseOrdersPanel() {
                 placeholder="PO number (optional)"
                 value={orderNumber}
               />
-              <Input
-                onChange={(event) => setOrderDate(event.target.value)}
-                type="date"
+              <DatePicker
+                onChange={setOrderDate}
+                placeholder="Order date"
                 value={orderDate}
               />
               <Select onValueChange={setSupplierId} value={supplierId}>

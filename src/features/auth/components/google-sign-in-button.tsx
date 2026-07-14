@@ -1,6 +1,7 @@
 import * as React from 'react'
 
 import { Button } from '#/components/ui/button.tsx'
+import { toast } from 'sonner'
 import { authClient } from '#/lib/auth-client.ts'
 
 export function GoogleSignInButton({ label }: { label: string }) {
@@ -14,6 +15,7 @@ export function GoogleSignInButton({ label }: { label: string }) {
         callbackURL: '/app/dashboard',
       })
     } catch {
+      toast.error('Google sign-in failed. Try again or use email.')
       setIsPending(false)
     }
   }
