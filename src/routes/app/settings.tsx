@@ -71,7 +71,8 @@ function SettingsRoute() {
           <CardHeader>
             <CardTitle className="text-base">Backup export</CardTitle>
             <CardDescription>
-              Download trial balance, sales, and purchases as JSON (Phase 7 stub).
+              Download trial balance, sales, and purchases as JSON (Phase 7
+              stub).
             </CardDescription>
           </CardHeader>
           <CardContent>

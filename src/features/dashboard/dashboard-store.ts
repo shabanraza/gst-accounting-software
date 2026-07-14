@@ -25,9 +25,7 @@ function emptySummary(
   }
 }
 
-export class InMemoryDashboardSummaryRepository
-  implements DashboardSummaryRepository
-{
+export class InMemoryDashboardSummaryRepository implements DashboardSummaryRepository {
   private summaries = new Map<string, DailyDashboardSummary>()
 
   private key(companyId: string, summaryDate: string) {
@@ -65,9 +63,7 @@ function mapRowToSummary(row: SummaryRow): DailyDashboardSummary {
   }
 }
 
-export class DrizzleDashboardSummaryRepository
-  implements DashboardSummaryRepository
-{
+export class DrizzleDashboardSummaryRepository implements DashboardSummaryRepository {
   constructor(private readonly database: AppDatabase) {}
 
   async get(companyId: string, summaryDate: string) {

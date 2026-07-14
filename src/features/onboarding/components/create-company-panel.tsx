@@ -52,7 +52,8 @@ export function CreateCompanyPanel() {
   const [tradeName, setTradeName] = React.useState('')
   const [gstin, setGstin] = React.useState('')
   const [stateCode, setStateCode] = React.useState('27')
-  const [financialYearStart, setFinancialYearStart] = React.useState('2026-04-01')
+  const [financialYearStart, setFinancialYearStart] =
+    React.useState('2026-04-01')
   const [businessType, setBusinessType] =
     React.useState<BusinessType>('wholesale')
 
@@ -169,7 +170,9 @@ export function CreateCompanyPanel() {
                 </label>
                 <Input
                   id="ob-fy"
-                  onChange={(event) => setFinancialYearStart(event.target.value)}
+                  onChange={(event) =>
+                    setFinancialYearStart(event.target.value)
+                  }
                   type="date"
                   value={financialYearStart}
                 />

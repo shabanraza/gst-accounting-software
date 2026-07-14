@@ -138,18 +138,14 @@ export const trpcRouter = createTRPCRouter({
     salesDocumentRepository,
     itemRepository,
   ),
-  ocr: createOcrRouter(
-    ocrDraftRepository,
-    documentAttachmentRepository,
-    {
-      parties: partyRepository,
-      items: itemRepository,
-      bills: purchaseBillRepository,
-      posting: ledgerPostingRepository,
-      stock: stockStore,
-      ledgers: ledgerAccountRepository,
-    },
-  ),
+  ocr: createOcrRouter(ocrDraftRepository, documentAttachmentRepository, {
+    parties: partyRepository,
+    items: itemRepository,
+    bills: purchaseBillRepository,
+    posting: ledgerPostingRepository,
+    stock: stockStore,
+    ledgers: ledgerAccountRepository,
+  }),
   team: createTeamRouter({
     memberships: membershipRepository,
     invitations: invitationRepository,

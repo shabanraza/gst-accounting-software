@@ -9,9 +9,7 @@ import type {
   DocumentAttachmentRepository,
 } from '#/features/documents/document-attachment-service.ts'
 
-export class InMemoryDocumentAttachmentRepository
-  implements DocumentAttachmentRepository
-{
+export class InMemoryDocumentAttachmentRepository implements DocumentAttachmentRepository {
   private attachments: Array<DocumentAttachmentRecord> = []
 
   async create(attachment: DocumentAttachmentRecord) {
@@ -40,9 +38,7 @@ function mapRowToRecord(row: AttachmentRow): DocumentAttachmentRecord {
   }
 }
 
-export class DrizzleDocumentAttachmentRepository
-  implements DocumentAttachmentRepository
-{
+export class DrizzleDocumentAttachmentRepository implements DocumentAttachmentRepository {
   constructor(private readonly database: AppDatabase) {}
 
   async create(attachment: DocumentAttachmentRecord) {
@@ -85,5 +81,4 @@ export function createDocumentAttachmentRepository(): DocumentAttachmentReposito
   return new DrizzleDocumentAttachmentRepository(database)
 }
 
-export const documentAttachmentRepository =
-  createDocumentAttachmentRepository()
+export const documentAttachmentRepository = createDocumentAttachmentRepository()

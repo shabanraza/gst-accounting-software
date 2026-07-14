@@ -44,11 +44,15 @@ function parseDelimitedLine(line: string, delimiter: string): Array<string> {
     return parseLine(line)
   }
 
-  return line.split(delimiter).map((field) => field.trim().replace(/^"|"$/g, ''))
+  return line
+    .split(delimiter)
+    .map((field) => field.trim().replace(/^"|"$/g, ''))
 }
 
 export function detectDelimiter(text: string): ',' | '\t' {
-  const firstLine = text.split(/\r\n|\r|\n/).find((line) => line.trim().length > 0)
+  const firstLine = text
+    .split(/\r\n|\r|\n/)
+    .find((line) => line.trim().length > 0)
   if (!firstLine) {
     return ','
   }

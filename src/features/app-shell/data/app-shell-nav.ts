@@ -153,7 +153,11 @@ export const appNav: Array<AppNavSection> = [
         path: '/app/masters/company-profile',
         icon: Building2Icon,
       },
-      { label: 'Companies', path: '/app/masters/companies', icon: Building2Icon },
+      {
+        label: 'Companies',
+        path: '/app/masters/companies',
+        icon: Building2Icon,
+      },
     ],
   },
   {
@@ -189,15 +193,13 @@ export function isAppNavPathActive(pathname: string, path: AppNavPath) {
 
   if (path === '/app/sales/documents') {
     return (
-      normalizedPathname === path ||
-      normalizedPathname.startsWith(`${path}/`)
+      normalizedPathname === path || normalizedPathname.startsWith(`${path}/`)
     )
   }
 
   if (path === '/app/purchases') {
     return (
-      normalizedPathname === path ||
-      normalizedPathname.startsWith(`${path}/`)
+      normalizedPathname === path || normalizedPathname.startsWith(`${path}/`)
     )
   }
 
@@ -206,7 +208,9 @@ export function isAppNavPathActive(pathname: string, path: AppNavPath) {
     return normalizedPathname === path
   }
 
-  return normalizedPathname === path || normalizedPathname.startsWith(`${path}/`)
+  return (
+    normalizedPathname === path || normalizedPathname.startsWith(`${path}/`)
+  )
 }
 
 export function navLinkActiveOptions(path: AppNavPath) {

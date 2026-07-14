@@ -165,7 +165,11 @@ describe('postSalesReturn', () => {
     const context = await seedReturnsContext()
 
     const salesReturn = await postSalesReturn(
-      { posting: context.ledgerPosting, stock: context.stock, notes: context.notes },
+      {
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        notes: context.notes,
+      },
       {
         companyId: context.companyId,
         companyStateCode: '27',
@@ -227,7 +231,11 @@ describe('postPurchaseReturn', () => {
     const context = await seedReturnsContext()
 
     const purchaseReturn = await postPurchaseReturn(
-      { posting: context.ledgerPosting, stock: context.stock, notes: context.notes },
+      {
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        notes: context.notes,
+      },
       {
         companyId: context.companyId,
         companyStateCode: '27',

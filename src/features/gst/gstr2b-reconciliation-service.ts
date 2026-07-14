@@ -10,7 +10,8 @@ export type Gstr2bRow = {
   totalGstAmount: string
 }
 
-export type Gstr2bMatchStatus = 'matched' | 'mismatched' | 'missing_in_books' | 'missing_in_2b'
+export type Gstr2bMatchStatus =
+  'matched' | 'mismatched' | 'missing_in_books' | 'missing_in_2b'
 
 export type Gstr2bReconciliationRow = {
   supplierInvoiceNumber: string
@@ -78,7 +79,8 @@ export async function reconcileGstr2b(
   }
 
   for (const portalRow of portalRows) {
-    if (matchedPortalInvoiceNumbers.has(portalRow.supplierInvoiceNumber)) continue
+    if (matchedPortalInvoiceNumbers.has(portalRow.supplierInvoiceNumber))
+      continue
 
     rows.push({
       supplierInvoiceNumber: portalRow.supplierInvoiceNumber,

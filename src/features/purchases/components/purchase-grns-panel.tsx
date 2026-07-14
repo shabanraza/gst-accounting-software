@@ -133,7 +133,10 @@ export function PurchaseGrnsPanel() {
           </CardHeader>
           <CardContent>
             <form className="flex flex-col gap-3" onSubmit={handleReceive}>
-              <Select onValueChange={setPurchaseOrderId} value={purchaseOrderId}>
+              <Select
+                onValueChange={setPurchaseOrderId}
+                value={purchaseOrderId}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Open purchase order" />
                 </SelectTrigger>
@@ -184,7 +187,9 @@ export function PurchaseGrnsPanel() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">GRN register</CardTitle>
-            <CardDescription>Received goods awaiting purchase bills.</CardDescription>
+            <CardDescription>
+              Received goods awaiting purchase bills.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>

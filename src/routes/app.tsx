@@ -41,7 +41,9 @@ export const Route = createFileRoute('/app')({
 })
 
 function AppLayoutRoute() {
-  const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
   const isPrintRoute = pathname.endsWith('/print')
 
   return (

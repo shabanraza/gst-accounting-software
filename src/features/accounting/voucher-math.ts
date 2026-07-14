@@ -83,7 +83,10 @@ export function computeVoucherLine(
   const gstRate = money(line.gstRate || '0')
   const grossAmount = qty.mul(rate)
   const discountAmount = grossAmount.mul(discountPercent).div(100)
-  const netAmount = Decimal.max(grossAmount.minus(discountAmount), new Decimal(0))
+  const netAmount = Decimal.max(
+    grossAmount.minus(discountAmount),
+    new Decimal(0),
+  )
 
   let taxableAmount = netAmount
   if (taxMode === 'inclusive' && gstRate.gt(0)) {
@@ -94,7 +97,11 @@ export function computeVoucherLine(
     taxableAmount: format(taxableAmount),
     gstRate: line.gstRate || '0',
     companyStateCode,
-    partyStateCode: partyStateForRegion(region, partyStateCode, companyStateCode),
+    partyStateCode: partyStateForRegion(
+      region,
+      partyStateCode,
+      companyStateCode,
+    ),
   })
 
   return {
@@ -105,8 +112,7 @@ export function computeVoucherLine(
     cgstAmount: gst.cgstAmount,
     sgstAmount: gst.sgstAmount,
     igstAmount: gst.igstAmount,
-    lineTotal:
-      taxMode === 'inclusive' ? format(netAmount) : gst.totalAmount,
+    lineTotal: taxMode === 'inclusive' ? format(netAmount) : gst.totalAmount,
   }
 }
 

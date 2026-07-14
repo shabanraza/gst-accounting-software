@@ -14,43 +14,43 @@ See also `docs/busy-21-gap-status.md` for BUSY 21 parity detail.
 
 ### Phase completion
 
-| Phase | Status | Notes |
-|-------|--------|-------|
-| **1 — Foundation** | Done | Auth, companies, COA templates, FY, memberships, audit, sequences |
-| **1.5 — Shell & routes** | Done | `/app/*`, login/signup/onboarding, document sequences, attachment/OCR stubs |
-| **2 — Accounting core** | Done | Posting engine, journal/contra, day/cash book, TB, P&L, BS, ageing |
-| **3 — Sales, purchase, GST** | Done | Invoices, bills, GST calc, returns, notes, GSTR-1/3B, HSN, CA export |
-| **4 — Inventory** | Mostly done | Items, HSN, stock movements, godowns, price lists; batch/barcode later |
-| **5 — Orders & ops** | Done | Quote/order/challan, PO→GRN→bill, attachments metadata, per-line godown |
-| **6 — Migration & import** | Partial | CSV parties/stock/items; no native BUSY/EZY; dry-run partial |
-| **7 — SaaS productization** | Partial | Backup JSON export; no subscriptions, GSP, or mobile |
+| Phase                        | Status      | Notes                                                                       |
+| ---------------------------- | ----------- | --------------------------------------------------------------------------- |
+| **1 — Foundation**           | Done        | Auth, companies, COA templates, FY, memberships, audit, sequences           |
+| **1.5 — Shell & routes**     | Done        | `/app/*`, login/signup/onboarding, document sequences, attachment/OCR stubs |
+| **2 — Accounting core**      | Done        | Posting engine, journal/contra, day/cash book, TB, P&L, BS, ageing          |
+| **3 — Sales, purchase, GST** | Done        | Invoices, bills, GST calc, returns, notes, GSTR-1/3B, HSN, CA export        |
+| **4 — Inventory**            | Mostly done | Items, HSN, stock movements, godowns, price lists; batch/barcode later      |
+| **5 — Orders & ops**         | Done        | Quote/order/challan, PO→GRN→bill, attachments metadata, per-line godown     |
+| **6 — Migration & import**   | Partial     | CSV parties/stock/items; no native BUSY/EZY; dry-run partial                |
+| **7 — SaaS productization**  | Partial     | Backup JSON export; no subscriptions, GSP, or mobile                        |
 
 ### MVP checklist (roadmap § MVP Priority)
 
-| Must have | Status |
-|-----------|--------|
-| Multi-company | Done |
-| Double-entry ledger | Done |
-| Parties | Done |
-| Sales invoice | Done |
-| Purchase bill | Done |
-| Payments & receipts | Done |
-| Expenses | Done |
-| Inventory | Done |
-| GST calculation | Done |
-| Sales/purchase returns | Done |
-| GSTR-1 & GSTR-3B working reports | Done |
-| Opening import | Partial (CSV, not BUSY native) |
-| Dashboard | Done |
+| Must have                        | Status                         |
+| -------------------------------- | ------------------------------ |
+| Multi-company                    | Done                           |
+| Double-entry ledger              | Done                           |
+| Parties                          | Done                           |
+| Sales invoice                    | Done                           |
+| Purchase bill                    | Done                           |
+| Payments & receipts              | Done                           |
+| Expenses                         | Done                           |
+| Inventory                        | Done                           |
+| GST calculation                  | Done                           |
+| Sales/purchase returns           | Done                           |
+| GSTR-1 & GSTR-3B working reports | Done                           |
+| Opening import                   | Partial (CSV, not BUSY native) |
+| Dashboard                        | Done                           |
 
-| Should have | Status |
-|-------------|--------|
-| Orders, challans | Done |
-| Credit limits | Done |
-| Aging | Done |
-| Stock valuation | Partial (movements; no dedicated valuation report) |
-| Bill attachments | Partial (metadata; R2 upload stub) |
-| Audit log | Done |
+| Should have      | Status                                                        |
+| ---------------- | ------------------------------------------------------------- |
+| Orders, challans | Done                                                          |
+| Credit limits    | Done                                                          |
+| Aging            | Done                                                          |
+| Stock valuation  | Partial (movements; no dedicated valuation report)            |
+| Bill attachments | Partial (metadata; R2 upload stub)                            |
+| Audit log        | Done                                                          |
 | Role permissions | Partial (`mutatingProcedure` on key mutations; not universal) |
 
 | Later (explicitly out of MVP) | Not started |

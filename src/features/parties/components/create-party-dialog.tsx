@@ -28,7 +28,10 @@ import {
 } from '#/features/app-shell/data/india-masters.ts'
 import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
-import type { PartyRecord, PartyType } from '#/features/parties/party-service.ts'
+import type {
+  PartyRecord,
+  PartyType,
+} from '#/features/parties/party-service.ts'
 
 type CreatePartyDialogProps = {
   open?: boolean
@@ -53,8 +56,12 @@ export function CreatePartyDialog({
 }: CreatePartyDialogProps) {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
-  const { companyId, ledgerBySystemKey, isReady, error: workspaceError } =
-    useWorkspace()
+  const {
+    companyId,
+    ledgerBySystemKey,
+    isReady,
+    error: workspaceError,
+  } = useWorkspace()
   const isEdit = Boolean(party)
   const [internalOpen, setInternalOpen] = React.useState(false)
   const open = controlledOpen ?? internalOpen
@@ -154,7 +161,8 @@ export function CreatePartyDialog({
     if (!companyId) {
       setFormError(
         isReady
-          ? (workspaceError ?? 'No active company. Open Companies and create one.')
+          ? (workspaceError ??
+              'No active company. Open Companies and create one.')
           : 'Workspace is still loading. Try again in a moment.',
       )
       return

@@ -1,7 +1,11 @@
 import { createCollection } from '@tanstack/react-db'
 import { queryCollectionOptions } from '@tanstack/query-db-collection'
 
-import type { QueryClient, QueryFunction, QueryKey } from '@tanstack/react-query'
+import type {
+  QueryClient,
+  QueryFunction,
+  QueryKey,
+} from '@tanstack/react-query'
 import type { Collection } from '@tanstack/react-db'
 import type { ItemRecord } from '#/features/inventory/item-service.ts'
 import type { PartyRecord } from '#/features/parties/party-service.ts'

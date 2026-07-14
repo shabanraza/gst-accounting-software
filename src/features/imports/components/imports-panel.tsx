@@ -73,7 +73,7 @@ export function ImportsPanel() {
       if (mode !== 'parties' && mode !== 'items') {
         throw new Error('BUSY format supports parties and items only')
       }
-      return parseBusyExport(text, mode) as Array<Record<string, unknown>>
+      return parseBusyExport(text, mode)
     }
     if (format === 'csv') {
       return parseCsvRows(text)
@@ -104,8 +104,12 @@ export function ImportsPanel() {
     return sampleOpeningBalances
   }
 
-  const dryRunParties = useMutation(trpc.imports.dryRunParties.mutationOptions())
-  const commitParties = useMutation(trpc.imports.commitParties.mutationOptions())
+  const dryRunParties = useMutation(
+    trpc.imports.dryRunParties.mutationOptions(),
+  )
+  const commitParties = useMutation(
+    trpc.imports.commitParties.mutationOptions(),
+  )
   const dryRunStock = useMutation(
     trpc.imports.dryRunOpeningStock.mutationOptions(),
   )
@@ -250,7 +254,9 @@ export function ImportsPanel() {
                 <TabsTrigger value="parties">Parties</TabsTrigger>
                 <TabsTrigger value="stock">Opening stock</TabsTrigger>
                 <TabsTrigger value="items">Items</TabsTrigger>
-                <TabsTrigger value="openingBalances">Opening balances</TabsTrigger>
+                <TabsTrigger value="openingBalances">
+                  Opening balances
+                </TabsTrigger>
               </TabsList>
             </Tabs>
             <Tabs

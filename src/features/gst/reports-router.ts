@@ -4,16 +4,25 @@ import { buildDayBook } from '#/features/accounting/day-book-service.ts'
 import { buildHsnSummary } from '#/features/gst/hsn-summary-service.ts'
 import Decimal from 'decimal.js'
 
-import { buildGstr1Json, buildGstr1Report } from '#/features/gst/gstr1-report-service.ts'
+import {
+  buildGstr1Json,
+  buildGstr1Report,
+} from '#/features/gst/gstr1-report-service.ts'
 import { buildGstr3bReport } from '#/features/gst/gstr3b-report-service.ts'
 import {
   buildBalanceSheet,
   buildProfitAndLoss,
   buildTrialBalance,
 } from '#/features/accounting/financial-reports.ts'
-import { buildPayablesAgeing, buildReceivablesAgeing } from '#/features/accounting/ageing-service.ts'
+import {
+  buildPayablesAgeing,
+  buildReceivablesAgeing,
+} from '#/features/accounting/ageing-service.ts'
 import { buildPartyLedger } from '#/features/parties/party-ledger-service.ts'
-import { buildStockLedger, buildStockSummary } from '#/features/inventory/stock-ledger-service.ts'
+import {
+  buildStockLedger,
+  buildStockSummary,
+} from '#/features/inventory/stock-ledger-service.ts'
 import { buildStockValuation } from '#/features/inventory/stock-valuation-service.ts'
 import { reconcileGstr2b } from '#/features/gst/gstr2b-reconciliation-service.ts'
 import { z } from 'zod'
@@ -73,7 +82,8 @@ async function buildGstDocuments(input: {
       taxableAmount: invoice.taxableAmount,
       cgstAmount: supplyType === 'intra_state' ? half : '0.00',
       sgstAmount: supplyType === 'intra_state' ? half : '0.00',
-      igstAmount: supplyType === 'inter_state' ? invoice.totalGstAmount : '0.00',
+      igstAmount:
+        supplyType === 'inter_state' ? invoice.totalGstAmount : '0.00',
       totalGstAmount: invoice.totalGstAmount,
       totalAmount: invoice.totalAmount,
       invoiceNumber: invoice.invoiceNumber,
@@ -143,21 +153,23 @@ export const createReportsRouter = (deps: {
   items: ItemRepository
 }) =>
   ({
-    gstr1: companyProcedure.input(reportInputSchema).query(async ({ input }) => {
-      const documents = await buildGstDocuments({
-        companyId: input.companyId,
-        companyStateCode: input.companyStateCode,
-        invoices: deps.invoices,
-        bills: deps.bills,
-        parties: deps.parties,
-      })
-      return buildGstr1Report({
-        companyId: input.companyId,
-        periodStart: input.periodStart,
-        periodEnd: input.periodEnd,
-        documents,
-      })
-    }),
+    gstr1: companyProcedure
+      .input(reportInputSchema)
+      .query(async ({ input }) => {
+        const documents = await buildGstDocuments({
+          companyId: input.companyId,
+          companyStateCode: input.companyStateCode,
+          invoices: deps.invoices,
+          bills: deps.bills,
+          parties: deps.parties,
+        })
+        return buildGstr1Report({
+          companyId: input.companyId,
+          periodStart: input.periodStart,
+          periodEnd: input.periodEnd,
+          documents,
+        })
+      }),
     gstr3b: companyProcedure
       .input(reportInputSchema)
       .query(async ({ input }) => {
@@ -284,26 +296,32 @@ export const createReportsRouter = (deps: {
           input.portalRows,
         )
       }),
-    dayBook: companyProcedure.input(reportInputSchema).query(async ({ input }) => {
-      return buildDayBook(deps.postings, input.companyId, {
-        startDate: input.periodStart,
-        endDate: input.periodEnd,
-      })
-    }),
-    cashBook: companyProcedure.input(reportInputSchema).query(async ({ input }) => {
-      return buildCashBook(
-        { postings: deps.postings, ledgers: deps.ledgers },
-        input.companyId,
-        { startDate: input.periodStart, endDate: input.periodEnd },
-      )
-    }),
-    hsnSummary: companyProcedure.input(reportInputSchema).query(async ({ input }) => {
-      return buildHsnSummary(
-        { invoices: deps.invoices, items: deps.items },
-        input.companyId,
-        { startDate: input.periodStart, endDate: input.periodEnd },
-      )
-    }),
+    dayBook: companyProcedure
+      .input(reportInputSchema)
+      .query(async ({ input }) => {
+        return buildDayBook(deps.postings, input.companyId, {
+          startDate: input.periodStart,
+          endDate: input.periodEnd,
+        })
+      }),
+    cashBook: companyProcedure
+      .input(reportInputSchema)
+      .query(async ({ input }) => {
+        return buildCashBook(
+          { postings: deps.postings, ledgers: deps.ledgers },
+          input.companyId,
+          { startDate: input.periodStart, endDate: input.periodEnd },
+        )
+      }),
+    hsnSummary: companyProcedure
+      .input(reportInputSchema)
+      .query(async ({ input }) => {
+        return buildHsnSummary(
+          { invoices: deps.invoices, items: deps.items },
+          input.companyId,
+          { startDate: input.periodStart, endDate: input.periodEnd },
+        )
+      }),
     accountantExport: companyProcedure
       .input(z.object({ companyId: z.string().uuid() }))
       .query(async ({ input }) => {

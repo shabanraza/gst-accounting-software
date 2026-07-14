@@ -66,12 +66,7 @@ export function CreateItemDialog({
 }: CreateItemDialogProps) {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
-  const {
-    companyId,
-    isReady,
-    error: workspaceError,
-    godowns,
-  } = useWorkspace()
+  const { companyId, isReady, error: workspaceError, godowns } = useWorkspace()
   const godownNames =
     godowns.length > 0 ? godowns.map((entry) => entry.name) : demoGodowns
 
@@ -109,7 +104,8 @@ export function CreateItemDialog({
     if (!companyId) {
       setFormError(
         isReady
-          ? (workspaceError ?? 'No active company. Open Companies and create one.')
+          ? (workspaceError ??
+              'No active company. Open Companies and create one.')
           : 'Workspace is still loading. Try again in a moment.',
       )
       return

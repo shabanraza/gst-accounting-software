@@ -117,7 +117,9 @@ export function JournalEntryPanel() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Journal entry</CardTitle>
-          <CardDescription>Minimum two lines; debits must equal credits.</CardDescription>
+          <CardDescription>
+            Minimum two lines; debits must equal credits.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>

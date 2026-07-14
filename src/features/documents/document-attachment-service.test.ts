@@ -5,9 +5,7 @@ import type {
   DocumentAttachmentRecord,
   DocumentAttachmentRepository,
 } from '#/features/documents/document-attachment-service.ts'
-import {
-  createOcrDraft,
-} from '#/features/ocr/ocr-draft-service.ts'
+import { createOcrDraft } from '#/features/ocr/ocr-draft-service.ts'
 import type {
   OcrDraftRecord,
   OcrDraftRepository,

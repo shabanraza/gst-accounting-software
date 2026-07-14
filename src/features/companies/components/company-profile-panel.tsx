@@ -49,9 +49,21 @@ const emptyProfile: ProfileFields = {
   invoiceTerms: '',
 }
 
-const fields: Array<{ key: keyof ProfileFields; label: string; placeholder?: string }> = [
-  { key: 'addressLine1', label: 'Address line 1', placeholder: 'Shop 12, MG Road' },
-  { key: 'addressLine2', label: 'Address line 2', placeholder: 'Near City Mall' },
+const fields: Array<{
+  key: keyof ProfileFields
+  label: string
+  placeholder?: string
+}> = [
+  {
+    key: 'addressLine1',
+    label: 'Address line 1',
+    placeholder: 'Shop 12, MG Road',
+  },
+  {
+    key: 'addressLine2',
+    label: 'Address line 2',
+    placeholder: 'Near City Mall',
+  },
   { key: 'city', label: 'City' },
   { key: 'pincode', label: 'PIN code' },
   { key: 'pan', label: 'PAN', placeholder: 'ABCDE1234F' },
@@ -65,7 +77,8 @@ const fields: Array<{ key: keyof ProfileFields; label: string; placeholder?: str
   {
     key: 'invoiceTerms',
     label: 'Invoice terms',
-    placeholder: 'Payment due in 30 days. Goods once sold will not be taken back.',
+    placeholder:
+      'Payment due in 30 days. Goods once sold will not be taken back.',
   },
 ]
 

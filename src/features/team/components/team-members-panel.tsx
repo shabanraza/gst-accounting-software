@@ -70,7 +70,9 @@ export function TeamMembersPanel() {
     enabled,
   })
 
-  const queryKey = trpc.team.listMembers.queryKey({ companyId: companyId ?? '' })
+  const queryKey = trpc.team.listMembers.queryKey({
+    companyId: companyId ?? '',
+  })
   const invalidate = () => queryClient.invalidateQueries({ queryKey })
 
   const inviteMutation = useMutation({
@@ -202,7 +204,9 @@ export function TeamMembersPanel() {
                   <TableCell>
                     <div className="flex flex-col">
                       <span className="font-medium">
-                        {member.name ?? member.email ?? member.userId.slice(0, 8)}
+                        {member.name ??
+                          member.email ??
+                          member.userId.slice(0, 8)}
                         {isSelf ? ' (you)' : ''}
                       </span>
                       {member.email ? (
@@ -288,7 +292,9 @@ export function TeamMembersPanel() {
                 key={invitation.email}
               >
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium">{invitation.email}</span>
+                  <span className="text-sm font-medium">
+                    {invitation.email}
+                  </span>
                   <span className="text-xs text-muted-foreground">
                     {invitation.role}
                   </span>

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, gte, inArray, lte, sql } from 'drizzle-orm'
 
 import { getDb } from '#/db/client.ts'
 import * as schema from '#/db/schema.ts'
@@ -18,8 +18,38 @@ export class InMemoryLedgerPostingRepository implements LedgerPostingRepository 
     return entry
   }
 
-  async listByCompanyId(companyId: string) {
-    return this.entries.filter((entry) => entry.companyId === companyId)
+  async listByCompanyId(
+    companyId: string,
+    options?: { startDate?: string; endDate?: string },
+  ) {
+    return this.entries.filter((entry) => {
+      if (entry.companyId !== companyId) return false
+      if (options?.startDate && entry.entryDate < options.startDate)
+        return false
+      if (options?.endDate && entry.entryDate > options.endDate) return false
+      return true
+    })
+  }
+
+  async sumByAccount(
+    companyId: string,
+    options?: { startDate?: string; endDate?: string },
+  ) {
+    const entries = await this.listByCompanyId(companyId, options)
+    const totals = new Map<string, { debit: string; credit: string }>()
+    for (const entry of entries) {
+      for (const line of entry.lines) {
+        const existing = totals.get(line.ledgerAccountId) ?? {
+          debit: '0',
+          credit: '0',
+        }
+        totals.set(line.ledgerAccountId, {
+          debit: (Number(existing.debit) + Number(line.debit)).toFixed(2),
+          credit: (Number(existing.credit) + Number(line.credit)).toFixed(2),
+        })
+      }
+    }
+    return totals
   }
 
   list() {
@@ -90,17 +120,39 @@ export class DrizzleLedgerPostingRepository implements LedgerPostingRepository {
     return mapRowsToLedgerEntryRecord(createdEntry, createdLines)
   }
 
-  async listByCompanyId(companyId: string) {
-    const [entries, lines] = await Promise.all([
-      this.database
-        .select()
-        .from(schema.ledgerEntries)
-        .where(eq(schema.ledgerEntries.companyId, companyId)),
-      this.database
-        .select()
-        .from(schema.ledgerLines)
-        .where(eq(schema.ledgerLines.companyId, companyId)),
-    ])
+  async listByCompanyId(
+    companyId: string,
+    options?: { startDate?: string; endDate?: string },
+  ) {
+    const entryConditions = [eq(schema.ledgerEntries.companyId, companyId)]
+    if (options?.startDate) {
+      entryConditions.push(
+        gte(schema.ledgerEntries.entryDate, options.startDate),
+      )
+    }
+    if (options?.endDate) {
+      entryConditions.push(lte(schema.ledgerEntries.entryDate, options.endDate))
+    }
+
+    const entries = await this.database
+      .select()
+      .from(schema.ledgerEntries)
+      .where(and(...entryConditions))
+
+    if (entries.length === 0) {
+      return []
+    }
+
+    const entryIds = entries.map((entry) => entry.id)
+    const lines = await this.database
+      .select()
+      .from(schema.ledgerLines)
+      .where(
+        and(
+          eq(schema.ledgerLines.companyId, companyId),
+          inArray(schema.ledgerLines.entryId, entryIds),
+        ),
+      )
 
     const linesByEntryId = new Map<string, Array<LedgerLineRow>>()
     for (const line of lines) {
@@ -112,6 +164,62 @@ export class DrizzleLedgerPostingRepository implements LedgerPostingRepository {
     return entries.map((entry) =>
       mapRowsToLedgerEntryRecord(entry, linesByEntryId.get(entry.id) ?? []),
     )
+  }
+
+  async sumByAccount(
+    companyId: string,
+    options?: { startDate?: string; endDate?: string },
+  ) {
+    const conditions = [eq(schema.ledgerLines.companyId, companyId)]
+
+    if (options?.startDate || options?.endDate) {
+      const entryConditions = [eq(schema.ledgerEntries.companyId, companyId)]
+      if (options.startDate) {
+        entryConditions.push(
+          gte(schema.ledgerEntries.entryDate, options.startDate),
+        )
+      }
+      if (options.endDate) {
+        entryConditions.push(
+          lte(schema.ledgerEntries.entryDate, options.endDate),
+        )
+      }
+
+      const entries = await this.database
+        .select({ id: schema.ledgerEntries.id })
+        .from(schema.ledgerEntries)
+        .where(and(...entryConditions))
+
+      if (entries.length === 0) {
+        return new Map()
+      }
+
+      conditions.push(
+        inArray(
+          schema.ledgerLines.entryId,
+          entries.map((entry) => entry.id),
+        ),
+      )
+    }
+
+    const rows = await this.database
+      .select({
+        ledgerAccountId: schema.ledgerLines.ledgerAccountId,
+        debit: sql<string>`coalesce(sum(${schema.ledgerLines.debit}::numeric), 0)`,
+        credit: sql<string>`coalesce(sum(${schema.ledgerLines.credit}::numeric), 0)`,
+      })
+      .from(schema.ledgerLines)
+      .where(and(...conditions))
+      .groupBy(schema.ledgerLines.ledgerAccountId)
+
+    const totals = new Map<string, { debit: string; credit: string }>()
+    for (const row of rows) {
+      totals.set(row.ledgerAccountId, {
+        debit: Number(row.debit).toFixed(2),
+        credit: Number(row.credit).toFixed(2),
+      })
+    }
+    return totals
   }
 }
 

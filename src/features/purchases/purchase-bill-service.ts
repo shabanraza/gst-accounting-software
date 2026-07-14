@@ -2,15 +2,23 @@ import Decimal from 'decimal.js'
 
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
 import { calculateGst } from '#/features/gst/gst-calculator.ts'
+import {
+  assertTaxInvoiceCompanyAddress,
+  assertTaxInvoicePartyAddress,
+  buildInvoicePartySnapshot,
+} from '#/features/gst/tax-invoice-compliance.ts'
 import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
 
 import type { TaxMode } from '#/features/accounting/voucher-math.ts'
+import type { InvoicePartySnapshot } from '#/features/gst/tax-invoice-compliance.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
 import type {
   StockBalanceRepository,
   StockMovementRepository,
 } from '#/features/inventory/stock-movement-service.ts'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
+import type { PartyRepository } from '#/features/parties/party-service.ts'
+import type { ListQueryOptions } from '#/lib/list-query.ts'
 
 export type PurchaseBillLineInput = {
   itemId: string
@@ -26,6 +34,11 @@ export type PurchaseBillLineInput = {
 export type PostPurchaseBillInput = {
   companyId: string
   companyStateCode: string
+  companyGstin?: string | null
+  companyAddressLine1?: string
+  companyAddressLine2?: string
+  companyCity?: string
+  companyPincode?: string
   financialYearStart: string
   supplierId: string
   supplierStateCode?: string
@@ -94,7 +107,7 @@ export type PurchaseBillRecord = {
   ledgerEntryId: string
   lines: Array<PurchaseBillLineRecord>
   createdAt: Date
-}
+} & InvoicePartySnapshot
 
 export interface PurchaseBillRepository {
   findBySupplierBillNumber: (input: {
@@ -106,7 +119,10 @@ export interface PurchaseBillRepository {
   create: (bill: PurchaseBillRecord) => Promise<PurchaseBillRecord>
   findById: (id: string) => Promise<PurchaseBillRecord | null>
   save: (bill: PurchaseBillRecord) => Promise<PurchaseBillRecord>
-  listByCompanyId: (companyId: string) => Promise<Array<PurchaseBillRecord>>
+  listByCompanyId: (
+    companyId: string,
+    options?: ListQueryOptions,
+  ) => Promise<Array<PurchaseBillRecord>>
 }
 
 export type PurchaseBillDependencies = {
@@ -114,6 +130,7 @@ export type PurchaseBillDependencies = {
   posting: LedgerPostingRepository
   stock: StockMovementRepository & StockBalanceRepository
   items?: ItemRepository
+  parties?: PartyRepository
 }
 
 export class DuplicateSupplierBillError extends Error {
@@ -197,6 +214,31 @@ export async function postPurchaseBill(
   const totalAmount = taxableTotal.plus(gstTotal).plus(sundryNet)
   const billId = crypto.randomUUID()
 
+  assertTaxInvoiceCompanyAddress({
+    gstin: input.companyGstin ?? null,
+    addressLine1: input.companyAddressLine1,
+    addressLine2: input.companyAddressLine2,
+    city: input.companyCity,
+    pincode: input.companyPincode,
+  })
+
+  if (!deps.parties) {
+    throw new Error('Party repository is required to post purchase bills')
+  }
+
+  const supplier = await deps.parties.findById(input.supplierId)
+  if (!supplier) {
+    throw new Error(`Supplier not found: ${input.supplierId}`)
+  }
+
+  const partySnapshot = buildInvoicePartySnapshot(supplier)
+  assertTaxInvoicePartyAddress({
+    partyName: supplier.name,
+    partyGstin: supplier.gstin,
+    billingAddress: partySnapshot.partyBillingAddressSnapshot,
+    invoiceTotal: formatMoney(totalAmount),
+  })
+
   const inventoryDebit = taxableTotal.plus(sundryNet)
   const inventoryAccountId = input.skipStockMovement
     ? input.purchaseAccountId
@@ -274,6 +316,7 @@ export async function postPurchaseBill(
     vehicleNo: input.vehicleNo?.trim() || '',
     lrNumber: input.lrNumber?.trim() || '',
     challanRef: input.challanRef?.trim() || '',
+    ...partySnapshot,
     taxableAmount: formatMoney(taxableTotal),
     totalGstAmount: formatMoney(gstTotal),
     totalAmount: formatMoney(totalAmount),

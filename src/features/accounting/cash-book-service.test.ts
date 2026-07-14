@@ -46,11 +46,10 @@ describe('buildCashBook', () => {
       ],
     })
 
-    const report = await buildCashBook(
-      { postings, ledgers },
-      companyId,
-      { startDate: '2026-04-01', endDate: '2026-04-30' },
-    )
+    const report = await buildCashBook({ postings, ledgers }, companyId, {
+      startDate: '2026-04-01',
+      endDate: '2026-04-30',
+    })
 
     expect(report.lines).toHaveLength(1)
     expect(report.lines[0]?.debit).toBe('500.00')

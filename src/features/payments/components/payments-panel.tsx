@@ -45,17 +45,7 @@ import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
-function paymentStatusBadgeVariant(status: string) {
-  if (status === 'Paid') {
-    return 'success' as const
-  }
-
-  if (status === 'Part paid') {
-    return 'warning' as const
-  }
-
-  return 'info' as const
-}
+import { paymentStatusBadgeIntent } from '#/lib/badge-intent.ts'
 
 export function PaymentsPanel() {
   const trpc = useTRPC()
@@ -119,10 +109,7 @@ export function PaymentsPanel() {
     }
     try {
       if (mode === 'receipts') {
-        if (
-          !ledgerBySystemKey.cash ||
-          !ledgerBySystemKey.customer_receivable
-        ) {
+        if (!ledgerBySystemKey.cash || !ledgerBySystemKey.customer_receivable) {
           throw new Error('Cash / receivable ledgers missing')
         }
         await allocateReceipt.mutateAsync({
@@ -155,9 +142,7 @@ export function PaymentsPanel() {
       setOpen(false)
       setDocumentId('')
       setAmount('')
-      toast.success(
-        mode === 'receipts' ? 'Receipt posted' : 'Payment posted',
-      )
+      toast.success(mode === 'receipts' ? 'Receipt posted' : 'Payment posted')
     } catch (err) {
       toastActionError(err, 'Allocation failed')
     }
@@ -272,9 +257,7 @@ export function PaymentsPanel() {
             </CardDescription>
           </div>
           <Tabs
-            onValueChange={(value) =>
-              setMode(value as 'receipts' | 'payments')
-            }
+            onValueChange={(value) => setMode(value as 'receipts' | 'payments')}
             value={mode}
           >
             <TabsList>
@@ -303,11 +286,11 @@ export function PaymentsPanel() {
                       </TableCell>
                       <TableCell>{partyName(row.customerId)}</TableCell>
                       <TableCell>{formatInr(row.totalAmount)}</TableCell>
+                      <TableCell>{formatInr(row.outstandingAmount)}</TableCell>
                       <TableCell>
-                        {formatInr(row.outstandingAmount)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={paymentStatusBadgeVariant(row.paymentStatus)}>
+                        <Badge
+                          variant={paymentStatusBadgeIntent(row.paymentStatus)}
+                        >
                           {row.paymentStatus}
                         </Badge>
                       </TableCell>
@@ -320,11 +303,11 @@ export function PaymentsPanel() {
                       </TableCell>
                       <TableCell>{partyName(row.supplierId)}</TableCell>
                       <TableCell>{formatInr(row.totalAmount)}</TableCell>
+                      <TableCell>{formatInr(row.outstandingAmount)}</TableCell>
                       <TableCell>
-                        {formatInr(row.outstandingAmount)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={paymentStatusBadgeVariant(row.paymentStatus)}>
+                        <Badge
+                          variant={paymentStatusBadgeIntent(row.paymentStatus)}
+                        >
                           {row.paymentStatus}
                         </Badge>
                       </TableCell>

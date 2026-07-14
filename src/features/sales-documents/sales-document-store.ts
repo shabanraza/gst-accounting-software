@@ -11,9 +11,7 @@ import type {
   SalesDocumentType,
 } from '#/features/sales-documents/sales-document-service.ts'
 
-export class InMemorySalesDocumentRepository
-  implements SalesDocumentRepository
-{
+export class InMemorySalesDocumentRepository implements SalesDocumentRepository {
   private readonly documents: Array<SalesDocumentRecord> = []
 
   async create(document: SalesDocumentRecord) {
@@ -22,9 +20,7 @@ export class InMemorySalesDocumentRepository
   }
 
   async listByCompanyId(companyId: string) {
-    return this.documents.filter(
-      (document) => document.companyId === companyId,
-    )
+    return this.documents.filter((document) => document.companyId === companyId)
   }
 
   async findById(companyId: string, documentId: string) {
@@ -36,7 +32,11 @@ export class InMemorySalesDocumentRepository
     )
   }
 
-  async markConverted(companyId: string, documentId: string, invoiceId: string) {
+  async markConverted(
+    companyId: string,
+    documentId: string,
+    invoiceId: string,
+  ) {
     const document = await this.findById(companyId, documentId)
 
     if (!document) {
@@ -160,7 +160,11 @@ export class DrizzleSalesDocumentRepository implements SalesDocumentRepository {
     return mapDocumentRow(documents[0], lines.map(mapLineRow))
   }
 
-  async markConverted(companyId: string, documentId: string, invoiceId: string) {
+  async markConverted(
+    companyId: string,
+    documentId: string,
+    invoiceId: string,
+  ) {
     const updatedRows = await this.database
       .update(schema.salesDocuments)
       .set({

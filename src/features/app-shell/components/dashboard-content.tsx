@@ -162,10 +162,7 @@ export function DashboardContent() {
   ]
 
   return (
-    <WorkspacePage
-      description="Today's business at a glance"
-      title="Dashboard"
-    >
+    <WorkspacePage description="Today's business at a glance" title="Dashboard">
       <div className="flex flex-wrap gap-2">
         {quickActions.map((action) => {
           const Icon = action.icon
@@ -186,30 +183,30 @@ export function DashboardContent() {
               <Skeleton className="h-24 w-full" key={index} />
             ))
           : cards.map((card) => {
-          const Icon = card.icon
-          return (
-            <Card key={card.label}>
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-2">
-                  <Icon className="size-3.5" />
-                  {card.label}
-                </CardDescription>
-                <CardTitle className="text-2xl tabular-nums">
-                  {card.value}
-                </CardTitle>
-              </CardHeader>
-            </Card>
-          )
-        })}
+              const Icon = card.icon
+              return (
+                <Card key={card.label}>
+                  <CardHeader className="pb-2">
+                    <CardDescription className="flex items-center gap-2">
+                      <Icon className="size-3.5" />
+                      {card.label}
+                    </CardDescription>
+                    <CardTitle className="text-2xl tabular-nums">
+                      {card.value}
+                    </CardTitle>
+                  </CardHeader>
+                </Card>
+              )
+            })}
       </div>
 
       {lowStockItems.length > 0 || overdueInvoices.length > 0 ? (
         <div className="grid gap-3 lg:grid-cols-2">
           {lowStockItems.length > 0 ? (
-            <Card className="border-amber-500/20">
+            <Card className="border-warning/30 bg-warning-foreground/40">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <AlertTriangleIcon className="size-4 text-amber-700 dark:text-amber-300" />
+                  <AlertTriangleIcon className="size-4 text-warning" />
                   Low stock ({lowStockItems.length})
                 </CardTitle>
                 <CardDescription>
@@ -220,12 +217,17 @@ export function DashboardContent() {
                 {lowStockItems.slice(0, 5).map((item) => (
                   <div className="flex justify-between gap-3" key={item.id}>
                     <span className="truncate">{item.name}</span>
-                    <span className="shrink-0 tabular-nums text-amber-700 dark:text-amber-300">
+                    <span className="shrink-0 tabular-nums text-inventory">
                       {item.quantity} / {item.reorderLevel} {item.unit}
                     </span>
                   </div>
                 ))}
-                <Button asChild className="mt-1 self-start" size="sm" variant="outline">
+                <Button
+                  asChild
+                  className="mt-1 self-start"
+                  size="sm"
+                  variant="outline"
+                >
                   <Link to="/app/inventory">Review inventory</Link>
                 </Button>
               </CardContent>
@@ -253,7 +255,12 @@ export function DashboardContent() {
                     </span>
                   </div>
                 ))}
-                <Button asChild className="mt-1 self-start" size="sm" variant="outline">
+                <Button
+                  asChild
+                  className="mt-1 self-start"
+                  size="sm"
+                  variant="outline"
+                >
                   <Link to="/app/sales">Chase payments</Link>
                 </Button>
               </CardContent>
@@ -271,21 +278,27 @@ export function DashboardContent() {
           <CardContent className="flex flex-col gap-2 text-sm">
             <div className="flex justify-between gap-3">
               <span className="text-muted-foreground">Sales total</span>
-              <span>{formatInr(summaryQuery.data?.salesTotal ?? 0)}</span>
+              <span className="text-money-in">
+                {formatInr(summaryQuery.data?.salesTotal ?? 0)}
+              </span>
             </div>
             <div className="flex justify-between gap-3">
               <span className="text-muted-foreground">Purchase total</span>
-              <span>{formatInr(summaryQuery.data?.purchaseTotal ?? 0)}</span>
+              <span className="text-money-out">
+                {formatInr(summaryQuery.data?.purchaseTotal ?? 0)}
+              </span>
             </div>
             <div className="flex justify-between gap-3">
               <span className="text-muted-foreground">Customers owe you</span>
-              <span>
+              <span className="text-money-in">
                 {formatInr(summaryQuery.data?.receivableTotal ?? 0)}
               </span>
             </div>
             <div className="flex justify-between gap-3">
               <span className="text-muted-foreground">You owe suppliers</span>
-              <span>{formatInr(summaryQuery.data?.payableTotal ?? 0)}</span>
+              <span className="text-money-out">
+                {formatInr(summaryQuery.data?.payableTotal ?? 0)}
+              </span>
             </div>
           </CardContent>
         </Card>

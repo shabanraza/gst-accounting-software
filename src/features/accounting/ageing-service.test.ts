@@ -1,9 +1,21 @@
 import { describe, expect, test } from 'vitest'
 
-import { buildPayablesAgeing, buildReceivablesAgeing } from '#/features/accounting/ageing-service.ts'
-import type { PartyRecord, PartyRepository } from '#/features/parties/party-service.ts'
-import type { PurchaseBillRecord, PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
-import type { SalesInvoiceRecord, SalesInvoiceRepository } from '#/features/sales/sales-invoice-service.ts'
+import {
+  buildPayablesAgeing,
+  buildReceivablesAgeing,
+} from '#/features/accounting/ageing-service.ts'
+import type {
+  PartyRecord,
+  PartyRepository,
+} from '#/features/parties/party-service.ts'
+import type {
+  PurchaseBillRecord,
+  PurchaseBillRepository,
+} from '#/features/purchases/purchase-bill-service.ts'
+import type {
+  SalesInvoiceRecord,
+  SalesInvoiceRepository,
+} from '#/features/sales/sales-invoice-service.ts'
 
 class FakeParties implements PartyRepository {
   constructor(private readonly parties: Array<PartyRecord>) {}
@@ -118,7 +130,9 @@ describe('buildReceivablesAgeing', () => {
     )
 
     expect(report.rows).toHaveLength(2)
-    const recentRow = report.rows.find((row) => row.documentDate === '2026-02-20')
+    const recentRow = report.rows.find(
+      (row) => row.documentDate === '2026-02-20',
+    )
     const oldRow = report.rows.find((row) => row.documentDate === '2025-11-01')
     expect(recentRow?.bucket).toBe('0-30')
     expect(oldRow?.bucket).toBe('90+')

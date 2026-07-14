@@ -10,9 +10,7 @@ import type {
   CreditDebitNoteType,
 } from '#/features/returns/credit-debit-note-service.ts'
 
-export class InMemoryCreditDebitNoteRepository
-  implements CreditDebitNoteRepository
-{
+export class InMemoryCreditDebitNoteRepository implements CreditDebitNoteRepository {
   private readonly notes: Array<CreditDebitNoteRecord> = []
 
   async create(note: CreditDebitNoteRecord) {
@@ -47,9 +45,7 @@ function mapRowToCreditDebitNoteRecord(
   }
 }
 
-export class DrizzleCreditDebitNoteRepository
-  implements CreditDebitNoteRepository
-{
+export class DrizzleCreditDebitNoteRepository implements CreditDebitNoteRepository {
   constructor(private readonly database: AppDatabase) {}
 
   async create(note: CreditDebitNoteRecord) {

@@ -190,7 +190,9 @@ export async function commitImportOpeningBalances(
   }
 
   const accounts = await listLedgerAccountsByCompany(ledgers, input.companyId)
-  const accountByCode = new Map(accounts.map((account) => [account.code, account]))
+  const accountByCode = new Map(
+    accounts.map((account) => [account.code, account]),
+  )
   const lines: Array<{
     ledgerAccountId: string
     debit: string

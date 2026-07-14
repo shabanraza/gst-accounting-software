@@ -54,7 +54,9 @@ export class CannotDeleteDefaultGodownError extends Error {
 
 export class GodownInUseError extends Error {
   constructor(name: string) {
-    super(`Godown is referenced by stock movements and cannot be deleted: ${name}`)
+    super(
+      `Godown is referenced by stock movements and cannot be deleted: ${name}`,
+    )
     this.name = 'GodownInUseError'
   }
 }
@@ -80,10 +82,7 @@ export async function createGodown(
     throw new InvalidGodownError('Godown name is required')
   }
 
-  const existing = await repository.findByCompanyAndName(
-    input.companyId,
-    name,
-  )
+  const existing = await repository.findByCompanyAndName(input.companyId, name)
 
   if (existing) {
     throw new DuplicateGodownNameError(name)

@@ -60,28 +60,32 @@ export const createOcrRouter = (
   >,
 ) =>
   ({
-    list: companyProcedure.input(listOcrDraftsInputSchema).query(({ input }) => {
-      return listOcrDraftsByCompany(repository, input.companyId)
-    }),
+    list: companyProcedure
+      .input(listOcrDraftsInputSchema)
+      .query(({ input }) => {
+        return listOcrDraftsByCompany(repository, input.companyId)
+      }),
     createOcrDraft: capabilityProcedure('post_purchase')
       .input(createOcrDraftInputSchema)
-      .mutation(({ input }) =>
-        createOcrDraft(repository, attachments, input),
-      ),
+      .mutation(({ input }) => createOcrDraft(repository, attachments, input)),
     confirm: capabilityProcedure('post_purchase')
       .input(confirmOcrDraftInputSchema)
       .mutation(({ input, ctx }) =>
-        confirmOcrDraft(repository, { ...deps }, {
-          draftId: input.draftId,
-          companyId: input.companyId,
-          reviewedByUserId: ctx.userId,
-          companyStateCode: input.companyStateCode,
-          financialYearStart: input.financialYearStart,
-          purchaseAccountId: input.purchaseAccountId,
-          inputGstAccountId: input.inputGstAccountId,
-          payableAccountId: input.payableAccountId,
-          stockAccountId: input.stockAccountId,
-        }),
+        confirmOcrDraft(
+          repository,
+          { ...deps },
+          {
+            draftId: input.draftId,
+            companyId: input.companyId,
+            reviewedByUserId: ctx.userId,
+            companyStateCode: input.companyStateCode,
+            financialYearStart: input.financialYearStart,
+            purchaseAccountId: input.purchaseAccountId,
+            inputGstAccountId: input.inputGstAccountId,
+            payableAccountId: input.payableAccountId,
+            stockAccountId: input.stockAccountId,
+          },
+        ),
       ),
   }) satisfies TRPCRouterRecord
 

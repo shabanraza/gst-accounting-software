@@ -1,7 +1,16 @@
-import { eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm'
 
 import { getDb } from '#/db/client.ts'
 import * as schema from '#/db/schema.ts'
+import {
+  applyInMemoryListFilters,
+  documentSearchCondition,
+  keysetBeforeCursorCondition,
+  parseListCursor,
+  resolveListLimit
+  
+} from '#/lib/list-query.ts'
+import type {ListQueryOptions} from '#/lib/list-query.ts';
 
 import type { AppDatabase } from '#/db/client.ts'
 import type { TaxMode } from '#/features/accounting/voucher-math.ts'
@@ -33,8 +42,30 @@ export class InMemorySalesInvoiceRepository implements SalesInvoiceRepository {
     return invoice
   }
 
-  async listByCompanyId(companyId: string) {
-    return this.invoices.filter((invoice) => invoice.companyId === companyId)
+  async listByCompanyId(companyId: string, options?: ListQueryOptions) {
+    return applyInMemoryListFilters(
+      this.invoices.filter((invoice) => invoice.companyId === companyId),
+      options,
+      (invoice) => invoice.invoiceDate,
+      (invoice) => invoice.customerId,
+      (invoice) => `${invoice.invoiceNumber} ${invoice.partyNameSnapshot}`,
+      (invoice) => invoice.paymentStatus,
+    ).map((invoice) =>
+      options?.includeLines === false ? { ...invoice, lines: [] } : invoice,
+    )
+  }
+
+  async sumOutstandingByCustomer(companyId: string, customerId: string) {
+    const total = this.invoices
+      .filter(
+        (invoice) =>
+          invoice.companyId === companyId &&
+          invoice.customerId === customerId &&
+          invoice.status !== 'cancelled' &&
+          invoice.paymentMode === 'credit',
+      )
+      .reduce((sum, invoice) => sum + Number(invoice.outstandingAmount), 0)
+    return total.toFixed(2)
   }
 }
 
@@ -69,6 +100,14 @@ function mapRowsToSalesInvoiceRecord(
     lrNumber: invoice.lrNumber || '',
     challanRef: invoice.challanRef || '',
     status: invoice.status as SalesInvoiceStatus,
+    partyNameSnapshot: invoice.partyNameSnapshot || '',
+    partyGstinSnapshot: invoice.partyGstinSnapshot ?? null,
+    partyPanSnapshot: invoice.partyPanSnapshot || '',
+    partyBillingAddressSnapshot: invoice.partyBillingAddressSnapshot || '',
+    partyShippingAddressSnapshot: invoice.partyShippingAddressSnapshot || '',
+    partyStateCodeSnapshot: invoice.partyStateCodeSnapshot || '',
+    partyPhoneSnapshot: invoice.partyPhoneSnapshot || '',
+    partyEmailSnapshot: invoice.partyEmailSnapshot || '',
     taxableAmount: invoice.taxableAmount,
     totalGstAmount: invoice.totalGstAmount,
     totalAmount: invoice.totalAmount,
@@ -123,6 +162,14 @@ export class DrizzleSalesInvoiceRepository implements SalesInvoiceRepository {
         lrNumber: invoice.lrNumber,
         challanRef: invoice.challanRef,
         status: invoice.status,
+        partyNameSnapshot: invoice.partyNameSnapshot,
+        partyGstinSnapshot: invoice.partyGstinSnapshot,
+        partyPanSnapshot: invoice.partyPanSnapshot,
+        partyBillingAddressSnapshot: invoice.partyBillingAddressSnapshot,
+        partyShippingAddressSnapshot: invoice.partyShippingAddressSnapshot,
+        partyStateCodeSnapshot: invoice.partyStateCodeSnapshot,
+        partyPhoneSnapshot: invoice.partyPhoneSnapshot,
+        partyEmailSnapshot: invoice.partyEmailSnapshot,
         taxableAmount: invoice.taxableAmount,
         totalGstAmount: invoice.totalGstAmount,
         totalAmount: invoice.totalAmount,
@@ -189,14 +236,65 @@ export class DrizzleSalesInvoiceRepository implements SalesInvoiceRepository {
     return invoice
   }
 
-  async listByCompanyId(companyId: string) {
-    const invoices = await this.database
+  async listByCompanyId(companyId: string, options?: ListQueryOptions) {
+    const conditions = [eq(schema.salesInvoices.companyId, companyId)]
+    if (options?.partyId) {
+      conditions.push(eq(schema.salesInvoices.customerId, options.partyId))
+    }
+    if (options?.paymentStatus) {
+      conditions.push(
+        eq(schema.salesInvoices.paymentStatus, options.paymentStatus),
+      )
+    }
+    const searchCondition = documentSearchCondition(
+      options?.search,
+      schema.salesInvoices.invoiceNumber,
+      schema.salesInvoices.partyNameSnapshot,
+    )
+    if (searchCondition) {
+      conditions.push(searchCondition)
+    }
+    if (options?.startDate) {
+      conditions.push(gte(schema.salesInvoices.invoiceDate, options.startDate))
+    }
+    if (options?.endDate) {
+      conditions.push(lte(schema.salesInvoices.invoiceDate, options.endDate))
+    }
+
+    const cursor = parseListCursor(options?.cursor)
+    if (cursor) {
+      conditions.push(
+        keysetBeforeCursorCondition(
+          cursor,
+          schema.salesInvoices.invoiceDate,
+          schema.salesInvoices.id,
+        ),
+      )
+    }
+
+    const limit = resolveListLimit(options?.limit)
+    let query = this.database
       .select()
       .from(schema.salesInvoices)
-      .where(eq(schema.salesInvoices.companyId, companyId))
+      .where(and(...conditions))
+      .orderBy(
+        desc(schema.salesInvoices.invoiceDate),
+        desc(schema.salesInvoices.id),
+      )
+      .$dynamic()
+
+    if (limit != null) {
+      query = query.limit(limit)
+    }
+
+    const invoices = await query
 
     if (invoices.length === 0) {
       return []
+    }
+
+    if (options?.includeLines === false) {
+      return invoices.map((invoice) => mapRowsToSalesInvoiceRecord(invoice, []))
     }
 
     const invoiceIds = invoices.map((invoice) => invoice.id)
@@ -218,6 +316,25 @@ export class DrizzleSalesInvoiceRepository implements SalesInvoiceRepository {
         linesByInvoiceId.get(invoice.id) ?? [],
       ),
     )
+  }
+
+  async sumOutstandingByCustomer(companyId: string, customerId: string) {
+    const rows = await this.database
+      .select({
+        total: sql<string>`coalesce(sum(${schema.salesInvoices.outstandingAmount}::numeric), 0)`,
+      })
+      .from(schema.salesInvoices)
+      .where(
+        and(
+          eq(schema.salesInvoices.companyId, companyId),
+          eq(schema.salesInvoices.customerId, customerId),
+          sql`${schema.salesInvoices.status} <> 'cancelled'`,
+          eq(schema.salesInvoices.paymentMode, 'credit'),
+        ),
+      )
+
+    const total = rows[0]?.total ?? '0'
+    return Number(total).toFixed(2)
   }
 }
 

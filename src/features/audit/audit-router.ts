@@ -11,9 +11,7 @@ const listByCompanyInputSchema = z.object({
 
 export const createAuditRouter = (repository: AuditLogRepository) =>
   ({
-    list: publicProcedure
-      .input(listByCompanyInputSchema)
-      .query(({ input }) => {
-        return repository.listByCompanyId(input.companyId)
-      }),
+    list: publicProcedure.input(listByCompanyInputSchema).query(({ input }) => {
+      return repository.listByCompanyId(input.companyId)
+    }),
   }) satisfies TRPCRouterRecord

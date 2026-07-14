@@ -127,7 +127,10 @@ function CollapsibleNavGroup({
                     asChild
                     isActive={isAppNavPathActive(pathname, item.path)}
                   >
-                    <Link activeOptions={navLinkActiveOptions(item.path)} to={item.path}>
+                    <Link
+                      activeOptions={navLinkActiveOptions(item.path)}
+                      to={item.path}
+                    >
                       <ItemIcon />
                       <span>{item.label}</span>
                     </Link>
@@ -161,8 +164,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { isDark, toggle, mounted: themeMounted } = useTheme()
   const [paletteOpen, setPaletteOpen] = React.useState(false)
   const displayUser = session?.user ?? lastSessionRef.current?.user
-  const userName =
-    displayUser?.name ?? (isSessionPending ? '…' : 'Guest')
+  const userName = displayUser?.name ?? (isSessionPending ? '…' : 'Guest')
   const userEmail =
     displayUser?.email ?? (isSessionPending ? '…' : 'Sign in to sync')
   const userInitials = displayUser?.name

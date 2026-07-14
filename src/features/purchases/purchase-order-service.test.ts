@@ -1,8 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import {
-  createPurchaseOrder,
-} from '#/features/purchases/purchase-order-service.ts'
+import { createPurchaseOrder } from '#/features/purchases/purchase-order-service.ts'
 import type {
   PurchaseOrderRecord,
   PurchaseOrderRepository,

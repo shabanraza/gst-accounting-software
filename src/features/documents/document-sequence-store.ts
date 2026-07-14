@@ -9,9 +9,7 @@ import type {
   DocumentSequenceRepository,
 } from '#/features/documents/document-sequence-service.ts'
 
-export class InMemoryDocumentSequenceRepository
-  implements DocumentSequenceRepository
-{
+export class InMemoryDocumentSequenceRepository implements DocumentSequenceRepository {
   private sequences: Array<DocumentSequenceRecord> = []
 
   async findForUpdate(input: {
@@ -56,9 +54,7 @@ function mapRowToRecord(row: SequenceRow): DocumentSequenceRecord {
   }
 }
 
-export class DrizzleDocumentSequenceRepository
-  implements DocumentSequenceRepository
-{
+export class DrizzleDocumentSequenceRepository implements DocumentSequenceRepository {
   constructor(private readonly database: AppDatabase) {}
 
   async findForUpdate(input: {

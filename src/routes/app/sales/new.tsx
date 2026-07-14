@@ -15,7 +15,5 @@ export const Route = createFileRoute('/app/sales/new')({
 function NewSalesVoucherRoute() {
   const { fromDocument } = Route.useSearch()
 
-  return (
-    <VoucherEntryPage mode="sales" sourceDocumentId={fromDocument} />
-  )
+  return <VoucherEntryPage mode="sales" sourceDocumentId={fromDocument} />
 }

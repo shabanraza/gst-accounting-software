@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 
 import {
   amountInWords,
+  formatIndianDate,
   isInterStateSupply,
   splitLineGst,
   stateLabel,
@@ -9,7 +10,9 @@ import {
 
 describe('amountInWords', () => {
   test('formats rupees and paise in the Indian system', () => {
-    expect(amountInWords('2520.00')).toBe('Two Thousand Five Hundred Twenty Rupees Only')
+    expect(amountInWords('2520.00')).toBe(
+      'Two Thousand Five Hundred Twenty Rupees Only',
+    )
     expect(amountInWords('105.50')).toBe(
       'One Hundred Five Rupees and Fifty Paise Only',
     )
@@ -49,5 +52,17 @@ describe('isInterStateSupply', () => {
 describe('stateLabel', () => {
   test('renders code and name', () => {
     expect(stateLabel('27')).toBe('27 - Maharashtra')
+  })
+})
+
+describe('formatIndianDate', () => {
+  test('formats ISO dates as DD-MM-YYYY', () => {
+    expect(formatIndianDate('2026-07-14')).toBe('14-07-2026')
+    expect(formatIndianDate('2026-07-14T10:30:00.000Z')).toBe('14-07-2026')
+  })
+
+  test('returns empty string for missing values', () => {
+    expect(formatIndianDate(null)).toBe('')
+    expect(formatIndianDate('')).toBe('')
   })
 })

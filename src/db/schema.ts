@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   integer,
   pgTable,
   serial,
@@ -25,18 +26,22 @@ export const user = pgTable('user', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
 
-export const session = pgTable('session', {
-  id: text('id').primaryKey(),
-  expiresAt: timestamp('expires_at').notNull(),
-  token: text('token').notNull().unique(),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  ipAddress: text('ip_address'),
-  userAgent: text('user_agent'),
-  userId: text('user_id')
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-})
+export const session = pgTable(
+  'session',
+  {
+    id: text('id').primaryKey(),
+    expiresAt: timestamp('expires_at').notNull(),
+    token: text('token').notNull().unique(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+  },
+  (table) => [index('session_user_id_idx').on(table.userId)],
+)
 
 export const account = pgTable('account', {
   id: text('id').primaryKey(),
@@ -122,33 +127,49 @@ export const ledgerAccounts = pgTable(
   ],
 )
 
-export const ledgerEntries = pgTable('ledger_entries', {
-  id: uuid().defaultRandom().primaryKey(),
-  companyId: uuid('company_id')
-    .notNull()
-    .references(() => companies.id),
-  entryDate: text('entry_date').notNull(),
-  narration: text('narration').notNull(),
-  voucherType: text('voucher_type').notNull(),
-  totalDebit: text('total_debit').notNull(),
-  totalCredit: text('total_credit').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+export const ledgerEntries = pgTable(
+  'ledger_entries',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id),
+    entryDate: text('entry_date').notNull(),
+    narration: text('narration').notNull(),
+    voucherType: text('voucher_type').notNull(),
+    totalDebit: text('total_debit').notNull(),
+    totalCredit: text('total_credit').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('ledger_entries_company_date_idx').on(
+      table.companyId,
+      table.entryDate,
+    ),
+  ],
+)
 
-export const ledgerLines = pgTable('ledger_lines', {
-  id: uuid().defaultRandom().primaryKey(),
-  companyId: uuid('company_id')
-    .notNull()
-    .references(() => companies.id),
-  entryId: uuid('entry_id')
-    .notNull()
-    .references(() => ledgerEntries.id),
-  ledgerAccountId: uuid('ledger_account_id')
-    .notNull()
-    .references(() => ledgerAccounts.id),
-  debit: text('debit').notNull(),
-  credit: text('credit').notNull(),
-})
+export const ledgerLines = pgTable(
+  'ledger_lines',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id),
+    entryId: uuid('entry_id')
+      .notNull()
+      .references(() => ledgerEntries.id),
+    ledgerAccountId: uuid('ledger_account_id')
+      .notNull()
+      .references(() => ledgerAccounts.id),
+    debit: text('debit').notNull(),
+    credit: text('credit').notNull(),
+  },
+  (table) => [
+    index('ledger_lines_company_entry_idx').on(table.companyId, table.entryId),
+    index('ledger_lines_account_idx').on(table.ledgerAccountId),
+  ],
+)
 
 export const parties = pgTable(
   'parties',
@@ -264,24 +285,34 @@ export const priceListItems = pgTable(
   ],
 )
 
-export const stockMovements = pgTable('stock_movements', {
-  id: uuid().defaultRandom().primaryKey(),
-  companyId: uuid('company_id')
-    .notNull()
-    .references(() => companies.id),
-  itemId: uuid('item_id')
-    .notNull()
-    .references(() => items.id),
-  godownName: text('godown_name'),
-  movementType: text('movement_type').notNull(),
-  direction: text('direction').notNull(),
-  quantity: text('quantity').notNull(),
-  unit: text('unit').notNull(),
-  referenceType: text('reference_type').notNull(),
-  referenceId: text('reference_id').notNull(),
-  occurredOn: text('occurred_on').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+export const stockMovements = pgTable(
+  'stock_movements',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id),
+    itemId: uuid('item_id')
+      .notNull()
+      .references(() => items.id),
+    godownName: text('godown_name'),
+    movementType: text('movement_type').notNull(),
+    direction: text('direction').notNull(),
+    quantity: text('quantity').notNull(),
+    unit: text('unit').notNull(),
+    referenceType: text('reference_type').notNull(),
+    referenceId: text('reference_id').notNull(),
+    occurredOn: text('occurred_on').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('stock_movements_company_item_date_idx').on(
+      table.companyId,
+      table.itemId,
+      table.occurredOn,
+    ),
+  ],
+)
 
 export const stockBalances = pgTable(
   'stock_balances',
@@ -325,6 +356,20 @@ export const purchaseBills = pgTable(
     challanRef: text('challan_ref').notNull().default(''),
     placeOfSupply: text('place_of_supply').notNull().default(''),
     reverseCharge: boolean('reverse_charge').notNull().default(false),
+    partyNameSnapshot: text('party_name_snapshot').notNull().default(''),
+    partyGstinSnapshot: text('party_gstin_snapshot'),
+    partyPanSnapshot: text('party_pan_snapshot').notNull().default(''),
+    partyBillingAddressSnapshot: text('party_billing_address_snapshot')
+      .notNull()
+      .default(''),
+    partyShippingAddressSnapshot: text('party_shipping_address_snapshot')
+      .notNull()
+      .default(''),
+    partyStateCodeSnapshot: text('party_state_code_snapshot')
+      .notNull()
+      .default(''),
+    partyPhoneSnapshot: text('party_phone_snapshot').notNull().default(''),
+    partyEmailSnapshot: text('party_email_snapshot').notNull().default(''),
     paymentStatus: text('payment_status').notNull().default('Pending'),
     taxMode: text('tax_mode').notNull().default('exclusive'),
     narration: text('narration').notNull().default(''),
@@ -349,29 +394,41 @@ export const purchaseBills = pgTable(
       table.supplierBillNumber,
       table.financialYearStart,
     ),
+    index('purchase_bills_company_date_idx').on(
+      table.companyId,
+      table.billDate,
+    ),
+    index('purchase_bills_company_supplier_idx').on(
+      table.companyId,
+      table.supplierId,
+    ),
   ],
 )
 
-export const purchaseBillLines = pgTable('purchase_bill_lines', {
-  id: uuid().defaultRandom().primaryKey(),
-  purchaseBillId: uuid('purchase_bill_id')
-    .notNull()
-    .references(() => purchaseBills.id),
-  itemId: uuid('item_id')
-    .notNull()
-    .references(() => items.id),
-  description: text('description').notNull(),
-  quantity: text('quantity').notNull(),
-  unit: text('unit').notNull(),
-  rate: text('rate').notNull(),
-  gstRate: text('gst_rate').notNull(),
-  discountPercent: text('discount_percent').notNull().default('0.00'),
-  discountAmount: text('discount_amount').notNull().default('0.00'),
-  godownName: text('godown_name'),
-  taxableAmount: text('taxable_amount').notNull(),
-  gstAmount: text('gst_amount').notNull(),
-  lineTotal: text('line_total').notNull(),
-})
+export const purchaseBillLines = pgTable(
+  'purchase_bill_lines',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    purchaseBillId: uuid('purchase_bill_id')
+      .notNull()
+      .references(() => purchaseBills.id),
+    itemId: uuid('item_id')
+      .notNull()
+      .references(() => items.id),
+    description: text('description').notNull(),
+    quantity: text('quantity').notNull(),
+    unit: text('unit').notNull(),
+    rate: text('rate').notNull(),
+    gstRate: text('gst_rate').notNull(),
+    discountPercent: text('discount_percent').notNull().default('0.00'),
+    discountAmount: text('discount_amount').notNull().default('0.00'),
+    godownName: text('godown_name'),
+    taxableAmount: text('taxable_amount').notNull(),
+    gstAmount: text('gst_amount').notNull(),
+    lineTotal: text('line_total').notNull(),
+  },
+  (table) => [index('purchase_bill_lines_bill_idx').on(table.purchaseBillId)],
+)
 
 export const salesInvoices = pgTable(
   'sales_invoices',
@@ -393,6 +450,20 @@ export const salesInvoices = pgTable(
     challanRef: text('challan_ref').notNull().default(''),
     placeOfSupply: text('place_of_supply').notNull().default(''),
     reverseCharge: boolean('reverse_charge').notNull().default(false),
+    partyNameSnapshot: text('party_name_snapshot').notNull().default(''),
+    partyGstinSnapshot: text('party_gstin_snapshot'),
+    partyPanSnapshot: text('party_pan_snapshot').notNull().default(''),
+    partyBillingAddressSnapshot: text('party_billing_address_snapshot')
+      .notNull()
+      .default(''),
+    partyShippingAddressSnapshot: text('party_shipping_address_snapshot')
+      .notNull()
+      .default(''),
+    partyStateCodeSnapshot: text('party_state_code_snapshot')
+      .notNull()
+      .default(''),
+    partyPhoneSnapshot: text('party_phone_snapshot').notNull().default(''),
+    partyEmailSnapshot: text('party_email_snapshot').notNull().default(''),
     paymentMode: text('payment_mode').notNull(),
     paymentStatus: text('payment_status').notNull(),
     taxMode: text('tax_mode').notNull().default('exclusive'),
@@ -417,51 +488,78 @@ export const salesInvoices = pgTable(
       table.companyId,
       table.invoiceNumber,
     ),
+    index('sales_invoices_company_date_idx').on(
+      table.companyId,
+      table.invoiceDate,
+    ),
+    index('sales_invoices_company_customer_idx').on(
+      table.companyId,
+      table.customerId,
+    ),
   ],
 )
 
-export const salesInvoiceLines = pgTable('sales_invoice_lines', {
-  id: uuid().defaultRandom().primaryKey(),
-  salesInvoiceId: uuid('sales_invoice_id')
-    .notNull()
-    .references(() => salesInvoices.id),
-  itemId: uuid('item_id')
-    .notNull()
-    .references(() => items.id),
-  description: text('description').notNull(),
-  quantity: text('quantity').notNull(),
-  unit: text('unit').notNull(),
-  rate: text('rate').notNull(),
-  gstRate: text('gst_rate').notNull(),
-  discountPercent: text('discount_percent').notNull().default('0.00'),
-  discountAmount: text('discount_amount').notNull().default('0.00'),
-  godownName: text('godown_name'),
-  taxableAmount: text('taxable_amount').notNull(),
-  gstAmount: text('gst_amount').notNull(),
-  lineTotal: text('line_total').notNull(),
-})
+export const salesInvoiceLines = pgTable(
+  'sales_invoice_lines',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    salesInvoiceId: uuid('sales_invoice_id')
+      .notNull()
+      .references(() => salesInvoices.id),
+    itemId: uuid('item_id')
+      .notNull()
+      .references(() => items.id),
+    description: text('description').notNull(),
+    quantity: text('quantity').notNull(),
+    unit: text('unit').notNull(),
+    rate: text('rate').notNull(),
+    gstRate: text('gst_rate').notNull(),
+    discountPercent: text('discount_percent').notNull().default('0.00'),
+    discountAmount: text('discount_amount').notNull().default('0.00'),
+    godownName: text('godown_name'),
+    taxableAmount: text('taxable_amount').notNull(),
+    gstAmount: text('gst_amount').notNull(),
+    lineTotal: text('line_total').notNull(),
+  },
+  (table) => [
+    index('sales_invoice_lines_invoice_idx').on(table.salesInvoiceId),
+  ],
+)
 
-export const creditDebitNotes = pgTable('credit_debit_notes', {
-  id: uuid().defaultRandom().primaryKey(),
-  companyId: uuid('company_id')
-    .notNull()
-    .references(() => companies.id),
-  noteType: text('note_type').notNull(),
-  noteNumber: text('note_number').notNull(),
-  noteDate: text('note_date').notNull(),
-  partyId: uuid('party_id')
-    .notNull()
-    .references(() => parties.id),
-  referenceDocumentId: text('reference_document_id'),
-  taxableAmount: text('taxable_amount').notNull(),
-  totalGstAmount: text('total_gst_amount').notNull(),
-  totalAmount: text('total_amount').notNull(),
-  ledgerEntryId: uuid('ledger_entry_id')
-    .notNull()
-    .references(() => ledgerEntries.id),
-  narration: text('narration').notNull().default(''),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+export const creditDebitNotes = pgTable(
+  'credit_debit_notes',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id),
+    noteType: text('note_type').notNull(),
+    noteNumber: text('note_number').notNull(),
+    noteDate: text('note_date').notNull(),
+    partyId: uuid('party_id')
+      .notNull()
+      .references(() => parties.id),
+    referenceDocumentId: text('reference_document_id'),
+    taxableAmount: text('taxable_amount').notNull(),
+    totalGstAmount: text('total_gst_amount').notNull(),
+    totalAmount: text('total_amount').notNull(),
+    ledgerEntryId: uuid('ledger_entry_id')
+      .notNull()
+      .references(() => ledgerEntries.id),
+    narration: text('narration').notNull().default(''),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('credit_debit_notes_company_date_idx').on(
+      table.companyId,
+      table.noteDate,
+    ),
+    index('credit_debit_notes_company_party_idx').on(
+      table.companyId,
+      table.partyId,
+    ),
+  ],
+)
 
 export const financialYears = pgTable(
   'financial_years',
@@ -499,6 +597,7 @@ export const companyMemberships = pgTable(
       table.companyId,
       table.userId,
     ),
+    index('company_memberships_user_idx').on(table.userId),
   ],
 )
 
@@ -526,18 +625,27 @@ export const companyInvitations = pgTable(
   ],
 )
 
-export const auditEvents = pgTable('audit_events', {
-  id: uuid().defaultRandom().primaryKey(),
-  companyId: uuid('company_id')
-    .notNull()
-    .references(() => companies.id),
-  actorUserId: text('actor_user_id').notNull(),
-  action: text('action').notNull(),
-  entityType: text('entity_type').notNull(),
-  entityId: text('entity_id').notNull(),
-  metadata: text('metadata').notNull().default('{}'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+export const auditEvents = pgTable(
+  'audit_events',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id),
+    actorUserId: text('actor_user_id').notNull(),
+    action: text('action').notNull(),
+    entityType: text('entity_type').notNull(),
+    entityId: text('entity_id').notNull(),
+    metadata: text('metadata').notNull().default('{}'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('audit_events_company_created_idx').on(
+      table.companyId,
+      table.createdAt,
+    ),
+  ],
+)
 
 export const documentSequences = pgTable(
   'document_sequences',
@@ -578,22 +686,28 @@ export const documentAttachments = pgTable('document_attachments', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
-export const ocrDrafts = pgTable('ocr_drafts', {
-  id: uuid().defaultRandom().primaryKey(),
-  companyId: uuid('company_id')
-    .notNull()
-    .references(() => companies.id),
-  attachmentId: uuid('attachment_id')
-    .notNull()
-    .references(() => documentAttachments.id),
-  status: text('status').notNull(),
-  fieldsJson: text('fields_json').notNull(),
-  lowConfidenceFieldsJson: text('low_confidence_fields_json').notNull(),
-  postedPurchaseBillId: uuid('posted_purchase_bill_id'),
-  reviewedByUserId: text('reviewed_by_user_id'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-})
+export const ocrDrafts = pgTable(
+  'ocr_drafts',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id),
+    attachmentId: uuid('attachment_id')
+      .notNull()
+      .references(() => documentAttachments.id),
+    status: text('status').notNull(),
+    fieldsJson: text('fields_json').notNull(),
+    lowConfidenceFieldsJson: text('low_confidence_fields_json').notNull(),
+    postedPurchaseBillId: uuid('posted_purchase_bill_id'),
+    reviewedByUserId: text('reviewed_by_user_id'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('ocr_drafts_company_status_idx').on(table.companyId, table.status),
+  ],
+)
 
 export const dashboardDailySummaries = pgTable(
   'dashboard_daily_summaries',
@@ -619,25 +733,31 @@ export const dashboardDailySummaries = pgTable(
   ],
 )
 
-export const expenses = pgTable('expenses', {
-  id: uuid().defaultRandom().primaryKey(),
-  companyId: uuid('company_id')
-    .notNull()
-    .references(() => companies.id),
-  expenseDate: text('expense_date').notNull(),
-  narration: text('narration').notNull(),
-  amount: text('amount').notNull(),
-  expenseAccountId: uuid('expense_account_id')
-    .notNull()
-    .references(() => ledgerAccounts.id),
-  paymentAccountId: uuid('payment_account_id')
-    .notNull()
-    .references(() => ledgerAccounts.id),
-  ledgerEntryId: uuid('ledger_entry_id')
-    .notNull()
-    .references(() => ledgerEntries.id),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+export const expenses = pgTable(
+  'expenses',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id),
+    expenseDate: text('expense_date').notNull(),
+    narration: text('narration').notNull(),
+    amount: text('amount').notNull(),
+    expenseAccountId: uuid('expense_account_id')
+      .notNull()
+      .references(() => ledgerAccounts.id),
+    paymentAccountId: uuid('payment_account_id')
+      .notNull()
+      .references(() => ledgerAccounts.id),
+    ledgerEntryId: uuid('ledger_entry_id')
+      .notNull()
+      .references(() => ledgerEntries.id),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('expenses_company_date_idx').on(table.companyId, table.expenseDate),
+  ],
+)
 
 export const salesDocuments = pgTable(
   'sales_documents',
@@ -666,19 +786,23 @@ export const salesDocuments = pgTable(
   ],
 )
 
-export const salesDocumentLines = pgTable('sales_document_lines', {
-  id: uuid().defaultRandom().primaryKey(),
-  salesDocumentId: uuid('sales_document_id')
-    .notNull()
-    .references(() => salesDocuments.id),
-  itemId: uuid('item_id')
-    .notNull()
-    .references(() => items.id),
-  description: text('description').notNull(),
-  quantity: text('quantity').notNull(),
-  unit: text('unit').notNull(),
-  rate: text('rate').notNull(),
-})
+export const salesDocumentLines = pgTable(
+  'sales_document_lines',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    salesDocumentId: uuid('sales_document_id')
+      .notNull()
+      .references(() => salesDocuments.id),
+    itemId: uuid('item_id')
+      .notNull()
+      .references(() => items.id),
+    description: text('description').notNull(),
+    quantity: text('quantity').notNull(),
+    unit: text('unit').notNull(),
+    rate: text('rate').notNull(),
+  },
+  (table) => [index('sales_document_lines_doc_idx').on(table.salesDocumentId)],
+)
 
 export const purchaseOrders = pgTable(
   'purchase_orders',
@@ -705,20 +829,26 @@ export const purchaseOrders = pgTable(
   ],
 )
 
-export const purchaseOrderLines = pgTable('purchase_order_lines', {
-  id: uuid().defaultRandom().primaryKey(),
-  purchaseOrderId: uuid('purchase_order_id')
-    .notNull()
-    .references(() => purchaseOrders.id),
-  itemId: uuid('item_id')
-    .notNull()
-    .references(() => items.id),
-  description: text('description').notNull(),
-  quantity: text('quantity').notNull(),
-  unit: text('unit').notNull(),
-  rate: text('rate').notNull(),
-  gstRate: text('gst_rate').notNull(),
-})
+export const purchaseOrderLines = pgTable(
+  'purchase_order_lines',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    purchaseOrderId: uuid('purchase_order_id')
+      .notNull()
+      .references(() => purchaseOrders.id),
+    itemId: uuid('item_id')
+      .notNull()
+      .references(() => items.id),
+    description: text('description').notNull(),
+    quantity: text('quantity').notNull(),
+    unit: text('unit').notNull(),
+    rate: text('rate').notNull(),
+    gstRate: text('gst_rate').notNull(),
+  },
+  (table) => [
+    index('purchase_order_lines_order_idx').on(table.purchaseOrderId),
+  ],
+)
 
 export const purchaseGrns = pgTable(
   'purchase_grns',
@@ -750,23 +880,27 @@ export const purchaseGrns = pgTable(
   ],
 )
 
-export const purchaseGrnLines = pgTable('purchase_grn_lines', {
-  id: uuid().defaultRandom().primaryKey(),
-  purchaseGrnId: uuid('purchase_grn_id')
-    .notNull()
-    .references(() => purchaseGrns.id),
-  purchaseOrderLineId: uuid('purchase_order_line_id').references(
-    () => purchaseOrderLines.id,
-  ),
-  itemId: uuid('item_id')
-    .notNull()
-    .references(() => items.id),
-  description: text('description').notNull(),
-  quantity: text('quantity').notNull(),
-  unit: text('unit').notNull(),
-  rate: text('rate').notNull(),
-  gstRate: text('gst_rate').notNull(),
-})
+export const purchaseGrnLines = pgTable(
+  'purchase_grn_lines',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    purchaseGrnId: uuid('purchase_grn_id')
+      .notNull()
+      .references(() => purchaseGrns.id),
+    purchaseOrderLineId: uuid('purchase_order_line_id').references(
+      () => purchaseOrderLines.id,
+    ),
+    itemId: uuid('item_id')
+      .notNull()
+      .references(() => items.id),
+    description: text('description').notNull(),
+    quantity: text('quantity').notNull(),
+    unit: text('unit').notNull(),
+    rate: text('rate').notNull(),
+    gstRate: text('gst_rate').notNull(),
+  },
+  (table) => [index('purchase_grn_lines_grn_idx').on(table.purchaseGrnId)],
+)
 
 export const eInvoices = pgTable(
   'e_invoices',
@@ -786,6 +920,7 @@ export const eInvoices = pgTable(
   },
   (table) => [
     uniqueIndex('e_invoices_sales_invoice_idx').on(table.salesInvoiceId),
+    index('e_invoices_company_idx').on(table.companyId),
   ],
 )
 
@@ -807,5 +942,6 @@ export const eWayBills = pgTable(
   },
   (table) => [
     uniqueIndex('e_way_bills_sales_invoice_idx').on(table.salesInvoiceId),
+    index('e_way_bills_company_idx').on(table.companyId),
   ],
 )

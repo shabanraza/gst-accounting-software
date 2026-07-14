@@ -11,9 +11,7 @@ const getSummaryInputSchema = z.object({
   summaryDate: z.string().min(1),
 })
 
-export const createDashboardRouter = (
-  repository: DashboardSummaryRepository,
-) =>
+export const createDashboardRouter = (repository: DashboardSummaryRepository) =>
   ({
     getSummary: publicProcedure
       .input(getSummaryInputSchema)

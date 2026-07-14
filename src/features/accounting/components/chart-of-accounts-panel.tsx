@@ -33,6 +33,8 @@ import type {
   LedgerAccountType,
 } from '#/features/accounting/chart-of-accounts.ts'
 
+import { accountTypeBadgeIntent } from '#/lib/badge-intent.ts'
+
 type AccountTypeFilter = 'all' | LedgerAccountType
 
 const accountTypeTabs: Array<{ value: AccountTypeFilter; label: string }> = [
@@ -43,26 +45,6 @@ const accountTypeTabs: Array<{ value: AccountTypeFilter; label: string }> = [
   { value: 'income', label: 'Income' },
   { value: 'expense', label: 'Expense' },
 ]
-
-function getAccountTypeBadgeVariant(accountType: LedgerAccountType) {
-  if (accountType === 'asset') {
-    return 'info' as const
-  }
-
-  if (accountType === 'liability') {
-    return 'warning' as const
-  }
-
-  if (accountType === 'income') {
-    return 'success' as const
-  }
-
-  if (accountType === 'expense') {
-    return 'destructive' as const
-  }
-
-  return 'secondary' as const
-}
 
 function formatAccountType(accountType: LedgerAccountType) {
   return accountType.charAt(0).toUpperCase() + accountType.slice(1)
@@ -185,7 +167,8 @@ export function ChartOfAccountsPanel() {
               <div className="flex flex-col gap-1">
                 <CardTitle>Ledgers</CardTitle>
                 <CardDescription>
-                  {accounts.length} accounts · {company?.businessType ?? 'company'}
+                  {accounts.length} accounts ·{' '}
+                  {company?.businessType ?? 'company'}
                 </CardDescription>
               </div>
               <div className="relative w-full max-w-xs">
@@ -208,7 +191,7 @@ export function ChartOfAccountsPanel() {
                 {accountTypeTabs.map((tab) => (
                   <TabsTrigger key={tab.value} value={tab.value}>
                     {tab.label}
-                    <Badge className="ml-1.5" variant="outline">
+                    <Badge className="ml-1.5" variant="neutral">
                       {typeCounts[tab.value]}
                     </Badge>
                   </TabsTrigger>
@@ -238,16 +221,14 @@ export function ChartOfAccountsPanel() {
                       </TableCell>
                       <TableCell>
                         <Badge
-                          variant={getAccountTypeBadgeVariant(
-                            account.accountType,
-                          )}
+                          variant={accountTypeBadgeIntent(account.accountType)}
                         >
                           {formatAccountType(account.accountType)}
                         </Badge>
                       </TableCell>
                       <TableCell className="pr-6">
                         {account.isSystem ? (
-                          <Badge variant="secondary">System</Badge>
+                          <Badge variant="neutral">System</Badge>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}

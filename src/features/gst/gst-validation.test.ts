@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'vitest'
 
-import { isValidGstin, isValidHsnCode, stateCodeFromGstin } from '#/features/gst/gst-validation.ts'
+import {
+  isValidGstin,
+  isValidHsnCode,
+  stateCodeFromGstin,
+} from '#/features/gst/gst-validation.ts'
 
 describe('isValidGstin', () => {
   test('accepts a well-formed GSTIN', () => {

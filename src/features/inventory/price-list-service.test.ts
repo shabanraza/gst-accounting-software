@@ -26,10 +26,16 @@ describe('createPriceList', () => {
   test('rejects duplicate price list names within a company', async () => {
     const repository = new InMemoryPriceListRepository()
 
-    await createPriceList(repository, { companyId: 'company-1', name: 'Wholesale' })
+    await createPriceList(repository, {
+      companyId: 'company-1',
+      name: 'Wholesale',
+    })
 
     await expect(
-      createPriceList(repository, { companyId: 'company-1', name: 'Wholesale' }),
+      createPriceList(repository, {
+        companyId: 'company-1',
+        name: 'Wholesale',
+      }),
     ).rejects.toBeInstanceOf(DuplicatePriceListNameError)
   })
 })

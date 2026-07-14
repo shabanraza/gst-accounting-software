@@ -30,12 +30,7 @@ import { useTRPC } from '#/integrations/trpc/react.ts'
 export function OcrReviewPanel() {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
-  const {
-    companyId,
-    company,
-    ledgerBySystemKey,
-    isReady,
-  } = useWorkspace()
+  const { companyId, company, ledgerBySystemKey, isReady } = useWorkspace()
 
   const draftsQuery = useQuery({
     ...trpc.ocr.list.queryOptions({

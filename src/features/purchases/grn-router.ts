@@ -54,14 +54,16 @@ export const createGrnRouter = (
     getById: publicProcedure.input(byIdInputSchema).query(({ input }) => {
       return getGrnById(grnRepository, input.companyId, input.grnId)
     }),
-    buildBillDraft: publicProcedure.input(byIdInputSchema).query(({ input }) => {
-      return buildPurchaseBillDraftFromGrn(
-        grnRepository,
-        itemRepository,
-        input.companyId,
-        input.grnId,
-      )
-    }),
+    buildBillDraft: publicProcedure
+      .input(byIdInputSchema)
+      .query(({ input }) => {
+        return buildPurchaseBillDraftFromGrn(
+          grnRepository,
+          itemRepository,
+          input.companyId,
+          input.grnId,
+        )
+      }),
     receiveFromPurchaseOrder: capabilityProcedure('post_purchase')
       .input(receiveFromPoInputSchema)
       .mutation(({ input }) => {

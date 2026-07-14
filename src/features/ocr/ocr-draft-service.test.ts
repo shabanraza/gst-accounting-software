@@ -3,8 +3,7 @@ import { describe, expect, test } from 'vitest'
 import { setupDefaultChartOfAccounts } from '#/features/accounting/chart-of-accounts.ts'
 import { InMemoryLedgerAccountRepository } from '#/features/accounting/ledger-account-store.ts'
 import { InMemoryLedgerPostingRepository } from '#/features/accounting/ledger-posting-store.ts'
-import { InMemoryItemRepository } from '#/features/inventory/inventory-store.ts'
-import { InMemoryStockStore } from '#/features/inventory/inventory-store.ts'
+import { InMemoryItemRepository, InMemoryStockStore  } from '#/features/inventory/inventory-store.ts'
 import { InMemoryPartyRepository } from '#/features/parties/party-store.ts'
 import {
   confirmOcrDraft,
@@ -18,6 +17,8 @@ import type {
   PurchaseBillRecord,
   PurchaseBillRepository,
 } from '#/features/purchases/purchase-bill-service.ts'
+
+import type { DocumentAttachmentRepository, DocumentAttachmentRecord  } from '#/features/documents/document-attachment-service.ts'
 
 class InMemoryOcrDraftRepository implements OcrDraftRepository {
   private drafts: Array<OcrDraftRecord> = []
@@ -81,9 +82,6 @@ class InMemoryPurchaseBillRepository implements PurchaseBillRepository {
     return this.bills.filter((bill) => bill.companyId === companyId)
   }
 }
-
-import type { DocumentAttachmentRepository } from '#/features/documents/document-attachment-service.ts'
-import type { DocumentAttachmentRecord } from '#/features/documents/document-attachment-service.ts'
 
 class InMemoryAttachmentRepository implements DocumentAttachmentRepository {
   async create(attachment: DocumentAttachmentRecord) {

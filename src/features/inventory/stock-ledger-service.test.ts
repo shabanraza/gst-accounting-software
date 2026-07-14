@@ -1,7 +1,13 @@
 import { describe, expect, test } from 'vitest'
 
-import { buildStockLedger, buildStockSummary } from '#/features/inventory/stock-ledger-service.ts'
-import { InMemoryItemRepository, InMemoryStockStore } from '#/features/inventory/inventory-store.ts'
+import {
+  buildStockLedger,
+  buildStockSummary,
+} from '#/features/inventory/stock-ledger-service.ts'
+import {
+  InMemoryItemRepository,
+  InMemoryStockStore,
+} from '#/features/inventory/inventory-store.ts'
 
 describe('buildStockLedger', () => {
   test('computes running balance in chronological order', async () => {
@@ -35,7 +41,11 @@ describe('buildStockLedger', () => {
       createdAt: new Date('2026-01-05T00:00:00Z'),
     })
 
-    const report = await buildStockLedger({ movements: stock }, 'company-1', 'item-1')
+    const report = await buildStockLedger(
+      { movements: stock },
+      'company-1',
+      'item-1',
+    )
 
     expect(report.rows).toHaveLength(2)
     expect(report.rows[0]?.runningBalance).toBe('10')
@@ -68,7 +78,10 @@ describe('buildStockSummary', () => {
     })
     await stock.setBalance('company-1', 'item-1', '25')
 
-    const summary = await buildStockSummary({ balances: stock, items }, 'company-1')
+    const summary = await buildStockSummary(
+      { balances: stock, items },
+      'company-1',
+    )
 
     expect(summary).toHaveLength(1)
     expect(summary[0]?.itemName).toBe('Cotton Fabric')

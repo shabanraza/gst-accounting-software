@@ -1,6 +1,4 @@
-import {
-  assignCompanyMembership,
-} from '#/features/companies/membership-service.ts'
+import { assignCompanyMembership } from '#/features/companies/membership-service.ts'
 
 import type {
   CompanyRole,
@@ -59,7 +57,10 @@ export async function createInvitation(
   const email = normalizeEmail(input.email)
   const now = input.now ?? new Date()
 
-  const existing = await repository.findByCompanyAndEmail(input.companyId, email)
+  const existing = await repository.findByCompanyAndEmail(
+    input.companyId,
+    email,
+  )
   if (existing && existing.status === 'pending') {
     const refreshed: InvitationRecord = {
       ...existing,

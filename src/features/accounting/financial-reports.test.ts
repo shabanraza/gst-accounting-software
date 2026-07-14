@@ -9,7 +9,10 @@ import {
 } from '#/features/accounting/financial-reports.ts'
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
 
-async function seedAccounts(ledgers: InMemoryLedgerAccountRepository, companyId: string) {
+async function seedAccounts(
+  ledgers: InMemoryLedgerAccountRepository,
+  companyId: string,
+) {
   const createdAt = new Date()
   const [cash, sales, cogs, stock] = await ledgers.createMany([
     {

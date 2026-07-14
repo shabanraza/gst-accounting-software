@@ -44,8 +44,14 @@ export async function generateEInvoice(
 
   const now = new Date()
   const seed = `${input.companyId}:${input.salesInvoiceId}:${input.totalAmount}`
-  const irn = `${pseudoHash(seed)}${pseudoHash(seed + '1')}${pseudoHash(seed + '2')}${pseudoHash(seed + '3')}`.slice(0, 64)
-  const ackNumber = pseudoHash(seed + 'ack').padStart(12, '0').slice(0, 12)
+  const irn =
+    `${pseudoHash(seed)}${pseudoHash(seed + '1')}${pseudoHash(seed + '2')}${pseudoHash(seed + '3')}`.slice(
+      0,
+      64,
+    )
+  const ackNumber = pseudoHash(seed + 'ack')
+    .padStart(12, '0')
+    .slice(0, 12)
 
   return repository.create({
     id: crypto.randomUUID(),
