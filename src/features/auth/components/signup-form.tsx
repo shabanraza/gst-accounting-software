@@ -11,6 +11,7 @@ import {
   AuthPage,
 } from '#/features/auth/components/auth-form-layout.tsx'
 import { GoogleSignInButton } from '#/features/auth/components/google-sign-in-button.tsx'
+import { SHOW_GOOGLE_AUTH } from '#/features/auth/google-auth.ts'
 import { authClient } from '#/lib/auth-client.ts'
 
 function signupErrorMessage(error: { message?: string }) {
@@ -101,8 +102,12 @@ export function SignupForm() {
         <Button className="w-full" disabled={isSubmitting} type="submit">
           {isSubmitting ? 'Creating account...' : 'Create account'}
         </Button>
-        <AuthDivider />
-        <GoogleSignInButton label="Sign up with Google" />
+        {SHOW_GOOGLE_AUTH ? (
+          <>
+            <AuthDivider />
+            <GoogleSignInButton label="Sign up with Google" />
+          </>
+        ) : null}
         <AuthFooterText>
           Already have an account?{' '}
           <Link

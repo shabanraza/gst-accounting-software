@@ -21,6 +21,8 @@ import {
   WarehouseIcon,
 } from 'lucide-react'
 
+import type { Capability } from '#/features/companies/membership-service.ts'
+
 export type AppNavPath =
   | '/app/dashboard'
   | '/app/masters/chart-of-accounts'
@@ -49,6 +51,7 @@ export type AppNavItem = {
   label: string
   path: AppNavPath
   icon: LucideIcon
+  requiredCapability?: Capability
 }
 
 export type AppNavSection =
@@ -110,6 +113,7 @@ export const appNav: Array<AppNavSection> = [
         label: 'Bank reconciliation',
         path: '/app/bank-reconciliation',
         icon: LandmarkIcon,
+        requiredCapability: 'reconcile_bank',
       },
       { label: 'Expenses', path: '/app/expenses', icon: ReceiptIcon },
     ],
@@ -186,6 +190,39 @@ export const appNavItems: Array<AppNavItem> = appNav.flatMap((section) =>
     ? [{ label: section.label, path: section.path, icon: section.icon }]
     : section.items,
 )
+
+export function filterAppNav(
+  sections: Array<AppNavSection>,
+  capabilities: Array<Capability>,
+): Array<AppNavSection> {
+  const capabilitySet = new Set(capabilities)
+
+  return sections
+    .map((section) => {
+      if (section.kind === 'link') {
+        if (
+          section.requiredCapability &&
+          !capabilitySet.has(section.requiredCapability)
+        ) {
+          return null
+        }
+        return section
+      }
+
+      const items = section.items.filter(
+        (item) =>
+          !item.requiredCapability ||
+          capabilitySet.has(item.requiredCapability),
+      )
+      if (items.length === 0) return null
+
+      return {
+        ...section,
+        items: items as [AppNavItem, ...Array<AppNavItem>],
+      }
+    })
+    .filter((section): section is AppNavSection => section !== null)
+}
 
 export function isAppNavPathActive(pathname: string, path: AppNavPath) {
   const normalizedPathname = pathname.replace(/\/$/, '') || '/'

@@ -1,9 +1,12 @@
-import { describe, expect, test } from 'vitest'
+import { beforeEach, describe, expect, test } from 'vitest'
 
 import { createAccountingRouter } from '#/features/accounting/accounting-router.ts'
 import { InMemoryLedgerAccountRepository } from '#/features/accounting/ledger-account-store.ts'
 import { InMemoryLedgerPostingRepository } from '#/features/accounting/ledger-posting-store.ts'
-import { InMemoryMembershipRepository } from '#/features/companies/membership-store.ts'
+import {
+  membershipRepository,
+  resetMembershipRepositoryForTests,
+} from '#/features/companies/membership-store.ts'
 import { createTRPCRouter } from '#/integrations/trpc/init.ts'
 
 import type { TRPCContext } from '#/integrations/trpc/init.ts'
@@ -19,7 +22,6 @@ const testContext = (userId: string): TRPCContext => ({
 const createCaller = (userId: string) => {
   const ledgerAccountRepository = new InMemoryLedgerAccountRepository()
   const ledgerPostingRepository = new InMemoryLedgerPostingRepository()
-  const membershipRepository = new InMemoryMembershipRepository()
   const router = createTRPCRouter({
     accounting: createAccountingRouter(
       ledgerAccountRepository,
@@ -37,9 +39,21 @@ const createCaller = (userId: string) => {
 }
 
 describe('accountingRouter', () => {
+  beforeEach(() => {
+    resetMembershipRepositoryForTests()
+  })
   test('sets up and lists chart of accounts for a company', async () => {
-    const { caller } = createCaller(crypto.randomUUID())
+    const userId = crypto.randomUUID()
+    const { caller, membershipRepository } = createCaller(userId)
     const companyId = crypto.randomUUID()
+
+    await membershipRepository.create({
+      id: crypto.randomUUID(),
+      companyId,
+      userId,
+      role: 'owner',
+      createdAt: new Date(),
+    })
 
     const created = await caller.accounting.setupChartOfAccounts({
       companyId,

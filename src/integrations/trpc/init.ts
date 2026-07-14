@@ -2,7 +2,7 @@ import { initTRPC, TRPCError } from '@trpc/server'
 import superjson from 'superjson'
 
 import { assertCompanyMembership } from '#/features/companies/membership-service.ts'
-import { createMembershipRepository } from '#/features/companies/membership-store.ts'
+import { membershipRepository } from '#/features/companies/membership-store.ts'
 import { auth } from '#/lib/auth.ts'
 
 export type AuthSession = {
@@ -105,7 +105,7 @@ export const companyProcedure = t.procedure.use(
       })
     }
 
-    const memberships = createMembershipRepository()
+    const memberships = membershipRepository
     try {
       await assertCompanyMembership(memberships, {
         companyId,

@@ -29,6 +29,7 @@ const importStatementInputSchema = periodSchema.extend({
 
 const matchInputSchema = z.object({
   companyId: z.string().uuid(),
+  ledgerAccountId: z.string().uuid(),
   statementLineId: z.string().uuid(),
   ledgerEntryId: z.string().uuid(),
 })
@@ -89,10 +90,13 @@ export const createBankingRouter = (
     confirmMatch: capabilityProcedure('reconcile_bank')
       .input(matchInputSchema)
       .mutation(({ input, ctx }) => {
-        return confirmBankMatch(repository, {
-          ...input,
-          matchedByUserId: ctx.userId,
-        })
+        return confirmBankMatch(
+          { repository, postings },
+          {
+            ...input,
+            matchedByUserId: ctx.userId,
+          },
+        )
       }),
     unmatch: capabilityProcedure('reconcile_bank')
       .input(unmatchInputSchema)

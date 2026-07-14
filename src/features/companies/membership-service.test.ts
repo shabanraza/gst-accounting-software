@@ -23,6 +23,7 @@ describe('membership capability matrix', () => {
       'manage_company',
       'manage_masters',
       'manage_inventory',
+      'manage_gst',
       'post_sales',
       'post_purchase',
       'post_voucher',
@@ -53,12 +54,19 @@ describe('membership capability matrix', () => {
     expect(listRoleCapabilities('readonly')).toEqual(['view', 'view_reports'])
     expect(roleHasCapability('readonly', 'post_sales')).toBe(false)
     expect(roleHasCapability('readonly', 'manage_company')).toBe(false)
+    expect(roleHasCapability('readonly', 'manage_gst')).toBe(false)
   })
 
-  test('accountant can reconcile bank and view reports', () => {
+  test('accountant can reconcile bank, manage gst, and view reports', () => {
     expect(roleHasCapability('accountant', 'reconcile_bank')).toBe(true)
+    expect(roleHasCapability('accountant', 'manage_gst')).toBe(true)
     expect(roleHasCapability('accountant', 'view_reports')).toBe(true)
     expect(roleHasCapability('accountant', 'view_audit')).toBe(false)
+  })
+
+  test('billing and inventory cannot manage gst', () => {
+    expect(roleHasCapability('billing', 'manage_gst')).toBe(false)
+    expect(roleHasCapability('inventory', 'manage_gst')).toBe(false)
   })
 
   test('every role has at least view', () => {

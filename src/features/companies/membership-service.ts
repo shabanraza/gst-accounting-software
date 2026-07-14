@@ -40,6 +40,7 @@ export type Capability =
   | 'manage_company'
   | 'manage_masters'
   | 'manage_inventory'
+  | 'manage_gst'
   | 'post_sales'
   | 'post_purchase'
   | 'post_voucher'
@@ -53,6 +54,7 @@ const ALL_CAPABILITIES: Array<Capability> = [
   'manage_company',
   'manage_masters',
   'manage_inventory',
+  'manage_gst',
   'post_sales',
   'post_purchase',
   'post_voucher',
@@ -68,6 +70,7 @@ const roleCapabilities: Record<CompanyRole, Array<Capability>> = {
   admin: ALL_CAPABILITIES,
   accountant: [
     'manage_masters',
+    'manage_gst',
     'post_sales',
     'post_purchase',
     'post_voucher',

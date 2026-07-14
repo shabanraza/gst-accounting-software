@@ -1,7 +1,10 @@
 import Decimal from 'decimal.js'
 
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
-import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
+import type {
+  LedgerEntryRecord,
+  LedgerPostingRepository,
+} from '#/features/accounting/posting-engine.ts'
 import type { ParsedBankStatementLine } from '#/features/banking/bank-statement-parser.ts'
 
 export type BankStatementRecord = {
@@ -72,6 +75,20 @@ export type BankReconciliationReport = {
   unmatchedBookCount: number
 }
 
+export class BankReconciliationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'BankReconciliationError'
+  }
+}
+
+export class DuplicateBankMatchError extends BankReconciliationError {
+  constructor() {
+    super('Statement line or ledger entry is already matched')
+    this.name = 'DuplicateBankMatchError'
+  }
+}
+
 export interface BankReconciliationRepository {
   createStatement: (
     statement: BankStatementRecord,
@@ -140,7 +157,7 @@ export function listBookBankLines(
   })
 }
 
-function statementBookAmountsMatch(
+export function statementBookAmountsMatch(
   statementLine: Pick<BankStatementLineRecord, 'debit' | 'credit'>,
   bookLine: Pick<BookBankLine, 'debit' | 'credit'>,
 ) {
@@ -348,16 +365,109 @@ export async function buildBankReconciliationReport(
   }
 }
 
-export async function confirmBankMatch(
+async function findStatementLineById(
   repository: BankReconciliationRepository,
+  companyId: string,
+  statementLineId: string,
+): Promise<BankStatementLineRecord | null> {
+  const statements = await repository.listStatementsByCompany(companyId)
+  for (const statement of statements) {
+    const lines = await repository.listStatementLines(companyId, statement.id)
+    const line = lines.find((entry) => entry.id === statementLineId)
+    if (line) return line
+  }
+  return null
+}
+
+function findBookLineForEntry(
+  entry: LedgerEntryRecord,
+  ledgerAccountId: string,
+): BookBankLine | null {
+  const line = entry.lines.find(
+    (ledgerLine) => ledgerLine.ledgerAccountId === ledgerAccountId,
+  )
+  if (!line) return null
+
+  return {
+    entryId: entry.id,
+    entryDate: entry.entryDate,
+    narration: entry.narration,
+    voucherType: entry.voucherType,
+    ledgerAccountId: line.ledgerAccountId,
+    debit: line.debit,
+    credit: line.credit,
+  }
+}
+
+export async function confirmBankMatch(
+  deps: {
+    repository: BankReconciliationRepository
+    postings: LedgerPostingRepository
+  },
   input: {
     companyId: string
     statementLineId: string
     ledgerEntryId: string
+    ledgerAccountId: string
     matchedByUserId: string
   },
 ) {
-  return repository.createMatch({
+  const existingMatches = await deps.repository.listMatchesByCompany(
+    input.companyId,
+  )
+  if (
+    existingMatches.some(
+      (match) =>
+        match.statementLineId === input.statementLineId ||
+        match.ledgerEntryId === input.ledgerEntryId,
+    )
+  ) {
+    throw new DuplicateBankMatchError()
+  }
+
+  const statementLine = await findStatementLineById(
+    deps.repository,
+    input.companyId,
+    input.statementLineId,
+  )
+  if (!statementLine || statementLine.companyId !== input.companyId) {
+    throw new BankReconciliationError('Statement line not found for company')
+  }
+
+  if (statementLine.ledgerAccountId !== input.ledgerAccountId) {
+    throw new BankReconciliationError(
+      'Statement line does not belong to the selected bank account',
+    )
+  }
+
+  const entries = await deps.postings.listByCompanyId(input.companyId)
+  const entry = entries.find(
+    (ledgerEntry) => ledgerEntry.id === input.ledgerEntryId,
+  )
+  if (!entry || entry.companyId !== input.companyId) {
+    throw new BankReconciliationError('Ledger entry not found for company')
+  }
+
+  const bookLine = findBookLineForEntry(entry, input.ledgerAccountId)
+  if (!bookLine) {
+    throw new BankReconciliationError(
+      'Ledger entry has no line on the selected bank account',
+    )
+  }
+
+  if (bookLine.entryDate !== statementLine.lineDate) {
+    throw new BankReconciliationError(
+      'Statement line date does not match ledger entry date',
+    )
+  }
+
+  if (!statementBookAmountsMatch(statementLine, bookLine)) {
+    throw new BankReconciliationError(
+      'Statement line amount does not match ledger entry amount',
+    )
+  }
+
+  return deps.repository.createMatch({
     id: crypto.randomUUID(),
     companyId: input.companyId,
     statementLineId: input.statementLineId,
@@ -396,12 +506,16 @@ export async function autoMatchBankStatement(
 
   for (const suggestion of suggestions) {
     created.push(
-      await confirmBankMatch(repository, {
-        companyId: input.companyId,
-        statementLineId: suggestion.statementLineId,
-        ledgerEntryId: suggestion.ledgerEntryId,
-        matchedByUserId: input.matchedByUserId,
-      }),
+      await confirmBankMatch(
+        { repository, postings: deps.postings },
+        {
+          companyId: input.companyId,
+          statementLineId: suggestion.statementLineId,
+          ledgerEntryId: suggestion.ledgerEntryId,
+          ledgerAccountId: input.ledgerAccountId,
+          matchedByUserId: input.matchedByUserId,
+        },
+      ),
     )
   }
 

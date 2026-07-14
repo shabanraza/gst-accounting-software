@@ -47,6 +47,7 @@ import {
 } from '#/components/ui/sidebar.tsx'
 import {
   appNav,
+  filterAppNav,
   isAppNavPathActive,
   navLinkActiveOptions,
 } from '#/features/app-shell/data/app-shell-nav.ts'
@@ -155,7 +156,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (session) {
     lastSessionRef.current = session
   }
-  const { company, companies, setActiveCompany, isReady } = useWorkspace()
+  const { company, companies, setActiveCompany, isReady, capabilities } =
+    useWorkspace()
+  const visibleNav = React.useMemo(
+    () => filterAppNav(appNav, capabilities),
+    [capabilities],
+  )
   const lastCompanyRef = React.useRef(company)
   if (company) {
     lastCompanyRef.current = company
@@ -243,7 +249,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <SidebarGroupLabel>Navigation</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {appNav.map((section) =>
+                  {visibleNav.map((section) =>
                     section.kind === 'link' ? (
                       <NavItemButton
                         key={section.path}

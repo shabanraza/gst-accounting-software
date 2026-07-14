@@ -23,6 +23,7 @@ export type Gstr2bMatchStatus =
   | 'mismatched'
   | 'missing_in_books'
   | 'missing_in_2b'
+  | 'conflict'
 
 export type Gstr2bReconciliationRow = {
   rowKey: string
@@ -48,6 +49,7 @@ export type Gstr2bReconciliationSummary = {
   mismatchedCount: number
   missingInBooksCount: number
   missingIn2bCount: number
+  conflictCount: number
   booksItcTotal: string
   portalItcTotal: string
   acceptedItcTotal: string
@@ -62,6 +64,13 @@ export type Gstr2bReconciliationReport = {
   periodEnd: string
   summary: Gstr2bReconciliationSummary
   rows: Array<Gstr2bReconciliationRow>
+}
+
+export class Gstr2bItcDecisionError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'Gstr2bItcDecisionError'
+  }
 }
 
 function normalizeInvoiceNumber(value: string) {
@@ -106,6 +115,56 @@ function splitPurchaseGst(
   }
 }
 
+function collectDuplicateKeys<T>(
+  items: Array<T>,
+  keyFn: (item: T) => string,
+): Set<string> {
+  const counts = new Map<string, number>()
+  for (const item of items) {
+    const key = keyFn(item)
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+
+  return new Set(
+    [...counts.entries()]
+      .filter(([, count]) => count > 1)
+      .map(([key]) => key),
+  )
+}
+
+export function purchaseAmountsMatch(
+  bill: { taxableAmount: string; totalGstAmount: string },
+  bookSplit: { cgstAmount: string; sgstAmount: string; igstAmount: string },
+  portalRow: Pick<
+    Gstr2bRow,
+    | 'taxableAmount'
+    | 'cgstAmount'
+    | 'sgstAmount'
+    | 'igstAmount'
+    | 'totalGstAmount'
+  >,
+): boolean {
+  if (!amountsMatch(bill.taxableAmount, portalRow.taxableAmount)) {
+    return false
+  }
+  if (!amountsMatch(bill.totalGstAmount, portalRow.totalGstAmount)) {
+    return false
+  }
+
+  const portalIgst = new Decimal(portalRow.igstAmount)
+  if (portalIgst.gt(0)) {
+    return amountsMatch(bookSplit.igstAmount, portalRow.igstAmount)
+  }
+
+  const bookCgstSgst = new Decimal(bookSplit.cgstAmount).plus(
+    bookSplit.sgstAmount,
+  )
+  const portalCgstSgst = new Decimal(portalRow.cgstAmount).plus(
+    portalRow.sgstAmount,
+  )
+  return amountsMatch(bookCgstSgst.toFixed(2), portalCgstSgst.toFixed(2))
+}
+
 function portalItcForRow(row: Gstr2bReconciliationRow) {
   if (row.portalTotalGstAmount) return row.portalTotalGstAmount
   return '0.00'
@@ -122,12 +181,14 @@ function buildSummary(rows: Array<Gstr2bReconciliationRow>): Gstr2bReconciliatio
   let mismatchedCount = 0
   let missingInBooksCount = 0
   let missingIn2bCount = 0
+  let conflictCount = 0
 
   for (const row of rows) {
     if (row.status === 'matched') matchedCount += 1
     if (row.status === 'mismatched') mismatchedCount += 1
     if (row.status === 'missing_in_books') missingInBooksCount += 1
     if (row.status === 'missing_in_2b') missingIn2bCount += 1
+    if (row.status === 'conflict') conflictCount += 1
 
     if (row.bookTotalGstAmount) {
       booksItc = booksItc.plus(row.bookTotalGstAmount)
@@ -153,6 +214,7 @@ function buildSummary(rows: Array<Gstr2bReconciliationRow>): Gstr2bReconciliatio
     mismatchedCount,
     missingInBooksCount,
     missingIn2bCount,
+    conflictCount,
     booksItcTotal: booksItc.toFixed(2),
     portalItcTotal: portalItc.toFixed(2),
     acceptedItcTotal: acceptedItc.toFixed(2),
@@ -160,6 +222,34 @@ function buildSummary(rows: Array<Gstr2bReconciliationRow>): Gstr2bReconciliatio
     pendingItcTotal: pendingItc.toFixed(2),
     claimableItcTotal: acceptedItc.toFixed(2),
   }
+}
+
+function findMatchingPortalRows(
+  supplierGstin: string | null,
+  normalizedBillInvoice: string,
+  periodPortalRows: Array<Gstr2bRow>,
+  conflictedPortalKeys: Set<string>,
+) {
+  const bookGstin = normalizeGstin(supplierGstin)
+  if (!bookGstin) {
+    return [] as Array<Gstr2bRow>
+  }
+
+  return periodPortalRows.filter((row) => {
+    const portalKey = buildGstr2bRowKey({
+      supplierGstin: row.supplierGstin,
+      supplierInvoiceNumber: row.supplierInvoiceNumber,
+      invoiceDate: row.invoiceDate,
+    })
+    if (conflictedPortalKeys.has(portalKey)) {
+      return false
+    }
+
+    const sameInvoice =
+      normalizeInvoiceNumber(row.supplierInvoiceNumber) === normalizedBillInvoice
+    const portalGstin = normalizeGstin(row.supplierGstin)
+    return sameInvoice && bookGstin === portalGstin
+  })
 }
 
 export async function reconcileGstr2b(
@@ -198,6 +288,21 @@ export async function reconcileGstr2b(
     inPeriod(row.invoiceDate, input.periodStart, input.periodEnd),
   )
 
+  const conflictedBillKeys = collectDuplicateKeys(periodBills, (bill) =>
+    buildGstr2bRowKey({
+      supplierGstin: partyById.get(bill.supplierId)?.gstin ?? null,
+      supplierInvoiceNumber: bill.supplierBillNumber,
+      invoiceDate: bill.billDate,
+    }),
+  )
+  const conflictedPortalKeys = collectDuplicateKeys(periodPortalRows, (row) =>
+    buildGstr2bRowKey({
+      supplierGstin: row.supplierGstin,
+      supplierInvoiceNumber: row.supplierInvoiceNumber,
+      invoiceDate: row.invoiceDate,
+    }),
+  )
+
   const rows: Array<Gstr2bReconciliationRow> = []
   const matchedPortalKeys = new Set<string>()
 
@@ -210,26 +315,44 @@ export async function reconcileGstr2b(
       party?.stateCode ?? input.companyStateCode,
     )
     const normalizedBillInvoice = normalizeInvoiceNumber(bill.supplierBillNumber)
-
-    const portalRow = periodPortalRows.find((row) => {
-      const sameInvoice =
-        normalizeInvoiceNumber(row.supplierInvoiceNumber) === normalizedBillInvoice
-      const portalGstin = normalizeGstin(row.supplierGstin)
-      const bookGstin = normalizeGstin(supplierGstin)
-      if (bookGstin && portalGstin) {
-        return sameInvoice && bookGstin === portalGstin
-      }
-      return sameInvoice
+    const billKey = buildGstr2bRowKey({
+      supplierGstin,
+      supplierInvoiceNumber: bill.supplierBillNumber,
+      invoiceDate: bill.billDate,
     })
 
-    if (!portalRow) {
-      const rowKey = buildGstr2bRowKey({
-        supplierGstin,
-        supplierInvoiceNumber: bill.supplierBillNumber,
-        invoiceDate: bill.billDate,
-      })
+    if (conflictedBillKeys.has(billKey)) {
       rows.push({
-        rowKey,
+        rowKey: billKey,
+        supplierInvoiceNumber: bill.supplierBillNumber,
+        supplierGstin,
+        invoiceDate: bill.billDate,
+        bookTaxableAmount: bill.taxableAmount,
+        bookCgstAmount: bookSplit.cgstAmount,
+        bookSgstAmount: bookSplit.sgstAmount,
+        bookIgstAmount: bookSplit.igstAmount,
+        bookTotalGstAmount: bill.totalGstAmount,
+        portalTaxableAmount: null,
+        portalCgstAmount: null,
+        portalSgstAmount: null,
+        portalIgstAmount: null,
+        portalTotalGstAmount: null,
+        status: 'conflict',
+        itcStatus: decisionByRowKey.get(billKey) ?? 'pending',
+      })
+      continue
+    }
+
+    const portalMatches = findMatchingPortalRows(
+      supplierGstin,
+      normalizedBillInvoice,
+      periodPortalRows,
+      conflictedPortalKeys,
+    )
+
+    if (portalMatches.length === 0) {
+      rows.push({
+        rowKey: billKey,
         supplierInvoiceNumber: bill.supplierBillNumber,
         supplierGstin,
         invoiceDate: bill.billDate,
@@ -244,32 +367,75 @@ export async function reconcileGstr2b(
         portalIgstAmount: null,
         portalTotalGstAmount: null,
         status: 'missing_in_2b',
-        itcStatus: decisionByRowKey.get(rowKey) ?? 'pending',
+        itcStatus: decisionByRowKey.get(billKey) ?? 'pending',
       })
       continue
     }
 
+    if (portalMatches.length > 1) {
+      rows.push({
+        rowKey: billKey,
+        supplierInvoiceNumber: bill.supplierBillNumber,
+        supplierGstin,
+        invoiceDate: bill.billDate,
+        bookTaxableAmount: bill.taxableAmount,
+        bookCgstAmount: bookSplit.cgstAmount,
+        bookSgstAmount: bookSplit.sgstAmount,
+        bookIgstAmount: bookSplit.igstAmount,
+        bookTotalGstAmount: bill.totalGstAmount,
+        portalTaxableAmount: null,
+        portalCgstAmount: null,
+        portalSgstAmount: null,
+        portalIgstAmount: null,
+        portalTotalGstAmount: null,
+        status: 'conflict',
+        itcStatus: decisionByRowKey.get(billKey) ?? 'pending',
+      })
+      continue
+    }
+
+    const portalRow = portalMatches[0]!
     const portalKey = buildGstr2bRowKey({
       supplierGstin: portalRow.supplierGstin,
       supplierInvoiceNumber: portalRow.supplierInvoiceNumber,
       invoiceDate: portalRow.invoiceDate,
     })
+
+    if (conflictedPortalKeys.has(portalKey)) {
+      rows.push({
+        rowKey: portalKey,
+        supplierInvoiceNumber: bill.supplierBillNumber,
+        supplierGstin: portalRow.supplierGstin || supplierGstin,
+        invoiceDate: portalRow.invoiceDate,
+        bookTaxableAmount: bill.taxableAmount,
+        bookCgstAmount: bookSplit.cgstAmount,
+        bookSgstAmount: bookSplit.sgstAmount,
+        bookIgstAmount: bookSplit.igstAmount,
+        bookTotalGstAmount: bill.totalGstAmount,
+        portalTaxableAmount: portalRow.taxableAmount,
+        portalCgstAmount: portalRow.cgstAmount,
+        portalSgstAmount: portalRow.sgstAmount,
+        portalIgstAmount: portalRow.igstAmount,
+        portalTotalGstAmount: portalRow.totalGstAmount,
+        status: 'conflict',
+        itcStatus: decisionByRowKey.get(portalKey) ?? 'pending',
+      })
+      matchedPortalKeys.add(portalKey)
+      continue
+    }
+
     matchedPortalKeys.add(portalKey)
 
-    const taxableMatch = amountsMatch(bill.taxableAmount, portalRow.taxableAmount)
-    const gstMatch = amountsMatch(bill.totalGstAmount, portalRow.totalGstAmount)
-    const cgstMatch = amountsMatch(bookSplit.cgstAmount, portalRow.cgstAmount)
-    const sgstMatch = amountsMatch(bookSplit.sgstAmount, portalRow.sgstAmount)
-    const igstMatch = amountsMatch(bookSplit.igstAmount, portalRow.igstAmount)
+    const status: Gstr2bMatchStatus = purchaseAmountsMatch(
+      bill,
+      bookSplit,
+      portalRow,
+    )
+      ? 'matched'
+      : 'mismatched'
 
-    const status: Gstr2bMatchStatus =
-      taxableMatch && gstMatch && cgstMatch && sgstMatch && igstMatch
-        ? 'matched'
-        : 'mismatched'
-
-    const rowKey = portalKey
     rows.push({
-      rowKey,
+      rowKey: portalKey,
       supplierInvoiceNumber: bill.supplierBillNumber,
       supplierGstin: portalRow.supplierGstin || supplierGstin,
       invoiceDate: portalRow.invoiceDate,
@@ -284,7 +450,7 @@ export async function reconcileGstr2b(
       portalIgstAmount: portalRow.igstAmount,
       portalTotalGstAmount: portalRow.totalGstAmount,
       status,
-      itcStatus: decisionByRowKey.get(rowKey) ?? 'pending',
+      itcStatus: decisionByRowKey.get(portalKey) ?? 'pending',
     })
   }
 
@@ -296,9 +462,12 @@ export async function reconcileGstr2b(
     })
     if (matchedPortalKeys.has(portalKey)) continue
 
-    const rowKey = portalKey
+    const status: Gstr2bMatchStatus = conflictedPortalKeys.has(portalKey)
+      ? 'conflict'
+      : 'missing_in_books'
+
     rows.push({
-      rowKey,
+      rowKey: portalKey,
       supplierInvoiceNumber: portalRow.supplierInvoiceNumber,
       supplierGstin: portalRow.supplierGstin,
       invoiceDate: portalRow.invoiceDate,
@@ -312,8 +481,8 @@ export async function reconcileGstr2b(
       portalSgstAmount: portalRow.sgstAmount,
       portalIgstAmount: portalRow.igstAmount,
       portalTotalGstAmount: portalRow.totalGstAmount,
-      status: 'missing_in_books',
-      itcStatus: decisionByRowKey.get(rowKey) ?? 'pending',
+      status,
+      itcStatus: decisionByRowKey.get(portalKey) ?? 'pending',
     })
   }
 
@@ -327,15 +496,40 @@ export async function reconcileGstr2b(
 }
 
 export async function setGstr2bItcDecision(
-  deps: { recon: GstReconciliationRepository },
+  deps: {
+    recon: GstReconciliationRepository
+    bills: PurchaseBillRepository
+    parties: PartyRepository
+  },
   input: {
     companyId: string
+    companyStateCode: string
     periodStart: string
     periodEnd: string
     rowKey: string
     status: Gstr2bItcStatus
+    portalRows: Array<Gstr2bRow>
   },
 ) {
+  if (input.status === 'accepted' || input.status === 'rejected') {
+    const report = await reconcileGstr2b(
+      { bills: deps.bills, parties: deps.parties, recon: deps.recon },
+      {
+        companyId: input.companyId,
+        companyStateCode: input.companyStateCode,
+        periodStart: input.periodStart,
+        periodEnd: input.periodEnd,
+        portalRows: input.portalRows,
+      },
+    )
+    const row = report.rows.find((entry) => entry.rowKey === input.rowKey)
+    if (!row || row.status !== 'matched') {
+      throw new Gstr2bItcDecisionError(
+        'ITC accept/reject is only allowed for matched rows',
+      )
+    }
+  }
+
   return deps.recon.setGstr2bItcDecision({
     companyId: input.companyId,
     periodStart: input.periodStart,

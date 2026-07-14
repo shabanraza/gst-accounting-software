@@ -1,11 +1,11 @@
 import { assertCapability } from '#/features/companies/membership-service.ts'
-import { createMembershipRepository } from '#/features/companies/membership-store.ts'
+import { membershipRepository } from '#/features/companies/membership-store.ts'
 
 import { companyProcedure } from './init'
 
 import type { Capability } from '#/features/companies/membership-service.ts'
 
-const memberships = createMembershipRepository()
+const memberships = membershipRepository
 
 /**
  * Company-scoped mutation that enforces the given role capability for the

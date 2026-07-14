@@ -103,10 +103,12 @@ const gstr1ReconciliationInputSchema = z.object({
 
 const gstr2bItcDecisionInputSchema = z.object({
   companyId: z.string().uuid(),
+  companyStateCode: z.string().length(2),
   periodStart: z.string().min(1),
   periodEnd: z.string().min(1),
   rowKey: z.string().min(1),
   status: z.enum(['pending', 'accepted', 'rejected']),
+  portalRows: z.array(gstPortalRowSchema),
 })
 
 const gstr3bWorkingInputSchema = z.object({
@@ -265,7 +267,7 @@ export const createReportsRouter = (deps: {
       }),
     gstr2bReconciliation: capabilityProcedure('view_reports')
       .input(gstr2bReconciliationInputSchema)
-      .mutation(({ input }) => {
+      .query(({ input }) => {
         return reconcileGstr2b(
           {
             bills: deps.bills,
@@ -275,11 +277,15 @@ export const createReportsRouter = (deps: {
           input,
         )
       }),
-    setGstr2bItcDecision: capabilityProcedure('view_reports')
+    setGstr2bItcDecision: capabilityProcedure('manage_gst')
       .input(gstr2bItcDecisionInputSchema)
       .mutation(({ input }) => {
         return setGstr2bItcDecision(
-          { recon: gstReconciliationRepository },
+          {
+            recon: gstReconciliationRepository,
+            bills: deps.bills,
+            parties: deps.parties,
+          },
           input,
         )
       }),

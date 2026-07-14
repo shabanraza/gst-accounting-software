@@ -11,6 +11,7 @@ import {
   AuthPage,
 } from '#/features/auth/components/auth-form-layout.tsx'
 import { GoogleSignInButton } from '#/features/auth/components/google-sign-in-button.tsx'
+import { SHOW_GOOGLE_AUTH } from '#/features/auth/google-auth.ts'
 import { authClient } from '#/lib/auth-client.ts'
 
 export function LoginForm() {
@@ -86,8 +87,12 @@ export function LoginForm() {
         <Button className="w-full" disabled={isSubmitting} type="submit">
           {isSubmitting ? 'Signing in...' : 'Sign in'}
         </Button>
-        <AuthDivider />
-        <GoogleSignInButton label="Continue with Google" />
+        {SHOW_GOOGLE_AUTH ? (
+          <>
+            <AuthDivider />
+            <GoogleSignInButton label="Continue with Google" />
+          </>
+        ) : null}
         <AuthFooterText>
           Need an account?{' '}
           <Link

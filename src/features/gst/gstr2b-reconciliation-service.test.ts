@@ -6,6 +6,8 @@ import {
 } from '#/features/gst/gst-reconciliation-store.ts'
 import {
   reconcileGstr2b,
+  Gstr2bItcDecisionError,
+  purchaseAmountsMatch,
   setGstr2bItcDecision,
 } from '#/features/gst/gstr2b-reconciliation-service.ts'
 import type {
@@ -222,6 +224,46 @@ describe('reconcileGstr2b', () => {
     expect(report.rows).toHaveLength(0)
   })
 
+  test('does not auto-match bills when book party has no GSTIN', async () => {
+    const report = await reconcileGstr2b(
+      {
+        bills: new FakeBills([bill({ supplierBillNumber: 'SB-1' })]),
+        parties: new FakeParties([
+          {
+            ...supplierParty(),
+            gstin: null,
+          },
+        ]),
+      },
+      {
+        companyId: 'company-1',
+        ...period,
+        portalRows: [
+          {
+            supplierGstin: '24AABCU9603R1ZM',
+            supplierInvoiceNumber: 'SB-1',
+            invoiceDate: '2026-01-06',
+            taxableAmount: '500.00',
+            cgstAmount: '45.00',
+            sgstAmount: '45.00',
+            igstAmount: '0.00',
+            totalGstAmount: '90.00',
+          },
+        ],
+      },
+    )
+
+    expect(report.rows).toHaveLength(2)
+    const booksRow = report.rows.find(
+      (row) => row.supplierInvoiceNumber === 'SB-1' && row.bookTaxableAmount,
+    )
+    const portalRow = report.rows.find(
+      (row) => row.supplierInvoiceNumber === 'SB-1' && row.portalTaxableAmount,
+    )
+    expect(booksRow?.status).toBe('missing_in_2b')
+    expect(portalRow?.status).toBe('missing_in_books')
+  })
+
   test('persists accepted ITC decisions in summary', async () => {
     const recon: GstReconciliationRepository = createGstReconciliationRepository()
     const deps = {
@@ -248,18 +290,137 @@ describe('reconcileGstr2b', () => {
 
     const initial = await reconcileGstr2b(deps, input)
     await setGstr2bItcDecision(
-      { recon },
+      { recon, bills: deps.bills, parties: deps.parties },
       {
         companyId: 'company-1',
+        companyStateCode: period.companyStateCode,
         periodStart: period.periodStart,
         periodEnd: period.periodEnd,
         rowKey: initial.rows[0]!.rowKey,
         status: 'accepted',
+        portalRows: input.portalRows,
       },
     )
 
     const updated = await reconcileGstr2b(deps, input)
     expect(updated.summary.acceptedItcTotal).toBe('90.00')
     expect(updated.rows[0]?.itcStatus).toBe('accepted')
+  })
+
+  test('does not match portal rows when supplier GSTIN is missing on books', async () => {
+    const report = await reconcileGstr2b(
+      {
+        bills: new FakeBills([bill({})]),
+        parties: new FakeParties([
+          { ...supplierParty(), gstin: null },
+        ]),
+      },
+      {
+        companyId: 'company-1',
+        ...period,
+        portalRows: [
+          {
+            supplierGstin: '24AABCU9603R1ZM',
+            supplierInvoiceNumber: 'SB-1',
+            invoiceDate: '2026-01-06',
+            taxableAmount: '500.00',
+            cgstAmount: '45.00',
+            sgstAmount: '45.00',
+            igstAmount: '0.00',
+            totalGstAmount: '90.00',
+          },
+        ],
+      },
+    )
+
+    expect(report.rows).toHaveLength(2)
+    expect(report.rows.some((row) => row.status === 'matched')).toBe(false)
+  })
+
+  test('treats half-split CGST/SGST rounding as matched when total GST matches', () => {
+    expect(
+      purchaseAmountsMatch(
+        { taxableAmount: '500.00', totalGstAmount: '90.00' },
+        { cgstAmount: '45.00', sgstAmount: '45.00', igstAmount: '0.00' },
+        {
+          taxableAmount: '500.00',
+          cgstAmount: '45.01',
+          sgstAmount: '44.99',
+          igstAmount: '0.00',
+          totalGstAmount: '90.00',
+        },
+      ),
+    ).toBe(true)
+  })
+
+  test('flags duplicate portal keys as conflicts', async () => {
+    const portalRow = {
+      supplierGstin: '24AABCU9603R1ZM',
+      supplierInvoiceNumber: 'SB-DUP',
+      invoiceDate: '2026-01-06',
+      taxableAmount: '100.00',
+      cgstAmount: '9.00',
+      sgstAmount: '9.00',
+      igstAmount: '0.00',
+      totalGstAmount: '18.00',
+    }
+
+    const report = await reconcileGstr2b(
+      {
+        bills: new FakeBills([]),
+        parties: new FakeParties([supplierParty()]),
+      },
+      {
+        companyId: 'company-1',
+        ...period,
+        portalRows: [portalRow, { ...portalRow }],
+      },
+    )
+
+    expect(report.summary.conflictCount).toBe(2)
+    expect(report.rows.every((row) => row.status === 'conflict')).toBe(true)
+  })
+
+  test('rejects ITC accept for non-matched rows', async () => {
+    const recon = createGstReconciliationRepository()
+    const deps = {
+      bills: new FakeBills([bill({ supplierBillNumber: 'SB-ONLY-BOOKS' })]),
+      parties: new FakeParties([supplierParty()]),
+      recon,
+    }
+    const portalRows = [
+      {
+        supplierGstin: '24AABCU9603R1ZM',
+        supplierInvoiceNumber: 'SB-PORTAL-ONLY',
+        invoiceDate: '2026-01-06',
+        taxableAmount: '100.00',
+        cgstAmount: '9.00',
+        sgstAmount: '9.00',
+        igstAmount: '0.00',
+        totalGstAmount: '18.00',
+      },
+    ]
+    const report = await reconcileGstr2b(
+      { ...deps },
+      { companyId: 'company-1', ...period, portalRows },
+    )
+    const missingInBooks = report.rows.find(
+      (row) => row.status === 'missing_in_books',
+    )
+
+    await expect(
+      setGstr2bItcDecision(
+        { recon, bills: deps.bills, parties: deps.parties },
+        {
+          companyId: 'company-1',
+          companyStateCode: period.companyStateCode,
+          periodStart: period.periodStart,
+          periodEnd: period.periodEnd,
+          rowKey: missingInBooks!.rowKey,
+          status: 'accepted',
+          portalRows,
+        },
+      ),
+    ).rejects.toBeInstanceOf(Gstr2bItcDecisionError)
   })
 })

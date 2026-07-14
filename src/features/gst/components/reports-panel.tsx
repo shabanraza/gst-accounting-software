@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { Link } from '@tanstack/react-router'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { DownloadIcon, FileBarChartIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -41,6 +41,7 @@ import { currentGstMonthPeriod } from '#/lib/gst-period.ts'
 import { parseGstr1PortalJson } from '#/features/gst/gstr1-portal-parser.ts'
 import type { Gstr1ReconciliationReport } from '#/features/gst/gstr1-reconciliation-service.ts'
 import { parseGstr2bPortalJson } from '#/features/gst/gstr2b-portal-parser.ts'
+import { storeGstr2bPurchasePrefill } from '#/features/gst/gstr2b-purchase-prefill.ts'
 import type { Gstr2bItcStatus } from '#/features/gst/gst-reconciliation-store.ts'
 import type {
   Gstr2bReconciliationReport,
@@ -51,6 +52,8 @@ import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function ReportsPanel() {
   const trpc = useTRPC()
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const { companyId, company, isReady } = useWorkspace()
   const [tab, setTab] = React.useState('gstr1')
   const defaultReconPeriod = React.useMemo(() => currentGstMonthPeriod(), [])
@@ -168,9 +171,7 @@ export function ReportsPanel() {
     enabled: Boolean(companyId) && isReady && tab === 'export',
   })
 
-  const gstr2bMutation = useMutation(
-    trpc.reports.gstr2bReconciliation.mutationOptions(),
-  )
+  const [gstr2bLoading, setGstr2bLoading] = React.useState(false)
   const gstr2bItcMutation = useMutation(
     trpc.reports.setGstr2bItcDecision.mutationOptions(),
   )
@@ -183,23 +184,30 @@ export function ReportsPanel() {
 
   async function refreshGstr2bReport(portalRows: Array<Gstr2bRow>) {
     if (!companyId) return null
-    const report = await gstr2bMutation.mutateAsync({
-      companyId,
-      companyStateCode: company?.stateCode ?? '27',
-      periodStart: reconPeriodStart,
-      periodEnd: reconPeriodEnd,
-      portalRows,
-    })
-    setGstr2bReport(report)
-    const working = await gstr3bWorkingMutation.mutateAsync({
-      companyId,
-      companyStateCode: company?.stateCode ?? '27',
-      periodStart: reconPeriodStart,
-      periodEnd: reconPeriodEnd,
-      portalRows,
-    })
-    setGstr3bWorking(working)
-    return report
+    setGstr2bLoading(true)
+    try {
+      const report = await queryClient.fetchQuery(
+        trpc.reports.gstr2bReconciliation.queryOptions({
+          companyId,
+          companyStateCode: company?.stateCode ?? '27',
+          periodStart: reconPeriodStart,
+          periodEnd: reconPeriodEnd,
+          portalRows,
+        }),
+      )
+      setGstr2bReport(report)
+      const working = await gstr3bWorkingMutation.mutateAsync({
+        companyId,
+        companyStateCode: company?.stateCode ?? '27',
+        periodStart: reconPeriodStart,
+        periodEnd: reconPeriodEnd,
+        portalRows,
+      })
+      setGstr3bWorking(working)
+      return report
+    } finally {
+      setGstr2bLoading(false)
+    }
   }
 
   async function handleGstr2bFile(event: React.ChangeEvent<HTMLInputElement>) {
@@ -231,10 +239,12 @@ export function ReportsPanel() {
     try {
       await gstr2bItcMutation.mutateAsync({
         companyId,
+        companyStateCode: company?.stateCode ?? '27',
         periodStart: reconPeriodStart,
         periodEnd: reconPeriodEnd,
         rowKey,
         status,
+        portalRows: gstr2bPortalRows,
       })
       await refreshGstr2bReport(gstr2bPortalRows)
     } catch (err) {
@@ -1116,7 +1126,7 @@ export function ReportsPanel() {
               />
               <div className="flex flex-wrap gap-2">
                 <Button
-                  disabled={!companyId || gstr2bMutation.isPending}
+                  disabled={!companyId || gstr2bLoading}
                   onClick={runGstr2bReconciliation}
                   type="button"
                 >
@@ -1152,6 +1162,12 @@ export function ReportsPanel() {
                       </p>
                       <p className="text-lg font-semibold">
                         {gstr2bReport.summary.missingIn2bCount}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">Conflicts</p>
+                      <p className="text-lg font-semibold">
+                        {gstr2bReport.summary.conflictCount}
                       </p>
                     </div>
                     <div className="rounded-lg border p-3">
@@ -1230,7 +1246,8 @@ export function ReportsPanel() {
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
-                              {row.portalTotalGstAmount ? (
+                              {row.status === 'matched' &&
+                              row.portalTotalGstAmount ? (
                                 <>
                                   <Button
                                     disabled={gstr2bItcMutation.isPending}
@@ -1257,20 +1274,22 @@ export function ReportsPanel() {
                                 </>
                               ) : null}
                               {row.status === 'missing_in_books' ? (
-                                <Button asChild size="sm" variant="outline">
-                                  <Link
-                                    search={{
-                                      supplierGstin: row.supplierGstin ?? '',
-                                      supplierBillNumber:
-                                        row.supplierInvoiceNumber,
-                                      billDate: row.invoiceDate ?? '',
+                                <Button
+                                  onClick={() => {
+                                    storeGstr2bPurchasePrefill({
+                                      supplierGstin: row.supplierGstin ?? undefined,
+                                      supplierBillNumber: row.supplierInvoiceNumber,
+                                      billDate: row.invoiceDate ?? undefined,
                                       taxableAmount:
-                                        row.portalTaxableAmount ?? '',
-                                    }}
-                                    to="/app/purchases/new"
-                                  >
-                                    Create bill
-                                  </Link>
+                                        row.portalTaxableAmount ?? undefined,
+                                    })
+                                    void navigate({ to: '/app/purchases/new' })
+                                  }}
+                                  size="sm"
+                                  type="button"
+                                  variant="outline"
+                                >
+                                  Create bill
                                 </Button>
                               ) : null}
                             </div>
