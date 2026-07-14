@@ -1,5 +1,9 @@
+import * as React from 'react'
+import { useNavigate } from '@tanstack/react-router'
+
 import { Skeleton } from '#/components/ui/skeleton.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
+import { authClient } from '#/lib/auth-client.ts'
 
 function WorkspacePageSkeleton() {
   return (
@@ -18,9 +22,17 @@ export function WorkspaceLoadingGate({
 }: {
   children: React.ReactNode
 }) {
+  const navigate = useNavigate()
+  const { data: session, isPending: isSessionPending } = authClient.useSession()
   const { accountId, isLoading, error, company } = useWorkspace()
 
-  if (!accountId) {
+  React.useEffect(() => {
+    if (!isSessionPending && !session?.user?.id) {
+      void navigate({ to: '/login' })
+    }
+  }, [isSessionPending, navigate, session?.user?.id])
+
+  if (isSessionPending || !accountId) {
     return <WorkspacePageSkeleton />
   }
 
