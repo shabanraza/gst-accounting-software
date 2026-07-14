@@ -28,7 +28,11 @@ export async function buildHsnSummary(
   period: { startDate: string; endDate: string },
 ): Promise<HsnSummaryReport> {
   const [invoices, items] = await Promise.all([
-    deps.invoices.listByCompanyId(companyId),
+    deps.invoices.listByCompanyId(companyId, {
+      startDate: period.startDate,
+      endDate: period.endDate,
+      includeLines: true,
+    }),
     deps.items.listByCompanyId(companyId),
   ])
 
@@ -36,11 +40,7 @@ export async function buildHsnSummary(
   const totalsByHsn = new Map<string, { taxable: Decimal; gst: Decimal; qty: Decimal }>()
 
   for (const invoice of invoices) {
-    if (
-      invoice.invoiceDate < period.startDate ||
-      invoice.invoiceDate > period.endDate ||
-      invoice.status === 'cancelled'
-    ) {
+    if (invoice.status === 'cancelled') {
       continue
     }
 

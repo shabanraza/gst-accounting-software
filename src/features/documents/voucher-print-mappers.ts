@@ -1,5 +1,10 @@
 import type { CompanyRecord } from '#/features/companies/company-service.ts'
 import type { PartyRecord } from '#/features/parties/party-service.ts'
+import {
+  resolvePartyBillingAddress,
+  resolvePartyShippingAddress,
+} from '#/features/parties/party-address.ts'
+import type { InvoicePartySnapshot } from '#/features/gst/tax-invoice-compliance.ts'
 import type {
   VoucherPrintCompanyInfo,
   VoucherPrintPartyInfo,
@@ -35,9 +40,28 @@ export function toPrintParty(party: PartyRecord): VoucherPrintPartyInfo {
     gstin: party.gstin,
     stateCode: party.stateCode,
     pan: party.pan,
-    billingAddress: party.billingAddress,
-    shippingAddress: party.shippingAddress,
+    billingAddress: resolvePartyBillingAddress(party),
+    shippingAddress: resolvePartyShippingAddress(party),
     contactPhone: party.contactPhone,
     contactEmail: party.contactEmail,
   }
+}
+
+export function toPrintPartyFromSnapshot(
+  snapshot: InvoicePartySnapshot,
+): VoucherPrintPartyInfo {
+  return {
+    name: snapshot.partyNameSnapshot,
+    gstin: snapshot.partyGstinSnapshot,
+    stateCode: snapshot.partyStateCodeSnapshot,
+    pan: snapshot.partyPanSnapshot || undefined,
+    billingAddress: snapshot.partyBillingAddressSnapshot,
+    shippingAddress: snapshot.partyShippingAddressSnapshot,
+    contactPhone: snapshot.partyPhoneSnapshot || undefined,
+    contactEmail: snapshot.partyEmailSnapshot || undefined,
+  }
+}
+
+export function hasPartySnapshot(snapshot: Partial<InvoicePartySnapshot>) {
+  return Boolean(snapshot.partyNameSnapshot?.trim())
 }

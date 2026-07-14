@@ -31,6 +31,7 @@ type MasterLookupProps = {
   title?: string
   className?: string
   disabled?: boolean
+  appearance?: 'default' | 'grid'
   onFocus?: () => void
   createAction?: {
     label: string
@@ -48,6 +49,7 @@ export function MasterLookup({
   title = 'Lookup',
   className,
   disabled,
+  appearance = 'default',
   onFocus,
   createAction,
 }: MasterLookupProps) {
@@ -65,18 +67,31 @@ export function MasterLookup({
   return (
     <>
       <Button
-        className={cn('w-full justify-between font-normal', className)}
+        className={cn(
+          'w-full justify-between font-normal',
+          appearance === 'grid' &&
+            'h-9 rounded-none border-0 bg-transparent px-2 shadow-none hover:bg-transparent data-[state=open]:bg-transparent',
+          className,
+        )}
         data-master-lookup
+        data-voucher-grid-control={appearance === 'grid' ? '' : undefined}
         disabled={disabled}
         onClick={() => setOpen(true)}
         onFocus={onFocus}
         onKeyDown={handleKeyDown}
         type="button"
-        variant="outline"
+        variant={appearance === 'grid' ? 'ghost' : 'outline'}
       >
         <span className="truncate">{selected?.label ?? placeholder}</span>
-        <span className="flex shrink-0 items-center gap-1 text-muted-foreground">
-          <kbd className="rounded border px-1 font-mono text-[10px]">F2</kbd>
+        <span
+          className={cn(
+            'flex shrink-0 items-center gap-1 text-muted-foreground',
+            appearance === 'grid' && 'opacity-70',
+          )}
+        >
+          {appearance === 'default' ? (
+            <kbd className="rounded border px-1 font-mono text-[10px]">F2</kbd>
+          ) : null}
           <ChevronsUpDownIcon className="size-3.5 opacity-50" />
         </span>
       </Button>

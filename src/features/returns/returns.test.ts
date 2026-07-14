@@ -46,6 +46,9 @@ async function seedReturnsContext() {
     partyType: 'customer',
     gstin: '27AABCU9603R1ZM',
     stateCode: '27',
+    addressLine1: 'Plot 8, Industrial Area',
+    city: 'Pune',
+    pincode: '411001',
     creditLimit: null,
     paymentTermsDays: 30,
     receivableAccountId: byKey('customer_receivable'),
@@ -58,6 +61,9 @@ async function seedReturnsContext() {
     partyType: 'supplier',
     gstin: '24AABCU9603R1ZM',
     stateCode: '24',
+    addressLine1: 'GIDC Road, Unit 4',
+    city: 'Surat',
+    pincode: '395001',
     creditLimit: null,
     paymentTermsDays: 15,
     receivableAccountId: null,
@@ -87,7 +93,7 @@ async function seedReturnsContext() {
   })
 
   const invoice = await postSalesInvoice(
-    { invoices, posting: ledgerPosting, stock, items },
+    { invoices, posting: ledgerPosting, stock, items, parties },
     {
       companyId,
       companyStateCode: '27',
@@ -114,7 +120,7 @@ async function seedReturnsContext() {
   )
 
   const bill = await postPurchaseBill(
-    { bills, posting: ledgerPosting, stock },
+    { bills, posting: ledgerPosting, stock, parties },
     {
       companyId,
       companyStateCode: '27',

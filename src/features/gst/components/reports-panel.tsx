@@ -4,6 +4,7 @@ import { DownloadIcon, FileBarChartIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Badge } from '#/components/ui/badge.tsx'
+import { gstReconciliationBadgeIntent } from '#/lib/badge-intent.ts'
 import { Button } from '#/components/ui/button.tsx'
 import {
   Card,
@@ -353,7 +354,7 @@ export function ReportsPanel() {
                       </TableCell>
                       <TableCell className="font-medium">{row.name}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">{row.accountType}</Badge>
+                        <Badge variant="secondary">{row.accountType}</Badge>
                       </TableCell>
                       <TableCell>{formatInr(row.debit)}</TableCell>
                       <TableCell>{formatInr(row.credit)}</TableCell>
@@ -546,7 +547,7 @@ export function ReportsPanel() {
                           <TableCell>{row.documentNumber}</TableCell>
                           <TableCell>{row.daysOutstanding}</TableCell>
                           <TableCell>
-                            <Badge variant="outline">{row.bucket}</Badge>
+                            <Badge variant="neutral">{row.bucket}</Badge>
                           </TableCell>
                           <TableCell className="text-right">
                             {formatInr(row.outstandingAmount)}
@@ -591,7 +592,7 @@ export function ReportsPanel() {
                           <TableCell>{row.documentNumber}</TableCell>
                           <TableCell>{row.daysOutstanding}</TableCell>
                           <TableCell>
-                            <Badge variant="outline">{row.bucket}</Badge>
+                            <Badge variant="neutral">{row.bucket}</Badge>
                           </TableCell>
                           <TableCell className="text-right">
                             {formatInr(row.outstandingAmount)}
@@ -737,7 +738,7 @@ export function ReportsPanel() {
                       <TableRow key={entry.entryId}>
                         <TableCell>{entry.entryDate}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">{entry.voucherType}</Badge>
+                          <Badge variant="neutral">{entry.voucherType}</Badge>
                         </TableCell>
                         <TableCell className="max-w-64 truncate">
                           {entry.narration}
@@ -928,15 +929,7 @@ export function ReportsPanel() {
                             : '—'}
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            variant={
-                              row.status === 'matched'
-                                ? 'success'
-                                : row.status === 'mismatched'
-                                  ? 'warning'
-                                  : 'outline'
-                            }
-                          >
+                          <Badge variant={gstReconciliationBadgeIntent(row.status)}>
                             {row.status.replaceAll('_', ' ')}
                           </Badge>
                         </TableCell>

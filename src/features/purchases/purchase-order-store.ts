@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 
 import { getDb } from '#/db/client.ts'
 import * as schema from '#/db/schema.ts'
@@ -106,30 +106,37 @@ export class DrizzlePurchaseOrderRepository implements PurchaseOrderRepository {
       .from(schema.purchaseOrders)
       .where(eq(schema.purchaseOrders.companyId, companyId))
 
-    const results: Array<PurchaseOrderRecord> = []
-    for (const order of orders) {
-      const lines = await this.database
-        .select()
-        .from(schema.purchaseOrderLines)
-        .where(eq(schema.purchaseOrderLines.purchaseOrderId, order.id))
-
-      results.push(
-        mapOrderRow(
-          order,
-          lines.map((line) => ({
-            id: line.id,
-            itemId: line.itemId,
-            description: line.description,
-            quantity: line.quantity,
-            unit: line.unit,
-            rate: line.rate,
-            gstRate: line.gstRate,
-          })),
-        ),
-      )
+    if (orders.length === 0) {
+      return []
     }
 
-    return results
+    const orderIds = orders.map((order) => order.id)
+    const allLines = await this.database
+      .select()
+      .from(schema.purchaseOrderLines)
+      .where(inArray(schema.purchaseOrderLines.purchaseOrderId, orderIds))
+
+    const linesByOrderId = new Map<string, Array<LineRow>>()
+    for (const line of allLines) {
+      const group = linesByOrderId.get(line.purchaseOrderId) ?? []
+      group.push(line)
+      linesByOrderId.set(line.purchaseOrderId, group)
+    }
+
+    return orders.map((order) =>
+      mapOrderRow(
+        order,
+        (linesByOrderId.get(order.id) ?? []).map((line) => ({
+          id: line.id,
+          itemId: line.itemId,
+          description: line.description,
+          quantity: line.quantity,
+          unit: line.unit,
+          rate: line.rate,
+          gstRate: line.gstRate,
+        })),
+      ),
+    )
   }
 
   async findById(companyId: string, orderId: string) {

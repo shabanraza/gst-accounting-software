@@ -36,7 +36,9 @@ export async function reconcileGstr2b(
   companyId: string,
   portalRows: Array<Gstr2bRow>,
 ): Promise<Gstr2bReconciliationReport> {
-  const bills = await deps.bills.listByCompanyId(companyId)
+  const bills = await deps.bills.listByCompanyId(companyId, {
+    includeLines: false,
+  })
   const rows: Array<Gstr2bReconciliationRow> = []
   const matchedPortalInvoiceNumbers = new Set<string>()
 

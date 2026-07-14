@@ -1,4 +1,8 @@
 import { buildVoucherPrintDocument } from '#/features/documents/voucher-print-builder.ts'
+import {
+  hasPartySnapshot,
+  toPrintPartyFromSnapshot,
+} from '#/features/documents/voucher-print-mappers.ts'
 
 import type { ItemRecord } from '#/features/inventory/item-service.ts'
 import type { VoucherPrintDocument } from '#/features/documents/voucher-print-types.ts'
@@ -7,10 +11,17 @@ import type { PurchaseBillRecord } from '#/features/purchases/purchase-bill-serv
 export function buildPurchaseBillPrintDocument(input: {
   bill: PurchaseBillRecord
   company: VoucherPrintDocument['company']
-  supplier: VoucherPrintDocument['party']
+  supplier?: VoucherPrintDocument['party']
   itemById: Map<string, ItemRecord>
 }): VoucherPrintDocument {
   const { bill } = input
+  const supplier = hasPartySnapshot(bill)
+    ? toPrintPartyFromSnapshot(bill)
+    : input.supplier
+
+  if (!supplier) {
+    throw new Error('Supplier details are required to print this bill')
+  }
 
   return buildVoucherPrintDocument({
     kind: 'purchase',
@@ -25,9 +36,9 @@ export function buildPurchaseBillPrintDocument(input: {
     challanRef: bill.challanRef,
     narration: bill.narration,
     company: input.company,
-    party: input.supplier,
+    party: supplier,
     partyLabel: 'Supplier',
-    placeOfSupplyCode: bill.placeOfSupply || input.supplier.stateCode,
+    placeOfSupplyCode: bill.placeOfSupply || supplier.stateCode,
     reverseCharge: bill.reverseCharge,
     copyLabel: 'Office Copy',
     rawLines: bill.lines.map((line) => ({

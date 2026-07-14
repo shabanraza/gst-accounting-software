@@ -15,6 +15,7 @@ import type {
 } from '#/features/inventory/stock-movement-service.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
+import type { PartyRepository } from '#/features/parties/party-service.ts'
 
 const lineSchema = z.object({
   itemId: z.string().uuid(),
@@ -30,6 +31,11 @@ const lineSchema = z.object({
 const postPurchaseBillInputSchema = z.object({
   companyId: z.string().uuid(),
   companyStateCode: z.string().length(2),
+  companyGstin: z.string().nullable().optional(),
+  companyAddressLine1: z.string().optional(),
+  companyAddressLine2: z.string().optional(),
+  companyCity: z.string().optional(),
+  companyPincode: z.string().optional(),
   financialYearStart: z.string().min(1),
   supplierId: z.string().uuid(),
   supplierStateCode: z.string().length(2).optional(),
@@ -59,6 +65,12 @@ const postPurchaseBillInputSchema = z.object({
 
 const listPurchasesInputSchema = z.object({
   companyId: z.string().uuid(),
+  includeLines: z.boolean().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  partyId: z.string().uuid().optional(),
+  limit: z.number().int().min(1).max(500).optional(),
+  cursor: z.string().optional(),
 })
 
 const getPurchaseBillInputSchema = z.object({
@@ -72,10 +84,18 @@ export const createPurchasesRouter = (
   stock: StockMovementRepository & StockBalanceRepository,
   dashboard: DashboardSummaryRepository,
   items: ItemRepository,
+  parties: PartyRepository,
 ) =>
   ({
     list: companyProcedure.input(listPurchasesInputSchema).query(({ input }) => {
-      return bills.listByCompanyId(input.companyId)
+      return bills.listByCompanyId(input.companyId, {
+        includeLines: input.includeLines ?? false,
+        startDate: input.startDate,
+        endDate: input.endDate,
+        partyId: input.partyId,
+        limit: input.limit,
+        cursor: input.cursor,
+      })
     }),
     getById: companyProcedure
       .input(getPurchaseBillInputSchema)
@@ -89,7 +109,10 @@ export const createPurchasesRouter = (
     postBill: capabilityProcedure('post_purchase')
       .input(postPurchaseBillInputSchema)
       .mutation(async ({ input }) => {
-        const bill = await postPurchaseBill({ bills, posting, stock, items }, input)
+        const bill = await postPurchaseBill(
+          { bills, posting, stock, items, parties },
+          input,
+        )
         const stockInQuantity = bill.lines
           .reduce((sum, line) => sum + Number(line.quantity), 0)
           .toFixed(0)

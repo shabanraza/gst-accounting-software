@@ -16,7 +16,7 @@
 - Runtime target: Cloudflare Workers via `@cloudflare/vite-plugin`.
 - Database: PostgreSQL/Neon with Drizzle ORM.
 - UI: shadcn/ui with Tailwind CSS v4.
-- shadcn preset/style: `radix-mira` with teal theme (preset `b7BF22kWv2`).
+- shadcn preset/style: `radix-mira` with olive base and teal theme (preset `b77BPLeYwy`, blue charts).
 - Icon library: `lucide-react`.
 - Import alias: `#/*`.
 - Current app shell lives under `src/features/app-shell/`.
@@ -28,9 +28,10 @@
 - Use shadcn/ui components first. Do not build custom UI primitives when a shadcn component exists.
 - Keep route files thin; route files should compose feature components only.
 - Put reusable product UI under feature folders such as `src/features/<feature-name>/components`.
-- UI preset: shadcn create `b7BF22kWv2` (`radix-mira`, teal theme, teal charts, IBM Plex Sans, lucide). Re-apply with `bunx --bun shadcn@latest apply b7BF22kWv2 -y` after shadcn upgrades; do not hand-edit component sizing or add parallel `--ui-*` tokens.
+- UI preset: shadcn create `b77BPLeYwy` (`radix-mira`, olive base, teal theme, blue charts, IBM Plex Sans, lucide). Semantic status tokens (`success`, `warning`, `info`, `gst`, `money-in`, `money-out`, `inventory`) live in `src/styles.css` — use those instead of raw Tailwind colors. Re-apply preset with `bunx --bun shadcn@latest apply b77BPLeYwy -y` after shadcn upgrades.
 - Use semantic design tokens and shadcn variants instead of raw color utility classes where possible.
-- Use `Badge` for status chips, `Card` composition for cards, `Table` for tabular data, `Sidebar` for navigation, and `Chart`/Recharts for charts.
+- Use `Badge` for status chips with standard variants: `success` (complete/paid), `warning` (pending/at-risk), `destructive` (cancelled/error), `info` (open/in-progress), `neutral`/`secondary` (metadata). Map domain status via `#/lib/badge-intent.ts`.
+- Use `Card` composition for cards, `Table` for tabular data, `Sidebar` for navigation, and `Chart`/Recharts for charts.
 - Use lucide icons inside buttons with `data-icon="inline-start"` or `data-icon="inline-end"`.
 - Use `gap-*`, not `space-y-*` or `space-x-*`.
 - Use `size-*` for square dimensions.

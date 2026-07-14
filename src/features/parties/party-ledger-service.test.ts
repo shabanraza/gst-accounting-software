@@ -16,8 +16,13 @@ class FakeInvoices implements SalesInvoiceRepository {
   async save(record: SalesInvoiceRecord) {
     return record
   }
-  async listByCompanyId() {
-    return this.invoices
+  async listByCompanyId(
+    _companyId: string,
+    options?: { partyId?: string },
+  ) {
+    return this.invoices.filter(
+      (invoice) => !options?.partyId || invoice.customerId === options.partyId,
+    )
   }
 }
 
@@ -35,8 +40,13 @@ class FakeBills implements PurchaseBillRepository {
   async findBySupplierBillNumber(): Promise<PurchaseBillRecord | null> {
     return null
   }
-  async listByCompanyId() {
-    return this.bills
+  async listByCompanyId(
+    _companyId: string,
+    options?: { partyId?: string },
+  ) {
+    return this.bills.filter(
+      (bill) => !options?.partyId || bill.supplierId === options.partyId,
+    )
   }
 }
 

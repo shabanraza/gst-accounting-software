@@ -68,7 +68,7 @@ export async function buildReceivablesAgeing(
   asOf: Date = new Date(),
 ): Promise<AgeingReport> {
   const [invoices, parties] = await Promise.all([
-    deps.invoices.listByCompanyId(companyId),
+    deps.invoices.listByCompanyId(companyId, { includeLines: false }),
     deps.parties.listByCompanyId(companyId),
   ])
   const partyById = new Map(parties.map((party) => [party.id, party]))
@@ -101,7 +101,7 @@ export async function buildPayablesAgeing(
   asOf: Date = new Date(),
 ): Promise<AgeingReport> {
   const [bills, parties] = await Promise.all([
-    deps.bills.listByCompanyId(companyId),
+    deps.bills.listByCompanyId(companyId, { includeLines: false }),
     deps.parties.listByCompanyId(companyId),
   ])
   const partyById = new Map(parties.map((party) => [party.id, party]))

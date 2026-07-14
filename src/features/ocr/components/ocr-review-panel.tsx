@@ -5,7 +5,7 @@ import { CheckIcon, ScanTextIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Badge } from '#/components/ui/badge.tsx'
-import { Button } from '#/components/ui/button.tsx'
+import { ocrDraftBadgeIntent } from '#/lib/badge-intent.ts'
 import {
   Card,
   CardContent,
@@ -163,11 +163,16 @@ export function OcrReviewPanel() {
                       {formatInr(draft.fields.totalAmount.value)}
                     </TableCell>
                     <TableCell>
-                      {draft.lowConfidenceFields.length > 0 ? (
-                        <Badge variant="warning">Low confidence</Badge>
-                      ) : (
-                        <Badge variant="outline">{draft.status}</Badge>
-                      )}
+                      <Badge
+                        variant={ocrDraftBadgeIntent({
+                          lowConfidence: draft.lowConfidenceFields.length > 0,
+                          status: draft.status,
+                        })}
+                      >
+                        {draft.lowConfidenceFields.length > 0
+                          ? 'Low confidence'
+                          : draft.status}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Button

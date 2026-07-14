@@ -41,7 +41,6 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarProvider,
-  SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
 } from '#/components/ui/sidebar.tsx'
@@ -182,7 +181,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-svh text-foreground">
       <SidebarProvider>
         <Sidebar className="print:hidden" collapsible="icon" variant="sidebar">
           <SidebarHeader>
@@ -199,7 +198,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           {displayCompany?.tradeName ??
                             (isReady ? 'No company' : 'Loading…')}
                         </span>
-                        <span className="truncate text-muted-foreground">
+                        <span className="truncate text-sidebar-foreground/60">
                           {displayCompany
                             ? `FY ${displayCompany.financialYearStart}`
                             : 'Workspace'}
@@ -269,7 +268,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       </Avatar>
                       <div className="grid flex-1 text-left leading-tight">
                         <span className="truncate font-medium">{userName}</span>
-                        <span className="truncate text-muted-foreground">
+                        <span className="truncate text-sidebar-foreground/60">
                           {userEmail}
                         </span>
                       </div>
@@ -294,10 +293,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarFooter>
-          <SidebarRail />
         </Sidebar>
         <SidebarInset className="min-h-0 overflow-hidden">
-          <header className="flex h-11 shrink-0 items-center gap-2 px-3 print:hidden">
+          <header className="flex h-11 shrink-0 items-center gap-2 border-b border-border/60 bg-background px-3 print:hidden">
             <SidebarTrigger className="-ml-1" />
             <div className="flex-1" />
             <Button

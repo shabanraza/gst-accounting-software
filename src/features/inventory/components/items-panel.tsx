@@ -2,6 +2,7 @@ import * as React from 'react'
 import { PackageIcon, PlusIcon, SearchIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
+import { itemTrackingBadgeIntent } from '#/lib/badge-intent.ts'
 import { Button } from '#/components/ui/button.tsx'
 import {
   Card,
@@ -31,7 +32,7 @@ export function ItemsPanel() {
 
   const itemsQuery = useItemsList()
 
-  const items = itemsQuery.data ?? []
+  const items = itemsQuery.data
   const filtered = items.filter((item) => {
     const haystack = `${item.name} ${item.hsnCode}`.toLowerCase()
     return haystack.includes(query.trim().toLowerCase())
@@ -120,17 +121,15 @@ export function ItemsPanel() {
                       {item.hsnCode}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{item.gstRate}%</Badge>
+                      <Badge variant="secondary">{item.gstRate}%</Badge>
                     </TableCell>
                     <TableCell>{item.baseUnit}</TableCell>
                     <TableCell>{formatInr(item.purchaseRate)}</TableCell>
                     <TableCell>{formatInr(item.saleRate)}</TableCell>
                     <TableCell>
-                      {item.tracksInventory ? (
-                        <Badge variant="success">Tracked</Badge>
-                      ) : (
-                        <Badge variant="secondary">Service</Badge>
-                      )}
+                      <Badge variant={itemTrackingBadgeIntent(item.tracksInventory)}>
+                        {item.tracksInventory ? 'Tracked' : 'Service'}
+                      </Badge>
                     </TableCell>
                   </TableRow>
                 ))

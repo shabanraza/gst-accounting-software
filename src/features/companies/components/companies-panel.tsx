@@ -276,7 +276,7 @@ export function CompaniesPanel() {
                     {stateLabel(company.stateCode)}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{company.businessType}</Badge>
+                    <Badge variant="neutral">{company.businessType}</Badge>
                   </TableCell>
                   <TableCell>{company.financialYearStart}</TableCell>
                 </TableRow>

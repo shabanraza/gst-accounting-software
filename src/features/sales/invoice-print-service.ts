@@ -1,4 +1,8 @@
 import { buildVoucherPrintDocument } from '#/features/documents/voucher-print-builder.ts'
+import {
+  hasPartySnapshot,
+  toPrintPartyFromSnapshot,
+} from '#/features/documents/voucher-print-mappers.ts'
 
 import type { ItemRecord } from '#/features/inventory/item-service.ts'
 import type { VoucherPrintDocument } from '#/features/documents/voucher-print-types.ts'
@@ -7,10 +11,17 @@ import type { SalesInvoiceRecord } from '#/features/sales/sales-invoice-service.
 export function buildInvoicePrintDocument(input: {
   invoice: SalesInvoiceRecord
   company: VoucherPrintDocument['company']
-  customer: VoucherPrintDocument['party']
+  customer?: VoucherPrintDocument['party']
   itemById: Map<string, ItemRecord>
 }): VoucherPrintDocument {
   const { invoice } = input
+  const customer = hasPartySnapshot(invoice)
+    ? toPrintPartyFromSnapshot(invoice)
+    : input.customer
+
+  if (!customer) {
+    throw new Error('Customer details are required to print this invoice')
+  }
 
   return buildVoucherPrintDocument({
     kind: 'sales',
@@ -26,9 +37,9 @@ export function buildInvoicePrintDocument(input: {
     paymentMode: invoice.paymentMode,
     narration: invoice.narration,
     company: input.company,
-    party: input.customer,
+    party: customer,
     partyLabel: 'Billed to',
-    placeOfSupplyCode: invoice.placeOfSupply || input.customer.stateCode,
+    placeOfSupplyCode: invoice.placeOfSupply || customer.stateCode,
     reverseCharge: invoice.reverseCharge,
     rawLines: invoice.lines.map((line) => ({
       description: line.description,

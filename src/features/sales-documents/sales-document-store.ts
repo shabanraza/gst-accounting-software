@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 
 import { getDb } from '#/db/client.ts'
 import * as schema from '#/db/schema.ts'
@@ -123,17 +123,32 @@ export class DrizzleSalesDocumentRepository implements SalesDocumentRepository {
       .from(schema.salesDocuments)
       .where(eq(schema.salesDocuments.companyId, companyId))
 
-    const results: Array<SalesDocumentRecord> = []
-    for (const document of documents) {
-      const lines = await this.database
-        .select()
-        .from(schema.salesDocumentLines)
-        .where(eq(schema.salesDocumentLines.salesDocumentId, document.id))
-
-      results.push(mapDocumentRow(document, lines.map(mapLineRow)))
+    if (documents.length === 0) {
+      return []
     }
 
-    return results
+    const documentIds = documents.map((document) => document.id)
+    const allLines = await this.database
+      .select()
+      .from(schema.salesDocumentLines)
+      .where(inArray(schema.salesDocumentLines.salesDocumentId, documentIds))
+
+    const linesByDocumentId = new Map<
+      string,
+      Array<(typeof allLines)[number]>
+    >()
+    for (const line of allLines) {
+      const group = linesByDocumentId.get(line.salesDocumentId) ?? []
+      group.push(line)
+      linesByDocumentId.set(line.salesDocumentId, group)
+    }
+
+    return documents.map((document) =>
+      mapDocumentRow(
+        document,
+        (linesByDocumentId.get(document.id) ?? []).map(mapLineRow),
+      ),
+    )
   }
 
   async findById(companyId: string, documentId: string) {

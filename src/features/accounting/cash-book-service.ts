@@ -34,7 +34,10 @@ export async function buildCashBook(
   period: DayBookPeriod,
 ): Promise<CashBookReport> {
   const [entries, accounts] = await Promise.all([
-    deps.postings.listByCompanyId(companyId),
+    deps.postings.listByCompanyId(companyId, {
+      startDate: period.startDate,
+      endDate: period.endDate,
+    }),
     deps.ledgers.listByCompanyId(companyId),
   ])
 
@@ -55,13 +58,6 @@ export async function buildCashBook(
   let totalCredit = new Decimal(0)
 
   for (const entry of entries) {
-    if (
-      entry.entryDate < period.startDate ||
-      entry.entryDate > period.endDate
-    ) {
-      continue
-    }
-
     for (const line of entry.lines) {
       if (!cashAccountIds.has(line.ledgerAccountId)) continue
 

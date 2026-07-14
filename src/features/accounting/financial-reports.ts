@@ -34,8 +34,23 @@ async function sumLinesByAccount(
   postings: LedgerPostingRepository,
   companyId: string,
 ): Promise<Map<string, { debit: Decimal; credit: Decimal }>> {
+  if (postings.sumByAccount) {
+    const totals = await postings.sumByAccount(companyId)
+    const result = new Map<string, { debit: Decimal; credit: Decimal }>()
+    for (const [accountId, amounts] of totals) {
+      result.set(accountId, {
+        debit: money(amounts.debit),
+        credit: money(amounts.credit),
+      })
+    }
+    return result
+  }
+
   const entries = await postings.listByCompanyId(companyId)
-  const totalsByAccountId = new Map<string, { debit: Decimal; credit: Decimal }>()
+  const totalsByAccountId = new Map<
+    string,
+    { debit: Decimal; credit: Decimal }
+  >()
 
   for (const entry of entries) {
     for (const line of entry.lines) {
@@ -169,10 +184,25 @@ export async function buildBalanceSheet(
   },
   companyId: string,
 ): Promise<BalanceSheetReport> {
-  const [trialBalance, profitAndLoss] = await Promise.all([
-    buildTrialBalance(deps, companyId),
-    buildProfitAndLoss(deps, companyId),
-  ])
+  const trialBalance = await buildTrialBalance(deps, companyId)
+
+  const incomeRows = trialBalance.rows.filter(
+    (row) => row.accountType === 'income',
+  )
+  const expenseRows = trialBalance.rows.filter(
+    (row) => row.accountType === 'expense',
+  )
+  const totalIncome = incomeRows.reduce((sum, row) => {
+    const amount =
+      row.balanceType === 'credit' ? money(row.balance) : money(row.balance).neg()
+    return sum.plus(amount)
+  }, new Decimal(0))
+  const totalExpense = expenseRows.reduce((sum, row) => {
+    const amount =
+      row.balanceType === 'debit' ? money(row.balance) : money(row.balance).neg()
+    return sum.plus(amount)
+  }, new Decimal(0))
+  const netProfit = totalIncome.minus(totalExpense)
 
   const assetRows = trialBalance.rows
     .filter((row) => row.accountType === 'asset')
@@ -219,6 +249,6 @@ export async function buildBalanceSheet(
     totalAssets: totalAssets.toFixed(2),
     totalLiabilities: totalLiabilities.toFixed(2),
     totalEquity: totalEquity.toFixed(2),
-    netProfit: profitAndLoss.netProfit,
+    netProfit: netProfit.toFixed(2),
   }
 }

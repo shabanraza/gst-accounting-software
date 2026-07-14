@@ -48,8 +48,12 @@ export class InMemoryStockStore
     return movement
   }
 
-  async listByCompanyId(companyId: string) {
-    return this.movements.filter((movement) => movement.companyId === companyId)
+  async listByCompanyId(companyId: string, options?: { itemId?: string }) {
+    return this.movements.filter((movement) => {
+      if (movement.companyId !== companyId) return false
+      if (options?.itemId && movement.itemId !== options.itemId) return false
+      return true
+    })
   }
 
   async getBalance(companyId: string, itemId: string) {
@@ -194,11 +198,16 @@ export class DrizzleStockStore
     return mapRowToStockMovementRecord(createdMovement)
   }
 
-  async listByCompanyId(companyId: string) {
+  async listByCompanyId(companyId: string, options?: { itemId?: string }) {
+    const conditions = [eq(schema.stockMovements.companyId, companyId)]
+    if (options?.itemId) {
+      conditions.push(eq(schema.stockMovements.itemId, options.itemId))
+    }
+
     const movements = await this.database
       .select()
       .from(schema.stockMovements)
-      .where(eq(schema.stockMovements.companyId, companyId))
+      .where(and(...conditions))
 
     return movements.map(mapRowToStockMovementRecord)
   }

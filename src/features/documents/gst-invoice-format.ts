@@ -45,6 +45,13 @@ const GST_STATE_NAMES: Record<string, string> = {
   '99': 'Centre Jurisdiction',
 }
 
+export function formatIndianDate(value: string | null | undefined): string {
+  if (!value) return '—'
+  const [year, month, day] = value.split('-')
+  if (!year || !month || !day) return value
+  return `${day}/${month}/${year}`
+}
+
 export function normalizeStateCode(code: string | null | undefined): string {
   return (code ?? '').trim().slice(0, 2)
 }

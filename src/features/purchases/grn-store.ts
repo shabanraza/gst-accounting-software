@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 
 import { getDb } from '#/db/client.ts'
 import * as schema from '#/db/schema.ts'
@@ -120,17 +120,26 @@ export class DrizzleGrnRepository implements GrnRepository {
       .from(schema.purchaseGrns)
       .where(eq(schema.purchaseGrns.companyId, companyId))
 
-    const results: Array<GrnRecord> = []
-    for (const grn of grns) {
-      const lines = await this.database
-        .select()
-        .from(schema.purchaseGrnLines)
-        .where(eq(schema.purchaseGrnLines.purchaseGrnId, grn.id))
-
-      results.push(mapGrnRow(grn, lines.map(mapLineRow)))
+    if (grns.length === 0) {
+      return []
     }
 
-    return results
+    const grnIds = grns.map((grn) => grn.id)
+    const allLines = await this.database
+      .select()
+      .from(schema.purchaseGrnLines)
+      .where(inArray(schema.purchaseGrnLines.purchaseGrnId, grnIds))
+
+    const linesByGrnId = new Map<string, Array<GrnLineRow>>()
+    for (const line of allLines) {
+      const group = linesByGrnId.get(line.purchaseGrnId) ?? []
+      group.push(line)
+      linesByGrnId.set(line.purchaseGrnId, group)
+    }
+
+    return grns.map((grn) =>
+      mapGrnRow(grn, (linesByGrnId.get(grn.id) ?? []).map(mapLineRow)),
+    )
   }
 
   async findById(companyId: string, grnId: string) {

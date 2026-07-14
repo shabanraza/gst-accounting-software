@@ -287,7 +287,7 @@ export function ImportsPanel() {
               <UploadIcon data-icon="inline-start" />
               Upload file
             </Button>
-            <Badge variant="outline">
+            <Badge variant="neutral">
               {format === 'busy'
                 ? 'BUSY/EZY export'
                 : format === 'csv'
@@ -307,7 +307,7 @@ export function ImportsPanel() {
             <Button disabled={!companyId} onClick={handleCommit} type="button">
               Commit
             </Button>
-            <Badge variant="outline">
+            <Badge variant="neutral">
               {format === 'busy'
                 ? 'BUSY/EZY'
                 : format === 'csv'

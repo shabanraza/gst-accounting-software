@@ -44,25 +44,7 @@ const accountTypeTabs: Array<{ value: AccountTypeFilter; label: string }> = [
   { value: 'expense', label: 'Expense' },
 ]
 
-function getAccountTypeBadgeVariant(accountType: LedgerAccountType) {
-  if (accountType === 'asset') {
-    return 'info' as const
-  }
-
-  if (accountType === 'liability') {
-    return 'warning' as const
-  }
-
-  if (accountType === 'income') {
-    return 'success' as const
-  }
-
-  if (accountType === 'expense') {
-    return 'destructive' as const
-  }
-
-  return 'secondary' as const
-}
+import { accountTypeBadgeIntent } from '#/lib/badge-intent.ts'
 
 function formatAccountType(accountType: LedgerAccountType) {
   return accountType.charAt(0).toUpperCase() + accountType.slice(1)
@@ -208,7 +190,7 @@ export function ChartOfAccountsPanel() {
                 {accountTypeTabs.map((tab) => (
                   <TabsTrigger key={tab.value} value={tab.value}>
                     {tab.label}
-                    <Badge className="ml-1.5" variant="outline">
+                    <Badge className="ml-1.5" variant="neutral">
                       {typeCounts[tab.value]}
                     </Badge>
                   </TabsTrigger>
@@ -238,7 +220,7 @@ export function ChartOfAccountsPanel() {
                       </TableCell>
                       <TableCell>
                         <Badge
-                          variant={getAccountTypeBadgeVariant(
+                          variant={accountTypeBadgeIntent(
                             account.accountType,
                           )}
                         >
@@ -247,7 +229,7 @@ export function ChartOfAccountsPanel() {
                       </TableCell>
                       <TableCell className="pr-6">
                         {account.isSystem ? (
-                          <Badge variant="secondary">System</Badge>
+                          <Badge variant="neutral">System</Badge>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}

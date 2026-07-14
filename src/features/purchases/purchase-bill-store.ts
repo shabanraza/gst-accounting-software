@@ -1,7 +1,12 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, lte } from 'drizzle-orm'
 
 import { getDb } from '#/db/client.ts'
 import * as schema from '#/db/schema.ts'
+import {
+  applyInMemoryListFilters,
+  resolveListLimit,
+  type ListQueryOptions,
+} from '#/lib/list-query.ts'
 
 import type { AppDatabase } from '#/db/client.ts'
 import type { TaxMode } from '#/features/accounting/voucher-math.ts'
@@ -47,8 +52,15 @@ export class InMemoryPurchaseBillRepository implements PurchaseBillRepository {
     return bill
   }
 
-  async listByCompanyId(companyId: string) {
-    return this.bills.filter((bill) => bill.companyId === companyId)
+  async listByCompanyId(companyId: string, options?: ListQueryOptions) {
+    return applyInMemoryListFilters(
+      this.bills.filter((bill) => bill.companyId === companyId),
+      options,
+      (bill) => bill.billDate,
+      (bill) => bill.supplierId,
+    ).map((bill) =>
+      options?.includeLines === false ? { ...bill, lines: [] } : bill,
+    )
   }
 }
 
@@ -82,6 +94,14 @@ function mapRowsToPurchaseBillRecord(
     vehicleNo: bill.vehicleNo || '',
     lrNumber: bill.lrNumber || '',
     challanRef: bill.challanRef || '',
+    partyNameSnapshot: bill.partyNameSnapshot || '',
+    partyGstinSnapshot: bill.partyGstinSnapshot ?? null,
+    partyPanSnapshot: bill.partyPanSnapshot || '',
+    partyBillingAddressSnapshot: bill.partyBillingAddressSnapshot || '',
+    partyShippingAddressSnapshot: bill.partyShippingAddressSnapshot || '',
+    partyStateCodeSnapshot: bill.partyStateCodeSnapshot || '',
+    partyPhoneSnapshot: bill.partyPhoneSnapshot || '',
+    partyEmailSnapshot: bill.partyEmailSnapshot || '',
     taxableAmount: bill.taxableAmount,
     totalGstAmount: bill.totalGstAmount,
     totalAmount: bill.totalAmount,
@@ -166,6 +186,14 @@ export class DrizzlePurchaseBillRepository implements PurchaseBillRepository {
         vehicleNo: bill.vehicleNo,
         lrNumber: bill.lrNumber,
         challanRef: bill.challanRef,
+        partyNameSnapshot: bill.partyNameSnapshot,
+        partyGstinSnapshot: bill.partyGstinSnapshot,
+        partyPanSnapshot: bill.partyPanSnapshot,
+        partyBillingAddressSnapshot: bill.partyBillingAddressSnapshot,
+        partyShippingAddressSnapshot: bill.partyShippingAddressSnapshot,
+        partyStateCodeSnapshot: bill.partyStateCodeSnapshot,
+        partyPhoneSnapshot: bill.partyPhoneSnapshot,
+        partyEmailSnapshot: bill.partyEmailSnapshot,
         taxableAmount: bill.taxableAmount,
         totalGstAmount: bill.totalGstAmount,
         totalAmount: bill.totalAmount,
@@ -231,14 +259,51 @@ export class DrizzlePurchaseBillRepository implements PurchaseBillRepository {
     return bill
   }
 
-  async listByCompanyId(companyId: string) {
-    const bills = await this.database
+  async listByCompanyId(companyId: string, options?: ListQueryOptions) {
+    const conditions = [eq(schema.purchaseBills.companyId, companyId)]
+    if (options?.partyId) {
+      conditions.push(eq(schema.purchaseBills.supplierId, options.partyId))
+    }
+    if (options?.startDate) {
+      conditions.push(gte(schema.purchaseBills.billDate, options.startDate))
+    }
+    if (options?.endDate) {
+      conditions.push(lte(schema.purchaseBills.billDate, options.endDate))
+    }
+
+    const limit = resolveListLimit(options?.limit)
+    let query = this.database
       .select()
       .from(schema.purchaseBills)
-      .where(eq(schema.purchaseBills.companyId, companyId))
+      .where(and(...conditions))
+      .orderBy(
+        desc(schema.purchaseBills.billDate),
+        desc(schema.purchaseBills.id),
+      )
+      .$dynamic()
+
+    if (limit != null) {
+      query = query.limit(options?.cursor ? limit * 3 : limit)
+    }
+
+    let bills = await query
+
+    if (options?.cursor) {
+      bills = applyInMemoryListFilters(
+        bills,
+        { cursor: options.cursor, limit },
+        (row) => row.billDate,
+      )
+    } else if (limit != null) {
+      bills = bills.slice(0, limit)
+    }
 
     if (bills.length === 0) {
       return []
+    }
+
+    if (options?.includeLines === false) {
+      return bills.map((bill) => mapRowsToPurchaseBillRecord(bill, []))
     }
 
     const billIds = bills.map((bill) => bill.id)
