@@ -4,6 +4,7 @@ import { DownloadIcon, FileBarChartIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Badge } from '#/components/ui/badge.tsx'
+import { gstReconciliationBadgeIntent } from '#/lib/badge-intent.ts'
 import { Button } from '#/components/ui/button.tsx'
 import {
   Card,
@@ -143,9 +144,7 @@ export function ReportsPanel() {
     trpc.reports.gstr2bReconciliation.mutationOptions(),
   )
 
-  function parseGstr2bPortalRows(
-    text: string,
-  ): Array<{
+  function parseGstr2bPortalRows(text: string): Array<{
     supplierGstin: string
     supplierInvoiceNumber: string
     invoiceDate: string
@@ -166,7 +165,7 @@ export function ReportsPanel() {
       parsed &&
       typeof parsed === 'object' &&
       'rows' in parsed &&
-      Array.isArray((parsed as { rows: unknown }).rows)
+      Array.isArray((parsed).rows)
     ) {
       return (parsed as { rows: Array<Record<string, string>> }).rows.map(
         (row) => ({
@@ -353,7 +352,7 @@ export function ReportsPanel() {
                       </TableCell>
                       <TableCell className="font-medium">{row.name}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">{row.accountType}</Badge>
+                        <Badge variant="secondary">{row.accountType}</Badge>
                       </TableCell>
                       <TableCell>{formatInr(row.debit)}</TableCell>
                       <TableCell>{formatInr(row.credit)}</TableCell>
@@ -546,7 +545,7 @@ export function ReportsPanel() {
                           <TableCell>{row.documentNumber}</TableCell>
                           <TableCell>{row.daysOutstanding}</TableCell>
                           <TableCell>
-                            <Badge variant="outline">{row.bucket}</Badge>
+                            <Badge variant="neutral">{row.bucket}</Badge>
                           </TableCell>
                           <TableCell className="text-right">
                             {formatInr(row.outstandingAmount)}
@@ -591,7 +590,7 @@ export function ReportsPanel() {
                           <TableCell>{row.documentNumber}</TableCell>
                           <TableCell>{row.daysOutstanding}</TableCell>
                           <TableCell>
-                            <Badge variant="outline">{row.bucket}</Badge>
+                            <Badge variant="neutral">{row.bucket}</Badge>
                           </TableCell>
                           <TableCell className="text-right">
                             {formatInr(row.outstandingAmount)}
@@ -610,7 +609,9 @@ export function ReportsPanel() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Stock summary</CardTitle>
-              <CardDescription>Current quantity on hand by item</CardDescription>
+              <CardDescription>
+                Current quantity on hand by item
+              </CardDescription>
             </CardHeader>
             <CardContent className="px-0">
               <Table>
@@ -687,7 +688,9 @@ export function ReportsPanel() {
                           {row.itemName}
                         </TableCell>
                         <TableCell>{row.unit}</TableCell>
-                        <TableCell className="text-right">{row.quantity}</TableCell>
+                        <TableCell className="text-right">
+                          {row.quantity}
+                        </TableCell>
                         <TableCell className="text-right">
                           {formatInr(row.avgRate)}
                         </TableCell>
@@ -737,7 +740,7 @@ export function ReportsPanel() {
                       <TableRow key={entry.entryId}>
                         <TableCell>{entry.entryDate}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">{entry.voucherType}</Badge>
+                          <Badge variant="neutral">{entry.voucherType}</Badge>
                         </TableCell>
                         <TableCell className="max-w-64 truncate">
                           {entry.narration}
@@ -841,8 +844,12 @@ export function ReportsPanel() {
                   ) : (
                     (hsnSummaryQuery.data?.rows ?? []).map((row) => (
                       <TableRow key={row.hsnCode}>
-                        <TableCell className="font-medium">{row.hsnCode}</TableCell>
-                        <TableCell className="text-right">{row.quantity}</TableCell>
+                        <TableCell className="font-medium">
+                          {row.hsnCode}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {row.quantity}
+                        </TableCell>
                         <TableCell className="text-right">
                           {formatInr(row.taxableAmount)}
                         </TableCell>
@@ -861,10 +868,12 @@ export function ReportsPanel() {
         <TabsContent className="mt-4" value="gstr2b">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">GSTR-2B reconciliation</CardTitle>
+              <CardTitle className="text-base">
+                GSTR-2B reconciliation
+              </CardTitle>
               <CardDescription>
-                Paste portal JSON or upload a file, then reconcile against posted
-                purchase bills
+                Paste portal JSON or upload a file, then reconcile against
+                posted purchase bills
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -929,13 +938,7 @@ export function ReportsPanel() {
                         </TableCell>
                         <TableCell>
                           <Badge
-                            variant={
-                              row.status === 'matched'
-                                ? 'success'
-                                : row.status === 'mismatched'
-                                  ? 'warning'
-                                  : 'outline'
-                            }
+                            variant={gstReconciliationBadgeIntent(row.status)}
                           >
                             {row.status.replaceAll('_', ' ')}
                           </Badge>
@@ -960,19 +963,25 @@ export function ReportsPanel() {
             <CardContent className="flex flex-col gap-4">
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-lg border p-4">
-                  <p className="text-xs text-muted-foreground">Sales invoices</p>
+                  <p className="text-xs text-muted-foreground">
+                    Sales invoices
+                  </p>
                   <p className="text-lg font-semibold">
                     {exportQuery.data?.salesInvoices.length ?? 0}
                   </p>
                 </div>
                 <div className="rounded-lg border p-4">
-                  <p className="text-xs text-muted-foreground">Purchase bills</p>
+                  <p className="text-xs text-muted-foreground">
+                    Purchase bills
+                  </p>
                   <p className="text-lg font-semibold">
                     {exportQuery.data?.purchaseBills.length ?? 0}
                   </p>
                 </div>
                 <div className="rounded-lg border p-4">
-                  <p className="text-xs text-muted-foreground">Trial balance rows</p>
+                  <p className="text-xs text-muted-foreground">
+                    Trial balance rows
+                  </p>
                   <p className="text-lg font-semibold">
                     {exportQuery.data?.trialBalance.rows.length ?? 0}
                   </p>

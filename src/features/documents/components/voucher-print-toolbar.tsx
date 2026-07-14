@@ -33,7 +33,9 @@ export function VoucherPrintToolbar({
   }
 
   return (
-    <div className={`flex flex-wrap items-center gap-2 print:hidden ${className ?? ''}`}>
+    <div
+      className={`flex flex-wrap items-center gap-2 print:hidden ${className ?? ''}`}
+    >
       <Button onClick={handlePrint} type="button" variant="default">
         <PrinterIcon data-icon="inline-start" />
         Print

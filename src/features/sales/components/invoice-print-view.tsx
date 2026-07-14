@@ -16,7 +16,10 @@ type InvoicePrintViewProps = {
   autoprint?: boolean
 }
 
-export function InvoicePrintView({ invoiceId, autoprint }: InvoicePrintViewProps) {
+export function InvoicePrintView({
+  invoiceId,
+  autoprint,
+}: InvoicePrintViewProps) {
   const trpc = useTRPC()
   const { companyId, company, isReady } = useWorkspace()
 

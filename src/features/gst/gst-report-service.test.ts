@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'vitest'
 
-import { buildGstr1Json, buildGstr1Report } from '#/features/gst/gstr1-report-service.ts'
+import {
+  buildGstr1Json,
+  buildGstr1Report,
+} from '#/features/gst/gstr1-report-service.ts'
 import { buildGstr3bReport } from '#/features/gst/gstr3b-report-service.ts'
 import type { GstReportDocument } from '#/features/gst/gst-report-types.ts'
 

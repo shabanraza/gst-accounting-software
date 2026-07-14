@@ -33,7 +33,10 @@ export async function buildHsnSummary(
   ])
 
   const hsnByItemId = new Map(items.map((item) => [item.id, item.hsnCode]))
-  const totalsByHsn = new Map<string, { taxable: Decimal; gst: Decimal; qty: Decimal }>()
+  const totalsByHsn = new Map<
+    string,
+    { taxable: Decimal; gst: Decimal; qty: Decimal }
+  >()
 
   for (const invoice of invoices) {
     if (

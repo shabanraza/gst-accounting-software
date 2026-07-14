@@ -2,7 +2,10 @@ import { z } from 'zod'
 
 import { recordSalesSummary } from '#/features/dashboard/dashboard-summary-service.ts'
 import { ensureInventoryOpeningStock } from '#/features/inventory/opening-stock.ts'
-import { cancelSalesInvoice, postSalesInvoice } from '#/features/sales/sales-invoice-service.ts'
+import {
+  cancelSalesInvoice,
+  postSalesInvoice,
+} from '#/features/sales/sales-invoice-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 import { companyProcedure } from '#/integrations/trpc/init.ts'
 import { sendInvoiceEmail } from '#/lib/email.ts'
@@ -34,6 +37,11 @@ const lineSchema = z.object({
 const postSalesInvoiceInputSchema = z.object({
   companyId: z.string().uuid(),
   companyStateCode: z.string().length(2),
+  companyGstin: z.string().nullable().optional(),
+  companyAddressLine1: z.string().optional(),
+  companyAddressLine2: z.string().optional(),
+  companyCity: z.string().optional(),
+  companyPincode: z.string().optional(),
   customerId: z.string().uuid(),
   customerStateCode: z.string().length(2),
   placeOfSupply: z.string().length(2).optional(),
@@ -65,6 +73,14 @@ const postSalesInvoiceInputSchema = z.object({
 
 const listSalesInputSchema = z.object({
   companyId: z.string().uuid(),
+  includeLines: z.boolean().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  partyId: z.string().uuid().optional(),
+  paymentStatus: z.enum(['Paid', 'Part paid', 'Pending']).optional(),
+  search: z.string().optional(),
+  limit: z.number().int().min(1).max(500).optional(),
+  cursor: z.string().optional(),
 })
 
 const getSalesInvoiceInputSchema = z.object({
@@ -98,7 +114,16 @@ export const createSalesRouter = (
     list: capabilityProcedure('view')
       .input(listSalesInputSchema)
       .query(({ input }) => {
-        return invoices.listByCompanyId(input.companyId)
+        return invoices.listByCompanyId(input.companyId, {
+          includeLines: input.includeLines ?? false,
+          startDate: input.startDate,
+          endDate: input.endDate,
+          partyId: input.partyId,
+          paymentStatus: input.paymentStatus,
+          search: input.search,
+          limit: input.limit,
+          cursor: input.cursor,
+        })
       }),
     getById: capabilityProcedure('view')
       .input(getSalesInvoiceInputSchema)

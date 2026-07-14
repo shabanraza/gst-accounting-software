@@ -9,7 +9,9 @@ import {
 
 describe('amountInWords', () => {
   test('formats rupees and paise in the Indian system', () => {
-    expect(amountInWords('2520.00')).toBe('Two Thousand Five Hundred Twenty Rupees Only')
+    expect(amountInWords('2520.00')).toBe(
+      'Two Thousand Five Hundred Twenty Rupees Only',
+    )
     expect(amountInWords('105.50')).toBe(
       'One Hundred Five Rupees and Fifty Paise Only',
     )

@@ -1,6 +1,11 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import {
   BanIcon,
   EyeIcon,
@@ -38,10 +43,15 @@ import {
 } from '#/components/ui/tooltip.tsx'
 import { VoucherPreviewSheet } from '#/features/documents/components/voucher-preview-sheet.tsx'
 import type { VoucherPreviewTarget } from '#/features/documents/components/voucher-preview-sheet.tsx'
+import {
+  nextVoucherListCursor,
+  VOUCHER_LIST_PAGE_SIZE,
+} from '#/features/documents/voucher-list-pagination.ts'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { invoiceStatusBadgeIntent } from '#/lib/badge-intent.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function SalesPanel() {
@@ -59,12 +69,26 @@ export function SalesPanel() {
     id: string
     invoiceNumber: string
   } | null>(null)
-  const salesQuery = useQuery({
-    ...trpc.sales.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const resolvedCompanyId = companyId ?? '00000000-0000-4000-8000-000000000099'
+  const salesQuery = useInfiniteQuery(
+    trpc.sales.list.infiniteQueryOptions(
+      {
+        companyId: resolvedCompanyId,
+        limit: VOUCHER_LIST_PAGE_SIZE,
+        paymentStatus: filter === 'all' ? undefined : filter,
+        search: query.trim() || undefined,
+      },
+      {
+        enabled: Boolean(companyId) && isReady,
+        getNextPageParam: (lastPage) =>
+          nextVoucherListCursor(
+            lastPage,
+            VOUCHER_LIST_PAGE_SIZE,
+            (row) => row.invoiceDate,
+          ),
+      },
+    ),
+  )
   const cancelInvoiceMutation = useMutation({
     ...trpc.sales.cancelInvoice.mutationOptions(),
     onSuccess: () => {
@@ -78,7 +102,7 @@ export function SalesPanel() {
   })
   const partiesQuery = useQuery({
     ...trpc.parties.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
+      companyId: resolvedCompanyId,
     }),
     enabled: Boolean(companyId) && isReady,
   })
@@ -90,13 +114,7 @@ export function SalesPanel() {
     return (id: string) => map.get(id) ?? id.slice(0, 8)
   }, [partiesQuery.data])
 
-  const rows = salesQuery.data ?? []
-  const filtered = rows.filter((row) => {
-    const matchesFilter = filter === 'all' || row.paymentStatus === filter
-    const haystack =
-      `${row.invoiceNumber} ${partyName(row.customerId)}`.toLowerCase()
-    return matchesFilter && haystack.includes(query.trim().toLowerCase())
-  })
+  const rows = salesQuery.data?.pages.flat() ?? []
 
   function openPreview(row: { id: string; invoiceNumber: string }) {
     setPreviewTarget({
@@ -168,7 +186,7 @@ export function SalesPanel() {
                   Loading sales…
                 </TableCell>
               </TableRow>
-            ) : filtered.length === 0 ? (
+            ) : rows.length === 0 ? (
               <TableRow>
                 <TableCell
                   className="py-10 text-center text-muted-foreground"
@@ -178,7 +196,7 @@ export function SalesPanel() {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((row) => (
+              rows.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell className="font-medium">
                     {row.invoiceNumber}
@@ -189,15 +207,16 @@ export function SalesPanel() {
                   <TableCell>{formatInr(row.totalGstAmount)}</TableCell>
                   <TableCell>{formatInr(row.totalAmount)}</TableCell>
                   <TableCell>
-                    {row.status === 'cancelled' ? (
-                      <Badge variant="destructive">Cancelled</Badge>
-                    ) : row.paymentStatus === 'Paid' ? (
-                      <Badge variant="success">Paid</Badge>
-                    ) : row.paymentStatus === 'Part paid' ? (
-                      <Badge variant="warning">Part paid</Badge>
-                    ) : (
-                      <Badge variant="info">Pending</Badge>
-                    )}
+                    <Badge
+                      variant={invoiceStatusBadgeIntent({
+                        cancelled: row.status === 'cancelled',
+                        paymentStatus: row.paymentStatus,
+                      })}
+                    >
+                      {row.status === 'cancelled'
+                        ? 'Cancelled'
+                        : row.paymentStatus}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
@@ -258,6 +277,18 @@ export function SalesPanel() {
             )}
           </TableBody>
         </Table>
+        {salesQuery.hasNextPage ? (
+          <div className="flex justify-center">
+            <Button
+              disabled={salesQuery.isFetchingNextPage}
+              onClick={() => void salesQuery.fetchNextPage()}
+              type="button"
+              variant="outline"
+            >
+              {salesQuery.isFetchingNextPage ? 'Loading…' : 'Load more'}
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       <VoucherPreviewSheet

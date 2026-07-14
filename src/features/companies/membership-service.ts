@@ -80,9 +80,7 @@ export function roleHasCapability(
   return roleCapabilities[role].includes(capability)
 }
 
-export function rolesForCapability(
-  capability: Capability,
-): Array<CompanyRole> {
+export function rolesForCapability(capability: Capability): Array<CompanyRole> {
   return (Object.keys(roleCapabilities) as Array<CompanyRole>).filter((role) =>
     roleCapabilities[role].includes(capability),
   )
@@ -105,7 +103,11 @@ export async function assertCapability(
 
 export async function assertMembershipRole(
   repository: MembershipRepository,
-  input: { companyId: string; userId: string; allowedRoles: Array<CompanyRole> },
+  input: {
+    companyId: string
+    userId: string
+    allowedRoles: Array<CompanyRole>
+  },
 ): Promise<MembershipRecord> {
   const membership = await repository.findByCompanyAndUser(
     input.companyId,
@@ -113,7 +115,10 @@ export async function assertMembershipRole(
   )
 
   if (!membership || !input.allowedRoles.includes(membership.role)) {
-    throw new InsufficientRoleError(membership?.role ?? null, input.allowedRoles)
+    throw new InsufficientRoleError(
+      membership?.role ?? null,
+      input.allowedRoles,
+    )
   }
 
   return membership

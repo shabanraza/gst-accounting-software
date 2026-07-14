@@ -65,11 +65,7 @@ export const createSalesDocumentsRouter = (
       )
     }),
     getById: publicProcedure.input(byIdInputSchema).query(({ input }) => {
-      return getSalesDocumentById(
-        repository,
-        input.companyId,
-        input.documentId,
-      )
+      return getSalesDocumentById(repository, input.companyId, input.documentId)
     }),
     buildInvoiceDraft: publicProcedure
       .input(byIdInputSchema)

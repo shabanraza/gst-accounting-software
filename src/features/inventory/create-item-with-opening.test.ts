@@ -106,7 +106,9 @@ describe('createItemWithOpening', () => {
     })
 
     expect(result.openingMovement?.movementType).toBe('opening')
-    expect(await getCurrentStock(stock, 'company-1', result.item.id)).toBe('100')
+    expect(await getCurrentStock(stock, 'company-1', result.item.id)).toBe(
+      '100',
+    )
   })
 
   test('skips opening movement for service items', async () => {

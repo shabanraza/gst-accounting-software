@@ -83,43 +83,45 @@ export const mutatingProcedure = protectedProcedure
  * (see `assertCapability`) run inside each router using the injected membership
  * repository so unit tests can supply their own memberships.
  */
-export const companyProcedure = t.procedure.use(async ({ ctx, next, getRawInput }) => {
-  if (!ctx.session?.user) {
-    throw new TRPCError({ code: 'UNAUTHORIZED' })
-  }
+export const companyProcedure = t.procedure.use(
+  async ({ ctx, next, getRawInput }) => {
+    if (!ctx.session?.user) {
+      throw new TRPCError({ code: 'UNAUTHORIZED' })
+    }
 
-  const rawInput = await getRawInput()
-  const companyId =
-    rawInput &&
-    typeof rawInput === 'object' &&
-    'companyId' in rawInput &&
-    typeof rawInput.companyId === 'string'
-      ? rawInput.companyId
-      : null
+    const rawInput = await getRawInput()
+    const companyId =
+      rawInput &&
+      typeof rawInput === 'object' &&
+      'companyId' in rawInput &&
+      typeof rawInput.companyId === 'string'
+        ? rawInput.companyId
+        : null
 
-  if (!companyId) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message: 'companyId is required for this action',
+    if (!companyId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'companyId is required for this action',
+      })
+    }
+
+    const memberships = createMembershipRepository()
+    try {
+      await assertCompanyMembership(memberships, {
+        companyId,
+        userId: ctx.session.user.id,
+      })
+    } catch {
+      throw new TRPCError({ code: 'FORBIDDEN' })
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        session: ctx.session,
+        userId: ctx.session.user.id,
+        companyId,
+      },
     })
-  }
-
-  const memberships = createMembershipRepository()
-  try {
-    await assertCompanyMembership(memberships, {
-      companyId,
-      userId: ctx.session.user.id,
-    })
-  } catch {
-    throw new TRPCError({ code: 'FORBIDDEN' })
-  }
-
-  return next({
-    ctx: {
-      ...ctx,
-      session: ctx.session,
-      userId: ctx.session.user.id,
-      companyId,
-    },
-  })
-})
+  },
+)

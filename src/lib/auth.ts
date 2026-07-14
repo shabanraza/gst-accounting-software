@@ -4,10 +4,7 @@ import { tanstackStartCookies } from 'better-auth/tanstack-start'
 
 import { getDb } from '#/db/client.ts'
 import * as schema from '#/db/schema.ts'
-import {
-  sendPasswordResetEmail,
-  sendVerificationEmail,
-} from '#/lib/email.ts'
+import { sendPasswordResetEmail, sendVerificationEmail } from '#/lib/email.ts'
 
 const database = getDb()
 

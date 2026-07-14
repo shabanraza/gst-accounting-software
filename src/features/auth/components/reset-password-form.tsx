@@ -34,7 +34,10 @@ export function ResetPasswordForm() {
     }
 
     setIsSubmitting(true)
-    const result = await authClient.resetPassword({ newPassword: password, token })
+    const result = await authClient.resetPassword({
+      newPassword: password,
+      token,
+    })
     setIsSubmitting(false)
 
     if (result.error) {

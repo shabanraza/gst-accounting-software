@@ -68,10 +68,7 @@ export async function createPriceList(
     throw new InvalidPriceListError('Price list name is required')
   }
 
-  const existing = await repository.findByCompanyAndName(
-    input.companyId,
-    name,
-  )
+  const existing = await repository.findByCompanyAndName(input.companyId, name)
 
   if (existing) {
     throw new DuplicatePriceListNameError(name)

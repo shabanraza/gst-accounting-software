@@ -16,7 +16,9 @@ export type StockValuationRow = {
 export async function buildStockValuation(
   deps: {
     balances: StockBalanceRepository
-    items: { listByCompanyId: (companyId: string) => Promise<Array<ItemRecord>> }
+    items: {
+      listByCompanyId: (companyId: string) => Promise<Array<ItemRecord>>
+    }
   },
   companyId: string,
 ): Promise<Array<StockValuationRow>> {

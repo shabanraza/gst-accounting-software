@@ -39,7 +39,11 @@ export async function sendEmail(input: SendEmailInput): Promise<void> {
   }
 }
 
-function emailShell(title: string, bodyHtml: string, cta?: { label: string; url: string }) {
+function emailShell(
+  title: string,
+  bodyHtml: string,
+  cta?: { label: string; url: string },
+) {
   return `
     <div style="font-family:Inter,system-ui,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#111">
       <h2 style="margin:0 0 12px;font-size:18px">${title}</h2>
@@ -54,7 +58,10 @@ function emailShell(title: string, bodyHtml: string, cta?: { label: string; url:
   `
 }
 
-export async function sendVerificationEmail(input: { to: string; url: string }) {
+export async function sendVerificationEmail(input: {
+  to: string
+  url: string
+}) {
   await sendEmail({
     to: input.to,
     subject: 'Verify your ClothBooks email',
@@ -66,7 +73,10 @@ export async function sendVerificationEmail(input: { to: string; url: string }) 
   })
 }
 
-export async function sendPasswordResetEmail(input: { to: string; url: string }) {
+export async function sendPasswordResetEmail(input: {
+  to: string
+  url: string
+}) {
   await sendEmail({
     to: input.to,
     subject: 'Reset your ClothBooks password',

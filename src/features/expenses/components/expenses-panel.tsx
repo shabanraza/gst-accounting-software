@@ -71,8 +71,7 @@ export function ExpensesPanel() {
 
   const expenseAccountId = ledgerBySystemKey.expenses
   const paymentAccounts = (ledgersQuery.data ?? []).filter(
-    (account) =>
-      account.systemKey === 'cash' || account.systemKey === 'bank',
+    (account) => account.systemKey === 'cash' || account.systemKey === 'bank',
   )
 
   React.useEffect(() => {

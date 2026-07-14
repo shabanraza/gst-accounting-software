@@ -2,7 +2,10 @@ import Decimal from 'decimal.js'
 
 import { createItem } from '#/features/inventory/item-service.ts'
 import { createParty } from '#/features/parties/party-service.ts'
-import { postPurchaseBill, DuplicateSupplierBillError } from '#/features/purchases/purchase-bill-service.ts'
+import {
+  postPurchaseBill,
+  DuplicateSupplierBillError,
+} from '#/features/purchases/purchase-bill-service.ts'
 import { assertLedgerAccountsBelongToCompany } from '#/features/accounting/ledger-account-guards.ts'
 
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
@@ -214,38 +217,41 @@ export async function confirmOcrDraft(
     payableAccountId: input.payableAccountId,
   })
   const item = await resolveOcrItem(deps.items, input.companyId)
-  const gstRate = deriveGstRate(fields.taxableAmount.value, fields.gstAmount.value)
+  const gstRate = deriveGstRate(
+    fields.taxableAmount.value,
+    fields.gstAmount.value,
+  )
   const billDate = fields.billDate.value
   const taxableAmount = fields.taxableAmount.value
 
   let bill: PurchaseBillRecord
   try {
     bill = await postPurchaseBill(deps, {
-    companyId: input.companyId,
-    companyStateCode: input.companyStateCode,
-    financialYearStart: input.financialYearStart,
-    supplierId: supplier.id,
-    supplierStateCode: supplier.stateCode,
-    supplierBillNumber: fields.billNumber.value,
-    billDate,
-    dueDate: dueDateFromBillDate(billDate),
-    taxMode: 'exclusive',
-    narration: `OCR purchase bill ${fields.billNumber.value}`,
-    purchaseAccountId: input.purchaseAccountId,
-    inputGstAccountId: input.inputGstAccountId,
-    payableAccountId: input.payableAccountId,
-    stockAccountId: input.stockAccountId,
-    skipStockMovement: true,
-    lines: [
-      {
-        itemId: item.id,
-        description: `OCR import from ${fields.supplierName.value}`,
-        quantity: '1',
-        unit: item.baseUnit,
-        rate: taxableAmount,
-        gstRate,
-      },
-    ],
+      companyId: input.companyId,
+      companyStateCode: input.companyStateCode,
+      financialYearStart: input.financialYearStart,
+      supplierId: supplier.id,
+      supplierStateCode: supplier.stateCode,
+      supplierBillNumber: fields.billNumber.value,
+      billDate,
+      dueDate: dueDateFromBillDate(billDate),
+      taxMode: 'exclusive',
+      narration: `OCR purchase bill ${fields.billNumber.value}`,
+      purchaseAccountId: input.purchaseAccountId,
+      inputGstAccountId: input.inputGstAccountId,
+      payableAccountId: input.payableAccountId,
+      stockAccountId: input.stockAccountId,
+      skipStockMovement: true,
+      lines: [
+        {
+          itemId: item.id,
+          description: `OCR import from ${fields.supplierName.value}`,
+          quantity: '1',
+          unit: item.baseUnit,
+          rate: taxableAmount,
+          gstRate,
+        },
+      ],
     })
   } catch (error) {
     if (error instanceof DuplicateSupplierBillError) {

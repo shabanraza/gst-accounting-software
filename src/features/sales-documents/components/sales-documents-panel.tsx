@@ -37,23 +37,13 @@ import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
+import { documentStatusBadgeIntent } from '#/lib/badge-intent.ts'
+
 const documentTypeLabels = {
   quotation: 'Quotation',
   sales_order: 'Sales order',
   delivery_challan: 'Delivery challan',
 } as const
-
-function documentStatusBadgeVariant(status: string) {
-  if (status === 'open') {
-    return 'info' as const
-  }
-
-  if (status === 'converted') {
-    return 'success' as const
-  }
-
-  return 'outline' as const
-}
 
 export function SalesDocumentsPanel() {
   const trpc = useTRPC()
@@ -119,7 +109,9 @@ export function SalesDocumentsPanel() {
       await createDocument.mutateAsync({
         companyId,
         documentType,
-        documentNumber: documentNumber.trim() || `${documentType.toUpperCase()}-${Date.now()}`,
+        documentNumber:
+          documentNumber.trim() ||
+          `${documentType.toUpperCase()}-${Date.now()}`,
         documentDate,
         customerId,
         lines: [
@@ -167,11 +159,13 @@ export function SalesDocumentsPanel() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    {Object.entries(documentTypeLabels).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
+                    {Object.entries(documentTypeLabels).map(
+                      ([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ),
+                    )}
                   </SelectGroup>
                 </SelectContent>
               </Select>
@@ -236,7 +230,9 @@ export function SalesDocumentsPanel() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Documents</CardTitle>
-            <CardDescription>Open documents for the active company.</CardDescription>
+            <CardDescription>
+              Open documents for the active company.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -254,14 +250,16 @@ export function SalesDocumentsPanel() {
                 {(documentsQuery.data ?? []).map((document) => (
                   <TableRow key={document.id}>
                     <TableCell>
-                      <Badge variant="outline">
+                      <Badge variant="neutral">
                         {documentTypeLabels[document.documentType]}
                       </Badge>
                     </TableCell>
                     <TableCell>{document.documentNumber}</TableCell>
                     <TableCell>{document.documentDate}</TableCell>
                     <TableCell>
-                      <Badge variant={documentStatusBadgeVariant(document.status)}>
+                      <Badge
+                        variant={documentStatusBadgeIntent(document.status)}
+                      >
                         {document.status}
                       </Badge>
                     </TableCell>

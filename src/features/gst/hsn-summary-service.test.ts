@@ -94,11 +94,10 @@ describe('buildHsnSummary', () => {
       },
     ])
 
-    const report = await buildHsnSummary(
-      { invoices, items },
-      companyId,
-      { startDate: '2026-04-01', endDate: '2026-04-30' },
-    )
+    const report = await buildHsnSummary({ invoices, items }, companyId, {
+      startDate: '2026-04-01',
+      endDate: '2026-04-30',
+    })
 
     expect(report.rows).toHaveLength(1)
     expect(report.rows[0]).toMatchObject({

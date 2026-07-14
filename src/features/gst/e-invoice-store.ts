@@ -16,9 +16,8 @@ export class InMemoryEInvoiceRepository implements EInvoiceRepository {
 
   async findBySalesInvoiceId(salesInvoiceId: string) {
     return (
-      this.records.find(
-        (record) => record.salesInvoiceId === salesInvoiceId,
-      ) ?? null
+      this.records.find((record) => record.salesInvoiceId === salesInvoiceId) ??
+      null
     )
   }
 
@@ -37,9 +36,8 @@ export class InMemoryEWayBillRepository implements EWayBillRepository {
 
   async findBySalesInvoiceId(salesInvoiceId: string) {
     return (
-      this.records.find(
-        (record) => record.salesInvoiceId === salesInvoiceId,
-      ) ?? null
+      this.records.find((record) => record.salesInvoiceId === salesInvoiceId) ??
+      null
     )
   }
 

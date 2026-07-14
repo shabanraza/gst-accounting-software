@@ -35,7 +35,8 @@ export function usePartiesList(): MasterListResult<PartyRecord> {
   }, [companyId, queryClient, trpc])
 
   const live = useLiveQuery(
-    (q) => (enabled && collection ? q.from({ parties: collection }) : undefined),
+    (q) =>
+      enabled && collection ? q.from({ parties: collection }) : undefined,
     [collection, enabled],
   )
 

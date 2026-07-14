@@ -172,7 +172,8 @@ export function PurchaseOrdersPanel() {
           <CardHeader>
             <CardTitle className="text-base">New purchase order</CardTitle>
             <CardDescription>
-              Commitment to supplier — convert to purchase bill when goods arrive.
+              Commitment to supplier — convert to purchase bill when goods
+              arrive.
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -179,7 +179,9 @@ export async function createGrnFromPurchaseOrder(
   )
 
   if (!order) {
-    throw new InvalidGrnError(`Purchase order not found: ${input.purchaseOrderId}`)
+    throw new InvalidGrnError(
+      `Purchase order not found: ${input.purchaseOrderId}`,
+    )
   }
 
   if (order.status !== 'open') {

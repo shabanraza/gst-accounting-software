@@ -66,7 +66,9 @@ export async function createPurchaseOrder(
   input: CreatePurchaseOrderInput,
 ): Promise<PurchaseOrderRecord> {
   if (input.lines.length === 0) {
-    throw new InvalidPurchaseOrderError('Purchase order requires at least one line')
+    throw new InvalidPurchaseOrderError(
+      'Purchase order requires at least one line',
+    )
   }
 
   const lines: Array<PurchaseOrderLineRecord> = input.lines.map((line) => {

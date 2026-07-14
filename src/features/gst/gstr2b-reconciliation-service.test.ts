@@ -1,7 +1,10 @@
 import { describe, expect, test } from 'vitest'
 
 import { reconcileGstr2b } from '#/features/gst/gstr2b-reconciliation-service.ts'
-import type { PurchaseBillRecord, PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
+import type {
+  PurchaseBillRecord,
+  PurchaseBillRepository,
+} from '#/features/purchases/purchase-bill-service.ts'
 
 class FakeBills implements PurchaseBillRepository {
   constructor(private readonly bills: Array<PurchaseBillRecord>) {}

@@ -1,7 +1,10 @@
 import { describe, expect, test } from 'vitest'
 
 import { createItem } from '#/features/inventory/item-service.ts'
-import { InMemoryItemRepository, InMemoryStockStore } from '#/features/inventory/inventory-store.ts'
+import {
+  InMemoryItemRepository,
+  InMemoryStockStore,
+} from '#/features/inventory/inventory-store.ts'
 import {
   buildPurchaseBillDraftFromGrn,
   createGrnFromPurchaseOrder,

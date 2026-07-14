@@ -44,7 +44,9 @@ describe('company starter data', () => {
     expect(result.parties.length).toBeGreaterThanOrEqual(3)
     expect(result.items.length).toBeGreaterThanOrEqual(2)
 
-    const fabricItem = result.items.find((item) => item.name === 'Cotton Fabric')
+    const fabricItem = result.items.find(
+      (item) => item.name === 'Cotton Fabric',
+    )
     expect(fabricItem).toBeTruthy()
 
     const balance = await getCurrentStock(stock, companyId, fabricItem!.id)

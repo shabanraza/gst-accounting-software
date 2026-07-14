@@ -2,10 +2,11 @@ import { z } from 'zod'
 
 import {
   createDocumentAttachment,
-  type DocumentAttachmentRepository,
-  type ObjectStorageAdapter,
-  InMemoryObjectStorageAdapter,
+  
+  
+  InMemoryObjectStorageAdapter
 } from '#/features/documents/document-attachment-service.ts'
+import type {DocumentAttachmentRepository, ObjectStorageAdapter} from '#/features/documents/document-attachment-service.ts';
 import { nextDocumentNumber } from '#/features/documents/document-sequence-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 import { companyProcedure } from '#/integrations/trpc/init.ts'

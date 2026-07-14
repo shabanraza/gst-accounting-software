@@ -161,7 +161,8 @@ export function VoucherPreviewSheet({
                 {target?.kind === 'sales' ? 'Invoice saved' : 'Bill saved'}
               </SheetTitle>
               <SheetDescription>
-                {target?.number} · Preview matches what prints or exports as PDF.
+                {target?.number} · Preview matches what prints or exports as
+                PDF.
               </SheetDescription>
             </div>
           </div>
@@ -169,7 +170,10 @@ export function VoucherPreviewSheet({
 
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="shrink-0 border-b px-6 py-3">
-            <VoucherPrintToolbar fullPageHref={fullPageHref} pdfHref={pdfHref} />
+            <VoucherPrintToolbar
+              fullPageHref={fullPageHref}
+              pdfHref={pdfHref}
+            />
           </div>
 
           <div className="flex min-h-0 flex-1 justify-center overflow-y-auto bg-background px-4 py-6 sm:px-6 sm:py-8">

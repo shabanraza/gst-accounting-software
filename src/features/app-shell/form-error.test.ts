@@ -11,9 +11,7 @@ describe('getFormErrorMessage', () => {
       'Failed to generate e-way bill',
     )
 
-    expect(message).toBe(
-      'An e-way bill is already generated for this invoice.',
-    )
+    expect(message).toBe('An e-way bill is already generated for this invoice.')
   })
 
   it('maps e-invoice duplicate errors to a friendly message', () => {
@@ -24,9 +22,7 @@ describe('getFormErrorMessage', () => {
       'Failed to generate IRN',
     )
 
-    expect(message).toBe(
-      'An e-invoice is already generated for this invoice.',
-    )
+    expect(message).toBe('An e-invoice is already generated for this invoice.')
   })
 
   it('keeps readable business validation messages', () => {
