@@ -8,6 +8,7 @@ import {
   revokeInvitation,
 } from '#/features/team/invitation-service.ts'
 import { sendInvitationEmail } from '#/lib/email.ts'
+import { getServerBaseUrl } from '#/lib/server-base-url.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 import { protectedProcedure } from '#/integrations/trpc/init.ts'
 
@@ -33,7 +34,7 @@ export type TeamRouterDependencies = {
 }
 
 function inviteUrl(token: string): string {
-  const base = process.env.BETTER_AUTH_URL ?? ''
+  const base = getServerBaseUrl()
   return `${base}/accept-invite?token=${token}`
 }
 
@@ -166,7 +167,10 @@ export const createTeamRouter = (deps: TeamRouterDependencies) =>
         const members = await deps.memberships.listByCompanyId(input.companyId)
         const target = members.find((entry) => entry.userId === input.userId)
         if (!target) {
-          throw new TRPCError({ code: 'NOT_FOUND', message: 'Member not found' })
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Member not found',
+          })
         }
         if (target.role === 'owner') {
           throw new TRPCError({
