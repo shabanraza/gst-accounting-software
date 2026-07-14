@@ -108,13 +108,13 @@ const CollapsibleSectionTrigger = React.forwardRef<
       variant="ghost"
       {...props}
     >
-      <ChevronDownIcon className="shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
       {title}
       {filledCount ? (
         <Badge className="font-normal" variant="secondary">
           {filledCount}
         </Badge>
       ) : null}
+      <ChevronDownIcon className="ml-auto shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
     </Button>
   )
 })

@@ -346,7 +346,10 @@ body {
   [data-slot='input'][data-voucher-grid-control],
 [data-voucher-grid]
   [data-voucher-grid-cell]
-  [data-slot='select-trigger'][data-voucher-grid-control] {
+  [data-slot='select-trigger'][data-voucher-grid-control],
+[data-voucher-grid]
+  [data-voucher-grid-cell]
+  [data-master-lookup][data-voucher-grid-control] {
   @apply h-9 w-full min-w-0 rounded-none border-0 bg-transparent px-2 py-0 text-sm shadow-none;
   @apply hover:bg-transparent focus-visible:border-0 focus-visible:ring-0 focus-visible:outline-none;
   @apply dark:bg-transparent dark:hover:bg-transparent;

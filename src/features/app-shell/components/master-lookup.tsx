@@ -30,6 +30,7 @@ type MasterLookupProps = {
   searchPlaceholder?: string
   title?: string
   className?: string
+  appearance?: 'default' | 'grid'
   disabled?: boolean
   onFocus?: () => void
   createAction?: {
@@ -47,12 +48,14 @@ export function MasterLookup({
   searchPlaceholder = 'Type to search…',
   title = 'Lookup',
   className,
+  appearance = 'default',
   disabled,
   onFocus,
   createAction,
 }: MasterLookupProps) {
   const [open, setOpen] = React.useState(false)
   const selected = options.find((option) => option.value === value)
+  const isGrid = appearance === 'grid'
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
     if (disabled) return
@@ -65,16 +68,25 @@ export function MasterLookup({
   return (
     <>
       <Button
-        className={cn('w-full justify-between font-normal', className)}
+        className={cn(
+          'w-full justify-between font-normal',
+          isGrid && 'h-9 rounded-none px-2 shadow-none',
+          className,
+        )}
         data-master-lookup
+        data-voucher-grid-control={isGrid ? '' : undefined}
         disabled={disabled}
         onClick={() => setOpen(true)}
         onFocus={onFocus}
         onKeyDown={handleKeyDown}
         type="button"
-        variant="outline"
+        variant={isGrid ? 'ghost' : 'outline'}
       >
-        <span className="truncate">{selected?.label ?? placeholder}</span>
+        <span
+          className={cn('truncate', !selected && 'text-muted-foreground')}
+        >
+          {selected?.label ?? placeholder}
+        </span>
         <span className="flex shrink-0 items-center gap-1 text-muted-foreground">
           <kbd className="rounded border px-1 font-mono text-[10px]">F2</kbd>
           <ChevronsUpDownIcon className="size-3.5 opacity-50" />

@@ -1,6 +1,7 @@
 {
   "name": "gst-accounting-software",
   "description": "Modern Indian GST accounting, inventory, and business operations SaaS",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "imports": {

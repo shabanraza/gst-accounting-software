@@ -5,16 +5,16 @@ export type ThemePreference = 'light' | 'dark' | 'system'
 const STORAGE_KEY = 'clothbooks-theme'
 
 function readStoredPreference(): ThemePreference {
-  if (typeof window === 'undefined') return 'system'
+  if (typeof window === 'undefined') return 'light'
   const value = window.localStorage.getItem(STORAGE_KEY)
   if (value === 'light' || value === 'dark' || value === 'system') {
     return value
   }
-  return 'system'
+  return 'light'
 }
 
 function systemPrefersDark(): boolean {
-  if (typeof window === 'undefined') return true
+  if (typeof window === 'undefined') return false
   return window.matchMedia('(prefers-color-scheme: dark)').matches
 }
 
@@ -25,7 +25,7 @@ function applyResolvedTheme(isDark: boolean) {
 
 export function useTheme() {
   const [mounted, setMounted] = React.useState(false)
-  const [preference, setPreference] = React.useState<ThemePreference>('system')
+  const [preference, setPreference] = React.useState<ThemePreference>('light')
   const [systemDark, setSystemDark] = React.useState(false)
 
   React.useEffect(() => {
