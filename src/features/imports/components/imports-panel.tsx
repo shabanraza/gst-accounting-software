@@ -1,6 +1,5 @@
 import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { UploadIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Badge } from '#/components/ui/badge.tsx'
@@ -12,11 +11,14 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
+import { Input } from '#/components/ui/input.tsx'
+import { Label } from '#/components/ui/label.tsx'
 import { Textarea } from '#/components/ui/textarea.tsx'
 import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
+import { requireTrimmed, requireWorkspace } from '#/lib/form-validation.ts'
 import { parseBusyExport } from '#/features/imports/busy-format-parser.ts'
 import { parseCsvRows } from '#/features/imports/csv-parser.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
@@ -66,7 +68,7 @@ export function ImportsPanel() {
   const [format, setFormat] = React.useState<'json' | 'csv' | 'busy'>('json')
   const [jsonText, setJsonText] = React.useState(sampleParties)
   const [result, setResult] = React.useState<string | null>(null)
-  const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const [dryRunComplete, setDryRunComplete] = React.useState(false)
 
   function parseRows(text: string): Array<Record<string, unknown>> {
     if (format === 'busy') {
@@ -129,6 +131,7 @@ export function ImportsPanel() {
     const file = event.target.files?.[0]
     if (!file) return
     setResult(null)
+    setDryRunComplete(false)
     try {
       const text = await file.text()
       setJsonText(text)
@@ -141,6 +144,8 @@ export function ImportsPanel() {
 
   async function handleDryRun() {
     setResult(null)
+    setDryRunComplete(false)
+    if (!requireTrimmed(jsonText, 'Import data')) return
     try {
       const rows = parseRows(jsonText)
       const report =
@@ -151,16 +156,29 @@ export function ImportsPanel() {
             : mode === 'items'
               ? await dryRunItems.mutateAsync({ rows: rows as never })
               : await dryRunOpeningBalances.mutateAsync({ rows: rows as never })
+      setDryRunComplete(true)
       setResult(
         `Dry-run: ${report.validCount} valid, ${report.errors.length} errors, wroteData=${report.wroteData}`,
       )
+      if (report.errors.length > 0) {
+        toast.error(
+          `Dry-run found ${report.errors.length} error(s). Fix them before commit.`,
+        )
+      } else {
+        toast.success('Dry-run passed. You can commit the import.')
+      }
     } catch (err) {
       toastActionError(err, 'Invalid rows / dry-run failed')
     }
   }
 
   async function handleCommit() {
-    if (!companyId) return
+    if (!requireWorkspace(companyId)) return
+    if (!dryRunComplete) {
+      toast.error('Run dry-run and fix errors before committing.')
+      return
+    }
+    if (!requireTrimmed(jsonText, 'Import data')) return
     setResult(null)
     try {
       const rows = parseRows(jsonText)
@@ -169,7 +187,8 @@ export function ImportsPanel() {
           !ledgerBySystemKey.customer_receivable ||
           !ledgerBySystemKey.supplier_payable
         ) {
-          throw new Error('Ledger mappings required')
+          toast.error('Receivable and payable ledger mappings are required.')
+          return
         }
         const report = await commitParties.mutateAsync({
           companyId,
@@ -183,6 +202,7 @@ export function ImportsPanel() {
         setResult(
           `Committed ${report.createdCount} parties (${report.errors.length} errors)`,
         )
+        toast.success(`Imported ${report.createdCount} parties.`)
       } else if (mode === 'stock') {
         const report = await commitStock.mutateAsync({
           companyId,
@@ -198,6 +218,7 @@ export function ImportsPanel() {
         setResult(
           `Committed ${report.createdCount} opening stock rows (${report.errors.length} errors)`,
         )
+        toast.success(`Imported ${report.createdCount} opening stock rows.`)
       } else if (mode === 'items') {
         const report = await commitItems.mutateAsync({
           companyId,
@@ -209,6 +230,7 @@ export function ImportsPanel() {
         setResult(
           `Committed ${report.createdCount} items (${report.errors.length} errors)`,
         )
+        toast.success(`Imported ${report.createdCount} items.`)
       } else {
         const report = await commitOpeningBalances.mutateAsync({
           companyId,
@@ -218,7 +240,9 @@ export function ImportsPanel() {
         setResult(
           `Committed ${report.createdCount} opening balances (${report.errors.length} errors)`,
         )
+        toast.success(`Imported ${report.createdCount} opening balances.`)
       }
+      setDryRunComplete(false)
     } catch (err) {
       toastActionError(err, 'Commit failed')
     }
@@ -247,6 +271,7 @@ export function ImportsPanel() {
                 setMode(next)
                 setJsonText(sampleTextFor(next, format))
                 setResult(null)
+                setDryRunComplete(false)
               }}
               value={mode}
             >
@@ -277,22 +302,16 @@ export function ImportsPanel() {
           </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <input
-            accept=".csv,.tsv,.txt,.json"
-            className="hidden"
-            onChange={handleFileUpload}
-            ref={fileInputRef}
-            type="file"
-          />
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="import-file">Import file</Label>
+            <Input
+              accept=".csv,.tsv,.txt,.json"
+              id="import-file"
+              onChange={handleFileUpload}
+              type="file"
+            />
+          </div>
           <div className="flex flex-wrap gap-2">
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              type="button"
-              variant="outline"
-            >
-              <UploadIcon data-icon="inline-start" />
-              Upload file
-            </Button>
             <Badge variant="outline">
               {format === 'busy'
                 ? 'BUSY/EZY export'

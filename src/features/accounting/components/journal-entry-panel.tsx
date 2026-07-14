@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
+import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
 import {
   Select,
@@ -24,6 +25,10 @@ import { Textarea } from '#/components/ui/textarea.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
+import {
+  requireBalancedJournal,
+  requireWorkspace,
+} from '#/lib/form-validation.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 type JournalLine = {
@@ -76,15 +81,16 @@ export function JournalEntryPanel() {
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
-    if (!companyId) return
+    if (!requireWorkspace(companyId, isReady)) return
 
     const filled = lines.filter(
       (line) => line.ledgerAccountId && (line.debit || line.credit),
     )
     if (filled.length < 2) {
-      toast.error('Add at least two ledger lines')
+      toast.error('Add at least two ledger lines.')
       return
     }
+    if (!requireBalancedJournal(filled)) return
 
     try {
       await postEntry.mutateAsync({
@@ -124,11 +130,7 @@ export function JournalEntryPanel() {
         <CardContent>
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <div className="grid gap-3 md:grid-cols-2">
-              <Input
-                onChange={(event) => setEntryDate(event.target.value)}
-                type="date"
-                value={entryDate}
-              />
+              <DatePicker onChange={setEntryDate} value={entryDate} />
               <Textarea
                 onChange={(event) => setNarration(event.target.value)}
                 placeholder="Narration"

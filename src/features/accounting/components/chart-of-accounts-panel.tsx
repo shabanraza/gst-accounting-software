@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { BookOpenIcon, SearchIcon, WalletCardsIcon } from 'lucide-react'
+import { BookOpenIcon, WalletCardsIcon } from 'lucide-react'
 
 import { toast } from 'sonner'
 
@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
-import { Input } from '#/components/ui/input.tsx'
+import { SearchInput } from '#/components/ui/search-input.tsx'
 import {
   Table,
   TableBody,
@@ -171,15 +171,12 @@ export function ChartOfAccountsPanel() {
                   {company?.businessType ?? 'company'}
                 </CardDescription>
               </div>
-              <div className="relative w-full max-w-xs">
-                <SearchIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="pl-9"
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search by name or code"
-                  value={searchQuery}
-                />
-              </div>
+              <SearchInput
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search by name or code"
+                value={searchQuery}
+                wrapperClassName="w-full max-w-xs"
+              />
             </div>
             <Tabs
               onValueChange={(value) =>

@@ -66,10 +66,10 @@
       "breakpoints": true
     },
     {
-      "idx": 9,
+      "idx": 10,
       "version": "7",
-      "when": 1783877000000,
-      "tag": "0009_e_invoice",
+      "when": 1783878000000,
+      "tag": "0010_gstr2b_itc_decisions",
       "breakpoints": true
     }
   ]

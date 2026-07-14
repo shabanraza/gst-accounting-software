@@ -12,13 +12,20 @@ import {
   CommandList,
   CommandSeparator,
 } from '#/components/ui/command.tsx'
-import { appNavItems } from '#/features/app-shell/data/app-shell-nav.ts'
+import { appNav, filterAppNav } from '#/features/app-shell/data/app-shell-nav.ts'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 import type { AppNavItem } from '#/features/app-shell/data/app-shell-nav.ts'
+import type { Capability } from '#/features/companies/membership-service.ts'
 
-const navItems: Array<AppNavItem> = appNavItems
+function flattenNavItems(capabilities: Array<Capability>) {
+  return filterAppNav(appNav, capabilities).flatMap((section) =>
+    section.kind === 'link'
+      ? [{ label: section.label, path: section.path, icon: section.icon }]
+      : section.items,
+  )
+}
 
 type CommandPaletteProps = {
   open: boolean
@@ -28,7 +35,11 @@ type CommandPaletteProps = {
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const navigate = useNavigate()
   const trpc = useTRPC()
-  const { companyId, isReady } = useWorkspace()
+  const { companyId, isReady, capabilities } = useWorkspace()
+  const navItems = React.useMemo(
+    () => flattenNavItems(capabilities),
+    [capabilities],
+  )
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

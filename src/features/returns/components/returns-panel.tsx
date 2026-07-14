@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Undo2Icon } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { Button } from '#/components/ui/button.tsx'
 import {
@@ -10,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
+import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
 import {
   Select,
@@ -24,6 +26,14 @@ import { WorkspacePage } from '#/features/app-shell/components/workspace-page.ts
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
+import {
+  requirePositiveQuantity,
+  requireSelection,
+  requireStateCode,
+  requireWorkspace,
+} from '#/lib/form-validation.ts'
+import { resolveStateCode } from '#/features/accounting/voucher-math.ts'
+import { COMPANY_STATE_CODE } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function ReturnsPanel() {
@@ -73,33 +83,65 @@ export function ReturnsPanel() {
 
   async function handleReturn(event: React.FormEvent) {
     event.preventDefault()
-    if (!companyId || !company || !documentId) return
+    if (!requireWorkspace(companyId, isReady) || !company) return
+
+    const selectedDocumentId = requireSelection(
+      documentId,
+      mode === 'sales' ? 'a sales invoice' : 'a purchase bill',
+    )
+    if (!selectedDocumentId) return
+
+    const returnQuantity = requirePositiveQuantity(quantity, 'Return quantity')
+    if (!returnQuantity) return
+
+    const companyStateCode = resolveStateCode(
+      company.stateCode,
+      COMPANY_STATE_CODE,
+    )
+    if (!requireStateCode(companyStateCode, 'Company state')) return
+
     setMessage(null)
 
     try {
       if (mode === 'sales') {
         if (!selectedSales?.lines[0]) {
-          throw new Error('Select a sales invoice with lines')
+          toast.error('Selected invoice has no line items.')
+          return
         }
         const line = selectedSales.lines[0]
         const party = (partiesQuery.data ?? []).find(
           (entry) => entry.id === selectedSales.customerId,
         )
+        const customerStateCode = resolveStateCode(
+          party?.stateCode,
+          companyStateCode,
+        )
+        if (!requireStateCode(customerStateCode, 'Customer state')) return
+
+        if (
+          !ledgerBySystemKey.sales ||
+          !ledgerBySystemKey.output_gst ||
+          !ledgerBySystemKey.customer_receivable
+        ) {
+          toast.error('Sales ledger mappings are missing for this company.')
+          return
+        }
+
         const salesReturn = await postSalesReturn.mutateAsync({
           companyId,
-          companyStateCode: company.stateCode,
+          companyStateCode,
           customerId: selectedSales.customerId,
-          customerStateCode: party?.stateCode ?? company.stateCode,
+          customerStateCode,
           salesInvoiceId: selectedSales.id,
           returnDate,
-          salesAccountId: ledgerBySystemKey.sales!,
-          outputGstAccountId: ledgerBySystemKey.output_gst!,
-          receivableAccountId: ledgerBySystemKey.customer_receivable!,
+          salesAccountId: ledgerBySystemKey.sales,
+          outputGstAccountId: ledgerBySystemKey.output_gst,
+          receivableAccountId: ledgerBySystemKey.customer_receivable,
           lines: [
             {
               itemId: line.itemId,
               description: line.description,
-              quantity,
+              quantity: returnQuantity,
               unit: line.unit,
               rate: line.rate,
               gstRate: line.gstRate,
@@ -109,32 +151,51 @@ export function ReturnsPanel() {
         await queryClient.invalidateQueries({
           queryKey: trpc.inventory.listStockBalances.queryKey({ companyId }),
         })
+        toast.success(
+          `Credit note ${salesReturn.noteNumber} posted for ${selectedSales.invoiceNumber}.`,
+        )
         setMessage(
           `Credit note ${salesReturn.noteNumber} posted for ${selectedSales.invoiceNumber}`,
         )
       } else {
         if (!selectedPurchase?.lines[0]) {
-          throw new Error('Select a purchase bill with lines')
+          toast.error('Selected bill has no line items.')
+          return
         }
         const line = selectedPurchase.lines[0]
         const party = (partiesQuery.data ?? []).find(
           (entry) => entry.id === selectedPurchase.supplierId,
         )
+        const supplierStateCode = resolveStateCode(
+          party?.stateCode,
+          companyStateCode,
+        )
+        if (!requireStateCode(supplierStateCode, 'Supplier state')) return
+
+        if (
+          !ledgerBySystemKey.purchase ||
+          !ledgerBySystemKey.input_gst ||
+          !ledgerBySystemKey.supplier_payable
+        ) {
+          toast.error('Purchase ledger mappings are missing for this company.')
+          return
+        }
+
         const purchaseReturn = await postPurchaseReturn.mutateAsync({
           companyId,
-          companyStateCode: company.stateCode,
+          companyStateCode,
           supplierId: selectedPurchase.supplierId,
-          supplierStateCode: party?.stateCode ?? '24',
+          supplierStateCode,
           purchaseBillId: selectedPurchase.id,
           returnDate,
-          purchaseAccountId: ledgerBySystemKey.purchase!,
-          inputGstAccountId: ledgerBySystemKey.input_gst!,
-          payableAccountId: ledgerBySystemKey.supplier_payable!,
+          purchaseAccountId: ledgerBySystemKey.purchase,
+          inputGstAccountId: ledgerBySystemKey.input_gst,
+          payableAccountId: ledgerBySystemKey.supplier_payable,
           lines: [
             {
               itemId: line.itemId,
               description: line.description,
-              quantity,
+              quantity: returnQuantity,
               unit: line.unit,
               rate: line.rate,
               gstRate: line.gstRate,
@@ -144,6 +205,9 @@ export function ReturnsPanel() {
         await queryClient.invalidateQueries({
           queryKey: trpc.inventory.listStockBalances.queryKey({ companyId }),
         })
+        toast.success(
+          `Debit note ${purchaseReturn.noteNumber} posted for ${selectedPurchase.supplierBillNumber}.`,
+        )
         setMessage(
           `Debit note ${purchaseReturn.noteNumber} posted for ${selectedPurchase.supplierBillNumber}`,
         )
@@ -226,11 +290,10 @@ export function ReturnsPanel() {
                 <label className="text-sm font-medium" htmlFor="ret-date">
                   Return date
                 </label>
-                <Input
+                <DatePicker
                   id="ret-date"
-                  onChange={(event) => setReturnDate(event.target.value)}
+                  onChange={setReturnDate}
                   required
-                  type="date"
                   value={returnDate}
                 />
               </div>

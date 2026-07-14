@@ -9,7 +9,6 @@ import {
 import type {DocumentAttachmentRepository, ObjectStorageAdapter} from '#/features/documents/document-attachment-service.ts';
 import { nextDocumentNumber } from '#/features/documents/document-sequence-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
-import { companyProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { DocumentSequenceRepository } from '#/features/documents/document-sequence-service.ts'
@@ -68,7 +67,7 @@ export const createDocumentsRouter = (
   storage: ObjectStorageAdapter = new InMemoryObjectStorageAdapter(),
 ) =>
   ({
-    nextNumber: companyProcedure
+    nextNumber: capabilityProcedure('view')
       .input(nextNumberInputSchema)
       .mutation(({ input }) => {
         return nextDocumentNumber(sequences, input)

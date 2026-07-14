@@ -10,6 +10,7 @@ import {
   updateCompanyProfile,
 } from '#/features/companies/company-service.ts'
 import { createFinancialYear } from '#/features/companies/financial-year-service.ts'
+import { listRoleCapabilities } from '#/features/companies/membership-service.ts'
 import { createCompanyWithSetup } from '#/features/companies/company-setup-service.ts'
 import { ensureDefaultGodowns } from '#/features/inventory/godown-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
@@ -144,6 +145,11 @@ export const createCompaniesRouter = (deps: CompaniesRouterDependencies) =>
           })
         }
 
+        const membership = await deps.memberships.findByCompanyAndUser(
+          company.id,
+          ctx.userId,
+        )
+
         return {
           company,
           companies: existing,
@@ -151,6 +157,10 @@ export const createCompaniesRouter = (deps: CompaniesRouterDependencies) =>
           ledgerBySystemKey,
           godowns,
           activeFinancialYearId: activeFinancialYear.id,
+          membershipRole: membership?.role ?? null,
+          capabilities: membership
+            ? [...listRoleCapabilities(membership.role)]
+            : [],
         }
       }),
   }) satisfies TRPCRouterRecord

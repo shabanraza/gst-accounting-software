@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FileTextIcon, PlusIcon } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { Badge } from '#/components/ui/badge.tsx'
 import { Button } from '#/components/ui/button.tsx'
@@ -12,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
+import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
 import {
   Select,
@@ -33,6 +35,7 @@ import { WorkspacePage } from '#/features/app-shell/components/workspace-page.ts
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
+import { requireSelection, requireWorkspace } from '#/lib/form-validation.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 function workflowStatusBadgeVariant(status: string) {
@@ -95,12 +98,15 @@ export function PurchaseGrnsPanel() {
 
   async function handleReceive(event: React.FormEvent) {
     event.preventDefault()
-    if (!companyId || !purchaseOrderId) return
+    if (!requireWorkspace(companyId, isReady)) return
+
+    const selectedPoId = requireSelection(purchaseOrderId, 'a purchase order')
+    if (!selectedPoId) return
 
     try {
       await receiveFromPo.mutateAsync({
         companyId,
-        purchaseOrderId,
+        purchaseOrderId: selectedPoId,
         grnNumber: grnNumber.trim() || `GRN-${Date.now()}`,
         grnDate,
         godownName: godownName || undefined,
@@ -112,6 +118,7 @@ export function PurchaseGrnsPanel() {
         queryKey: trpc.purchaseOrders.list.queryKey({ companyId }),
       })
       setGrnNumber('')
+      toast.success('Goods received into stock.')
     } catch (err) {
       toastActionError(err, 'Receive failed')
     }
@@ -155,9 +162,9 @@ export function PurchaseGrnsPanel() {
                 placeholder="GRN number (optional)"
                 value={grnNumber}
               />
-              <Input
-                onChange={(event) => setGrnDate(event.target.value)}
-                type="date"
+              <DatePicker
+                onChange={setGrnDate}
+                placeholder="GRN date"
                 value={grnDate}
               />
               {godownNames.length > 0 ? (

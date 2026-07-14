@@ -6,7 +6,6 @@ import {
   listOcrDraftsByCompany,
 } from '#/features/ocr/ocr-draft-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
-import { companyProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { DocumentAttachmentRepository } from '#/features/documents/document-attachment-service.ts'
@@ -60,7 +59,7 @@ export const createOcrRouter = (
   >,
 ) =>
   ({
-    list: companyProcedure
+    list: capabilityProcedure('view')
       .input(listOcrDraftsInputSchema)
       .query(({ input }) => {
         return listOcrDraftsByCompany(repository, input.companyId)

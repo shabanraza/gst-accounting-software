@@ -40,20 +40,28 @@ export type Capability =
   | 'manage_company'
   | 'manage_masters'
   | 'manage_inventory'
+  | 'manage_gst'
   | 'post_sales'
   | 'post_purchase'
   | 'post_voucher'
   | 'post_payment'
+  | 'reconcile_bank'
+  | 'view_reports'
+  | 'view_audit'
   | 'view'
 
 const ALL_CAPABILITIES: Array<Capability> = [
   'manage_company',
   'manage_masters',
   'manage_inventory',
+  'manage_gst',
   'post_sales',
   'post_purchase',
   'post_voucher',
   'post_payment',
+  'reconcile_bank',
+  'view_reports',
+  'view_audit',
   'view',
 ]
 
@@ -62,15 +70,18 @@ const roleCapabilities: Record<CompanyRole, Array<Capability>> = {
   admin: ALL_CAPABILITIES,
   accountant: [
     'manage_masters',
+    'manage_gst',
     'post_sales',
     'post_purchase',
     'post_voucher',
     'post_payment',
+    'reconcile_bank',
+    'view_reports',
     'view',
   ],
   billing: ['post_sales', 'post_payment', 'view'],
   inventory: ['manage_inventory', 'view'],
-  readonly: ['view'],
+  readonly: ['view', 'view_reports'],
 }
 
 export function roleHasCapability(
@@ -84,6 +95,12 @@ export function rolesForCapability(capability: Capability): Array<CompanyRole> {
   return (Object.keys(roleCapabilities) as Array<CompanyRole>).filter((role) =>
     roleCapabilities[role].includes(capability),
   )
+}
+
+export function listRoleCapabilities(
+  role: CompanyRole,
+): ReadonlyArray<Capability> {
+  return roleCapabilities[role]
 }
 
 /**

@@ -6,6 +6,7 @@ import {
   ClipboardListIcon,
   FileBarChartIcon,
   FileTextIcon,
+  LandmarkIcon,
   LayoutDashboardIcon,
   PackageCheckIcon,
   PackageIcon,
@@ -19,6 +20,8 @@ import {
   UsersIcon,
   WarehouseIcon,
 } from 'lucide-react'
+
+import type { Capability } from '#/features/companies/membership-service.ts'
 
 export type AppNavPath =
   | '/app/dashboard'
@@ -35,6 +38,7 @@ export type AppNavPath =
   | '/app/purchase-orders'
   | '/app/purchase-grns'
   | '/app/payments'
+  | '/app/bank-reconciliation'
   | '/app/expenses'
   | '/app/returns'
   | '/app/inventory'
@@ -47,6 +51,7 @@ export type AppNavItem = {
   label: string
   path: AppNavPath
   icon: LucideIcon
+  requiredCapability?: Capability
 }
 
 export type AppNavSection =
@@ -104,6 +109,12 @@ export const appNav: Array<AppNavSection> = [
     icon: BanknoteIcon,
     items: [
       { label: 'Payments', path: '/app/payments', icon: BanknoteIcon },
+      {
+        label: 'Bank reconciliation',
+        path: '/app/bank-reconciliation',
+        icon: LandmarkIcon,
+        requiredCapability: 'reconcile_bank',
+      },
       { label: 'Expenses', path: '/app/expenses', icon: ReceiptIcon },
     ],
   },
@@ -179,6 +190,39 @@ export const appNavItems: Array<AppNavItem> = appNav.flatMap((section) =>
     ? [{ label: section.label, path: section.path, icon: section.icon }]
     : section.items,
 )
+
+export function filterAppNav(
+  sections: Array<AppNavSection>,
+  capabilities: Array<Capability>,
+): Array<AppNavSection> {
+  const capabilitySet = new Set(capabilities)
+
+  return sections
+    .map((section) => {
+      if (section.kind === 'link') {
+        if (
+          section.requiredCapability &&
+          !capabilitySet.has(section.requiredCapability)
+        ) {
+          return null
+        }
+        return section
+      }
+
+      const items = section.items.filter(
+        (item) =>
+          !item.requiredCapability ||
+          capabilitySet.has(item.requiredCapability),
+      )
+      if (items.length === 0) return null
+
+      return {
+        ...section,
+        items: items as [AppNavItem, ...Array<AppNavItem>],
+      }
+    })
+    .filter((section): section is AppNavSection => section !== null)
+}
 
 export function isAppNavPathActive(pathname: string, path: AppNavPath) {
   const normalizedPathname = pathname.replace(/\/$/, '') || '/'

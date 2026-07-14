@@ -5,6 +5,9 @@ import {
   computeVoucherTotals,
   emptyVoucherLine,
   createEmptyVoucherLines,
+  isValidStateCode,
+  resolvePlaceOfSupply,
+  resolveStateCode,
 } from '#/features/accounting/voucher-math.ts'
 
 describe('voucher math', () => {
@@ -80,5 +83,33 @@ describe('voucher math', () => {
     const rows = createEmptyVoucherLines(5)
     expect(rows).toHaveLength(5)
     expect(rows.every((row) => row.itemId === '')).toBe(true)
+  })
+
+  test('resolves place of supply for local supply from company state', () => {
+    expect(
+      resolvePlaceOfSupply({
+        region: 'local',
+        selectedPlaceOfSupply: '',
+        partyStateCode: '24',
+        companyStateCode: '27',
+      }),
+    ).toBe('27')
+  })
+
+  test('falls back to party state when place of supply is empty for IGST', () => {
+    expect(
+      resolvePlaceOfSupply({
+        region: 'central',
+        selectedPlaceOfSupply: '',
+        partyStateCode: '24',
+        companyStateCode: '27',
+      }),
+    ).toBe('24')
+  })
+
+  test('resolveStateCode picks the first valid two-digit code', () => {
+    expect(resolveStateCode('', '2', '27')).toBe('27')
+    expect(isValidStateCode('27')).toBe(true)
+    expect(isValidStateCode('')).toBe(false)
   })
 })

@@ -3,7 +3,6 @@ import { z } from 'zod'
 import { postPurchaseReturn } from '#/features/returns/purchase-return-service.ts'
 import { postSalesReturn } from '#/features/returns/sales-return-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
-import { publicProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
@@ -68,7 +67,7 @@ export const createReturnsRouter = (
       .mutation(({ input }) => {
         return postPurchaseReturn({ posting, stock, notes }, input)
       }),
-    listCreditDebitNotes: publicProcedure
+    listCreditDebitNotes: capabilityProcedure('view')
       .input(listReturnsInputSchema)
       .query(({ input }) => {
         return notes.listByCompanyId(input.companyId)

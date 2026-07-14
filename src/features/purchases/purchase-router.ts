@@ -3,7 +3,6 @@ import { z } from 'zod'
 import { recordPurchaseSummary } from '#/features/dashboard/dashboard-summary-service.ts'
 import { postPurchaseBill } from '#/features/purchases/purchase-bill-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
-import { companyProcedure } from '#/integrations/trpc/init.ts'
 import { TRPCError } from '@trpc/server'
 
 import type { TRPCRouterRecord } from '@trpc/server'
@@ -28,6 +27,12 @@ const lineSchema = z.object({
   godownName: z.string().nullable().optional(),
 })
 
+const optionalStateCodeSchema = z.preprocess(
+  (value) =>
+    typeof value === 'string' && value.trim() === '' ? undefined : value,
+  z.string().length(2).optional(),
+)
+
 const postPurchaseBillInputSchema = z.object({
   companyId: z.string().uuid(),
   companyStateCode: z.string().length(2),
@@ -38,8 +43,8 @@ const postPurchaseBillInputSchema = z.object({
   companyPincode: z.string().optional(),
   financialYearStart: z.string().min(1),
   supplierId: z.string().uuid(),
-  supplierStateCode: z.string().length(2).optional(),
-  placeOfSupply: z.string().length(2).optional(),
+  supplierStateCode: optionalStateCodeSchema,
+  placeOfSupply: optionalStateCodeSchema,
   supplierBillNumber: z.string().min(1),
   billDate: z.string().min(1),
   dueDate: z.string().min(1),
@@ -89,7 +94,7 @@ export const createPurchasesRouter = (
   parties: PartyRepository,
 ) =>
   ({
-    list: companyProcedure
+    list: capabilityProcedure('view')
       .input(listPurchasesInputSchema)
       .query(({ input }) => {
         return bills.listByCompanyId(input.companyId, {
@@ -103,7 +108,7 @@ export const createPurchasesRouter = (
           cursor: input.cursor,
         })
       }),
-    getById: companyProcedure
+    getById: capabilityProcedure('view')
       .input(getPurchaseBillInputSchema)
       .query(async ({ input }) => {
         const bill = await bills.findById(input.id)

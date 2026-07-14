@@ -2,8 +2,7 @@ import { buildAccountantExport } from '#/features/exports/accountant-export-serv
 import { buildCashBook } from '#/features/accounting/cash-book-service.ts'
 import { buildDayBook } from '#/features/accounting/day-book-service.ts'
 import { buildHsnSummary } from '#/features/gst/hsn-summary-service.ts'
-import Decimal from 'decimal.js'
-
+import { buildGstDocuments } from '#/features/gst/gst-report-documents.ts'
 import {
   buildGstr1Json,
   buildGstr1Report,
@@ -24,15 +23,20 @@ import {
   buildStockSummary,
 } from '#/features/inventory/stock-ledger-service.ts'
 import { buildStockValuation } from '#/features/inventory/stock-valuation-service.ts'
-import { reconcileGstr2b } from '#/features/gst/gstr2b-reconciliation-service.ts'
+import { reconcileGstr1 } from '#/features/gst/gstr1-reconciliation-service.ts'
+import {
+  reconcileGstr2b,
+  setGstr2bItcDecision,
+} from '#/features/gst/gstr2b-reconciliation-service.ts'
+import { buildGstr3bWorkingReport } from '#/features/gst/gstr3b-working-service.ts'
+import { gstReconciliationRepository } from '#/features/gst/gst-reconciliation-store.ts'
 import { z } from 'zod'
 
-import { companyProcedure } from '#/integrations/trpc/init.ts'
+import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
-import type { GstReportDocument } from '#/features/gst/gst-report-types.ts'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
 import type {
   StockBalanceRepository,
@@ -50,74 +54,6 @@ const reportInputSchema = z.object({
   periodEnd: z.string().min(1),
 })
 
-async function buildGstDocuments(input: {
-  companyId: string
-  companyStateCode: string
-  invoices: SalesInvoiceRepository
-  bills: PurchaseBillRepository
-  parties: PartyRepository
-}): Promise<Array<GstReportDocument>> {
-  const [sales, purchases, partyList] = await Promise.all([
-    input.invoices.listByCompanyId(input.companyId),
-    input.bills.listByCompanyId(input.companyId),
-    input.parties.listByCompanyId(input.companyId),
-  ])
-  const partyById = new Map(partyList.map((party) => [party.id, party]))
-
-  const salesDocs: Array<GstReportDocument> = sales.map((invoice) => {
-    const party = partyById.get(invoice.customerId)
-    const partyState = party?.stateCode ?? input.companyStateCode
-    const supplyType =
-      partyState === input.companyStateCode ? 'intra_state' : 'inter_state'
-    const half = new Decimal(invoice.totalGstAmount).div(2).toFixed(2)
-    return {
-      id: invoice.id,
-      companyId: invoice.companyId,
-      documentType: 'sales_invoice',
-      documentDate: invoice.invoiceDate,
-      partyGstin: party?.gstin ?? null,
-      partyName: party?.name ?? 'Customer',
-      placeOfSupply: partyState,
-      supplyType,
-      taxableAmount: invoice.taxableAmount,
-      cgstAmount: supplyType === 'intra_state' ? half : '0.00',
-      sgstAmount: supplyType === 'intra_state' ? half : '0.00',
-      igstAmount:
-        supplyType === 'inter_state' ? invoice.totalGstAmount : '0.00',
-      totalGstAmount: invoice.totalGstAmount,
-      totalAmount: invoice.totalAmount,
-      invoiceNumber: invoice.invoiceNumber,
-    }
-  })
-
-  const purchaseDocs: Array<GstReportDocument> = purchases.map((bill) => {
-    const party = partyById.get(bill.supplierId)
-    const partyState = party?.stateCode ?? '24'
-    const supplyType =
-      partyState === input.companyStateCode ? 'intra_state' : 'inter_state'
-    const half = new Decimal(bill.totalGstAmount).div(2).toFixed(2)
-    return {
-      id: bill.id,
-      companyId: bill.companyId,
-      documentType: 'purchase_bill',
-      documentDate: bill.billDate,
-      partyGstin: party?.gstin ?? null,
-      partyName: party?.name ?? 'Supplier',
-      placeOfSupply: partyState,
-      supplyType,
-      taxableAmount: bill.taxableAmount,
-      cgstAmount: supplyType === 'intra_state' ? half : '0.00',
-      sgstAmount: supplyType === 'intra_state' ? half : '0.00',
-      igstAmount: supplyType === 'inter_state' ? bill.totalGstAmount : '0.00',
-      totalGstAmount: bill.totalGstAmount,
-      totalAmount: bill.totalAmount,
-      invoiceNumber: bill.supplierBillNumber,
-    }
-  })
-
-  return [...salesDocs, ...purchaseDocs]
-}
-
 const companyAndPartyInputSchema = z.object({
   companyId: z.string().uuid(),
   partyId: z.string().uuid(),
@@ -128,17 +64,59 @@ const companyAndItemInputSchema = z.object({
   itemId: z.string().uuid(),
 })
 
+const gstPortalRowSchema = z.object({
+  supplierGstin: z.string(),
+  supplierInvoiceNumber: z.string(),
+  invoiceDate: z.string(),
+  taxableAmount: z.string(),
+  cgstAmount: z.string().default('0.00'),
+  sgstAmount: z.string().default('0.00'),
+  igstAmount: z.string().default('0.00'),
+  totalGstAmount: z.string(),
+})
+
 const gstr2bReconciliationInputSchema = z.object({
   companyId: z.string().uuid(),
+  companyStateCode: z.string().length(2),
+  periodStart: z.string().min(1),
+  periodEnd: z.string().min(1),
+  portalRows: z.array(gstPortalRowSchema),
+})
+
+const gstr1ReconciliationInputSchema = z.object({
+  companyId: z.string().uuid(),
+  periodStart: z.string().min(1),
+  periodEnd: z.string().min(1),
   portalRows: z.array(
     z.object({
-      supplierGstin: z.string(),
-      supplierInvoiceNumber: z.string(),
+      customerGstin: z.string(),
+      invoiceNumber: z.string(),
       invoiceDate: z.string(),
       taxableAmount: z.string(),
+      cgstAmount: z.string().default('0.00'),
+      sgstAmount: z.string().default('0.00'),
+      igstAmount: z.string().default('0.00'),
       totalGstAmount: z.string(),
     }),
   ),
+})
+
+const gstr2bItcDecisionInputSchema = z.object({
+  companyId: z.string().uuid(),
+  companyStateCode: z.string().length(2),
+  periodStart: z.string().min(1),
+  periodEnd: z.string().min(1),
+  rowKey: z.string().min(1),
+  status: z.enum(['pending', 'accepted', 'rejected']),
+  portalRows: z.array(gstPortalRowSchema),
+})
+
+const gstr3bWorkingInputSchema = z.object({
+  companyId: z.string().uuid(),
+  companyStateCode: z.string().length(2),
+  periodStart: z.string().min(1),
+  periodEnd: z.string().min(1),
+  portalRows: z.array(gstPortalRowSchema),
 })
 
 export const createReportsRouter = (deps: {
@@ -153,7 +131,7 @@ export const createReportsRouter = (deps: {
   items: ItemRepository
 }) =>
   ({
-    gstr1: companyProcedure
+    gstr1: capabilityProcedure('view_reports')
       .input(reportInputSchema)
       .query(async ({ input }) => {
         const documents = await buildGstDocuments({
@@ -170,7 +148,7 @@ export const createReportsRouter = (deps: {
           documents,
         })
       }),
-    gstr3b: companyProcedure
+    gstr3b: capabilityProcedure('view_reports')
       .input(reportInputSchema)
       .query(async ({ input }) => {
         const documents = await buildGstDocuments({
@@ -187,7 +165,7 @@ export const createReportsRouter = (deps: {
           documents,
         })
       }),
-    trialBalance: companyProcedure
+    trialBalance: capabilityProcedure('view_reports')
       .input(z.object({ companyId: z.string().uuid() }))
       .query(async ({ input }) => {
         const report = await buildTrialBalance(
@@ -203,7 +181,7 @@ export const createReportsRouter = (deps: {
           credit: row.balanceType === 'credit' ? row.balance : '0.00',
         }))
       }),
-    profitAndLoss: companyProcedure
+    profitAndLoss: capabilityProcedure('view_reports')
       .input(z.object({ companyId: z.string().uuid() }))
       .query(({ input }) => {
         return buildProfitAndLoss(
@@ -211,7 +189,7 @@ export const createReportsRouter = (deps: {
           input.companyId,
         )
       }),
-    balanceSheet: companyProcedure
+    balanceSheet: capabilityProcedure('view_reports')
       .input(z.object({ companyId: z.string().uuid() }))
       .query(({ input }) => {
         return buildBalanceSheet(
@@ -219,7 +197,7 @@ export const createReportsRouter = (deps: {
           input.companyId,
         )
       }),
-    partyLedger: companyProcedure
+    partyLedger: capabilityProcedure('view_reports')
       .input(companyAndPartyInputSchema)
       .query(({ input }) => {
         return buildPartyLedger(
@@ -228,7 +206,7 @@ export const createReportsRouter = (deps: {
           input.partyId,
         )
       }),
-    receivablesAgeing: companyProcedure
+    receivablesAgeing: capabilityProcedure('view_reports')
       .input(z.object({ companyId: z.string().uuid() }))
       .query(({ input }) => {
         return buildReceivablesAgeing(
@@ -236,7 +214,7 @@ export const createReportsRouter = (deps: {
           input.companyId,
         )
       }),
-    payablesAgeing: companyProcedure
+    payablesAgeing: capabilityProcedure('view_reports')
       .input(z.object({ companyId: z.string().uuid() }))
       .query(({ input }) => {
         return buildPayablesAgeing(
@@ -244,7 +222,7 @@ export const createReportsRouter = (deps: {
           input.companyId,
         )
       }),
-    stockSummary: companyProcedure
+    stockSummary: capabilityProcedure('view_reports')
       .input(z.object({ companyId: z.string().uuid() }))
       .query(({ input }) => {
         return buildStockSummary(
@@ -252,7 +230,7 @@ export const createReportsRouter = (deps: {
           input.companyId,
         )
       }),
-    stockValuation: companyProcedure
+    stockValuation: capabilityProcedure('view_reports')
       .input(z.object({ companyId: z.string().uuid() }))
       .query(({ input }) => {
         return buildStockValuation(
@@ -260,7 +238,7 @@ export const createReportsRouter = (deps: {
           input.companyId,
         )
       }),
-    stockLedger: companyProcedure
+    stockLedger: capabilityProcedure('view_reports')
       .input(companyAndItemInputSchema)
       .query(({ input }) => {
         return buildStockLedger(
@@ -269,7 +247,7 @@ export const createReportsRouter = (deps: {
           input.itemId,
         )
       }),
-    gstr1Json: companyProcedure
+    gstr1Json: capabilityProcedure('view_reports')
       .input(reportInputSchema)
       .query(async ({ input }) => {
         const documents = await buildGstDocuments({
@@ -287,16 +265,58 @@ export const createReportsRouter = (deps: {
         })
         return buildGstr1Json(report)
       }),
-    gstr2bReconciliation: companyProcedure
+    gstr2bReconciliation: capabilityProcedure('view_reports')
       .input(gstr2bReconciliationInputSchema)
-      .mutation(({ input }) => {
+      .query(({ input }) => {
         return reconcileGstr2b(
-          { bills: deps.bills },
-          input.companyId,
-          input.portalRows,
+          {
+            bills: deps.bills,
+            parties: deps.parties,
+            recon: gstReconciliationRepository,
+          },
+          input,
         )
       }),
-    dayBook: companyProcedure
+    setGstr2bItcDecision: capabilityProcedure('manage_gst')
+      .input(gstr2bItcDecisionInputSchema)
+      .mutation(({ input }) => {
+        return setGstr2bItcDecision(
+          {
+            recon: gstReconciliationRepository,
+            bills: deps.bills,
+            parties: deps.parties,
+          },
+          input,
+        )
+      }),
+    gstr1Reconciliation: capabilityProcedure('view_reports')
+      .input(gstr1ReconciliationInputSchema)
+      .mutation(({ input }) => {
+        return reconcileGstr1(
+          { invoices: deps.invoices, parties: deps.parties },
+          input,
+        )
+      }),
+    gstr3bWorking: capabilityProcedure('view_reports')
+      .input(gstr3bWorkingInputSchema)
+      .mutation(async ({ input }) => {
+        const documents = await buildGstDocuments({
+          companyId: input.companyId,
+          companyStateCode: input.companyStateCode,
+          invoices: deps.invoices,
+          bills: deps.bills,
+          parties: deps.parties,
+        })
+        return buildGstr3bWorkingReport(
+          {
+            bills: deps.bills,
+            parties: deps.parties,
+            recon: gstReconciliationRepository,
+          },
+          { ...input, documents },
+        )
+      }),
+    dayBook: capabilityProcedure('view_reports')
       .input(reportInputSchema)
       .query(async ({ input }) => {
         return buildDayBook(deps.postings, input.companyId, {
@@ -304,7 +324,7 @@ export const createReportsRouter = (deps: {
           endDate: input.periodEnd,
         })
       }),
-    cashBook: companyProcedure
+    cashBook: capabilityProcedure('view_reports')
       .input(reportInputSchema)
       .query(async ({ input }) => {
         return buildCashBook(
@@ -313,7 +333,7 @@ export const createReportsRouter = (deps: {
           { startDate: input.periodStart, endDate: input.periodEnd },
         )
       }),
-    hsnSummary: companyProcedure
+    hsnSummary: capabilityProcedure('view_reports')
       .input(reportInputSchema)
       .query(async ({ input }) => {
         return buildHsnSummary(
@@ -322,7 +342,7 @@ export const createReportsRouter = (deps: {
           { startDate: input.periodStart, endDate: input.periodEnd },
         )
       }),
-    accountantExport: companyProcedure
+    accountantExport: capabilityProcedure('view_reports')
       .input(z.object({ companyId: z.string().uuid() }))
       .query(async ({ input }) => {
         return buildAccountantExport(

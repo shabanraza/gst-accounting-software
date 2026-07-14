@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '#/components/ui/dialog.tsx'
+import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
 import {
   Select,
@@ -41,6 +42,11 @@ import { WorkspacePage } from '#/features/app-shell/components/workspace-page.ts
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
+import {
+  requirePositiveAmount,
+  requireTrimmed,
+  requireWorkspace,
+} from '#/lib/form-validation.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function ExpensesPanel() {
@@ -82,16 +88,24 @@ export function ExpensesPanel() {
 
   async function handleCreate(event: React.FormEvent) {
     event.preventDefault()
-    if (!companyId || !expenseAccountId || !paymentAccountId) {
+    if (!requireWorkspace(companyId, isReady)) return
+    if (!expenseAccountId || !paymentAccountId) {
       toast.error('Workspace or expense ledgers are not ready yet.')
       return
     }
+
+    const expenseNarration = requireTrimmed(narration, 'Narration')
+    if (!expenseNarration) return
+
+    const expenseAmount = requirePositiveAmount(amount, 'Amount')
+    if (!expenseAmount) return
+
     try {
       await postExpense.mutateAsync({
         companyId,
         expenseDate,
-        narration,
-        amount,
+        narration: expenseNarration,
+        amount: expenseAmount,
         expenseAccountId,
         paymentAccountId,
       })
@@ -152,11 +166,10 @@ export function ExpensesPanel() {
                   <label className="text-sm font-medium" htmlFor="exp-date">
                     Date
                   </label>
-                  <Input
+                  <DatePicker
                     id="exp-date"
-                    onChange={(event) => setExpenseDate(event.target.value)}
+                    onChange={setExpenseDate}
                     required
-                    type="date"
                     value={expenseDate}
                   />
                 </div>

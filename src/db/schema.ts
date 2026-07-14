@@ -945,3 +945,31 @@ export const eWayBills = pgTable(
     index('e_way_bills_company_idx').on(table.companyId),
   ],
 )
+
+export const gstr2bItcDecisions = pgTable(
+  'gstr2b_itc_decisions',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id),
+    periodStart: text('period_start').notNull(),
+    periodEnd: text('period_end').notNull(),
+    rowKey: text('row_key').notNull(),
+    status: text('status').notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('gstr2b_itc_decisions_unique_idx').on(
+      table.companyId,
+      table.periodStart,
+      table.periodEnd,
+      table.rowKey,
+    ),
+    index('gstr2b_itc_decisions_company_period_idx').on(
+      table.companyId,
+      table.periodStart,
+      table.periodEnd,
+    ),
+  ],
+)

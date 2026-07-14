@@ -5,7 +5,6 @@ import {
   postExpense,
 } from '#/features/expenses/expense-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
-import { publicProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
@@ -29,7 +28,7 @@ export const createExpensesRouter = (
   posting: LedgerPostingRepository,
 ) =>
   ({
-    list: publicProcedure.input(companyIdSchema).query(({ input }) => {
+    list: capabilityProcedure('view').input(companyIdSchema).query(({ input }) => {
       return listExpensesByCompany(expenses, input.companyId)
     }),
     post: capabilityProcedure('post_voucher')

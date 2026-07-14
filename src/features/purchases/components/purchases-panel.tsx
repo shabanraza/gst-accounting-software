@@ -5,7 +5,6 @@ import {
   EyeIcon,
   PlusIcon,
   PrinterIcon,
-  SearchIcon,
   TruckIcon,
 } from 'lucide-react'
 
@@ -19,7 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
-import { Input } from '#/components/ui/input.tsx'
+import { SearchInput } from '#/components/ui/search-input.tsx'
 import {
   Table,
   TableBody,
@@ -137,15 +136,12 @@ export function PurchasesPanel() {
                 <TabsTrigger value="Paid">Paid</TabsTrigger>
               </TabsList>
             </Tabs>
-            <div className="relative w-full max-w-sm">
-              <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search bill or supplier"
-                value={query}
-              />
-            </div>
+            <SearchInput
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search bill or supplier"
+              value={query}
+              wrapperClassName="w-full max-w-sm"
+            />
           </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 px-0">

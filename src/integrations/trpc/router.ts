@@ -1,4 +1,6 @@
 import { createAuditRouter } from '#/features/audit/audit-router.ts'
+import { createBankingRouter } from '#/features/banking/banking-router.ts'
+import { bankReconciliationRepository } from '#/features/banking/bank-reconciliation-store.ts'
 import { auditLogRepository } from '#/features/audit/audit-store.ts'
 import { createAccountingRouter } from '#/features/accounting/accounting-router.ts'
 import { ledgerAccountRepository } from '#/features/accounting/ledger-account-store.ts'
@@ -68,7 +70,6 @@ export const trpcRouter = createTRPCRouter({
   accounting: createAccountingRouter(
     ledgerAccountRepository,
     ledgerPostingRepository,
-    membershipRepository,
   ),
   parties: createPartiesRouter(partyRepository),
   inventory: createInventoryRouter(
@@ -104,6 +105,11 @@ export const trpcRouter = createTRPCRouter({
     purchaseBillRepository,
     ledgerPostingRepository,
   ),
+  banking: createBankingRouter(
+    bankReconciliationRepository,
+    ledgerPostingRepository,
+    ledgerAccountRepository,
+  ),
   returns: createReturnsRouter(
     ledgerPostingRepository,
     stockStore,
@@ -121,7 +127,15 @@ export const trpcRouter = createTRPCRouter({
     stockBalances: stockStore,
     items: itemRepository,
   }),
-  dashboard: createDashboardRouter(dashboardSummaryRepository),
+  dashboard: createDashboardRouter(dashboardSummaryRepository, {
+    summaries: dashboardSummaryRepository,
+    invoices: salesInvoiceRepository,
+    bills: purchaseBillRepository,
+    parties: partyRepository,
+    expenses: expenseRepository,
+    postings: ledgerPostingRepository,
+    ledgers: ledgerAccountRepository,
+  }),
   documents: createDocumentsRouter(
     documentSequenceRepository,
     documentAttachmentRepository,

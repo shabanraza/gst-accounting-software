@@ -24,7 +24,6 @@ import {
   recordStockMovement,
 } from '#/features/inventory/stock-movement-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
-import { companyProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { GodownRepository } from '#/features/inventory/godown-service.ts'
@@ -148,7 +147,7 @@ export const createInventoryRouter = (
   priceListRepository: PriceListRepository & PriceListItemRepository,
 ) =>
   ({
-    listGodowns: companyProcedure
+    listGodowns: capabilityProcedure('view')
       .input(listByCompanyInputSchema)
       .query(({ input }) => {
         return listGodownsByCompany(godownRepository, input.companyId)
@@ -182,7 +181,7 @@ export const createInventoryRouter = (
           input.godownId,
         )
       }),
-    listPriceLists: companyProcedure
+    listPriceLists: capabilityProcedure('view')
       .input(listByCompanyInputSchema)
       .query(({ input }) => {
         return listPriceListsByCompany(priceListRepository, input.companyId)
@@ -192,7 +191,7 @@ export const createInventoryRouter = (
       .mutation(({ input }) => {
         return createPriceList(priceListRepository, input)
       }),
-    listPriceListItems: companyProcedure
+    listPriceListItems: capabilityProcedure('view')
       .input(listPriceListItemsInputSchema)
       .query(async ({ input }) => {
         await assertPriceListForCompany(
@@ -216,7 +215,7 @@ export const createInventoryRouter = (
           rate: input.rate,
         })
       }),
-    resolveItemRate: companyProcedure
+    resolveItemRate: capabilityProcedure('view')
       .input(resolveItemRateInputSchema)
       .query(async ({ input }) => {
         if (input.priceListId) {
@@ -228,7 +227,7 @@ export const createInventoryRouter = (
         }
         return resolveItemRateForVoucher(priceListRepository, input)
       }),
-    listItems: companyProcedure
+    listItems: capabilityProcedure('view')
       .input(listByCompanyInputSchema)
       .query(({ input }) => {
         return listItemsByCompany(itemRepository, input.companyId)
@@ -248,12 +247,12 @@ export const createInventoryRouter = (
       .mutation(({ input }) => {
         return recordStockMovement(stockStore, stockStore, input)
       }),
-    getCurrentStock: companyProcedure
+    getCurrentStock: capabilityProcedure('view')
       .input(stockBalanceInputSchema)
       .query(({ input }) => {
         return getCurrentStock(stockStore, input.companyId, input.itemId)
       }),
-    listStockBalances: companyProcedure
+    listStockBalances: capabilityProcedure('view')
       .input(listByCompanyInputSchema)
       .query(async ({ input }) => {
         const [items, balances] = await Promise.all([

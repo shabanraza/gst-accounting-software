@@ -47,6 +47,7 @@ import {
 } from '#/components/ui/sidebar.tsx'
 import {
   appNav,
+  filterAppNav,
   isAppNavPathActive,
   navLinkActiveOptions,
 } from '#/features/app-shell/data/app-shell-nav.ts'
@@ -155,7 +156,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (session) {
     lastSessionRef.current = session
   }
-  const { company, companies, setActiveCompany, isReady } = useWorkspace()
+  const { company, companies, setActiveCompany, isReady, capabilities } =
+    useWorkspace()
+  const visibleNav = React.useMemo(
+    () => filterAppNav(appNav, capabilities),
+    [capabilities],
+  )
   const lastCompanyRef = React.useRef(company)
   if (company) {
     lastCompanyRef.current = company
@@ -186,7 +192,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SidebarProvider>
-        <Sidebar className="print:hidden" collapsible="icon" variant="sidebar">
+        <Sidebar
+          className="print:hidden"
+          collapsible="icon"
+          data-ui="chrome"
+          variant="sidebar"
+        >
           <SidebarHeader>
             <SidebarMenu>
               <SidebarMenuItem>
@@ -238,7 +249,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <SidebarGroupLabel>Navigation</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {appNav.map((section) =>
+                  {visibleNav.map((section) =>
                     section.kind === 'link' ? (
                       <NavItemButton
                         key={section.path}
@@ -330,7 +341,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button aria-label="New bill" variant="secondary">
+                <Button aria-label="New bill" variant="default">
                   <PlusIcon data-icon="inline-start" />
                   <span className="hidden sm:inline">New bill</span>
                 </Button>

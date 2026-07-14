@@ -37,17 +37,39 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table.tsx'
-import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { getFormErrorMessage, toastActionError } from '#/features/app-shell/form-error.ts'
+import { failForm, requireTrimmed, requireWorkspace } from '#/lib/form-validation.ts'
+import { toast } from 'sonner'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 import { authClient } from '#/lib/auth-client.ts'
 
 const assignableRoles = [
-  { value: 'admin', label: 'Admin' },
-  { value: 'accountant', label: 'Accountant' },
-  { value: 'billing', label: 'Billing' },
-  { value: 'inventory', label: 'Inventory' },
-  { value: 'readonly', label: 'Read only' },
+  {
+    value: 'admin',
+    label: 'Admin',
+    description: 'Full access including team, masters, posting, reports, and bank reconciliation.',
+  },
+  {
+    value: 'accountant',
+    label: 'Accountant',
+    description: 'Masters, all vouchers, bank reconciliation, and financial reports.',
+  },
+  {
+    value: 'billing',
+    label: 'Billing',
+    description: 'Sales invoices, payments, and operational lists only.',
+  },
+  {
+    value: 'inventory',
+    label: 'Inventory',
+    description: 'Items, stock, godowns, and operational lists.',
+  },
+  {
+    value: 'readonly',
+    label: 'Read only',
+    description: 'View transactions and reports; cannot post or change masters.',
+  },
 ] as const
 
 type AssignableRole = (typeof assignableRoles)[number]['value']
@@ -79,33 +101,55 @@ export function TeamMembersPanel() {
     ...trpc.team.invite.mutationOptions(),
     onSuccess: () => void invalidate(),
   })
-  const resendMutation = useMutation(trpc.team.resendInvite.mutationOptions())
+  const resendMutation = useMutation({
+    ...trpc.team.resendInvite.mutationOptions(),
+    onError: (error) => toastActionError(error, 'Unable to resend invite'),
+    onSuccess: () => toast.success('Invitation resent.'),
+  })
   const revokeMutation = useMutation({
     ...trpc.team.revokeInvite.mutationOptions(),
-    onSuccess: () => void invalidate(),
+    onSuccess: () => {
+      void invalidate()
+      toast.success('Invitation revoked.')
+    },
+    onError: (error) => toastActionError(error, 'Unable to revoke invite'),
   })
   const updateRoleMutation = useMutation({
     ...trpc.team.updateRole.mutationOptions(),
-    onSuccess: () => void invalidate(),
+    onSuccess: () => {
+      void invalidate()
+      toast.success('Role updated.')
+    },
+    onError: (error) => toastActionError(error, 'Unable to update role'),
   })
   const removeMutation = useMutation({
     ...trpc.team.removeMember.mutationOptions(),
-    onSuccess: () => void invalidate(),
+    onSuccess: () => {
+      void invalidate()
+      toast.success('Member removed.')
+    },
+    onError: (error) => toastActionError(error, 'Unable to remove member'),
   })
 
   async function handleInvite(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!companyId || !inviteEmail.trim()) return
+    if (!requireWorkspace(companyId)) return
+    const email = requireTrimmed(inviteEmail, 'Email')
+    if (!email) {
+      failForm(setFormError, 'Email is required.')
+      return
+    }
     setFormError(null)
     try {
       await inviteMutation.mutateAsync({
         companyId,
-        email: inviteEmail.trim(),
+        email,
         role: inviteRole,
       })
       setInviteEmail('')
       setInviteRole('billing')
       setInviteOpen(false)
+      toast.success('Invitation sent.')
     } catch (error) {
       setFormError(getFormErrorMessage(error, 'Unable to send invite'))
     }
@@ -126,7 +170,7 @@ export function TeamMembersPanel() {
         </div>
         <Dialog onOpenChange={setInviteOpen} open={inviteOpen}>
           <DialogTrigger asChild>
-            <Button disabled={!companyId} size="sm">
+            <Button disabled={!companyId}>
               <UserPlusIcon data-icon="inline-start" />
               Invite
             </Button>
@@ -173,6 +217,12 @@ export function TeamMembersPanel() {
                     </SelectGroup>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  {
+                    assignableRoles.find((role) => role.value === inviteRole)
+                      ?.description
+                  }
+                </p>
               </div>
               {formError ? (
                 <p className="text-sm text-destructive">{formError}</p>

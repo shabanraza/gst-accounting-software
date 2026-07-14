@@ -58,6 +58,41 @@ function format(value: Decimal) {
   return value.toFixed(2)
 }
 
+export function isValidStateCode(code: string | null | undefined): boolean {
+  return /^[0-9]{2}$/.test((code ?? '').trim())
+}
+
+export function resolveStateCode(
+  ...candidates: Array<string | null | undefined>
+): string {
+  for (const candidate of candidates) {
+    const normalized = (candidate ?? '').trim()
+    if (isValidStateCode(normalized)) {
+      return normalized
+    }
+  }
+  return ''
+}
+
+export function resolvePlaceOfSupply(input: {
+  region: SupplyRegion
+  selectedPlaceOfSupply: string
+  partyStateCode: string
+  companyStateCode: string
+  fallbackStateCode?: string
+}): string {
+  const fallback = input.fallbackStateCode ?? '27'
+  const companyState = resolveStateCode(input.companyStateCode, fallback)
+  const partyState = resolveStateCode(input.partyStateCode, companyState)
+  const selected = resolveStateCode(input.selectedPlaceOfSupply)
+
+  if (input.region === 'local') {
+    return companyState
+  }
+
+  return selected || partyState || companyState
+}
+
 export function partyStateForRegion(
   region: SupplyRegion,
   partyStateCode: string,

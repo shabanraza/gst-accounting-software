@@ -7,7 +7,6 @@ import {
   postSalesInvoice,
 } from '#/features/sales/sales-invoice-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
-import { companyProcedure } from '#/integrations/trpc/init.ts'
 import { sendInvoiceEmail } from '#/lib/email.ts'
 
 import { TRPCError } from '@trpc/server'
@@ -34,6 +33,12 @@ const lineSchema = z.object({
   godownName: z.string().nullable().optional(),
 })
 
+const optionalStateCodeSchema = z.preprocess(
+  (value) =>
+    typeof value === 'string' && value.trim() === '' ? undefined : value,
+  z.string().length(2).optional(),
+)
+
 const postSalesInvoiceInputSchema = z.object({
   companyId: z.string().uuid(),
   companyStateCode: z.string().length(2),
@@ -43,8 +48,8 @@ const postSalesInvoiceInputSchema = z.object({
   companyCity: z.string().optional(),
   companyPincode: z.string().optional(),
   customerId: z.string().uuid(),
-  customerStateCode: z.string().length(2),
-  placeOfSupply: z.string().length(2).optional(),
+  customerStateCode: z.string().trim().length(2),
+  placeOfSupply: optionalStateCodeSchema,
   reverseCharge: z.boolean().optional(),
   invoiceNumber: z.string().min(1),
   invoiceDate: z.string().min(1),
@@ -168,7 +173,7 @@ export const createSalesRouter = (
           { companyId: input.companyId, invoiceId: input.id },
         )
       }),
-    emailInvoice: companyProcedure
+    emailInvoice: capabilityProcedure('post_sales')
       .input(emailInvoiceInputSchema)
       .mutation(async ({ input }) => {
         const invoice = await invoices.findById(input.id)

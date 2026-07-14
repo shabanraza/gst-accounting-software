@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { PackageIcon, PlusIcon, SearchIcon } from 'lucide-react'
+import { PackageIcon, PlusIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
 import { itemTrackingBadgeIntent } from '#/lib/badge-intent.ts'
@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
-import { Input } from '#/components/ui/input.tsx'
+import { SearchInput } from '#/components/ui/search-input.tsx'
 import {
   Table,
   TableBody,
@@ -68,15 +68,12 @@ export function ItemsPanel() {
             </CardDescription>
           </div>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative w-full max-w-sm">
-              <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search name or HSN"
-                value={query}
-              />
-            </div>
+            <SearchInput
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search name or HSN"
+              value={query}
+              wrapperClassName="w-full max-w-sm"
+            />
           </div>
         </CardHeader>
         <CardContent className="px-0">

@@ -6,6 +6,7 @@ import { trpcClient } from '#/integrations/tanstack-query/root-provider.tsx'
 import { authClient } from '#/lib/auth-client.ts'
 
 import type { CompanyRecord } from '#/features/companies/company-service.ts'
+import type { Capability } from '#/features/companies/membership-service.ts'
 import type { GodownRecord } from '#/features/inventory/godown-service.ts'
 
 type WorkspaceValue = {
@@ -16,6 +17,7 @@ type WorkspaceValue = {
   activeFinancialYearId: string | null
   ledgerBySystemKey: Partial<Record<string, string>>
   godowns: Array<GodownRecord>
+  capabilities: Array<Capability>
   isReady: boolean
   isLoading: boolean
   error: string | null
@@ -67,6 +69,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const companyId = company?.id ?? null
   const ledgerBySystemKey = workspaceQuery.data?.ledgerBySystemKey ?? {}
   const godowns = workspaceQuery.data?.godowns ?? []
+  const capabilities = workspaceQuery.data?.capabilities ?? []
   const activeFinancialYearId =
     workspaceQuery.data?.activeFinancialYearId ?? null
   const isLoading =
@@ -111,6 +114,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       activeFinancialYearId,
       ledgerBySystemKey,
       godowns,
+      capabilities,
       isReady,
       isLoading,
       error,
@@ -125,6 +129,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       activeFinancialYearId,
       ledgerBySystemKey,
       godowns,
+      capabilities,
       isReady,
       isLoading,
       error,

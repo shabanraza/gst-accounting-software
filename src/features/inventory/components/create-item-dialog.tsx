@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 import { Button } from '#/components/ui/button.tsx'
 import {
@@ -29,6 +30,7 @@ import {
 } from '#/features/app-shell/data/india-masters.ts'
 import { godowns as demoGodowns } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { failForm } from '#/lib/form-validation.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 import type { ItemRecord } from '#/features/inventory/item-service.ts'
 
@@ -110,7 +112,12 @@ export function CreateItemDialog({
       )
       return
     }
-    if (!form.name.trim() || !form.hsnCode.trim()) return
+    if (!form.name.trim()) {
+      return failForm(setFormError, 'Item name is required.')
+    }
+    if (!form.hsnCode.trim()) {
+      return failForm(setFormError, 'HSN code is required.')
+    }
 
     setFormError(null)
     try {
@@ -144,6 +151,7 @@ export function CreateItemDialog({
       })
       resetForm()
       setOpen(false)
+      toast.success('Item created.')
       onCreated?.(result.item)
     } catch (error) {
       setFormError(getFormErrorMessage(error))

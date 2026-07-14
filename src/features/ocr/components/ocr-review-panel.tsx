@@ -24,6 +24,7 @@ import {
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
+import { requireWorkspace } from '#/lib/form-validation.ts'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
@@ -42,7 +43,7 @@ export function OcrReviewPanel() {
   const confirmMutation = useMutation(trpc.ocr.confirm.mutationOptions())
 
   async function handleConfirm(draftId: string) {
-    if (!companyId || !company) return
+    if (!requireWorkspace(companyId, isReady) || !company) return
 
     const purchaseAccountId = ledgerBySystemKey.purchase
     const inputGstAccountId = ledgerBySystemKey.input_gst
@@ -76,6 +77,7 @@ export function OcrReviewPanel() {
       await queryClient.invalidateQueries({
         queryKey: trpc.purchases.list.queryKey(),
       })
+      toast.success('Purchase bill posted from OCR draft.')
     } catch (err) {
       toastActionError(err, 'Failed to confirm OCR draft')
     }

@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 import { Button } from '#/components/ui/button.tsx'
 import {
@@ -11,7 +12,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '#/components/ui/dialog.tsx'
+import { Checkbox } from '#/components/ui/checkbox.tsx'
 import { Input } from '#/components/ui/input.tsx'
+import { Label } from '#/components/ui/label.tsx'
 import {
   Select,
   SelectContent,
@@ -27,6 +30,8 @@ import {
   paymentTermsOptions,
 } from '#/features/app-shell/data/india-masters.ts'
 import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
+import { failForm } from '#/lib/form-validation.ts'
+import { isValidStateCode } from '#/features/accounting/voucher-math.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 import type {
   PartyRecord,
@@ -167,7 +172,12 @@ export function CreatePartyDialog({
       )
       return
     }
-    if (!name.trim()) return
+    if (!name.trim()) {
+      return failForm(setFormError, 'Party name is required.')
+    }
+    if (!isValidStateCode(stateCode)) {
+      return failForm(setFormError, 'State must be a valid 2-digit state code.')
+    }
 
     const receivableAccountId = ledgerBySystemKey.customer_receivable ?? null
     const payableAccountId = ledgerBySystemKey.supplier_payable ?? null
@@ -178,6 +188,7 @@ export function CreatePartyDialog({
       !receivableAccountId
     ) {
       setFormError('Receivable ledger is missing for this company')
+      toast.error('Receivable ledger is missing for this company.')
       return
     }
     if (
@@ -186,6 +197,7 @@ export function CreatePartyDialog({
       !payableAccountId
     ) {
       setFormError('Payable ledger is missing for this company')
+      toast.error('Payable ledger is missing for this company.')
       return
     }
 
@@ -221,6 +233,7 @@ export function CreatePartyDialog({
         })
         resetForm()
         setOpen(false)
+        toast.success('Party updated.')
         onUpdated?.(updated)
         return
       }
@@ -244,6 +257,7 @@ export function CreatePartyDialog({
       })
       resetForm()
       setOpen(false)
+      toast.success('Party created.')
       onCreated?.(created)
     } catch (error) {
       setFormError(getFormErrorMessage(error))
@@ -408,15 +422,16 @@ export function CreatePartyDialog({
         </div>
 
         <div className="flex flex-col gap-3">
-          <label className="flex items-center gap-2 text-sm">
-            <input
+          <div className="flex items-center gap-2">
+            <Checkbox
               checked={shipSameAsBilling}
-              className="size-4 rounded border"
-              onChange={(event) => setShipSameAsBilling(event.target.checked)}
-              type="checkbox"
+              id="party-ship-same"
+              onCheckedChange={(checked) =>
+                setShipSameAsBilling(checked === true)
+              }
             />
-            Ship-to same as billing
-          </label>
+            <Label htmlFor="party-ship-same">Ship-to same as billing</Label>
+          </div>
           {!shipSameAsBilling ? (
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium" htmlFor="party-ship">

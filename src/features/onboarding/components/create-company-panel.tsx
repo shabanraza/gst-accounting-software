@@ -13,7 +13,13 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
+import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
+import { formatMediumDate } from '#/lib/calendar-date.ts'
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from '#/components/ui/toggle-group.tsx'
 import {
   Select,
   SelectContent,
@@ -168,12 +174,10 @@ export function CreateCompanyPanel() {
                 <label className="text-sm font-medium" htmlFor="ob-fy">
                   Financial year start
                 </label>
-                <Input
+                <DatePicker
+                  formatValue={formatMediumDate}
                   id="ob-fy"
-                  onChange={(event) =>
-                    setFinancialYearStart(event.target.value)
-                  }
-                  type="date"
+                  onChange={setFinancialYearStart}
                   value={financialYearStart}
                 />
               </div>
@@ -181,22 +185,26 @@ export function CreateCompanyPanel() {
           ) : null}
 
           {step === 2 ? (
-            <div className="grid grid-cols-2 gap-2">
+            <ToggleGroup
+              className="grid w-full grid-cols-2 gap-2"
+              onValueChange={(value) => {
+                if (value) setBusinessType(value as BusinessType)
+              }}
+              spacing={0}
+              type="single"
+              value={businessType}
+              variant="outline"
+            >
               {businessTypes.map((type) => (
-                <button
-                  className={`flex flex-col items-start gap-1 rounded-lg border p-3 text-left text-sm transition-colors ${
-                    businessType === type.value
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border hover:bg-muted/50'
-                  }`}
+                <ToggleGroupItem
+                  className="h-auto min-h-14 flex-col items-start justify-center gap-1 p-3 text-left text-sm"
                   key={type.value}
-                  onClick={() => setBusinessType(type.value)}
-                  type="button"
+                  value={type.value}
                 >
                   <span className="font-medium">{type.label}</span>
-                </button>
+                </ToggleGroupItem>
               ))}
-            </div>
+            </ToggleGroup>
           ) : null}
         </CardContent>
 

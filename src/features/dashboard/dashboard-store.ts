@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, gte, lte } from 'drizzle-orm'
 
 import { getDb } from '#/db/client.ts'
 import * as schema from '#/db/schema.ts'
@@ -45,6 +45,26 @@ export class InMemoryDashboardSummaryRepository implements DashboardSummaryRepos
       summary,
     )
     return summary
+  }
+
+  async listBetween(
+    companyId: string,
+    startDate: string,
+    endDate: string,
+  ) {
+    const rows: Array<DailyDashboardSummary> = []
+    for (const summary of this.summaries.values()) {
+      if (
+        summary.companyId === companyId &&
+        summary.summaryDate >= startDate &&
+        summary.summaryDate <= endDate
+      ) {
+        rows.push(summary)
+      }
+    }
+    return rows.sort((left, right) =>
+      left.summaryDate.localeCompare(right.summaryDate),
+    )
   }
 }
 
@@ -118,6 +138,26 @@ export class DrizzleDashboardSummaryRepository implements DashboardSummaryReposi
       .returning()
 
     return mapRowToSummary(saved)
+  }
+
+  async listBetween(
+    companyId: string,
+    startDate: string,
+    endDate: string,
+  ) {
+    const rows = await this.database
+      .select()
+      .from(schema.dashboardDailySummaries)
+      .where(
+        and(
+          eq(schema.dashboardDailySummaries.companyId, companyId),
+          gte(schema.dashboardDailySummaries.summaryDate, startDate),
+          lte(schema.dashboardDailySummaries.summaryDate, endDate),
+        ),
+      )
+      .orderBy(schema.dashboardDailySummaries.summaryDate)
+
+    return rows.map(mapRowToSummary)
   }
 }
 

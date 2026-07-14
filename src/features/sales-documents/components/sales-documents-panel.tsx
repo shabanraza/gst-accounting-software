@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
+import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
 import {
   Select,
@@ -35,6 +36,11 @@ import { WorkspacePage } from '#/features/app-shell/components/workspace-page.ts
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
+import {
+  requirePositiveQuantity,
+  requireSelection,
+  requireWorkspace,
+} from '#/lib/form-validation.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 import { documentStatusBadgeIntent } from '#/lib/badge-intent.ts'
@@ -98,12 +104,19 @@ export function SalesDocumentsPanel() {
 
   async function handleCreate(event: React.FormEvent) {
     event.preventDefault()
-    if (!companyId) return
+    if (!requireWorkspace(companyId, isReady)) return
+
+    const selectedCustomerId = requireSelection(customerId, 'a customer')
+    if (!selectedCustomerId) return
+
     const item = items.find((entry) => entry.id === itemId)
     if (!item) {
-      toast.error('Select an item')
+      toast.error('Select an item.')
       return
     }
+
+    const lineQuantity = requirePositiveQuantity(quantity, 'Quantity')
+    if (!lineQuantity) return
 
     try {
       await createDocument.mutateAsync({
@@ -113,12 +126,12 @@ export function SalesDocumentsPanel() {
           documentNumber.trim() ||
           `${documentType.toUpperCase()}-${Date.now()}`,
         documentDate,
-        customerId,
+        customerId: selectedCustomerId,
         lines: [
           {
             itemId: item.id,
             description: item.name,
-            quantity,
+            quantity: lineQuantity,
             unit: item.baseUnit,
             rate: rate || item.saleRate,
           },
@@ -128,6 +141,7 @@ export function SalesDocumentsPanel() {
         queryKey: trpc.salesDocuments.list.queryKey({ companyId }),
       })
       setDocumentNumber('')
+      toast.success(`${documentTypeLabels[documentType]} created.`)
     } catch (err) {
       toastActionError(err, 'Create failed')
     }
@@ -174,9 +188,9 @@ export function SalesDocumentsPanel() {
                 placeholder="Document number (optional)"
                 value={documentNumber}
               />
-              <Input
-                onChange={(event) => setDocumentDate(event.target.value)}
-                type="date"
+              <DatePicker
+                onChange={setDocumentDate}
+                placeholder="Document date"
                 value={documentDate}
               />
               <Select onValueChange={setCustomerId} value={customerId}>

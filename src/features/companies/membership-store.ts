@@ -55,6 +55,10 @@ export class InMemoryMembershipRepository implements MembershipRepository {
     )
     if (index >= 0) this.memberships.splice(index, 1)
   }
+
+  clear() {
+    this.memberships.length = 0
+  }
 }
 
 type MembershipRow = typeof schema.companyMemberships.$inferSelect
@@ -153,11 +157,24 @@ export class DrizzleMembershipRepository implements MembershipRepository {
   }
 }
 
+let inMemoryMembershipRepository: InMemoryMembershipRepository | null = null
+
 export function createMembershipRepository(): MembershipRepository {
   const database = getDb()
   if (!database) {
-    return new InMemoryMembershipRepository()
+    if (!inMemoryMembershipRepository) {
+      inMemoryMembershipRepository = new InMemoryMembershipRepository()
+    }
+    return inMemoryMembershipRepository
   }
 
   return new DrizzleMembershipRepository(database)
+}
+
+export const membershipRepository = createMembershipRepository()
+
+export function resetMembershipRepositoryForTests() {
+  if (inMemoryMembershipRepository) {
+    inMemoryMembershipRepository.clear()
+  }
 }

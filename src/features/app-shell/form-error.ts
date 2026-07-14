@@ -71,6 +71,14 @@ const MESSAGE_RULES: Array<{ test: RegExp; message: string }> = [
     message: 'This invitation is invalid or has expired.',
   },
   {
+    test: /PaymentAllocationError|Receipt amount must be greater than zero|Payment amount must be greater than zero|exceeds bill outstanding|exceeds invoice outstanding/i,
+    message: 'Payment amount is invalid or exceeds the document balance.',
+  },
+  {
+    test: /UnbalancedLedgerEntry|debits must equal credits/i,
+    message: 'Journal entry is not balanced. Total debits must equal total credits.',
+  },
+  {
     test: /UNAUTHORIZED|unauthorized/i,
     message: 'Please sign in to continue.',
   },
@@ -103,11 +111,59 @@ function parseZodIssues(message: string): string | null {
       return null
     }
 
+    const fieldLabels: Record<string, string> = {
+      customerStateCode: 'Customer state',
+      supplierStateCode: 'Supplier state',
+      companyStateCode: 'Company state',
+      placeOfSupply: 'Place of supply',
+      stateCode: 'State',
+      legalName: 'Legal name',
+      tradeName: 'Trade name',
+      name: 'Name',
+      email: 'Email',
+      amount: 'Amount',
+      narration: 'Narration',
+      customerId: 'Customer',
+      supplierId: 'Supplier',
+      invoiceId: 'Invoice',
+      purchaseBillId: 'Purchase bill',
+      supplierBillNumber: 'Supplier bill number',
+      hsnCode: 'HSN code',
+      quantity: 'Quantity',
+      rate: 'Rate',
+    }
+
     return parsed
       .map((issue) => {
+        const field = issue.path?.[0]
+        const label =
+          typeof field === 'string' ? (fieldLabels[field] ?? field) : ''
+        const issueMessage = issue.message ?? 'Invalid value'
+
+        if (
+          label &&
+          /too small|expected string to have|invalid input|required/i.test(
+            issueMessage,
+          )
+        ) {
+          if (
+            field === 'customerStateCode' ||
+            field === 'supplierStateCode' ||
+            field === 'placeOfSupply' ||
+            field === 'companyStateCode' ||
+            field === 'stateCode'
+          ) {
+            return `${label} must be a valid 2-digit Indian state code.`
+          }
+          if (field === 'email') {
+            return 'Enter a valid email address.'
+          }
+          return `${label} is required.`
+        }
+
         const path =
           issue.path && issue.path.length > 0 ? `${issue.path.join('.')}: ` : ''
-        return `${path}${issue.message ?? 'Invalid value'}`
+        return `${path}${issueMessage}`
       })
       .join('; ')
   } catch {
