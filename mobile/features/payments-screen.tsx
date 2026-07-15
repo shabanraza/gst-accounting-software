@@ -2,17 +2,14 @@ import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Modal, Pressable } from 'react-native'
 
-import { SectionHeader } from '@/components/section-header'
-import {
-  CardRow,
-  EmptyState,
-  FormField,
-  LoadingState,
-  PrimaryButton,
-  Screen,
-  SecondaryButton,
-} from '@/components/screen'
-import { formatInr } from '@/lib/format-inr'
+import { CardRow } from '@/components/data/card-row'
+import { EmptyState } from '@/components/data/empty-state'
+import { LoadingState } from '@/components/data/loading-state'
+import { SectionHeader } from '@/components/layout/section-header'
+import { Screen } from '@/components/layout/screen'
+import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
+import { FormField } from '@/components/ui/form-field'
+import { themeSpacing } from '@/lib/theme'
 import {
   buildCustomerReceiptInput,
   buildSupplierPaymentInput,
@@ -83,7 +80,13 @@ function AllocationModal({
   return (
     <Modal animationType="slide" transparent visible={visible}>
       <View className="flex-1 justify-end bg-black/40">
-        <View className="max-h-[80%] rounded-t-3xl bg-background p-page-x pb-page-bottom">
+        <View
+          className="max-h-[80%] rounded-t-3xl bg-background pb-page-bottom"
+          style={{
+            paddingHorizontal: themeSpacing.pageX,
+            paddingTop: themeSpacing.pageX,
+          }}
+        >
           <View className="mb-4 flex-row items-center justify-between">
             <Text className="text-lg font-semibold text-foreground">
               {mode === 'receipts' ? 'Customer receipt' : 'Supplier payment'}

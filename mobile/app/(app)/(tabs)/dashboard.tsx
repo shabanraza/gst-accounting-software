@@ -3,12 +3,13 @@ import { ScrollView, View, Text } from '@/tw'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { ActionGrid } from '@/components/action-grid'
-import { BalanceHero } from '@/components/balance-hero'
-import { DashboardMetricCard } from '@/components/dashboard-metric-card'
+import { ActionGrid } from '@/components/dashboard/action-grid'
+import { BalanceHero } from '@/components/dashboard/balance-hero'
+import { DashboardMetricCard } from '@/components/dashboard/dashboard-metric-card'
 import { CompanySwitcher } from '@/components/company-switcher'
-import { SectionHeader } from '@/components/section-header'
-import { EmptyState, LoadingState } from '@/components/screen'
+import { EmptyState } from '@/components/data/empty-state'
+import { LoadingState } from '@/components/data/loading-state'
+import { SectionHeader } from '@/components/layout/section-header'
 import {
   QUICK_CREATE_ACTIONS,
   REPORT_ACTIONS,
@@ -20,7 +21,7 @@ import {
   getOverdueCounts,
   mapOwnerSnapshotMetrics,
 } from '@/lib/dashboard-metrics'
-import { themeColors } from '@/lib/theme'
+import { pagePaddingHorizontal, themeColors, themeSpacing } from '@/lib/theme'
 import { trpcClient } from '@/lib/trpc-client'
 import { useWorkspace } from '@/lib/workspace'
 
@@ -53,8 +54,8 @@ export default function DashboardScreen() {
   return (
     <View className="flex-1 bg-background">
       <View
-        className="flex-row items-center justify-between gap-3 border-b border-border bg-background px-page-x pb-dashboard-header-pb"
-        style={{ paddingTop: insets.top + 12 }}
+        className="flex-row items-center justify-between gap-3 border-b border-border bg-background pb-dashboard-header-pb"
+        style={{ paddingTop: insets.top + 12, ...pagePaddingHorizontal }}
       >
         <CompanySwitcher variant="header" />
         <DateRangePill
@@ -68,28 +69,34 @@ export default function DashboardScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-dashboard-section p-page-x"
-        contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
+        contentContainerClassName="gap-dashboard-section"
+        contentContainerStyle={{
+          paddingBottom: scrollBottomPadding,
+          ...pagePaddingHorizontal,
+        }}
         showsVerticalScrollIndicator={false}
       >
         {snapshotQuery.isLoading ? <LoadingState /> : null}
 
         {snapshot ? (
           <>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerClassName="gap-metric-carousel pr-1"
-            >
-              {mapOwnerSnapshotMetrics(snapshot).map((metric) => (
-                <DashboardMetricCard
-                  key={metric.id}
-                  label={metric.label}
-                  amount={formatInr(metric.amount)}
-                  icon={metric.icon}
-                />
-              ))}
-            </ScrollView>
+            <View style={{ marginHorizontal: -themeSpacing.pageX }}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerClassName="gap-metric-carousel"
+                contentContainerStyle={{ paddingLeft: themeSpacing.pageX }}
+              >
+                {mapOwnerSnapshotMetrics(snapshot).map((metric) => (
+                  <DashboardMetricCard
+                    key={metric.id}
+                    label={metric.label}
+                    amount={formatInr(metric.amount)}
+                    icon={metric.icon}
+                  />
+                ))}
+              </ScrollView>
+            </View>
 
             <BalanceHero
               receivables={formatInr(snapshot.balances.receivableTotal)}

@@ -24,3 +24,12 @@ export const themeSizes = {
   actionIcon: 20,
   actionTile: 44,
 } as const
+
+/** Mirrors --spacing-page-x (1rem). Use inline on Android where px-page-x may not apply. */
+export const themeSpacing = {
+  pageX: 16,
+} as const
+
+export const pagePaddingHorizontal = {
+  paddingHorizontal: themeSpacing.pageX,
+} as const

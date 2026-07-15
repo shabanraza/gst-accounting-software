@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { View, Text, ScrollView, Pressable, TextInput } from '@/tw'
 import { getModuleIcon } from '@/lib/module-icons'
 import type { MobileNavModule } from '@/lib/nav-config'
-import { themeColors } from '@/lib/theme'
+import { pagePaddingHorizontal, themeColors } from '@/lib/theme'
 
 const TAB_BAR_HEIGHT = 56
 
@@ -45,8 +45,8 @@ export function Screen({
   const content = (
     <View className="flex-1 bg-background">
       <View
-        className="border-b border-border bg-background px-page-x pb-dashboard-header-pb"
-        style={{ paddingTop: top + 12 }}
+        className="border-b border-border bg-background pb-dashboard-header-pb"
+        style={{ paddingTop: top + 12, ...pagePaddingHorizontal }}
       >
         <Text className="text-2xl font-bold text-foreground">{title}</Text>
         {subtitle ? (
@@ -55,8 +55,8 @@ export function Screen({
       </View>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-dashboard-section p-page-x"
-        contentContainerStyle={{ paddingBottom: bottom }}
+        contentContainerClassName="gap-dashboard-section"
+        contentContainerStyle={{ paddingBottom: bottom, ...pagePaddingHorizontal }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -246,7 +246,8 @@ export function AuthShell({
     >
       <ScrollView
         className="flex-1"
-        contentContainerClassName="flex-grow justify-center gap-4 px-page-x"
+        contentContainerClassName="flex-grow justify-center gap-4"
+        contentContainerStyle={pagePaddingHorizontal}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
