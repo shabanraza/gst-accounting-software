@@ -3,15 +3,21 @@ import { Text, View } from '@/tw'
 export function SectionHeader({
   title,
   subtitle,
+  compact = false,
 }: {
   title: string
   subtitle?: string
+  compact?: boolean
 }) {
   return (
     <View className="gap-0.5">
-      <Text className="text-base font-semibold text-gray-900">{title}</Text>
+      <Text
+        className={`font-semibold text-foreground ${compact ? 'text-sm' : 'text-base'}`}
+      >
+        {title}
+      </Text>
       {subtitle ? (
-        <Text className="text-sm text-gray-500">{subtitle}</Text>
+        <Text className="text-xs text-muted-foreground">{subtitle}</Text>
       ) : null}
     </View>
   )

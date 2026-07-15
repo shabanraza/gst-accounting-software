@@ -1,61 +1,31 @@
 import { Ionicons } from '@expo/vector-icons'
 import { Pressable, Text, View } from '@/tw'
 
-type MetricTone = 'blue' | 'emerald' | 'amber' | 'violet'
-
-const toneStyles: Record<
-  MetricTone,
-  { bg: string; icon: string; accent: string }
-> = {
-  blue: {
-    bg: 'bg-blue-50',
-    icon: '#2563eb',
-    accent: 'text-blue-700',
-  },
-  emerald: {
-    bg: 'bg-emerald-50',
-    icon: '#059669',
-    accent: 'text-emerald-700',
-  },
-  amber: {
-    bg: 'bg-amber-50',
-    icon: '#d97706',
-    accent: 'text-amber-700',
-  },
-  violet: {
-    bg: 'bg-violet-50',
-    icon: '#7c3aed',
-    accent: 'text-violet-700',
-  },
-}
+const ICON_COLOR = '#2563eb'
 
 export function DashboardMetricCard({
   label,
   amount,
   icon,
-  tone = 'blue',
   onPress,
 }: {
   label: string
   amount: string
   icon: keyof typeof Ionicons.glyphMap
-  tone?: MetricTone
   onPress?: () => void
 }) {
-  const styles = toneStyles[tone]
-
   return (
     <Pressable
-      className={`min-w-[148px] rounded-2xl border border-blue-100 p-4 ${styles.bg}`}
+      className="min-w-[120px] rounded-xl border border-border bg-icon-bg p-3"
       onPress={onPress}
     >
-      <View className="mb-3 size-9 items-center justify-center rounded-xl bg-white/80">
-        <Ionicons name={icon} size={18} color={styles.icon} />
+      <View className="mb-2 size-8 items-center justify-center rounded-lg bg-background/80">
+        <Ionicons name={icon} size={16} color={ICON_COLOR} />
       </View>
-      <Text className="text-xs font-medium uppercase tracking-wide text-gray-500">
+      <Text className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </Text>
-      <Text className={`mt-1 text-lg font-bold ${styles.accent}`}>{amount}</Text>
+      <Text className="mt-0.5 text-base font-bold text-icon-foreground">{amount}</Text>
     </Pressable>
   )
 }

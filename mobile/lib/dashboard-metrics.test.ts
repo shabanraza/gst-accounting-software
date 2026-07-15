@@ -57,35 +57,30 @@ describe('mapOwnerSnapshotMetrics', () => {
         label: 'Sales',
         amount: '1000.00',
         icon: 'trending-up-outline',
-        tone: 'blue',
       },
       {
         id: 'receipts',
         label: 'Receipts',
         amount: '800.00',
         icon: 'cash-outline',
-        tone: 'emerald',
       },
       {
         id: 'receivables',
         label: 'Receivables',
         amount: '2000.00',
         icon: 'arrow-down-outline',
-        tone: 'violet',
       },
       {
         id: 'payables',
         label: 'Payables',
         amount: '3000.00',
         icon: 'arrow-up-outline',
-        tone: 'amber',
       },
       {
         id: 'cash',
         label: 'Cash & bank',
         amount: '4000.00',
         icon: 'wallet-outline',
-        tone: 'blue',
       },
     ])
   })

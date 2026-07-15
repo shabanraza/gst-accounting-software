@@ -31,7 +31,6 @@ export type DashboardMetric = {
   label: string
   amount: string
   icon: 'trending-up-outline' | 'cash-outline' | 'arrow-down-outline' | 'arrow-up-outline' | 'wallet-outline'
-  tone: 'blue' | 'emerald' | 'amber' | 'violet'
 }
 
 export function mapOwnerSnapshotCards(snapshot: OwnerSnapshot) {
@@ -62,35 +61,30 @@ export function mapOwnerSnapshotMetrics(snapshot: OwnerSnapshot): Array<Dashboar
       label: 'Sales',
       amount: snapshot.today.salesTotal,
       icon: 'trending-up-outline',
-      tone: 'blue',
     },
     {
       id: 'receipts',
       label: 'Receipts',
       amount: snapshot.today.moneyIn,
       icon: 'cash-outline',
-      tone: 'emerald',
     },
     {
       id: 'receivables',
       label: 'Receivables',
       amount: snapshot.balances.receivableTotal,
       icon: 'arrow-down-outline',
-      tone: 'violet',
     },
     {
       id: 'payables',
       label: 'Payables',
       amount: snapshot.balances.payableTotal,
       icon: 'arrow-up-outline',
-      tone: 'amber',
     },
     {
       id: 'cash',
       label: 'Cash & bank',
       amount: snapshot.balances.cashBankBalance,
       icon: 'wallet-outline',
-      tone: 'blue',
     },
   ]
 }

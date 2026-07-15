@@ -10,12 +10,37 @@
 @source '../lib';
 
 @theme {
+  /* Core surfaces */
+  --color-background: #ffffff;
+  --color-foreground: #111827;
+  --color-card: #ffffff;
+  --color-card-foreground: #111827;
+
+  /* Primary brand & icon system (muted blue only) */
   --color-primary: #2563eb;
-  --color-primary-foreground: #eff6ff;
-  --color-muted: #eff6ff;
-  --color-muted-foreground: #60a5fa;
+  --color-primary-foreground: #ffffff;
+  --color-primary-muted: #eff6ff;
+  --color-icon: #2563eb;
+  --color-icon-bg: #eff6ff;
+  --color-icon-foreground: #1d4ed8;
+
+  /* Muted / secondary text */
+  --color-muted: #f3f4f6;
+  --color-muted-foreground: #6b7280;
+
+  /* Borders & focus */
   --color-border: #e5e7eb;
   --color-ring: #2563eb;
+
+  /* Semantic status (overdue alerts only) */
+  --color-warning: #d97706;
+  --color-warning-muted: #fffbeb;
+  --color-warning-foreground: #92400e;
+
+  /* Dashboard spacing */
+  --spacing-dashboard-header: 3.5rem;
+  --spacing-dashboard-section: 0.5rem;
+  --spacing-dashboard-grid-gap: 0.5rem;
 }
 
 @media android {

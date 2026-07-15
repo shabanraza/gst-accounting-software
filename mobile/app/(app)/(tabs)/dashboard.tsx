@@ -21,11 +21,13 @@ import {
 import { trpcClient } from '@/lib/trpc-client'
 import { useWorkspace } from '@/lib/workspace'
 
+const PRIMARY_COLOR = '#2563eb'
+
 function DateRangePill({ label }: { label: string }) {
   return (
-    <View className="flex-row items-center gap-2 self-start rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5">
-      <Ionicons name="calendar-outline" size={14} color="#2563eb" />
-      <Text className="text-xs font-medium text-blue-700">{label}</Text>
+    <View className="flex-row items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5">
+      <Ionicons name="calendar-outline" size={11} color={PRIMARY_COLOR} />
+      <Text className="text-[10px] font-medium text-muted-foreground">{label}</Text>
     </View>
   )
 }
@@ -45,40 +47,40 @@ function BalanceSummaryCard({
     Number(overdueReceivables) > 0 || Number(overduePayables) > 0
 
   return (
-    <View className="gap-4 rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
-      <View className="flex-row gap-4">
-        <View className="flex-1 gap-1">
-          <Text className="text-xs font-medium uppercase tracking-wide text-gray-500">
-            Total receivables
+    <View className="gap-2 rounded-xl border border-border bg-card p-3">
+      <View className="flex-row gap-3">
+        <View className="flex-1 gap-0.5">
+          <Text className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            Receivables
           </Text>
-          <Text className="text-xl font-bold text-blue-700">{receivables}</Text>
+          <Text className="text-base font-bold text-icon-foreground">
+            {receivables}
+          </Text>
         </View>
-        <View className="w-px bg-gray-100" />
-        <View className="flex-1 gap-1">
-          <Text className="text-xs font-medium uppercase tracking-wide text-gray-500">
-            Total payables
+        <View className="w-px bg-border" />
+        <View className="flex-1 gap-0.5">
+          <Text className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            Payables
           </Text>
-          <Text className="text-xl font-bold text-amber-700">{payables}</Text>
+          <Text className="text-base font-bold text-icon-foreground">
+            {payables}
+          </Text>
         </View>
       </View>
       {hasOverdue ? (
-        <View className="gap-2 rounded-xl bg-amber-50 px-3 py-2.5">
-          <View className="flex-row items-center gap-2">
-            <Ionicons name="alert-circle-outline" size={16} color="#d97706" />
-            <Text className="text-xs font-semibold uppercase tracking-wide text-amber-800">
-              Overdue
-            </Text>
-          </View>
-          {Number(overdueReceivables) > 0 ? (
-            <Text className="text-sm text-amber-900">
-              Invoices overdue: {overdueReceivables}
-            </Text>
-          ) : null}
-          {Number(overduePayables) > 0 ? (
-            <Text className="text-sm text-amber-900">
-              Bills overdue: {overduePayables}
-            </Text>
-          ) : null}
+        <View className="flex-row items-center gap-1.5 rounded-lg bg-warning-muted px-2 py-1.5">
+          <Ionicons name="alert-circle-outline" size={13} color="#d97706" />
+          <Text className="flex-1 text-[10px] text-warning-foreground">
+            {Number(overdueReceivables) > 0
+              ? `Invoices overdue: ${overdueReceivables}`
+              : null}
+            {Number(overdueReceivables) > 0 && Number(overduePayables) > 0
+              ? ' · '
+              : null}
+            {Number(overduePayables) > 0
+              ? `Bills overdue: ${overduePayables}`
+              : null}
+          </Text>
         </View>
       ) : null}
     </View>
@@ -101,18 +103,9 @@ export default function DashboardScreen() {
   const overdue = snapshot ? getOverdueTotals(snapshot) : null
 
   return (
-    <View className="flex-1 bg-blue-50/40">
-      <View className="border-b border-blue-100 bg-white px-4 pb-4 pt-14">
-        <Text className="text-2xl font-bold text-gray-900">Home</Text>
-        <Text className="mt-1 text-sm text-gray-500">Business pulse at a glance</Text>
-      </View>
-
-      <ScrollView
-        className="flex-1"
-        contentContainerClassName="gap-5 p-4 pb-28"
-        showsVerticalScrollIndicator={false}
-      >
-        <CompanySwitcher />
+    <View className="flex-1 bg-background">
+      <View className="flex-row items-center justify-between gap-3 border-b border-border bg-background px-4 pb-2 pt-14">
+        <CompanySwitcher variant="header" />
         <DateRangePill
           label={
             snapshot
@@ -120,7 +113,13 @@ export default function DashboardScreen() {
               : formatDashboardDate(new Date().toISOString().slice(0, 10))
           }
         />
+      </View>
 
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="gap-3 p-4 pb-28"
+        showsVerticalScrollIndicator={false}
+      >
         {snapshotQuery.isLoading ? <LoadingState /> : null}
 
         {snapshot ? (
@@ -128,7 +127,7 @@ export default function DashboardScreen() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerClassName="gap-3 pr-1"
+              contentContainerClassName="gap-2 pr-1"
             >
               {mapOwnerSnapshotMetrics(snapshot).map((metric) => (
                 <DashboardMetricCard
@@ -136,7 +135,6 @@ export default function DashboardScreen() {
                   label={metric.label}
                   amount={formatInr(metric.amount)}
                   icon={metric.icon}
-                  tone={metric.tone}
                 />
               ))}
             </ScrollView>
@@ -148,24 +146,18 @@ export default function DashboardScreen() {
               overduePayables={formatInr(String(overdue?.payables ?? 0))}
             />
 
-            <View className="gap-3">
-              <SectionHeader
-                title="Quick Create"
-                subtitle="Start invoices, receipts, and masters"
-              />
+            <View className="gap-1.5">
+              <SectionHeader title="Quick Create" compact />
               <ActionGrid items={QUICK_CREATE_ACTIONS} />
             </View>
 
-            <View className="gap-3">
-              <SectionHeader
-                title="View & Share"
-                subtitle="Open lists and ledgers"
-              />
+            <View className="gap-1.5">
+              <SectionHeader title="View & Share" compact />
               <ActionGrid items={VIEW_SHARE_ACTIONS} />
             </View>
 
-            <View className="gap-3">
-              <SectionHeader title="Reports" subtitle="GST, journal, and banking" />
+            <View className="gap-1.5">
+              <SectionHeader title="Reports" compact />
               <ActionGrid items={REPORT_ACTIONS} />
             </View>
           </>
