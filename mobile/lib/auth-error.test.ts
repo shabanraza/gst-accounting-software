@@ -8,8 +8,7 @@ describe('formatAuthNetworkError', () => {
 
     expect(message).toContain('Cannot reach the API')
     expect(message).toContain('http://localhost:3000')
-    expect(message).toContain('dev:lan')
-    expect(message).toContain('EXPO_PUBLIC_API_URL')
+    expect(message).toContain('bun run dev')
   })
 
   it('returns the original message for non-network errors', () => {

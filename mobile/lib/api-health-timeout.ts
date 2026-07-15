@@ -1,9 +1,10 @@
 import { checkApiHealth, type ApiHealthResult } from './api-health.ts'
+import { getApiReachabilityHint } from './env.ts'
 
 export const API_HEALTH_CHECK_TIMEOUT_MS = 10_000
 
 export function buildApiHealthTimeoutMessage(timeoutMs: number): string {
-  return `API health check timed out after ${timeoutMs / 1000}s. Start the API with "bun run dev:lan" and confirm EXPO_PUBLIC_API_URL is reachable from your device.`
+  return `API health check timed out after ${timeoutMs / 1000}s. ${getApiReachabilityHint()}`
 }
 
 export async function checkApiHealthWithTimeout(

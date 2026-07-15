@@ -1,4 +1,4 @@
-import { resolveApiBaseUrl } from './env.ts'
+import { getApiReachabilityHint, resolveApiBaseUrl } from './env.ts'
 
 export function formatAuthNetworkError(error: unknown) {
   const apiUrl = resolveApiBaseUrl()
@@ -12,5 +12,5 @@ export function formatAuthNetworkError(error: unknown) {
     return message || 'Unable to reach the API.'
   }
 
-  return `Cannot reach the API at ${apiUrl}. Start the web server from the repo root with "bun run dev:lan", then set EXPO_PUBLIC_API_URL in mobile/.env to your computer's LAN IP (for Expo Go on a phone).`
+  return `Cannot reach the API at ${apiUrl}. ${getApiReachabilityHint()}`
 }

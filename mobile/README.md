@@ -2,7 +2,29 @@
 
 Expo SDK 57 app sharing the web API via `@accounting/api-client`.
 
-## Develop (two terminals)
+## Test on web first (recommended)
+
+Use **Expo web** on your computer while Expo Go fixes land. It hits the same API and database as the main web app — no phone or LAN IP setup.
+
+**Terminal 1 — API (repo root)**
+
+```bash
+bun run dev
+```
+
+**Terminal 2 — Expo**
+
+```bash
+cd mobile
+bun install
+bun run start
+```
+
+Press **`w`** to open **http://localhost:8081**. The app talks to **http://localhost:3000** automatically — you do **not** need `mobile/.env` or a LAN IP for web testing.
+
+Sign in with the same account you use on the web app. You should land on the dashboard when you already have a company.
+
+## Develop on Expo Go (physical phone)
 
 **Terminal 1 — API (repo root)**
 
@@ -21,10 +43,9 @@ cp .env.example .env   # then set your LAN IP
 bun run start
 ```
 
-- Press `w` for **Expo web** on this computer (`http://localhost:8081`). API URL defaults to `http://localhost:3000`.
-- Scan the QR code with **Expo Go** on a phone (same Wi‑Fi as your computer).
+Scan the QR code with **Expo Go** on a phone (same Wi‑Fi as your computer).
 
-### Environment
+### Environment (Expo Go only)
 
 Copy `mobile/.env.example` to `mobile/.env` and set:
 
@@ -34,8 +55,6 @@ EXPO_PUBLIC_API_URL=http://192.168.1.100:3000
 ```
 
 Find your LAN IP (macOS Wi‑Fi): `ipconfig getifaddr en0`
-
-Expo web on this machine can omit `.env`; it defaults to `http://localhost:3000`.
 
 Restart Expo after changing `.env` (`r` in the Expo terminal).
 
@@ -56,9 +75,17 @@ Restart Expo after changing `.env` (`r` in the Expo terminal).
 bun run test
 ```
 
+From repo root:
+
+```bash
+bun run test:mobile
+bun run test:api-client
+```
+
 ## Build
 
 ```bash
+bunx expo export --platform web
 bunx expo export --platform android
 eas build --profile preview
 ```
@@ -67,15 +94,23 @@ eas build --profile preview
 
 Uses `@better-auth/expo` with scheme `gstbooks://`. The web server trusts mobile origins (see `src/lib/auth-mobile-config.ts`).
 
-- Expo web uses `credentials: 'omit'` for cross-origin auth to `localhost:3000`; session cookies are stored in localStorage and forwarded to tRPC via the `cookie` header.
-- Expo Go stores the session in SecureStore and forwards the same `cookie` header on tRPC requests.
+- **Expo web** uses `credentials: 'omit'` for cross-origin auth to `localhost:3000`; session cookies are stored in localStorage and forwarded to tRPC via the `cookie` header through `@accounting/api-client`.
+- **Expo Go** stores the session in SecureStore and forwards the same `cookie` header on tRPC requests.
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---------|-----|
-| `Cannot reach API` on launch | Start API with `bun run dev:lan` from repo root |
-| `Failed to fetch` on login | Same as above; confirm `curl` to LAN IP works |
+| `Cannot reach API` on Expo web | Start API with `bun run dev` from repo root |
+| `Cannot reach API` on Expo Go | Start API with `bun run dev:lan`; confirm `curl` to LAN IP works |
+| `Failed to fetch` on login | Same as above; confirm API is running |
 | Expo Go cannot connect to Metro | Same Wi‑Fi; use `bun run start` (includes `--lan`); allow port 8081 in firewall |
 | Phone login fails / 401 on companies | Set `EXPO_PUBLIC_API_URL` to `http://<LAN_IP>:3000`, not `localhost`; restart Expo after `.env` changes |
-| Web login lands on onboarding incorrectly | Sign out, sign in again; tRPC now waits for the session cookie before `companies.list` |
+| Web login lands on onboarding incorrectly | Sign out, sign in again; tRPC waits for the session cookie before `companies.list` |
+
+## Expo Go only (not available on Expo web yet)
+
+- Native camera capture for purchase OCR (`expo-image-picker` camera)
+- SecureStore-backed session persistence (web uses localStorage instead)
+- Deep links via `gstbooks://` scheme
+- EAS preview / native builds

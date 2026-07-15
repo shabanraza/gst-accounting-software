@@ -2,12 +2,18 @@ import * as React from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { authClient } from './auth-client.ts'
-import { WORKSPACE_COMPANY_KEY } from './env.ts'
 import { ensureTrpcAuthReady } from './trpc-auth.ts'
 import { trpcClient } from './trpc-client.ts'
+import {
+  clearWorkspaceStorage,
+  readPreferredCompanyId,
+  writePreferredCompanyId,
+} from './workspace-storage.ts'
 
 const COMPANY_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+export { clearWorkspaceStorage } from './workspace-storage.ts'
 
 type WorkspaceContextValue = {
   companyId: string | null
@@ -29,20 +35,9 @@ function isValidCompanyId(value: string | null | undefined) {
   return Boolean(value && COMPANY_ID_PATTERN.test(value))
 }
 
-async function readPreferredCompanyId() {
-  const SecureStore = await import('expo-secure-store')
-  const value = await SecureStore.getItemAsync(WORKSPACE_COMPANY_KEY)
+async function readStoredCompanyId() {
+  const value = await readPreferredCompanyId()
   return isValidCompanyId(value) ? value : undefined
-}
-
-async function writePreferredCompanyId(companyId: string) {
-  const SecureStore = await import('expo-secure-store')
-  await SecureStore.setItemAsync(WORKSPACE_COMPANY_KEY, companyId)
-}
-
-export async function clearWorkspaceStorage() {
-  const SecureStore = await import('expo-secure-store')
-  await SecureStore.deleteItemAsync(WORKSPACE_COMPANY_KEY)
 }
 
 function workspaceQueryKey(
@@ -61,7 +56,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   >()
 
   React.useEffect(() => {
-    void readPreferredCompanyId().then((value) => {
+    void readStoredCompanyId().then((value) => {
       if (value) setPreferredCompanyId(value)
     })
   }, [])
