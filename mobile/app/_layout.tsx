@@ -11,6 +11,7 @@ import { ApiHealthGate } from '@/components/api-health-gate'
 import { AppProviders } from '@/lib/providers'
 
 const FONT_LOAD_TIMEOUT_MS = 8_000
+const SPLASH_HIDE_TIMEOUT_MS = 10_000
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   /* splash may already be hidden in dev reloads */
@@ -27,6 +28,15 @@ export default function RootLayout() {
 
   useEffect(() => {
     const timer = setTimeout(() => setFontTimedOut(true), FONT_LOAD_TIMEOUT_MS)
+    return () => clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void SplashScreen.hideAsync().catch(() => {
+        /* force-hide splash if font loading stalls on Android */
+      })
+    }, SPLASH_HIDE_TIMEOUT_MS)
     return () => clearTimeout(timer)
   }, [])
 

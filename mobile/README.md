@@ -81,6 +81,9 @@ Copy `mobile/.env.example` to `mobile/.env` and set:
 ```bash
 # Expo Go on a physical phone — use your computer's LAN IP:
 EXPO_PUBLIC_API_URL=http://192.168.1.100:3000
+
+# Android emulator — host loopback alias (not localhost):
+EXPO_PUBLIC_API_URL=http://10.0.2.2:3000
 ```
 
 Find your LAN IP (macOS Wi‑Fi): `ipconfig getifaddr en0`
@@ -135,6 +138,7 @@ Uses `@better-auth/expo` with scheme `gstbooks://`. The web server trusts mobile
 | `Failed to fetch` on login | Same as above; confirm API is running |
 | Expo Go cannot connect to Metro | Same Wi‑Fi; use `bun run start` (includes `--lan`); allow port 8081 in firewall |
 | Phone login fails / 401 on companies | Set `EXPO_PUBLIC_API_URL` to `http://<LAN_IP>:3000`, not `localhost`; restart Expo after `.env` changes |
+| Android emulator stuck on splash / cannot reach API | Use `EXPO_PUBLIC_API_URL=http://10.0.2.2:3000` (or leave unset); start API with `bun run dev:lan`; restart Expo after `.env` changes |
 | Web login lands on onboarding incorrectly | Sign out, sign in again; tRPC waits for the bearer token before `companies.list` |
 
 ## Expo Go only (not available on Expo web yet)
