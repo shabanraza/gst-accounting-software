@@ -50,7 +50,7 @@ function OverdueCard({
 }) {
   return (
     <Pressable
-      className={`flex-1 justify-center rounded-2xl ${backgroundClass}`}
+      className={`min-w-0 flex-1 justify-center rounded-2xl ${backgroundClass}`}
       style={{ paddingHorizontal: pageLayout.cardPadding - 4, paddingVertical: pageLayout.sectionHeaderGap }}
       onPress={onPress}
       disabled={!onPress}
@@ -86,8 +86,14 @@ export function BalanceHero({
   onOverdueBillsPress?: () => void
 }) {
   return (
-    <View className="min-w-0 flex-row" style={{ gap: pageLayout.balanceHeroGap }}>
-      <View className="min-w-0 flex-[3] overflow-hidden rounded-2xl bg-balance-bg">
+    <View
+      className="w-full flex-row"
+      style={{ gap: pageLayout.balanceHeroGap, minWidth: 0, width: '100%' }}
+    >
+      <View
+        className="overflow-hidden rounded-2xl bg-balance-bg"
+        style={{ flex: 58, minWidth: 0, flexShrink: 1 }}
+      >
         <BalanceSection
           label="Total Receivables"
           amount={receivables}
@@ -103,7 +109,10 @@ export function BalanceHero({
         />
       </View>
 
-      <View className="min-w-0 flex-[2]" style={{ gap: spacing.sm }}>
+      <View
+        className="min-w-0"
+        style={{ flex: 42, minWidth: 0, flexShrink: 1, maxWidth: '42%', gap: spacing.sm }}
+      >
         <OverdueCard
           count={overdueInvoiceCount}
           label="Overdue Invoices"

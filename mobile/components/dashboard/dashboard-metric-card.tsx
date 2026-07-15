@@ -17,17 +17,17 @@ export function DashboardMetricCard({
 }) {
   return (
     <Pressable
-      className="min-w-[120px] rounded-xl border border-border bg-icon-bg"
+      className="min-w-[120px] rounded-xl border border-border bg-metric-card-bg"
       style={{ padding: pageLayout.cardPadding }}
       onPress={onPress}
     >
-      <View className="mb-2 size-8 items-center justify-center rounded-lg bg-background/80">
+      <View className="mb-2 size-8 items-center justify-center rounded-lg bg-background">
         <Ionicons name={icon} size={16} color={themeColors.primary} />
       </View>
       <Text className="text-metric-label font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </Text>
-      <Text className="mt-0.5 text-base font-bold text-icon-foreground">{amount}</Text>
+      <Text className="mt-0.5 text-base font-bold text-foreground">{amount}</Text>
     </Pressable>
   )
 }
