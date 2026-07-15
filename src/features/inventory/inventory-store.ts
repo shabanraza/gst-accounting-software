@@ -24,6 +24,15 @@ export class InMemoryItemRepository implements ItemRepository {
     return item
   }
 
+  async update(item: ItemRecord) {
+    const index = this.items.findIndex((entry) => entry.id === item.id)
+    if (index === -1) {
+      throw new Error(`Item not found: ${item.id}`)
+    }
+    this.items[index] = item
+    return item
+  }
+
   async findById(id: string) {
     return this.items.find((item) => item.id === id) ?? null
   }
@@ -141,6 +150,35 @@ export class DrizzleItemRepository implements ItemRepository {
       .returning()
 
     return mapRowToItemRecord(createdItem)
+  }
+
+  async update(item: ItemRecord) {
+    const [updatedItem] = await this.database
+      .update(schema.items)
+      .set({
+        name: item.name,
+        alias: item.alias,
+        itemGroup: item.itemGroup,
+        hsnCode: item.hsnCode,
+        gstRate: item.gstRate,
+        baseUnit: item.baseUnit,
+        alternateUnit: item.alternateUnit,
+        conversionFactor: item.conversionFactor,
+        mrp: item.mrp,
+        reorderLevel: item.reorderLevel,
+        purchaseRate: item.purchaseRate,
+        saleRate: item.saleRate,
+        tracksInventory: item.tracksInventory,
+      })
+      .where(
+        and(
+          eq(schema.items.id, item.id),
+          eq(schema.items.companyId, item.companyId),
+        ),
+      )
+      .returning()
+
+    return mapRowToItemRecord(updatedItem)
   }
 
   async findById(id: string) {

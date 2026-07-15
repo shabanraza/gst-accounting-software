@@ -11,6 +11,7 @@ import {
 import {
   createItem,
   listItemsByCompany,
+  updateItem,
 } from '#/features/inventory/item-service.ts'
 import {
   createPriceList,
@@ -57,6 +58,10 @@ const createItemInputSchema = z.object({
 const createItemWithOpeningInputSchema = createItemInputSchema.extend({
   openingQuantity: z.string().nullable().optional(),
   openingOccurredOn: z.string().optional(),
+})
+
+const updateItemInputSchema = createItemInputSchema.extend({
+  itemId: z.string().uuid(),
 })
 
 const stockMovementInputSchema = z.object({
@@ -241,6 +246,11 @@ export const createInventoryRouter = (
       .input(createItemWithOpeningInputSchema)
       .mutation(({ input }) => {
         return createItemWithOpening(itemRepository, stockStore, input)
+      }),
+    updateItem: capabilityProcedure('manage_inventory')
+      .input(updateItemInputSchema)
+      .mutation(({ input }) => {
+        return updateItem(itemRepository, input)
       }),
     recordStockMovement: capabilityProcedure('manage_inventory')
       .input(stockMovementInputSchema)

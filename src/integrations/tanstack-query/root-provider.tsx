@@ -1,20 +1,15 @@
 import type { ReactNode } from 'react'
 import { QueryClient } from '@tanstack/react-query'
 import superjson from 'superjson'
-import { createTRPCClient, httpBatchLink } from '@trpc/client'
 import { createTRPCOptionsProxy } from '@trpc/tanstack-react-query'
 
-import type { TRPCRouter } from '#/integrations/trpc/router'
+import { createAppTrpcClient } from '@accounting/api-client'
+
 import { TRPCProvider } from '#/integrations/trpc/react'
 import { getTrpcUrl } from '#/lib/server-base-url.ts'
 
-export const trpcClient = createTRPCClient<TRPCRouter>({
-  links: [
-    httpBatchLink({
-      transformer: superjson,
-      url: getTrpcUrl(),
-    }),
-  ],
+export const trpcClient = createAppTrpcClient({
+  url: getTrpcUrl(),
 })
 
 const QUERY_STALE_TIME_MS = 60_000

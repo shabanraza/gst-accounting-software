@@ -4,6 +4,7 @@ import {
   confirmOcrDraft,
   createOcrDraft,
   listOcrDraftsByCompany,
+  updateOcrDraftFields,
 } from '#/features/ocr/ocr-draft-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 
@@ -50,6 +51,20 @@ const confirmOcrDraftInputSchema = z.object({
   stockAccountId: z.string().uuid(),
 })
 
+const updateOcrDraftInputSchema = z.object({
+  companyId: z.string().uuid(),
+  draftId: z.string().uuid(),
+  fields: z.object({
+    supplierName: ocrFieldSchema,
+    supplierGstin: ocrFieldSchema,
+    billNumber: ocrFieldSchema,
+    billDate: ocrFieldSchema,
+    taxableAmount: ocrFieldSchema,
+    gstAmount: ocrFieldSchema,
+    totalAmount: ocrFieldSchema,
+  }),
+})
+
 export const createOcrRouter = (
   repository: OcrDraftRepository,
   attachments: DocumentAttachmentRepository,
@@ -67,6 +82,15 @@ export const createOcrRouter = (
     createOcrDraft: capabilityProcedure('post_purchase')
       .input(createOcrDraftInputSchema)
       .mutation(({ input }) => createOcrDraft(repository, attachments, input)),
+    updateDraft: capabilityProcedure('post_purchase')
+      .input(updateOcrDraftInputSchema)
+      .mutation(({ input }) =>
+        updateOcrDraftFields(repository, {
+          companyId: input.companyId,
+          draftId: input.draftId,
+          fields: input.fields,
+        }),
+      ),
     confirm: capabilityProcedure('post_purchase')
       .input(confirmOcrDraftInputSchema)
       .mutation(({ input, ctx }) =>

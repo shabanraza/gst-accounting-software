@@ -1,0 +1,102 @@
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
+@import 'tailwindcss/utilities.css';
+
+@import 'nativewind/theme';
+
+@source '../app';
+@source '../components';
+@source '../features';
+@source '../lib';
+
+@theme {
+  /* Core surfaces */
+  --color-background: #ffffff;
+  --color-foreground: #111827;
+  --color-card: #ffffff;
+  --color-card-foreground: #111827;
+
+  /* Primary brand & icon system */
+  --color-primary: #2563eb;
+  --color-primary-foreground: #ffffff;
+  --color-primary-muted: #eff6ff;
+  --color-icon: #374151;
+  --color-icon-bg: #f3f4f6;
+  --color-icon-foreground: #111827;
+  --color-icon-accent-blue: #2563eb;
+  --color-icon-accent-red: #ef4444;
+  --color-icon-accent-orange: #f97316;
+  --color-chevron: #9ca3af;
+
+  /* Muted / secondary text */
+  --color-muted: #f3f4f6;
+  --color-muted-foreground: #6b7280;
+
+  /* Borders & focus */
+  --color-border: #e5e7eb;
+  --color-ring: #2563eb;
+
+  /* Semantic status (overdue alerts only) */
+  --color-warning: #d97706;
+  --color-warning-muted: #fffbeb;
+  --color-warning-foreground: #92400e;
+
+  /* Dashboard balance hero (Zoho-style) */
+  --color-balance-bg: #eef4fc;
+  --color-overdue-invoice-bg: #fdeceb;
+  --color-overdue-bill-bg: #f3f0ec;
+
+  /* Tab bar (Zoho-style flat white bar) */
+  --color-tab-active: #2563eb;
+  --color-tab-inactive: #6b7280;
+  --color-tab-bar: #ffffff;
+  --color-tab-border: #e5e7eb;
+
+  /* Page layout spacing */
+  --spacing-page-x: 1rem;
+  --spacing-page-bottom: 7rem;
+  --spacing-dashboard-header-pt: 3.5rem;
+  --spacing-dashboard-header-pb: 0.5rem;
+
+  /* Dashboard section rhythm (~20-24px between blocks) */
+  --spacing-dashboard-section: 1.5rem;
+  --spacing-section-header: 0.75rem;
+  --spacing-section-icon: 0.9375rem;
+  --spacing-section-icon-gap: 0.375rem;
+  --spacing-action-grid-row: 0.75rem;
+  --spacing-metric-carousel: 0.5rem;
+  --spacing-balance-hero-gap: 0.5rem;
+  --spacing-card-padding: 0.75rem;
+  --spacing-action-icon: 2.75rem;
+  --spacing-tab-bar: 3.5rem;
+
+  /* Typography scale */
+  --text-section-title: 0.9375rem;
+  --text-section-title--line-height: 1.25;
+  --text-action-label: 0.75rem;
+  --text-action-label--line-height: 1.25;
+  --text-metric-label: 0.625rem;
+  --text-metric-label--line-height: 1.2;
+  --text-caption: 0.625rem;
+  --text-caption--line-height: 1.2;
+  --text-tab-label: 0.6875rem;
+  --text-tab-label--line-height: 1.2;
+}
+
+@media android {
+  :root {
+    --font-mono: monospace;
+    --font-rounded: normal;
+    --font-serif: serif;
+    --font-sans: normal;
+  }
+}
+
+@media ios {
+  :root {
+    --font-mono: ui-monospace;
+    --font-serif: ui-serif;
+    --font-sans: system-ui;
+    --font-rounded: ui-rounded;
+  }
+}

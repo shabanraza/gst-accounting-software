@@ -1,0 +1,213 @@
+import { useLocalSearchParams, useRouter } from 'expo-router'
+
+import { ActionGrid } from '@/components/action-grid'
+import { SectionHeader } from '@/components/section-header'
+import { View } from '@/tw'
+import {
+  CardRow,
+  EmptyState,
+  LoadingState,
+  Screen,
+} from '@/components/screen'
+import { formatInr, formatShortDate } from '@/lib/format-inr'
+import { getModuleById } from '@/lib/nav-config'
+import { TAB_HUB_CONFIG } from '@/lib/tab-actions'
+import { ReportsScreen } from '@/features/reports-screen'
+import { PaymentsScreen } from '@/features/payments-screen'
+import { useModuleList } from '@/features/use-module-list'
+
+function pickTitle(record: Record<string, unknown>) {
+  return (
+    (record.invoiceNumber as string | undefined) ??
+    (record.supplierBillNumber as string | undefined) ??
+    (record.billNumber as string | undefined) ??
+    (record.documentNumber as string | undefined) ??
+    (record.name as string | undefined) ??
+    (record.tradeName as string | undefined) ??
+    (record.title as string | undefined) ??
+    'Record'
+  )
+}
+
+function pickSubtitle(record: Record<string, unknown>) {
+  const date =
+    (record.invoiceDate as string | undefined) ??
+    (record.billDate as string | undefined) ??
+    (record.createdAt as string | undefined)
+  return date ? formatShortDate(String(date).slice(0, 10)) : undefined
+}
+
+function pickAmount(record: Record<string, unknown>) {
+  const amount =
+    (record.totalAmount as string | undefined) ??
+    (record.amount as string | undefined) ??
+    (record.outstandingAmount as string | undefined)
+  return amount ? formatInr(amount) : undefined
+}
+
+function pickBadge(record: Record<string, unknown>) {
+  const partyType = record.partyType as string | undefined
+  if (partyType === 'customer') return 'Customer'
+  if (partyType === 'supplier') return 'Supplier'
+  if (partyType === 'both') return 'Both'
+
+  return (
+    (record.status as string | undefined) ??
+    (record.paymentStatus as string | undefined) ??
+    (record.documentType as string | undefined)
+  )
+}
+
+function pickDetailPath(moduleId: string, record: Record<string, unknown>) {
+  const id = record.id
+  if (typeof id !== 'string' || id.length === 0) {
+    return undefined
+  }
+
+  if (moduleId === 'sales') {
+    return `/(app)/sales/${id}`
+  }
+
+  if (moduleId === 'purchases') {
+    return `/(app)/purchases/${id}`
+  }
+
+  if (moduleId === 'parties') {
+    return `/(app)/parties/${id}`
+  }
+
+  if (moduleId === 'items') {
+    return `/(app)/items/${id}`
+  }
+
+  if (moduleId === 'ocr') {
+    return `/(app)/purchases/ocr/${id}`
+  }
+
+  return undefined
+}
+
+function ModuleRecordsList({
+  moduleId,
+  query,
+}: {
+  moduleId: string
+  query: ReturnType<typeof useModuleList>
+}) {
+  const router = useRouter()
+
+  return (
+    <>
+      {query.isLoading ? <LoadingState /> : null}
+      {query.isError ? (
+        <EmptyState message="Unable to load records. Check your connection and company access." />
+      ) : null}
+      {!query.isLoading && !query.isError && query.data?.length === 0 ? (
+        <EmptyState message="No records yet." />
+      ) : null}
+      {query.data?.map((record, index) => {
+        const detailPath = pickDetailPath(moduleId, record)
+
+        return (
+          <CardRow
+            key={String(record.id ?? index)}
+            title={pickTitle(record)}
+            subtitle={pickSubtitle(record)}
+            amount={pickAmount(record)}
+            badge={pickBadge(record)}
+            onPress={
+              detailPath
+                ? () => router.push(detailPath as never)
+                : undefined
+            }
+          />
+        )
+      })}
+    </>
+  )
+}
+
+export function ModuleListScreen({ moduleId }: { moduleId: string }) {
+  const module = getModuleById(moduleId)
+  const query = useModuleList(moduleId)
+  const tabHub = TAB_HUB_CONFIG[moduleId]
+
+  if (!module) {
+    return (
+      <Screen title="Module">
+        <EmptyState message="Unknown module." />
+      </Screen>
+    )
+  }
+
+  if (module.id === 'reports') {
+    return <ReportsScreen />
+  }
+
+  if (module.id === 'payments') {
+    return <PaymentsScreen />
+  }
+
+  if (module.id === 'imports') {
+    return (
+      <Screen title={module.title}>
+        <EmptyState message="CSV import is available on web. Mobile upload support is planned." />
+      </Screen>
+    )
+  }
+
+  if (module.id === 'settings') {
+    return (
+      <Screen title={module.title}>
+        <CardRow title="Team members" subtitle="Manage users on web settings" />
+        <CardRow title="Sign out" subtitle="Use the app menu to sign out" />
+      </Screen>
+    )
+  }
+
+  if (module.id === 'company-profile') {
+    return (
+      <Screen title={module.title}>
+        <EmptyState message="Edit company profile on web for now. Mobile editing is coming next." />
+      </Screen>
+    )
+  }
+
+  if (tabHub) {
+    return (
+      <Screen
+        title={module.title}
+        actionHref={module.createPath}
+        actionLabel={module.createPath ? 'Create' : undefined}
+      >
+        <View className="gap-section-header">
+          <SectionHeader title="Quick links" compact icon="flash-outline" />
+          <ActionGrid items={tabHub.actions} />
+        </View>
+        <View className="gap-section-header">
+          <SectionHeader
+            title={tabHub.listTitle}
+            compact
+            icon={tabHub.listIcon}
+          />
+          <ModuleRecordsList moduleId={moduleId} query={query} />
+        </View>
+      </Screen>
+    )
+  }
+
+  return (
+    <Screen
+      title={module.title}
+      actionHref={module.createPath}
+      actionLabel={module.createPath ? 'Create' : undefined}
+    >
+      <ModuleRecordsList moduleId={moduleId} query={query} />
+    </Screen>
+  )
+}
+
+export default function DynamicModuleScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>()
+  return <ModuleListScreen moduleId={id} />
+}

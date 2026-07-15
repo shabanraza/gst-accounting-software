@@ -4,6 +4,10 @@
   "license": "MIT",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "mobile",
+    "packages/*"
+  ],
   "engines": {
     "node": ">=24.0.0"
   },
@@ -12,10 +16,14 @@
   },
   "scripts": {
     "dev": "vite dev --port 3000",
+    "dev:lan": "vite dev --port 3000 --host",
     "generate-routes": "tsr generate",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "dev:mobile": "bun run --filter mobile web",
+    "test:mobile": "bun run --filter mobile test",
+    "test:api-client": "bun run --filter @accounting/api-client test",
     "lint": "eslint",
     "format": "prettier --write . && eslint --fix",
     "check": "prettier --check .",
@@ -31,7 +39,8 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@cloudflare/vite-plugin": "^1.44.0",
+    "@accounting/api-client": "workspace:*",
+    "@better-auth/expo": "^1.6.23",
     "@faker-js/faker": "^10.5.0",
     "@fontsource-variable/ibm-plex-sans": "^5.2.8",
     "@fontsource-variable/jetbrains-mono": "^5.2.8",
@@ -82,6 +91,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.44.0",
     "@rolldown/plugin-babel": "^0.2.3",
     "@tailwindcss/typography": "^0.5.20",
     "@tanstack/devtools-event-client": "latest",
@@ -106,6 +116,9 @@
     "vite": "^8.1.4",
     "vitest": "^4.1.10",
     "wrangler": "^4.110.0"
+  },
+  "overrides": {
+    "lightningcss": "1.30.1"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
