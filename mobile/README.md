@@ -2,6 +2,35 @@
 
 Expo SDK 57 app sharing the web API via `@accounting/api-client`.
 
+## Setup (official Expo + NativeWind v5)
+
+This app lives in a Bun workspace monorepo. Expo SDK 52+ auto-configures Metro for monorepos — no manual `watchFolders` or `nodeModulesPaths` needed ([Expo monorepo guide](https://docs.expo.dev/guides/monorepos/)).
+
+**From repo root:**
+
+```bash
+bun install
+cd mobile
+bunx --bun expo install --fix
+bunx expo-doctor
+```
+
+**Tailwind v4 + NativeWind v5** ([NativeWind v5 install](https://www.nativewind.dev/v5/getting-started/installation)):
+
+- `postcss.config.mjs` — `@tailwindcss/postcss` plugin
+- `metro.config.js` — `withNativewind` with `inlineVariables: false`, `globalClassNamePolyfill: false`
+- `src/global.css` — Tailwind v4 imports + `@source` paths; imported in `app/_layout.tsx`
+- `package.json` `overrides` — pin `lightningcss` to `1.30.1` (prevents Expo Go splash hang)
+
+**After dependency or Metro changes:**
+
+```bash
+cd mobile
+rm -rf .expo
+bunx expo export -p ios --clear
+bunx expo start --clear
+```
+
 ## Test on web first (recommended)
 
 Use **Expo web** on your computer while Expo Go fixes land. It hits the same API and database as the main web app — no phone or LAN IP setup.
