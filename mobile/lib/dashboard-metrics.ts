@@ -24,6 +24,10 @@ export type OwnerSnapshot = {
     receivables: AgeingBuckets
     payables: AgeingBuckets
   }
+  overdue?: {
+    invoiceCount: number
+    billCount: number
+  }
 }
 
 export type DashboardMetric = {
@@ -101,6 +105,13 @@ export function getOverdueTotals(snapshot: OwnerSnapshot) {
   return {
     receivables: sumAgeingOverdue(snapshot.ageing.receivables),
     payables: sumAgeingOverdue(snapshot.ageing.payables),
+  }
+}
+
+export function getOverdueCounts(snapshot: OwnerSnapshot) {
+  return {
+    invoices: snapshot.overdue?.invoiceCount ?? 0,
+    bills: snapshot.overdue?.billCount ?? 0,
   }
 }
 

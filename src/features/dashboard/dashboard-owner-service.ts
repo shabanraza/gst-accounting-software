@@ -61,6 +61,10 @@ export type OwnerDashboardSnapshot = {
     receivables: Record<AgeingBucketLabel, string>
     payables: Record<AgeingBucketLabel, string>
   }
+  overdue: {
+    invoiceCount: number
+    billCount: number
+  }
   monthCompare: {
     currentLabel: string
     previousLabel: string
@@ -460,6 +464,12 @@ export async function getOwnerDashboardSnapshot(
     ageing: {
       receivables: receivablesAgeing.bucketTotals,
       payables: payablesAgeing.bucketTotals,
+    },
+    overdue: {
+      invoiceCount: receivablesAgeing.rows.filter((row) => row.bucket !== '0-30')
+        .length,
+      billCount: payablesAgeing.rows.filter((row) => row.bucket !== '0-30')
+        .length,
     },
     monthCompare: {
       currentLabel: formatCompareLabel(currentMonthStart, asOfDate),

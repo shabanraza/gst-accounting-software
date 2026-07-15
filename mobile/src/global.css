@@ -37,6 +37,11 @@
   --color-warning-muted: #fffbeb;
   --color-warning-foreground: #92400e;
 
+  /* Dashboard balance hero (Zoho-style) */
+  --color-balance-bg: #eef4fc;
+  --color-overdue-invoice-bg: #fdeceb;
+  --color-overdue-bill-bg: #f3f0ec;
+
   /* Dashboard spacing */
   --spacing-dashboard-header: 3.5rem;
   --spacing-dashboard-section: 0.5rem;

@@ -3,6 +3,7 @@ import { ScrollView, View, Text } from '@/tw'
 import { Ionicons } from '@expo/vector-icons'
 
 import { ActionGrid } from '@/components/action-grid'
+import { BalanceHero } from '@/components/balance-hero'
 import { DashboardMetricCard } from '@/components/dashboard-metric-card'
 import { CompanySwitcher } from '@/components/company-switcher'
 import { SectionHeader } from '@/components/section-header'
@@ -15,7 +16,7 @@ import {
 import { formatInr } from '@/lib/format-inr'
 import {
   formatDashboardDate,
-  getOverdueTotals,
+  getOverdueCounts,
   mapOwnerSnapshotMetrics,
 } from '@/lib/dashboard-metrics'
 import { trpcClient } from '@/lib/trpc-client'
@@ -28,61 +29,6 @@ function DateRangePill({ label }: { label: string }) {
     <View className="flex-row items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5">
       <Ionicons name="calendar-outline" size={11} color={PRIMARY_COLOR} />
       <Text className="text-[10px] font-medium text-muted-foreground">{label}</Text>
-    </View>
-  )
-}
-
-function BalanceSummaryCard({
-  receivables,
-  payables,
-  overdueReceivables,
-  overduePayables,
-}: {
-  receivables: string
-  payables: string
-  overdueReceivables: string
-  overduePayables: string
-}) {
-  const hasOverdue =
-    Number(overdueReceivables) > 0 || Number(overduePayables) > 0
-
-  return (
-    <View className="gap-2 rounded-xl border border-border bg-card p-3">
-      <View className="flex-row gap-3">
-        <View className="flex-1 gap-0.5">
-          <Text className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-            Receivables
-          </Text>
-          <Text className="text-base font-bold text-icon-foreground">
-            {receivables}
-          </Text>
-        </View>
-        <View className="w-px bg-border" />
-        <View className="flex-1 gap-0.5">
-          <Text className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-            Payables
-          </Text>
-          <Text className="text-base font-bold text-icon-foreground">
-            {payables}
-          </Text>
-        </View>
-      </View>
-      {hasOverdue ? (
-        <View className="flex-row items-center gap-1.5 rounded-lg bg-warning-muted px-2 py-1.5">
-          <Ionicons name="alert-circle-outline" size={13} color="#d97706" />
-          <Text className="flex-1 text-[10px] text-warning-foreground">
-            {Number(overdueReceivables) > 0
-              ? `Invoices overdue: ${overdueReceivables}`
-              : null}
-            {Number(overdueReceivables) > 0 && Number(overduePayables) > 0
-              ? ' · '
-              : null}
-            {Number(overduePayables) > 0
-              ? `Bills overdue: ${overduePayables}`
-              : null}
-          </Text>
-        </View>
-      ) : null}
     </View>
   )
 }
@@ -100,7 +46,7 @@ export default function DashboardScreen() {
   })
 
   const snapshot = snapshotQuery.data
-  const overdue = snapshot ? getOverdueTotals(snapshot) : null
+  const overdueCounts = snapshot ? getOverdueCounts(snapshot) : null
 
   return (
     <View className="flex-1 bg-background">
@@ -139,11 +85,11 @@ export default function DashboardScreen() {
               ))}
             </ScrollView>
 
-            <BalanceSummaryCard
+            <BalanceHero
               receivables={formatInr(snapshot.balances.receivableTotal)}
               payables={formatInr(snapshot.balances.payableTotal)}
-              overdueReceivables={formatInr(String(overdue?.receivables ?? 0))}
-              overduePayables={formatInr(String(overdue?.payables ?? 0))}
+              overdueInvoiceCount={overdueCounts?.invoices ?? 0}
+              overdueBillCount={overdueCounts?.bills ?? 0}
             />
 
             <View className="gap-1.5">

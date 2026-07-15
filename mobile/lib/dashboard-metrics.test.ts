@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   formatDashboardDate,
+  getOverdueCounts,
   getOverdueTotals,
   mapOwnerSnapshotCards,
   mapOwnerSnapshotMetrics,
@@ -91,6 +92,27 @@ describe('getOverdueTotals', () => {
     expect(getOverdueTotals(snapshot)).toEqual({
       receivables: 1000,
       payables: 1500,
+    })
+  })
+})
+
+describe('getOverdueCounts', () => {
+  it('returns overdue document counts when present on snapshot', () => {
+    expect(
+      getOverdueCounts({
+        ...snapshot,
+        overdue: { invoiceCount: 7, billCount: 12 },
+      }),
+    ).toEqual({
+      invoices: 7,
+      bills: 12,
+    })
+  })
+
+  it('returns zero counts when overdue data is missing', () => {
+    expect(getOverdueCounts(snapshot)).toEqual({
+      invoices: 0,
+      bills: 0,
     })
   })
 })
