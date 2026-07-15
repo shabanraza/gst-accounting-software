@@ -33,6 +33,7 @@ export const MOBILE_NAV_MODULES: Array<MobileNavModule> = [
     path: '/(app)/module/sales-documents',
     trpcNamespace: 'salesDocuments',
     listProcedure: 'list',
+    createPath: '/(app)/sales-documents/new',
   },
   {
     id: 'returns',
