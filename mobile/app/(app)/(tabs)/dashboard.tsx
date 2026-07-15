@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { ScrollView, View, Text } from '@/tw'
 import { Ionicons } from '@expo/vector-icons'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ActionGrid } from '@/components/action-grid'
 import { BalanceHero } from '@/components/balance-hero'
@@ -34,6 +35,8 @@ function DateRangePill({ label }: { label: string }) {
 
 export default function DashboardScreen() {
   const { companyId, companyStateCode } = useWorkspace()
+  const insets = useSafeAreaInsets()
+  const scrollBottomPadding = insets.bottom + 56 + 16
   const snapshotQuery = useQuery({
     queryKey: ['dashboard', companyId, companyStateCode],
     enabled: Boolean(companyId && companyStateCode),
@@ -49,7 +52,10 @@ export default function DashboardScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <View className="flex-row items-center justify-between gap-3 border-b border-border bg-background px-page-x pb-dashboard-header-pb pt-dashboard-header-pt">
+      <View
+        className="flex-row items-center justify-between gap-3 border-b border-border bg-background px-page-x pb-dashboard-header-pb"
+        style={{ paddingTop: insets.top + 12 }}
+      >
         <CompanySwitcher variant="header" />
         <DateRangePill
           label={
@@ -62,7 +68,8 @@ export default function DashboardScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-dashboard-section p-page-x pb-page-bottom"
+        contentContainerClassName="gap-dashboard-section p-page-x"
+        contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
         showsVerticalScrollIndicator={false}
       >
         {snapshotQuery.isLoading ? <LoadingState /> : null}

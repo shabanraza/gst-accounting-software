@@ -383,7 +383,7 @@ export function PurchaseBillCreateScreen() {
   const mastersError = partiesQuery.isError || itemsQuery.isError
 
   return (
-    <Screen title="New purchase bill" subtitle="Create purchase bill">
+    <Screen title="New purchase bill" subtitle="Create purchase bill" keyboardAvoiding>
       <StepPills step={step} />
 
       {!isReady || mastersLoading ? <LoadingState /> : null}

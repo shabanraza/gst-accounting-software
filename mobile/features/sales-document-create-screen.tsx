@@ -164,6 +164,7 @@ export function SalesDocumentCreateScreen() {
     <Screen
       title="New sales document"
       subtitle="Quotation, sales order, or delivery challan"
+      keyboardAvoiding
     >
       <View className="gap-section-header">
         <SectionHeader title="Document type" compact icon="document-text-outline" />

@@ -36,14 +36,15 @@ function ActionIcon({ icon, accent }: { icon: ActionGridItem['icon']; accent?: A
 
 export function ActionGrid({ items }: { items: Array<ActionGridItem> }) {
   return (
-    <View className="flex-row flex-wrap gap-y-action-grid-row">
+    <View className="-mx-1 flex-row flex-wrap gap-y-action-grid-row">
       {items.map((item) => (
         <Link key={item.id} href={item.href as never} asChild>
-          <Pressable className="w-1/4 items-center gap-1 px-0.5">
+          <Pressable className="w-1/4 min-w-0 max-w-[25%] items-center gap-1 px-1">
             <ActionIcon icon={item.icon} accent={item.accent} />
             <Text
-              className="text-center text-action-label text-foreground"
+              className="w-full text-center text-action-label text-foreground"
               numberOfLines={2}
+              ellipsizeMode="tail"
             >
               {item.label}
             </Text>

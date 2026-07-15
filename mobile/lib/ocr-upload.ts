@@ -1,3 +1,4 @@
+import { randomId } from './random-id.ts'
 import { trpcClient } from './trpc-client.ts'
 import { buildEmptyOcrFields } from './ocr-fields.ts'
 import { readFileAsBase64 } from './read-file-base64.ts'
@@ -13,7 +14,7 @@ export async function createOcrDraftFromCapture(
   companyId: string,
   asset: CaptureAsset,
 ) {
-  const linkedDocumentId = crypto.randomUUID()
+  const linkedDocumentId = randomId()
   const contentBase64 = await readFileAsBase64(asset.uri)
 
   const attachment = await trpcClient.documents.uploadAttachment.mutate({

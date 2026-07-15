@@ -360,7 +360,7 @@ export function SalesInvoiceCreateScreen() {
   const mastersError = partiesQuery.isError || itemsQuery.isError
 
   return (
-    <Screen title="New invoice" subtitle="Create sales invoice">
+    <Screen title="New invoice" subtitle="Create sales invoice" keyboardAvoiding>
       <StepPills step={step} />
 
       {!isReady || mastersLoading ? <LoadingState /> : null}

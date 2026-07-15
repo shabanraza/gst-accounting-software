@@ -1,11 +1,29 @@
 import * as React from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { Link } from 'expo-router'
+import {
+  KeyboardAvoidingView,
+  Platform,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { View, Text, ScrollView, Pressable, TextInput } from '@/tw'
 import { getModuleIcon } from '@/lib/module-icons'
 import type { MobileNavModule } from '@/lib/nav-config'
 import { themeColors } from '@/lib/theme'
+
+const TAB_BAR_HEIGHT = 56
+
+function useScreenInsets() {
+  const insets = useSafeAreaInsets()
+  return {
+    top: insets.top,
+    bottom: insets.bottom + TAB_BAR_HEIGHT + 16,
+    fabBottom: insets.bottom + TAB_BAR_HEIGHT + 8,
+  }
+}
 
 export function Screen({
   title,
@@ -13,16 +31,23 @@ export function Screen({
   children,
   actionHref,
   actionLabel,
+  keyboardAvoiding = false,
 }: {
   title: string
   subtitle?: string
   children: React.ReactNode
   actionHref?: string
   actionLabel?: string
+  keyboardAvoiding?: boolean
 }) {
-  return (
+  const { top, bottom, fabBottom } = useScreenInsets()
+
+  const content = (
     <View className="flex-1 bg-background">
-      <View className="border-b border-border bg-background px-page-x pb-dashboard-header-pb pt-dashboard-header-pt">
+      <View
+        className="border-b border-border bg-background px-page-x pb-dashboard-header-pb"
+        style={{ paddingTop: top + 12 }}
+      >
         <Text className="text-2xl font-bold text-foreground">{title}</Text>
         {subtitle ? (
           <Text className="mt-1 text-sm text-muted-foreground">{subtitle}</Text>
@@ -30,19 +55,38 @@ export function Screen({
       </View>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-dashboard-section p-page-x pb-page-bottom"
+        contentContainerClassName="gap-dashboard-section p-page-x"
+        contentContainerStyle={{ paddingBottom: bottom }}
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {children}
       </ScrollView>
       {actionHref && actionLabel ? (
         <Link href={actionHref as never} asChild>
-          <Pressable className="absolute bottom-6 right-4 size-14 items-center justify-center rounded-full bg-primary">
+          <Pressable
+            className="absolute right-4 size-14 items-center justify-center rounded-full bg-primary"
+            style={{ bottom: fabBottom }}
+          >
             <Ionicons name="add" size={28} color={themeColors.primaryForeground} />
           </Pressable>
         </Link>
       ) : null}
     </View>
+  )
+
+  if (!keyboardAvoiding) {
+    return content
+  }
+
+  return (
+    <KeyboardAvoidingView
+      className="flex-1"
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={top}
+    >
+      {content}
+    </KeyboardAvoidingView>
   )
 }
 
@@ -66,14 +110,20 @@ export function CardRow({
     >
       <View className="flex-row items-start justify-between gap-3">
         <View className="min-w-0 flex-1 gap-1">
-          <Text className="font-semibold text-foreground">{title}</Text>
+          <Text className="font-semibold text-foreground" numberOfLines={2}>
+            {title}
+          </Text>
           {subtitle ? (
-            <Text className="text-sm text-muted-foreground">{subtitle}</Text>
+            <Text className="text-sm text-muted-foreground" numberOfLines={1}>
+              {subtitle}
+            </Text>
           ) : null}
         </View>
-        <View className="flex-row items-center gap-2">
+        <View className="shrink-0 flex-row items-center gap-2">
           {amount ? (
-            <Text className="font-semibold text-foreground">{amount}</Text>
+            <Text className="font-semibold text-foreground" numberOfLines={1}>
+              {amount}
+            </Text>
           ) : null}
           {onPress ? (
             <Ionicons name="chevron-forward" size={16} color={themeColors.chevron} />
@@ -95,10 +145,10 @@ export function ModuleLinkCard({ module }: { module: MobileNavModule }) {
   return (
     <Link href={module.path as never} asChild>
       <Pressable className="flex-row items-center gap-3 rounded-xl border border-border bg-card p-card-padding">
-        <View className="size-action-icon items-center justify-center rounded-xl bg-icon-bg">
+        <View className="size-action-icon shrink-0 items-center justify-center rounded-xl bg-icon-bg">
           <Ionicons name={icon} size={20} color={themeColors.icon} />
         </View>
-        <Text className="min-w-0 flex-1 font-semibold text-foreground">
+        <Text className="min-w-0 flex-1 font-semibold text-foreground" numberOfLines={2}>
           {module.title}
         </Text>
         <Ionicons name="chevron-forward" size={16} color={themeColors.chevron} />
@@ -185,13 +235,27 @@ export function AuthShell({
   subtitle?: string
   children: React.ReactNode
 }) {
+  const insets = useSafeAreaInsets()
+
   return (
-    <View className="flex-1 justify-center gap-4 bg-background px-page-x">
-      <Text className="text-3xl font-bold text-foreground">{title}</Text>
-      {subtitle ? (
-        <Text className="text-muted-foreground">{subtitle}</Text>
-      ) : null}
-      {children}
-    </View>
+    <KeyboardAvoidingView
+      className="flex-1 bg-background"
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={insets.top}
+      style={{ paddingTop: insets.top, paddingBottom: insets.bottom } as StyleProp<ViewStyle>}
+    >
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="flex-grow justify-center gap-4 px-page-x"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Text className="text-3xl font-bold text-foreground">{title}</Text>
+        {subtitle ? (
+          <Text className="text-muted-foreground">{subtitle}</Text>
+        ) : null}
+        {children}
+      </ScrollView>
+    </KeyboardAvoidingView>
   )
 }

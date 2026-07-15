@@ -1,1 +1,1 @@
-export { ItemCreateScreen } from '@/features/item-form-screen'
+export { ItemCreateScreen as default } from '@/features/item-form-screen'

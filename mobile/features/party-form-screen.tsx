@@ -181,6 +181,7 @@ export function PartyFormScreen({
     <Screen
       title={mode === 'edit' ? 'Edit party' : 'New party'}
       subtitle="Billing, GST, and contact details"
+      keyboardAvoiding
     >
       {!isReady ? <EmptyState message="Loading workspace…" /> : null}
 

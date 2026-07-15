@@ -173,6 +173,7 @@ export function ItemFormScreen({
           ? 'Update item master fields'
           : 'Item master with optional opening stock'
       }
+      keyboardAvoiding
     >
       <View className="gap-section-header">
         <SectionHeader title="Basics" compact icon="cube-outline" />

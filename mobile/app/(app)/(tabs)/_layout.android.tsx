@@ -1,10 +1,22 @@
 import { Tabs } from 'expo-router'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { createTabIcon, tabScreenOptions } from '@/lib/tab-bar-options'
 
 export default function TabsLayoutAndroid() {
+  const insets = useSafeAreaInsets()
+
   return (
-    <Tabs screenOptions={tabScreenOptions}>
+    <Tabs
+      screenOptions={{
+        ...tabScreenOptions,
+        tabBarStyle: {
+          ...tabScreenOptions.tabBarStyle,
+          height: 56 + insets.bottom,
+          paddingBottom: 6 + insets.bottom,
+        },
+      }}
+    >
       <Tabs.Screen
         name="dashboard"
         options={{

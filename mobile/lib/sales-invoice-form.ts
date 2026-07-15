@@ -108,9 +108,11 @@ export function filterCustomerParties(parties: Array<SalesPartyLike>) {
   )
 }
 
+import { randomId } from './random-id.ts'
+
 export function createEmptySalesLine(godownName: string): SalesInvoiceLineDraft {
   return {
-    key: crypto.randomUUID(),
+    key: randomId(),
     itemId: '',
     itemName: '',
     gstRate: '0',

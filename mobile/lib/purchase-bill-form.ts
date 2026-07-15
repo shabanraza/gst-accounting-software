@@ -85,11 +85,13 @@ export function filterSupplierParties(parties: Array<PurchasePartyLike>) {
   )
 }
 
+import { randomId } from './random-id.ts'
+
 export function createEmptyPurchaseLine(
   godownName: string,
 ): PurchaseBillLineDraft {
   return {
-    key: crypto.randomUUID(),
+    key: randomId(),
     itemId: '',
     itemName: '',
     gstRate: '0',

@@ -19,8 +19,15 @@ function BalanceSection({
       disabled={!onPress}
     >
       <Text className="text-xs text-muted-foreground">{label}</Text>
-      <View className="flex-row items-center justify-between gap-2">
-        <Text className="flex-1 text-xl font-bold text-foreground">{amount}</Text>
+      <View className="flex-row items-center justify-between gap-1">
+        <Text
+          className="min-w-0 flex-1 text-lg font-bold text-foreground"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.75}
+        >
+          {amount}
+        </Text>
         <Ionicons name="chevron-down" size={16} color={themeColors.chevron} />
       </View>
     </Pressable>
@@ -75,8 +82,8 @@ export function BalanceHero({
   onOverdueBillsPress?: () => void
 }) {
   return (
-    <View className="flex-row gap-balance-hero-gap">
-      <View className="flex-[3] overflow-hidden rounded-2xl bg-balance-bg">
+    <View className="min-w-0 flex-row gap-balance-hero-gap">
+      <View className="min-w-0 flex-[3] overflow-hidden rounded-2xl bg-balance-bg">
         <BalanceSection
           label="Total Receivables"
           amount={receivables}
@@ -90,7 +97,7 @@ export function BalanceHero({
         />
       </View>
 
-      <View className="flex-[2] gap-2">
+      <View className="min-w-0 flex-[2] gap-2">
         <OverdueCard
           count={overdueInvoiceCount}
           label="Overdue Invoices"
