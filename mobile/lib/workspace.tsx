@@ -15,10 +15,32 @@ const COMPANY_ID_PATTERN =
 
 export { clearWorkspaceStorage } from './workspace-storage.ts'
 
+type WorkspaceCompany = {
+  id: string
+  legalName: string
+  tradeName: string
+  gstin: string | null
+  stateCode: string
+  addressLine1?: string
+  addressLine2?: string
+  city?: string
+  pincode?: string
+  financialYearStart: string
+}
+
+type WorkspaceGodown = {
+  id: string
+  name: string
+}
+
 type WorkspaceContextValue = {
   companyId: string | null
   companyName: string | null
   companyStateCode: string | null
+  company: WorkspaceCompany | null
+  ledgerBySystemKey: Partial<Record<string, string>>
+  godowns: Array<WorkspaceGodown>
+  activeFinancialYearId: string | null
   companies: Array<{ id: string; tradeName: string }>
   capabilities: Array<string>
   isReady: boolean
@@ -108,6 +130,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     companyId,
     companyName: workspaceQuery.data?.company.tradeName ?? null,
     companyStateCode: workspaceQuery.data?.company.stateCode ?? null,
+    company: workspaceQuery.data?.company ?? null,
+    ledgerBySystemKey: workspaceQuery.data?.ledgerBySystemKey ?? {},
+    godowns: workspaceQuery.data?.godowns ?? [],
+    activeFinancialYearId:
+      workspaceQuery.data?.activeFinancialYearId ?? null,
     companies:
       workspaceQuery.data?.companies.map((company) => ({
         id: company.id,

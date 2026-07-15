@@ -1,7 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
-import { View } from '@/tw'
+import { ActionGrid } from '@/components/action-grid'
 import { SectionHeader } from '@/components/section-header'
+import { View } from '@/tw'
 import {
   CardRow,
   EmptyState,
