@@ -15,8 +15,8 @@ export function SectionHeader({
   icon?: keyof typeof Ionicons.glyphMap
 }) {
   return (
-    <View className="gap-0.5">
-      <View className="flex-row items-center gap-1.5">
+    <View className="flex-row items-start gap-section-icon-gap">
+      <View className="size-section-icon items-center justify-center">
         {icon ? (
           <Ionicons
             name={icon}
@@ -24,15 +24,17 @@ export function SectionHeader({
             color={themeColors.icon}
           />
         ) : null}
+      </View>
+      <View className="min-w-0 flex-1 gap-0.5">
         <Text
           className={`font-semibold text-foreground ${compact ? 'text-section-title' : 'text-base'}`}
         >
           {title}
         </Text>
+        {subtitle ? (
+          <Text className="text-xs text-muted-foreground">{subtitle}</Text>
+        ) : null}
       </View>
-      {subtitle ? (
-        <Text className="text-xs text-muted-foreground">{subtitle}</Text>
-      ) : null}
     </View>
   )
 }

@@ -61,6 +61,8 @@
   /* Dashboard section rhythm (~20-24px between blocks) */
   --spacing-dashboard-section: 1.5rem;
   --spacing-section-header: 0.75rem;
+  --spacing-section-icon: 0.9375rem;
+  --spacing-section-icon-gap: 0.375rem;
   --spacing-action-grid-row: 0.75rem;
   --spacing-metric-carousel: 0.5rem;
   --spacing-balance-hero-gap: 0.5rem;
