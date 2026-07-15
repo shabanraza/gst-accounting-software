@@ -72,7 +72,7 @@ cd gst-accounting-software
 bun install
 ```
 
-Requires **Bun** and **Node.js** (see [.nvmrc](./.nvmrc)). Scripts use Node via `scripts/with-node-runtime.sh`.
+Requires **Bun** and **Node.js** (see [.nvmrc](./.nvmrc)). Run `nvm use` before `bun run dev` if your shell is not already on that version.
 
 ### 3. Configure environment
 

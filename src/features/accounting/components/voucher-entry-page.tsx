@@ -1405,7 +1405,7 @@ export function VoucherEntryPage({
               </Button>
             </div>
             <div
-              className="overflow-hidden rounded-md border border-border"
+              className="overflow-x-auto rounded-md border border-border"
               data-voucher-grid
             >
               <Table>
@@ -1721,14 +1721,14 @@ export function VoucherEntryPage({
           className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] backdrop-blur supports-[backdrop-filter]:bg-background/80 print:hidden md:left-[var(--sidebar-width)] md:transition-[left] md:duration-200 md:ease-linear group-has-data-[state=collapsed]/sidebar-wrapper:md:left-[var(--sidebar-width-icon)]"
           data-ui="chrome"
         >
-          <div className="mx-auto flex max-w-6xl items-center justify-end gap-4">
-            <div className="flex flex-col items-end gap-0.5">
+          <div className="mx-auto flex w-full max-w-6xl flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-4">
+            <div className="hidden flex-col items-end gap-0.5 sm:flex">
               <span className="text-xs text-muted-foreground">Grand total</span>
               <span className="text-lg font-semibold tabular-nums">
                 {formatInr(totals.grandTotal)}
               </span>
             </div>
-            <Button disabled={saving} type="submit">
+            <Button className="w-full sm:w-auto" disabled={saving} type="submit">
               {saving ? 'Saving…' : 'Save bill'}
             </Button>
           </div>

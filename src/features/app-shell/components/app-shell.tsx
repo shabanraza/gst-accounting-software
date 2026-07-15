@@ -309,8 +309,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </SidebarFooter>
           <SidebarRail />
         </Sidebar>
-        <SidebarInset className="min-h-0 overflow-hidden">
-          <header className="flex h-11 shrink-0 items-center gap-2 px-3 print:hidden">
+        <SidebarInset className="min-h-0 min-w-0 overflow-hidden">
+          <header className="flex h-11 shrink-0 items-center gap-1 px-2 sm:gap-2 sm:px-3 print:hidden">
             <SidebarTrigger className="-ml-1" />
             <div className="flex-1" />
             <Button

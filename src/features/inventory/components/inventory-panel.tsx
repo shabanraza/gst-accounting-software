@@ -20,7 +20,8 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table.tsx'
-import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs.tsx'
+import { ScrollableTabsList } from '#/components/ui/scrollable-tabs-list.tsx'
+import { Tabs, TabsTrigger } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
@@ -104,11 +105,11 @@ export function InventoryPanel() {
               }
               value={statusFilter}
             >
-              <TabsList>
+              <ScrollableTabsList>
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="healthy">In stock</TabsTrigger>
                 <TabsTrigger value="low">Low / zero</TabsTrigger>
-              </TabsList>
+              </ScrollableTabsList>
             </Tabs>
             <SearchInput
               onChange={(event) => setQuery(event.target.value)}

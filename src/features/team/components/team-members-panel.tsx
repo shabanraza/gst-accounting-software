@@ -161,20 +161,21 @@ export function TeamMembersPanel() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <CardTitle className="text-base">Team members</CardTitle>
-          <CardDescription>
-            Invite teammates and control what they can do.
-          </CardDescription>
-        </div>
-        <Dialog onOpenChange={setInviteOpen} open={inviteOpen}>
-          <DialogTrigger asChild>
-            <Button disabled={!companyId}>
-              <UserPlusIcon data-icon="inline-start" />
-              Invite
-            </Button>
-          </DialogTrigger>
+      <CardHeader>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-1">
+            <CardTitle className="text-base">Team members</CardTitle>
+            <CardDescription>
+              Invite teammates and control what they can do.
+            </CardDescription>
+          </div>
+          <Dialog onOpenChange={setInviteOpen} open={inviteOpen}>
+            <DialogTrigger asChild>
+              <Button className="w-full sm:w-auto" disabled={!companyId}>
+                <UserPlusIcon data-icon="inline-start" />
+                Invite
+              </Button>
+            </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Invite teammate</DialogTitle>
@@ -235,6 +236,7 @@ export function TeamMembersPanel() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-6 px-0">
         <Table>

@@ -141,28 +141,30 @@ export function JournalEntryPanel() {
             <div className="flex flex-col gap-2">
               {lines.map((line) => (
                 <div
-                  className="grid gap-2 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto]"
+                  className="grid grid-cols-[1fr_1fr_auto] gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto]"
                   key={line.key}
                 >
-                  <Select
-                    onValueChange={(value) =>
-                      updateLine(line.key, { ledgerAccountId: value })
-                    }
-                    value={line.ledgerAccountId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Ledger account" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {accounts.map((account) => (
-                          <SelectItem key={account.id} value={account.id}>
-                            {account.code} · {account.name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
+                  <div className="col-span-3 sm:col-span-1">
+                    <Select
+                      onValueChange={(value) =>
+                        updateLine(line.key, { ledgerAccountId: value })
+                      }
+                      value={line.ledgerAccountId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Ledger account" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {accounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.code} · {account.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <Input
                     onChange={(event) =>
                       updateLine(line.key, {

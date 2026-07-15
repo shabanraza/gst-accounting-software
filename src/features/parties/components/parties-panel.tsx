@@ -20,7 +20,8 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table.tsx'
-import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs.tsx'
+import { ScrollableTabsList } from '#/components/ui/scrollable-tabs-list.tsx'
+import { Tabs, TabsTrigger } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import {
@@ -139,12 +140,12 @@ export function PartiesPanel() {
               onValueChange={(value) => setFilter(value as 'all' | PartyType)}
               value={filter}
             >
-              <TabsList>
+              <ScrollableTabsList>
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="customer">Customers</TabsTrigger>
                 <TabsTrigger value="supplier">Suppliers</TabsTrigger>
                 <TabsTrigger value="both">Both</TabsTrigger>
-              </TabsList>
+              </ScrollableTabsList>
             </Tabs>
             <SearchInput
               onChange={(event) => setQuery(event.target.value)}
