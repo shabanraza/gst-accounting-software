@@ -2,9 +2,10 @@ import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 
-import { SectionHeader } from '@/components/layout/section-header'
+import { DetailCard } from '@/components/data/detail-card'
 import { Screen } from '@/components/layout/screen'
-import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
+import { WizardFooter } from '@/components/layout/wizard-footer'
+import { PrimaryButton } from '@/components/ui/button'
 import { OptionChip } from '@/components/ui/chip'
 import { FormField } from '@/components/ui/form-field'
 import { PickerField } from '@/components/ui/picker-field'
@@ -97,9 +98,19 @@ export function SalesDocumentCreateScreen() {
       title="New sales document"
       subtitle="Quotation, sales order, or delivery challan"
       keyboardAvoiding
+      footer={
+        <WizardFooter>
+          {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
+          <PrimaryButton
+            label={saveMutation.isPending ? 'Saving…' : 'Create document'}
+            loading={saveMutation.isPending}
+            disabled={saveMutation.isPending}
+            onPress={() => saveMutation.mutate()}
+          />
+        </WizardFooter>
+      }
     >
-      <View className="gap-section-header">
-        <SectionHeader title="Document type" compact icon="document-text-outline" />
+      <DetailCard title="Document type" icon="document-text-outline">
         <View className="flex-row flex-wrap gap-2">
           {(Object.keys(documentTypeLabels) as Array<SalesDocumentType>).map(
             (documentType) => (
@@ -112,87 +123,73 @@ export function SalesDocumentCreateScreen() {
             ),
           )}
         </View>
-      </View>
+      </DetailCard>
 
-      <View className="gap-section-header">
-        <SectionHeader title="Header" compact icon="create-outline" />
-        <FormField
-          placeholder="Document number (optional)"
-          value={form.documentNumber}
-          onChangeText={(documentNumber) =>
-            setForm((current) => ({ ...current, documentNumber }))
-          }
-        />
-        <FormField
-          placeholder="YYYY-MM-DD"
-          value={form.documentDate}
-          onChangeText={(documentDate) =>
-            setForm((current) => ({ ...current, documentDate }))
-          }
-        />
-        <PickerField
-          label="Customer"
-          value={selectedCustomer?.name}
-          placeholder="Select customer"
-          onPress={() => setCustomerPickerOpen(true)}
-        />
-      </View>
-
-      <View className="gap-section-header">
-        <SectionHeader title="Line item" compact icon="cube-outline" />
-        <PickerField
-          label="Item"
-          value={selectedItem?.name}
-          placeholder="Select item"
-          onPress={() => setItemPickerOpen(true)}
-        />
-        <View className="flex-row gap-3">
-          <View className="flex-1">
-            <Text className="mb-1 text-sm text-muted-foreground">Quantity</Text>
-            <FormField
-              keyboardType="decimal-pad"
-              placeholder="1"
-              value={form.line.quantity}
-              onChangeText={(quantity) =>
-                setForm((current) => ({
-                  ...current,
-                  line: { ...current.line, quantity },
-                }))
-              }
-            />
-          </View>
-          <View className="flex-1">
-            <Text className="mb-1 text-sm text-muted-foreground">Rate</Text>
-            <FormField
-              keyboardType="decimal-pad"
-              placeholder="0.00"
-              value={form.line.rate}
-              onChangeText={(rate) =>
-                setForm((current) => ({
-                  ...current,
-                  line: { ...current.line, rate },
-                }))
-              }
-            />
-          </View>
-        </View>
-      </View>
-
-      {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
-
-      <View className="flex-row gap-3">
-        <View className="flex-1">
-          <SecondaryButton label="Cancel" onPress={() => router.back()} />
-        </View>
-        <View className="flex-1">
-          <PrimaryButton
-            label={saveMutation.isPending ? 'Saving…' : 'Create document'}
-            loading={saveMutation.isPending}
-            disabled={saveMutation.isPending}
-            onPress={() => saveMutation.mutate()}
+      <DetailCard title="Header" icon="create-outline">
+        <View className="gap-3">
+          <FormField
+            placeholder="Document number (optional)"
+            value={form.documentNumber}
+            onChangeText={(documentNumber) =>
+              setForm((current) => ({ ...current, documentNumber }))
+            }
+          />
+          <FormField
+            placeholder="YYYY-MM-DD"
+            value={form.documentDate}
+            onChangeText={(documentDate) =>
+              setForm((current) => ({ ...current, documentDate }))
+            }
+          />
+          <PickerField
+            label="Customer"
+            value={selectedCustomer?.name}
+            placeholder="Select customer"
+            onPress={() => setCustomerPickerOpen(true)}
           />
         </View>
-      </View>
+      </DetailCard>
+
+      <DetailCard title="Line item" icon="cube-outline">
+        <View className="gap-3">
+          <PickerField
+            label="Item"
+            value={selectedItem?.name}
+            placeholder="Select item"
+            onPress={() => setItemPickerOpen(true)}
+          />
+          <View className="flex-row gap-3">
+            <View className="flex-1">
+              <Text className="mb-1 text-sm text-muted-foreground">Quantity</Text>
+              <FormField
+                keyboardType="decimal-pad"
+                placeholder="1"
+                value={form.line.quantity}
+                onChangeText={(quantity) =>
+                  setForm((current) => ({
+                    ...current,
+                    line: { ...current.line, quantity },
+                  }))
+                }
+              />
+            </View>
+            <View className="flex-1">
+              <Text className="mb-1 text-sm text-muted-foreground">Rate</Text>
+              <FormField
+                keyboardType="decimal-pad"
+                placeholder="0.00"
+                value={form.line.rate}
+                onChangeText={(rate) =>
+                  setForm((current) => ({
+                    ...current,
+                    line: { ...current.line, rate },
+                  }))
+                }
+              />
+            </View>
+          </View>
+        </View>
+      </DetailCard>
 
       <PickerModal
         visible={customerPickerOpen}

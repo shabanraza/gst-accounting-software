@@ -13,6 +13,13 @@ import { TAB_HUB_CONFIG } from '@/lib/tab-actions'
 import { pageLayout } from '@/lib/spacing'
 import { ReportsScreen } from '@/features/reports-screen'
 import { PaymentsScreen } from '@/features/payments-screen'
+import { BankReconciliationScreen } from '@/features/bank-reconciliation-screen'
+import { CompanyProfileScreen } from '@/features/company-profile-screen'
+import { JournalEntryScreen } from '@/features/journal-entry-screen'
+import {
+  ChartOfAccountsScreen,
+  SettingsScreen,
+} from '@/features/settings-screens'
 import { useModuleList } from '@/features/use-module-list'
 
 function pickTitle(record: Record<string, unknown>) {
@@ -21,9 +28,15 @@ function pickTitle(record: Record<string, unknown>) {
     (record.supplierBillNumber as string | undefined) ??
     (record.billNumber as string | undefined) ??
     (record.documentNumber as string | undefined) ??
+    (record.orderNumber as string | undefined) ??
+    (record.grnNumber as string | undefined) ??
+    (record.noteNumber as string | undefined) ??
+    (record.narration as string | undefined) ??
+    (record.itemName as string | undefined) ??
     (record.name as string | undefined) ??
     (record.tradeName as string | undefined) ??
     (record.title as string | undefined) ??
+    (record.sourceFilename as string | undefined) ??
     'Record'
   )
 }
@@ -32,6 +45,12 @@ function pickSubtitle(record: Record<string, unknown>) {
   const date =
     (record.invoiceDate as string | undefined) ??
     (record.billDate as string | undefined) ??
+    (record.orderDate as string | undefined) ??
+    (record.grnDate as string | undefined) ??
+    (record.noteDate as string | undefined) ??
+    (record.expenseDate as string | undefined) ??
+    (record.documentDate as string | undefined) ??
+    (record.periodStart as string | undefined) ??
     (record.createdAt as string | undefined)
   return date ? formatShortDate(String(date).slice(0, 10)) : undefined
 }
@@ -40,8 +59,13 @@ function pickAmount(record: Record<string, unknown>) {
   const amount =
     (record.totalAmount as string | undefined) ??
     (record.amount as string | undefined) ??
-    (record.outstandingAmount as string | undefined)
-  return amount ? formatInr(amount) : undefined
+    (record.outstandingAmount as string | undefined) ??
+    (record.quantity as string | undefined)
+  if (amount === undefined) return undefined
+  if (record.itemName && record.unit) {
+    return `${amount} ${record.unit}`
+  }
+  return formatInr(amount)
 }
 
 function pickBadge(record: Record<string, unknown>) {
@@ -50,10 +74,16 @@ function pickBadge(record: Record<string, unknown>) {
   if (partyType === 'supplier') return 'Supplier'
   if (partyType === 'both') return 'Both'
 
+  const noteType = record.noteType as string | undefined
+  if (noteType === 'credit') return 'Credit note'
+  if (noteType === 'debit') return 'Debit note'
+
   return (
     (record.status as string | undefined) ??
     (record.paymentStatus as string | undefined) ??
-    (record.documentType as string | undefined)
+    (record.documentType as string | undefined) ??
+    (record.accountType as string | undefined) ??
+    (record.isDefault === true ? 'Default' : undefined)
   )
 }
 
@@ -81,6 +111,33 @@ function pickDetailPath(moduleId: string, record: Record<string, unknown>) {
 
   if (moduleId === 'ocr') {
     return `/(app)/purchases/ocr/${id}`
+  }
+
+  if (moduleId === 'sales-documents') {
+    return `/(app)/sales-documents/${id}`
+  }
+
+  if (moduleId === 'purchase-orders') {
+    return `/(app)/purchase-orders/${id}`
+  }
+
+  if (moduleId === 'purchase-grns') {
+    return `/(app)/purchase-grns/${id}`
+  }
+
+  if (moduleId === 'expenses') {
+    return `/(app)/expenses/${id}`
+  }
+
+  if (moduleId === 'godowns') {
+    return `/(app)/godowns/${id}/edit`
+  }
+
+  if (moduleId === 'inventory') {
+    const itemId = record.itemId
+    if (typeof itemId === 'string' && itemId.length > 0) {
+      return `/(app)/stock/${itemId}`
+    }
   }
 
   return undefined
@@ -128,48 +185,65 @@ function ModuleRecordsList({
   )
 }
 
-export function ModuleListScreen({ moduleId }: { moduleId: string }) {
+export function ModuleListScreen({
+  moduleId,
+  variant = 'tab',
+}: {
+  moduleId: string
+  variant?: 'tab' | 'stack'
+}) {
   const module = getModuleById(moduleId)
   const query = useModuleList(moduleId)
   const tabHub = TAB_HUB_CONFIG[moduleId]
 
   if (!module) {
     return (
-      <Screen title="Module">
+      <Screen title="Module" variant={variant}>
         <EmptyState message="Unknown module." />
       </Screen>
     )
   }
 
   if (module.id === 'reports') {
-    return <ReportsScreen />
+    return <ReportsScreen variant={variant} />
   }
 
   if (module.id === 'payments') {
-    return <PaymentsScreen />
+    return <PaymentsScreen variant={variant} />
   }
 
   if (module.id === 'imports') {
     return (
-      <Screen title={module.title}>
+      <Screen title={module.title} variant={variant}>
         <EmptyState message="CSV import is available on web. Mobile upload support is planned." />
       </Screen>
     )
   }
 
   if (module.id === 'settings') {
-    return (
-      <Screen title={module.title}>
-        <CardRow title="Team members" subtitle="Manage users on web settings" />
-        <CardRow title="Sign out" subtitle="Use the app menu to sign out" />
-      </Screen>
-    )
+    return <SettingsScreen />
   }
 
   if (module.id === 'company-profile') {
+    return <CompanyProfileScreen />
+  }
+
+  if (module.id === 'bank-reconciliation') {
+    return <BankReconciliationScreen />
+  }
+
+  if (module.id === 'journal') {
+    return <JournalEntryScreen />
+  }
+
+  if (module.id === 'chart-of-accounts') {
+    return <ChartOfAccountsScreen />
+  }
+
+  if (module.id === 'companies') {
     return (
-      <Screen title={module.title}>
-        <EmptyState message="Edit company profile on web for now. Mobile editing is coming next." />
+      <Screen title={module.title} variant={variant}>
+        <ModuleRecordsList moduleId={moduleId} query={query} />
       </Screen>
     )
   }
@@ -178,6 +252,7 @@ export function ModuleListScreen({ moduleId }: { moduleId: string }) {
     return (
       <Screen
         title={module.title}
+        variant={variant}
         actionHref={module.createPath}
         actionLabel={module.createPath ? 'Create' : undefined}
       >
@@ -200,6 +275,7 @@ export function ModuleListScreen({ moduleId }: { moduleId: string }) {
   return (
     <Screen
       title={module.title}
+      variant={variant}
       actionHref={module.createPath}
       actionLabel={module.createPath ? 'Create' : undefined}
     >
@@ -210,5 +286,5 @@ export function ModuleListScreen({ moduleId }: { moduleId: string }) {
 
 export default function DynamicModuleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
-  return <ModuleListScreen moduleId={id} />
+  return <ModuleListScreen moduleId={id} variant="stack" />
 }

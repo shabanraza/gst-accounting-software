@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/data/empty-state'
 import { LoadingState } from '@/components/data/loading-state'
 import { SectionHeader } from '@/components/layout/section-header'
 import { Screen } from '@/components/layout/screen'
+import type { ScreenVariant } from '@/lib/navigation'
 import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
 import { BottomSheet } from '@/components/ui/dialog'
 import { FormField } from '@/components/ui/form-field'
@@ -167,7 +168,7 @@ function createInitialDraft(): PaymentAllocationDraft {
   }
 }
 
-export function PaymentsScreen() {
+export function PaymentsScreen({ variant = 'stack' }: { variant?: ScreenVariant }) {
   const queryClient = useQueryClient()
   const { companyId, ledgerBySystemKey, isReady } = useWorkspace()
   const [mode, setMode] = React.useState<PaymentTab>('receipts')
@@ -318,6 +319,7 @@ export function PaymentsScreen() {
     <Screen
       title="Payments"
       subtitle="Customer receipts and supplier payments against open documents"
+      variant={variant}
     >
       <View className="flex-row gap-2">
         <TabChip

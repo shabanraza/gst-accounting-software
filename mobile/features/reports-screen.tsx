@@ -6,6 +6,8 @@ import { EmptyState } from '@/components/data/empty-state'
 import { LoadingState } from '@/components/data/loading-state'
 import { SectionHeader } from '@/components/layout/section-header'
 import { Screen } from '@/components/layout/screen'
+import type { ScreenVariant } from '@/lib/navigation'
+import { SecondaryButton } from '@/components/ui/button'
 import { formatInr } from '@/lib/format-inr'
 import { currentMonthPeriod } from '@/lib/report-period'
 import { trpcClient } from '@/lib/trpc-client'
@@ -29,9 +31,21 @@ function ReportSection({
   )
 }
 
-export function ReportsScreen() {
+export function ReportsScreen({ variant = 'stack' }: { variant?: ScreenVariant }) {
   const { companyId, companyStateCode } = useWorkspace()
-  const period = React.useMemo(() => currentMonthPeriod(), [])
+  const [periodAnchor, setPeriodAnchor] = React.useState(() => new Date())
+  const period = React.useMemo(
+    () => currentMonthPeriod(periodAnchor),
+    [periodAnchor],
+  )
+
+  function shiftPeriod(months: number) {
+    setPeriodAnchor((current) => {
+      const next = new Date(current)
+      next.setMonth(next.getMonth() + months)
+      return next
+    })
+  }
 
   const trialBalanceQuery = useQuery({
     queryKey: ['reports', 'trial-balance', companyId],
@@ -79,17 +93,38 @@ export function ReportsScreen() {
       }),
   })
 
+  const gstr1Query = useQuery({
+    queryKey: [
+      'reports',
+      'gstr1',
+      companyId,
+      companyStateCode,
+      period.periodStart,
+      period.periodEnd,
+    ],
+    enabled: Boolean(companyId && companyStateCode),
+    queryFn: () =>
+      trpcClient.reports.gstr1.query({
+        companyId: companyId!,
+        companyStateCode: companyStateCode!,
+        periodStart: period.periodStart,
+        periodEnd: period.periodEnd,
+      }),
+  })
+
   const isLoading =
     trialBalanceQuery.isLoading ||
     profitAndLossQuery.isLoading ||
     receivablesQuery.isLoading ||
-    gstr3bQuery.isLoading
+    gstr3bQuery.isLoading ||
+    gstr1Query.isLoading
 
   const isError =
     trialBalanceQuery.isError ||
     profitAndLossQuery.isError ||
     receivablesQuery.isError ||
-    gstr3bQuery.isError
+    gstr3bQuery.isError ||
+    gstr1Query.isError
 
   const topLedgerRows = (trialBalanceQuery.data ?? [])
     .filter((row) => Number(row.debit) > 0 || Number(row.credit) > 0)
@@ -98,7 +133,17 @@ export function ReportsScreen() {
   const ageing = receivablesQuery.data
 
   return (
-    <Screen title="GST reports" subtitle="Books and compliance">
+    <Screen title="GST reports" subtitle="Books and compliance" variant={variant}>
+      <View className="flex-row items-center justify-between gap-3">
+        <Text className="text-sm text-muted-foreground">
+          {period.periodStart} to {period.periodEnd}
+        </Text>
+        <View className="flex-row gap-2">
+          <SecondaryButton label="Prev" onPress={() => shiftPeriod(-1)} />
+          <SecondaryButton label="Next" onPress={() => shiftPeriod(1)} />
+        </View>
+      </View>
+
       {isLoading ? <LoadingState /> : null}
       {isError ? (
         <EmptyState message="Unable to load reports. Check your connection." />
@@ -124,12 +169,37 @@ export function ReportsScreen() {
         ) : null}
       </ReportSection>
 
+      <ReportSection title="GSTR-1 summary" icon="document-outline">
+        {gstr1Query.data ? (
+          <>
+            <CardRow
+              title="B2B invoices"
+              amount={String(gstr1Query.data.b2b.length)}
+              badge="GSTR-1"
+            />
+            <CardRow
+              title="Credit / debit notes"
+              amount={String(gstr1Query.data.creditDebitNotes.length)}
+            />
+            <CardRow
+              title="Taxable value"
+              amount={formatInr(gstr1Query.data.totalTaxableValue)}
+            />
+            {gstr1Query.data.b2b.slice(0, 4).map((row) => (
+              <CardRow
+                key={`${row.invoiceNumber}-${row.documentDate}`}
+                title={row.partyName}
+                subtitle={`${row.invoiceNumber} · ${row.documentDate}`}
+                amount={formatInr(row.totalAmount)}
+              />
+            ))}
+          </>
+        ) : null}
+      </ReportSection>
+
       <ReportSection title="GSTR-3B summary" icon="document-text-outline">
         {gstr3bQuery.data ? (
           <>
-            <Text className="text-sm text-muted-foreground">
-              {period.periodStart} to {period.periodEnd}
-            </Text>
             <CardRow
               title="Outward taxable"
               amount={formatInr(gstr3bQuery.data.outwardTaxableValue)}

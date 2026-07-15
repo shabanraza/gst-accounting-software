@@ -2,9 +2,10 @@ import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 
-import { SectionHeader } from '@/components/layout/section-header'
+import { DetailCard } from '@/components/data/detail-card'
 import { Screen } from '@/components/layout/screen'
-import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
+import { WizardFooter } from '@/components/layout/wizard-footer'
+import { PrimaryButton } from '@/components/ui/button'
 import { OptionChip } from '@/components/ui/chip'
 import { FormField } from '@/components/ui/form-field'
 import { PickerField } from '@/components/ui/picker-field'
@@ -108,45 +109,56 @@ export function ItemFormScreen({
           : 'Item master with optional opening stock'
       }
       keyboardAvoiding
+      footer={
+        <WizardFooter>
+          {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
+          <PrimaryButton
+            label={saveMutation.isPending ? 'Saving…' : 'Save item'}
+            loading={saveMutation.isPending}
+            disabled={saveMutation.isPending}
+            onPress={() => saveMutation.mutate()}
+          />
+        </WizardFooter>
+      }
     >
-      <View className="gap-section-header">
-        <SectionHeader title="Basics" compact icon="cube-outline" />
-        <FormField
-          placeholder="Item name"
-          value={form.name}
-          onChangeText={(name) => setForm((current) => ({ ...current, name }))}
-        />
-        <FormField
-          placeholder="Alias (optional)"
-          value={form.alias}
-          onChangeText={(alias) => setForm((current) => ({ ...current, alias }))}
-        />
-        <PickerField
-          label="Group"
-          value={form.itemGroup}
-          onPress={() => setGroupPickerOpen(true)}
-        />
-        <FormField
-          placeholder="HSN code"
-          value={form.hsnCode}
-          onChangeText={(hsnCode) =>
-            setForm((current) => ({ ...current, hsnCode }))
-          }
-        />
-        <PickerField
-          label="GST rate"
-          value={`${form.gstRate}%`}
-          onPress={() => setGstPickerOpen(true)}
-        />
-        <PickerField
-          label="Base unit"
-          value={form.baseUnit}
-          onPress={() => setUnitPickerOpen(true)}
-        />
-      </View>
+      <DetailCard title="Basic details" icon="cube-outline">
+        <View className="gap-3">
+          <FormField
+            placeholder="Item name"
+            value={form.name}
+            onChangeText={(name) => setForm((current) => ({ ...current, name }))}
+          />
+          <FormField
+            placeholder="Alias (optional)"
+            value={form.alias}
+            onChangeText={(alias) => setForm((current) => ({ ...current, alias }))}
+          />
+          <PickerField
+            label="Group"
+            value={form.itemGroup}
+            onPress={() => setGroupPickerOpen(true)}
+          />
+          <FormField
+            placeholder="HSN code"
+            value={form.hsnCode}
+            onChangeText={(hsnCode) =>
+              setForm((current) => ({ ...current, hsnCode }))
+            }
+          />
+          <PickerField
+            label="GST rate"
+            value={`${form.gstRate}%`}
+            onPress={() => setGstPickerOpen(true)}
+          />
+          <PickerField
+            label="Base unit"
+            value={form.baseUnit}
+            onPress={() => setUnitPickerOpen(true)}
+          />
+        </View>
+      </DetailCard>
 
-      <View className="gap-section-header">
-        <SectionHeader title="Rates" compact icon="pricetag-outline" />
+      <DetailCard title="Pricing" icon="pricetag-outline">
         <View className="flex-row gap-3">
           <View className="flex-1">
             <Text className="mb-1 text-sm text-muted-foreground">Purchase</Text>
@@ -171,58 +183,43 @@ export function ItemFormScreen({
             />
           </View>
         </View>
-      </View>
+      </DetailCard>
 
-      <View className="gap-section-header">
-        <SectionHeader title="Stock" compact icon="layers-outline" />
-        <View className="flex-row flex-wrap gap-2">
-          <OptionChip
-            label="Track inventory"
-            active={form.tracksInventory}
-            onPress={() =>
-              setForm((current) => ({ ...current, tracksInventory: true }))
-            }
-          />
-          <OptionChip
-            label="Non-inventory"
-            active={!form.tracksInventory}
-            onPress={() =>
-              setForm((current) => ({ ...current, tracksInventory: false }))
-            }
-          />
-        </View>
-        {mode === 'create' && form.tracksInventory ? (
-          <View>
-            <Text className="mb-1 text-sm text-muted-foreground">
-              Opening quantity
-            </Text>
-            <FormField
-              keyboardType="decimal-pad"
-              placeholder="Optional"
-              value={form.openingQuantity}
-              onChangeText={(openingQuantity) =>
-                setForm((current) => ({ ...current, openingQuantity }))
+      <DetailCard title="Inventory" icon="layers-outline">
+        <View className="gap-3">
+          <View className="flex-row flex-wrap gap-2">
+            <OptionChip
+              label="Track inventory"
+              active={form.tracksInventory}
+              onPress={() =>
+                setForm((current) => ({ ...current, tracksInventory: true }))
+              }
+            />
+            <OptionChip
+              label="Non-inventory"
+              active={!form.tracksInventory}
+              onPress={() =>
+                setForm((current) => ({ ...current, tracksInventory: false }))
               }
             />
           </View>
-        ) : null}
-      </View>
-
-      {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
-
-      <View className="flex-row gap-3">
-        <View className="flex-1">
-          <SecondaryButton label="Cancel" onPress={() => router.back()} />
+          {mode === 'create' && form.tracksInventory ? (
+            <View>
+              <Text className="mb-1 text-sm text-muted-foreground">
+                Opening quantity
+              </Text>
+              <FormField
+                keyboardType="decimal-pad"
+                placeholder="Optional"
+                value={form.openingQuantity}
+                onChangeText={(openingQuantity) =>
+                  setForm((current) => ({ ...current, openingQuantity }))
+                }
+              />
+            </View>
+          ) : null}
         </View>
-        <View className="flex-1">
-          <PrimaryButton
-            label={saveMutation.isPending ? 'Saving…' : 'Save item'}
-            loading={saveMutation.isPending}
-            disabled={saveMutation.isPending}
-            onPress={() => saveMutation.mutate()}
-          />
-        </View>
-      </View>
+      </DetailCard>
 
       <PickerModal
         visible={groupPickerOpen}

@@ -48,7 +48,7 @@ export default function MoreScreen() {
   }
 
   return (
-    <Screen title="More" subtitle="Banking, masters, reports">
+    <Screen title="More" subtitle="Banking, masters, reports" variant="tab">
       <CompanySwitcher />
       <View style={{ gap: pageLayout.sectionHeaderGap }}>
         <SectionHeader title="Quick links" compact icon="flash-outline" />

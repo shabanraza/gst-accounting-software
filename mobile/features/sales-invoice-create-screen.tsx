@@ -1,13 +1,15 @@
+import { Ionicons } from '@expo/vector-icons'
 import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { Pressable } from 'react-native'
 
 import { CardRow } from '@/components/data/card-row'
+import { DetailCard } from '@/components/data/detail-card'
 import { EmptyState } from '@/components/data/empty-state'
 import { LoadingState } from '@/components/data/loading-state'
-import { SectionHeader } from '@/components/layout/section-header'
 import { Screen } from '@/components/layout/screen'
+import { WizardFooter } from '@/components/layout/wizard-footer'
 import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
 import { OptionChip } from '@/components/ui/chip'
 import { FormField } from '@/components/ui/form-field'
@@ -33,6 +35,7 @@ import {
   type SalesItemLike,
 } from '@/lib/sales-invoice-form'
 import { trpcClient } from '@/lib/trpc-client'
+import { themeColors } from '@/lib/theme'
 import { Text, View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
 
@@ -63,15 +66,27 @@ function LineItemEditor({
 }) {
   const [pickerOpen, setPickerOpen] = React.useState(false)
 
+  const lineAmount =
+    Number(line.quantity) > 0 && Number(line.rate) >= 0
+      ? Number(line.quantity) * Number(line.rate)
+      : null
+
   return (
     <View className="gap-3 rounded-xl border border-border bg-card p-card-padding">
       <View className="flex-row items-center justify-between">
         <Text className="font-semibold text-foreground">Line {index + 1}</Text>
-        {canRemove ? (
-          <Pressable onPress={onRemove}>
-            <Text className="text-sm font-medium text-destructive">Remove</Text>
-          </Pressable>
-        ) : null}
+        <View className="flex-row items-center gap-3">
+          {lineAmount !== null ? (
+            <Text className="font-semibold text-foreground">
+              {formatInr(String(lineAmount))}
+            </Text>
+          ) : null}
+          {canRemove ? (
+            <Pressable onPress={onRemove}>
+              <Text className="text-sm font-medium text-destructive">Remove</Text>
+            </Pressable>
+          ) : null}
+        </View>
       </View>
       <Pressable
         className="rounded-xl border border-border bg-background px-4 py-3"
@@ -269,8 +284,45 @@ export function SalesInvoiceCreateScreen() {
   const mastersLoading = partiesQuery.isLoading || itemsQuery.isLoading
   const mastersError = partiesQuery.isError || itemsQuery.isError
 
+  const wizardFooter =
+    step === 'review' ? (
+      <WizardFooter>
+        <SecondaryButton label="Back to items" onPress={() => setStep('lines')} />
+        <PrimaryButton
+          label={postMutation.isPending ? 'Posting…' : 'Post invoice'}
+          loading={postMutation.isPending}
+          disabled={postMutation.isPending}
+          onPress={() => postMutation.mutate()}
+        />
+      </WizardFooter>
+    ) : (
+      <WizardFooter>
+        {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
+        <View className="flex-row gap-3">
+          {step !== 'customer' ? (
+            <View className="flex-1">
+              <SecondaryButton
+                label="Back"
+                onPress={() =>
+                  setStep(step === 'lines' ? 'customer' : 'lines')
+                }
+              />
+            </View>
+          ) : null}
+          <View className="flex-1">
+            <PrimaryButton label="Next" onPress={goNext} />
+          </View>
+        </View>
+      </WizardFooter>
+    )
+
   return (
-    <Screen title="New invoice" subtitle="Create sales invoice" keyboardAvoiding>
+    <Screen
+      title="New invoice"
+      subtitle="Create sales invoice"
+      keyboardAvoiding
+      footer={wizardFooter}
+    >
       <StepPills step={step} steps={INVOICE_STEPS} />
 
       {!isReady || mastersLoading ? <LoadingState /> : null}
@@ -279,74 +331,74 @@ export function SalesInvoiceCreateScreen() {
       ) : null}
 
       {step === 'customer' ? (
-        <View className="gap-section-header">
-          <SectionHeader title="Customer" compact icon="person-outline" />
-          <PickerField
-            label="Customer"
-            value={selectedCustomer?.name}
-            placeholder="Select customer"
-            onPress={() => setCustomerPickerOpen(true)}
-          />
-          <View>
-            <Text className="mb-1 text-sm text-muted-foreground">Invoice date</Text>
-            <FormField
-              placeholder="YYYY-MM-DD"
-              value={form.invoiceDate}
-              onChangeText={(invoiceDate) =>
-                setForm((current) => ({ ...current, invoiceDate }))
-              }
+        <DetailCard title="Invoice details" icon="person-outline">
+          <View className="gap-3">
+            <PickerField
+              label="Customer"
+              value={selectedCustomer?.name}
+              placeholder="Select customer"
+              onPress={() => setCustomerPickerOpen(true)}
             />
-          </View>
-          <View className="gap-2">
-            <Text className="text-sm text-muted-foreground">Payment mode</Text>
-            <View className="flex-row flex-wrap gap-2">
-              {(['credit', 'cash'] as Array<PaymentMode>).map((mode) => (
+            <View>
+              <Text className="mb-1 text-sm text-muted-foreground">Invoice date</Text>
+              <FormField
+                placeholder="YYYY-MM-DD"
+                value={form.invoiceDate}
+                onChangeText={(invoiceDate) =>
+                  setForm((current) => ({ ...current, invoiceDate }))
+                }
+              />
+            </View>
+            <View className="gap-2">
+              <Text className="text-sm text-muted-foreground">Payment mode</Text>
+              <View className="flex-row flex-wrap gap-2">
+                {(['credit', 'cash'] as Array<PaymentMode>).map((mode) => (
+                  <OptionChip
+                    key={mode}
+                    label={mode === 'credit' ? 'Credit' : 'Cash'}
+                    active={form.paymentMode === mode}
+                    onPress={() =>
+                      setForm((current) => ({ ...current, paymentMode: mode }))
+                    }
+                  />
+                ))}
+              </View>
+            </View>
+            <View className="gap-2">
+              <Text className="text-sm text-muted-foreground">Supply</Text>
+              <View className="flex-row flex-wrap gap-2">
                 <OptionChip
-                  key={mode}
-                  label={mode === 'credit' ? 'Credit' : 'Cash'}
-                  active={form.paymentMode === mode}
+                  label="Local"
+                  active={form.region === 'local'}
                   onPress={() =>
-                    setForm((current) => ({ ...current, paymentMode: mode }))
+                    setForm((current) => ({ ...current, region: 'local' }))
                   }
                 />
-              ))}
+                <OptionChip
+                  label="Inter-state"
+                  active={form.region === 'central'}
+                  onPress={() =>
+                    setForm((current) => ({ ...current, region: 'central' }))
+                  }
+                />
+              </View>
             </View>
-          </View>
-          <View className="gap-2">
-            <Text className="text-sm text-muted-foreground">Supply</Text>
-            <View className="flex-row flex-wrap gap-2">
-              <OptionChip
-                label="Local"
-                active={form.region === 'local'}
-                onPress={() =>
-                  setForm((current) => ({ ...current, region: 'local' }))
+            <View>
+              <Text className="mb-1 text-sm text-muted-foreground">Narration</Text>
+              <FormField
+                placeholder="Optional note"
+                value={form.narration}
+                onChangeText={(narration) =>
+                  setForm((current) => ({ ...current, narration }))
                 }
               />
-              <OptionChip
-                label="Inter-state"
-                active={form.region === 'central'}
-                onPress={() =>
-                  setForm((current) => ({ ...current, region: 'central' }))
-                }
-              />
             </View>
           </View>
-          <View>
-            <Text className="mb-1 text-sm text-muted-foreground">Narration</Text>
-            <FormField
-              placeholder="Optional note"
-              value={form.narration}
-              onChangeText={(narration) =>
-                setForm((current) => ({ ...current, narration }))
-              }
-            />
-          </View>
-        </View>
+        </DetailCard>
       ) : null}
 
       {step === 'lines' ? (
-        <View className="gap-section-header">
-          <SectionHeader title="Line items" compact icon="list-outline" />
+        <View className="gap-3">
           {form.lines.map((line, index) => (
             <LineItemEditor
               key={line.key}
@@ -359,10 +411,16 @@ export function SalesInvoiceCreateScreen() {
               canRemove={form.lines.length > 1}
             />
           ))}
-          <SecondaryButton label="Add line" onPress={addLine} />
+          <Pressable
+            className="flex-row items-center justify-center gap-2 rounded-xl border border-dashed border-primary bg-primary/5 px-4 py-3"
+            onPress={addLine}
+          >
+            <Ionicons name="add-circle-outline" size={20} color={themeColors.primary} />
+            <Text className="font-semibold text-primary">Add line</Text>
+          </Pressable>
           {totals ? (
             <CardRow
-              title="Estimated total"
+              title="Subtotal"
               amount={formatInr(totals.grandTotal)}
               subtitle={`${totals.lineCount} line(s) · GST ${formatInr(totals.totalGstAmount)}`}
             />
@@ -371,8 +429,7 @@ export function SalesInvoiceCreateScreen() {
       ) : null}
 
       {step === 'review' ? (
-        <View className="gap-section-header">
-          <SectionHeader title="Review" compact icon="checkmark-circle-outline" />
+        <View className="gap-3">
           <CardRow
             title={selectedCustomer?.name ?? 'Customer'}
             subtitle={form.invoiceDate}
@@ -389,42 +446,23 @@ export function SalesInvoiceCreateScreen() {
               />
             ))}
           {totals ? (
-            <CardRow
-              title="Grand total"
-              amount={formatInr(totals.grandTotal)}
-              subtitle={`Taxable ${formatInr(totals.taxableAmount)}`}
-            />
+            <>
+              <CardRow
+                title="Taxable amount"
+                amount={formatInr(totals.taxableAmount)}
+              />
+              <CardRow
+                title="GST"
+                amount={formatInr(totals.totalGstAmount)}
+              />
+              <CardRow
+                title="Grand total"
+                amount={formatInr(totals.grandTotal)}
+              />
+            </>
           ) : null}
-          <PrimaryButton
-            label={postMutation.isPending ? 'Posting…' : 'Post invoice'}
-            loading={postMutation.isPending}
-            disabled={postMutation.isPending}
-            onPress={() => postMutation.mutate()}
-          />
         </View>
       ) : null}
-
-      {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
-
-      {step !== 'review' ? (
-        <View className="flex-row gap-3">
-          {step !== 'customer' ? (
-            <View className="flex-1">
-              <SecondaryButton
-                label="Back"
-                onPress={() =>
-                  setStep(step === 'lines' ? 'customer' : 'lines')
-                }
-              />
-            </View>
-          ) : null}
-          <View className="flex-1">
-            <PrimaryButton label="Continue" onPress={goNext} />
-          </View>
-        </View>
-      ) : (
-        <SecondaryButton label="Back to items" onPress={() => setStep('lines')} />
-      )}
 
       <PickerModal
         visible={customerPickerOpen}

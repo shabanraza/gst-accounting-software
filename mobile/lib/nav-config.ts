@@ -42,6 +42,7 @@ export const MOBILE_NAV_MODULES: Array<MobileNavModule> = [
     path: '/(app)/module/returns',
     trpcNamespace: 'returns',
     listProcedure: 'listCreditDebitNotes',
+    createPath: '/(app)/returns/new',
   },
   {
     id: 'purchases',
@@ -59,6 +60,7 @@ export const MOBILE_NAV_MODULES: Array<MobileNavModule> = [
     path: '/(app)/module/purchase-orders',
     trpcNamespace: 'purchaseOrders',
     listProcedure: 'list',
+    createPath: '/(app)/purchase-orders/new',
   },
   {
     id: 'purchase-grns',
@@ -67,6 +69,7 @@ export const MOBILE_NAV_MODULES: Array<MobileNavModule> = [
     path: '/(app)/module/purchase-grns',
     trpcNamespace: 'purchaseGrns',
     listProcedure: 'list',
+    createPath: '/(app)/purchase-grns/new',
   },
   {
     id: 'ocr',
@@ -97,6 +100,7 @@ export const MOBILE_NAV_MODULES: Array<MobileNavModule> = [
     path: '/(app)/module/expenses',
     trpcNamespace: 'expenses',
     listProcedure: 'list',
+    createPath: '/(app)/expenses/new',
   },
   {
     id: 'items',
@@ -114,6 +118,7 @@ export const MOBILE_NAV_MODULES: Array<MobileNavModule> = [
     path: '/(app)/module/godowns',
     trpcNamespace: 'inventory',
     listProcedure: 'listGodowns',
+    createPath: '/(app)/godowns/new',
   },
   {
     id: 'inventory',
@@ -143,8 +148,7 @@ export const MOBILE_NAV_MODULES: Array<MobileNavModule> = [
     title: 'Journal',
     tab: 'more',
     path: '/(app)/module/journal',
-    trpcNamespace: 'accounting',
-    listProcedure: 'listLedgerAccounts',
+    createPath: '/(app)/journal/new',
   },
   {
     id: 'chart-of-accounts',
