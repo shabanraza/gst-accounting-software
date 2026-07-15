@@ -79,15 +79,17 @@ export function ItemFormScreen({
         buildCreateItemInput(form, companyId),
       )
     },
-    onSuccess: async () => {
+    onSuccess: async (item) => {
       await queryClient.invalidateQueries({ queryKey: ['module-list', 'items'] })
       await queryClient.invalidateQueries({ queryKey: ['sales-items', companyId] })
       if (mode === 'edit' && itemId) {
         await queryClient.invalidateQueries({
           queryKey: ['item-detail', companyId, itemId],
         })
+        router.back()
+        return
       }
-      router.back()
+      router.replace(`/(app)/items/${item.id}` as never)
     },
     onError: (mutationError) => {
       setError(
