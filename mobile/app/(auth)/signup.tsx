@@ -3,6 +3,7 @@ import { useState } from 'react'
 
 import { Pressable, Text, TextInput, View } from '@/tw'
 import { authClient } from '@/lib/auth-client'
+import { formatAuthNetworkError } from '@/lib/auth-error'
 
 export default function SignupScreen() {
   const router = useRouter()
@@ -13,12 +14,16 @@ export default function SignupScreen() {
 
   async function handleSubmit() {
     setError(null)
-    const result = await authClient.signUp.email({ name, email, password })
-    if (result.error) {
-      setError(result.error.message ?? 'Unable to create account.')
-      return
+    try {
+      const result = await authClient.signUp.email({ name, email, password })
+      if (result.error) {
+        setError(result.error.message ?? 'Unable to create account.')
+        return
+      }
+      router.replace('/onboarding')
+    } catch (caught) {
+      setError(formatAuthNetworkError(caught))
     }
-    router.replace('/onboarding')
   }
 
   return (

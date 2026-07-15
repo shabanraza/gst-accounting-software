@@ -3,6 +3,7 @@ import { useState } from 'react'
 
 import { Pressable, Text, TextInput, View } from '@/tw'
 import { authClient } from '@/lib/auth-client'
+import { formatAuthNetworkError } from '@/lib/auth-error'
 import { resolvePostAuthHref } from '@/lib/post-auth-route'
 
 export default function LoginScreen() {
@@ -15,13 +16,18 @@ export default function LoginScreen() {
   async function handleSubmit() {
     setLoading(true)
     setError(null)
-    const result = await authClient.signIn.email({ email, password })
-    setLoading(false)
-    if (result.error) {
-      setError(result.error.message ?? 'Unable to sign in.')
-      return
+    try {
+      const result = await authClient.signIn.email({ email, password })
+      if (result.error) {
+        setError(result.error.message ?? 'Unable to sign in.')
+        return
+      }
+      router.replace(await resolvePostAuthHref())
+    } catch (caught) {
+      setError(formatAuthNetworkError(caught))
+    } finally {
+      setLoading(false)
     }
-    router.replace(await resolvePostAuthHref())
   }
 
   return (
