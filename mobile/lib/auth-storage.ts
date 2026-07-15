@@ -1,12 +1,9 @@
-import { normalizeCookieName, storageAdapter } from '@better-auth/expo/client'
 import * as SecureStore from 'expo-secure-store'
 import { Platform } from 'react-native'
 
 export const AUTH_STORAGE_PREFIX = 'gstbooks'
-export const AUTH_COOKIE_PREFIX = 'better-auth'
-export const AUTH_COOKIE_NAME = normalizeCookieName(`${AUTH_STORAGE_PREFIX}_cookie`)
+export const AUTH_SESSION_TOKEN_KEY = `${AUTH_STORAGE_PREFIX}_session_token`
 export const SESSION_COOKIE_NAME = 'better-auth.session_token'
-export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7
 
 const webStorage = {
   getItem: (key: string) => {
@@ -16,6 +13,9 @@ const webStorage = {
   setItem: async (key: string, value: string) => {
     localStorage.setItem(key, value)
   },
+  removeItem: async (key: string) => {
+    localStorage.removeItem(key)
+  },
 }
 
 const nativeStorage = {
@@ -23,7 +23,24 @@ const nativeStorage = {
   setItem: (key: string, value: string) => {
     SecureStore.setItem(key, value)
   },
+  removeItem: async (key: string) => {
+    await SecureStore.deleteItemAsync(key)
+  },
 }
 
-export const authRawStorage = Platform.OS === 'web' ? webStorage : nativeStorage
-export const authCookieStorage = storageAdapter(authRawStorage)
+const storage = Platform.OS === 'web' ? webStorage : nativeStorage
+
+export const authRawStorage = storage
+
+export function readSessionToken() {
+  const value = storage.getItem(AUTH_SESSION_TOKEN_KEY)
+  return value?.trim() ? value : null
+}
+
+export async function writeSessionToken(token: string) {
+  await storage.setItem(AUTH_SESSION_TOKEN_KEY, token)
+}
+
+export async function clearSessionToken() {
+  await storage.removeItem(AUTH_SESSION_TOKEN_KEY)
+}

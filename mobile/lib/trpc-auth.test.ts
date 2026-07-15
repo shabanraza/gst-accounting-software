@@ -7,42 +7,13 @@ const { getSession, getCookie } = vi.hoisted(() => ({
   getCookie: vi.fn(),
 }))
 
-vi.mock('@better-auth/expo/client', () => ({
-  getSetCookie: (header: string, prev = '{}') => {
-    const parsed = JSON.parse(prev) as Record<
-      string,
-      { value: string; expires: string | null }
-    >
-    const [nameValue] = header.split(';')
-    const [name, value] = nameValue.split('=')
-    parsed[name] = { value, expires: null }
-    return JSON.stringify(parsed)
-  },
-  getCookie: (cookie: string) => {
-    const parsed = JSON.parse(cookie) as Record<
-      string,
-      { value: string; expires: string | null }
-    >
-    return Object.entries(parsed)
-      .map(([key, entry]) => `${key}=${entry.value}`)
-      .join('; ')
-  },
-  normalizeCookieName: (name: string) => name,
-  storageAdapter: (storage: {
-    getItem: (key: string) => string | null
-    setItem: (key: string, value: string) => unknown
-  }) => ({
-    getItem: (key: string) => storage.getItem(key),
-    setItem: async (key: string, value: string) => {
-      storage.setItem(key, value)
-    },
-  }),
-}))
-
 vi.mock('expo-secure-store', () => ({
   getItem: (key: string) => storage.get(key) ?? null,
   setItem: (key: string, value: string) => {
     storage.set(key, value)
+  },
+  deleteItemAsync: async (key: string) => {
+    storage.delete(key)
   },
 }))
 
@@ -59,10 +30,14 @@ vi.mock('./auth-client.ts', () => ({
 
 import {
   ensureTrpcAuthReady,
+  extractAuthTokenFromResponse,
   extractSignInToken,
-  persistSignInSessionToken,
-  readAuthCookieHeader,
+  extractTokenFromCookieHeader,
+  persistSessionToken,
+  readSessionTokenForAuth,
+  readTrpcAuthHeaders,
 } from './trpc-auth.ts'
+import { AUTH_SESSION_TOKEN_KEY } from './auth-storage.ts'
 
 describe('trpc-auth', () => {
   beforeEach(() => {
@@ -72,64 +47,70 @@ describe('trpc-auth', () => {
     getSession.mockResolvedValue({ data: null })
   })
 
-  it('reads the auth cookie header from the auth client', () => {
-    getCookie.mockReturnValue('better-auth.session_token=abc')
+  it('builds bearer auth headers from the stored session token', async () => {
+    await persistSessionToken('session-token-123')
 
-    expect(readAuthCookieHeader()).toBe('better-auth.session_token=abc')
-  })
-
-  it('falls back to stored cookie json when auth client cookie is empty', async () => {
-    getCookie.mockReturnValue('')
-    await persistSignInSessionToken('session-token-123')
-
-    expect(readAuthCookieHeader()).toContain(
-      'better-auth.session_token=session-token-123',
-    )
-  })
-
-  it('persists a sign-in token into expo cookie storage', async () => {
-    getCookie.mockImplementation(() => {
-      const raw = storage.get('gstbooks_cookie')
-      if (!raw) return ''
-      const parsed = JSON.parse(raw) as Record<
-        string,
-        { value: string; expires: string | null }
-      >
-      return Object.entries(parsed)
-        .map(([key, entry]) => `${key}=${entry.value}`)
-        .join('; ')
+    expect(readTrpcAuthHeaders()).toEqual({
+      Authorization: 'Bearer session-token-123',
     })
-
-    await persistSignInSessionToken('session-token-123')
-
-    expect(readAuthCookieHeader()).toContain(
-      'better-auth.session_token=session-token-123',
-    )
   })
 
-  it('uses the sign-in token when the auth cookie is not ready yet', async () => {
-    getCookie.mockImplementation(() => {
-      const raw = storage.get('gstbooks_cookie')
-      if (!raw) return ''
-      const parsed = JSON.parse(raw) as Record<
-        string,
-        { value: string; expires: string | null }
-      >
-      return Object.entries(parsed)
-        .map(([key, entry]) => `${key}=${entry.value}`)
-        .join('; ')
-    })
+  it('falls back to the expo cookie header when no stored token exists', () => {
+    getCookie.mockReturnValue('better-auth.session_token=session-token-123')
 
+    expect(readSessionTokenForAuth()).toBe('session-token-123')
+    expect(readTrpcAuthHeaders()).toEqual({
+      Authorization: 'Bearer session-token-123',
+    })
+  })
+
+  it('extracts session tokens from cookie headers', () => {
+    expect(
+      extractTokenFromCookieHeader(
+        'better-auth.session_token=abc; better-auth.session_data=xyz',
+      ),
+    ).toBe('abc')
+  })
+
+  it('persists a sign-in token into secure storage', async () => {
+    await persistSessionToken('session-token-123')
+
+    expect(storage.get(AUTH_SESSION_TOKEN_KEY)).toBe('session-token-123')
+    expect(readTrpcAuthHeaders()).toEqual({
+      Authorization: 'Bearer session-token-123',
+    })
+  })
+
+  it('uses the sign-in token when auth storage is not ready yet', async () => {
     await ensureTrpcAuthReady({ signInToken: 'session-token-123' })
 
+    expect(readSessionTokenForAuth()).toBe('session-token-123')
+    expect(readTrpcAuthHeaders()).toEqual({
+      Authorization: 'Bearer session-token-123',
+    })
+  })
+
+  it('refreshes the session when no token is available yet', async () => {
+    getCookie
+      .mockReturnValueOnce('')
+      .mockReturnValue('better-auth.session_token=session-token-123')
+
+    await ensureTrpcAuthReady()
+
     expect(getSession).toHaveBeenCalled()
-    expect(readAuthCookieHeader()).toContain(
-      'better-auth.session_token=session-token-123',
-    )
+    expect(storage.get(AUTH_SESSION_TOKEN_KEY)).toBe('session-token-123')
   })
 
   it('extracts sign-in tokens from auth responses', () => {
     expect(extractSignInToken({ data: { token: 'abc' } })).toBe('abc')
     expect(extractSignInToken({ data: null })).toBeNull()
+  })
+
+  it('extracts bearer tokens from set-auth-token response headers', () => {
+    const response = new Response(null, {
+      headers: { 'set-auth-token': 'header-token-123' },
+    })
+
+    expect(extractAuthTokenFromResponse(response)).toBe('header-token-123')
   })
 })

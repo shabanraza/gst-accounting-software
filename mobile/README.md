@@ -123,8 +123,8 @@ eas build --profile preview
 
 Uses `@better-auth/expo` with scheme `gstbooks://`. The web server trusts mobile origins (see `src/lib/auth-mobile-config.ts`).
 
-- **Expo web** uses `credentials: 'omit'` for cross-origin auth to `localhost:3000`; session cookies are stored in localStorage and forwarded to tRPC via the `cookie` header through `@accounting/api-client`.
-- **Expo Go** stores the session in SecureStore and forwards the same `cookie` header on tRPC requests.
+- **Expo web** uses `credentials: 'omit'` for cross-origin auth to `localhost:3000`; the session token is stored in localStorage and sent to tRPC as `Authorization: Bearer <token>`.
+- **Expo Go** stores the session token in SecureStore and sends the same bearer header on tRPC requests.
 
 ## Troubleshooting
 
@@ -135,7 +135,7 @@ Uses `@better-auth/expo` with scheme `gstbooks://`. The web server trusts mobile
 | `Failed to fetch` on login | Same as above; confirm API is running |
 | Expo Go cannot connect to Metro | Same Wi‑Fi; use `bun run start` (includes `--lan`); allow port 8081 in firewall |
 | Phone login fails / 401 on companies | Set `EXPO_PUBLIC_API_URL` to `http://<LAN_IP>:3000`, not `localhost`; restart Expo after `.env` changes |
-| Web login lands on onboarding incorrectly | Sign out, sign in again; tRPC waits for the session cookie before `companies.list` |
+| Web login lands on onboarding incorrectly | Sign out, sign in again; tRPC waits for the bearer token before `companies.list` |
 
 ## Expo Go only (not available on Expo web yet)
 
