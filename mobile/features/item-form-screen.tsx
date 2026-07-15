@@ -18,6 +18,7 @@ import {
 } from '@/lib/india-masters'
 import {
   buildCreateItemInput,
+  buildUpdateItemInput,
   createInitialItemForm,
   validateItemForm,
   type ItemFormDraft,
@@ -90,15 +91,33 @@ function PickerModal({
   )
 }
 
-export function ItemCreateScreen() {
+type ItemFormScreenProps = {
+  mode: 'create' | 'edit'
+  itemId?: string
+  initialForm?: ItemFormDraft
+}
+
+export function ItemFormScreen({
+  mode,
+  itemId,
+  initialForm,
+}: ItemFormScreenProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { companyId, isReady } = useWorkspace()
-  const [form, setForm] = React.useState<ItemFormDraft>(createInitialItemForm)
+  const { companyId } = useWorkspace()
+  const [form, setForm] = React.useState<ItemFormDraft>(
+    () => initialForm ?? createInitialItemForm(),
+  )
   const [groupPickerOpen, setGroupPickerOpen] = React.useState(false)
   const [unitPickerOpen, setUnitPickerOpen] = React.useState(false)
   const [gstPickerOpen, setGstPickerOpen] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    if (initialForm) {
+      setForm(initialForm)
+    }
+  }, [initialForm])
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -111,6 +130,16 @@ export function ItemCreateScreen() {
         throw new Error(validationError)
       }
 
+      if (mode === 'edit') {
+        if (!itemId) {
+          throw new Error('Item not found')
+        }
+
+        return trpcClient.inventory.updateItem.mutate(
+          buildUpdateItemInput(form, companyId, itemId),
+        )
+      }
+
       return trpcClient.inventory.createItemWithOpening.mutate(
         buildCreateItemInput(form, companyId),
       )
@@ -118,21 +147,33 @@ export function ItemCreateScreen() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['module-list', 'items'] })
       await queryClient.invalidateQueries({ queryKey: ['sales-items', companyId] })
+      if (mode === 'edit' && itemId) {
+        await queryClient.invalidateQueries({
+          queryKey: ['item-detail', companyId, itemId],
+        })
+      }
       router.back()
     },
     onError: (mutationError) => {
       setError(
         mutationError instanceof Error
           ? mutationError.message
-          : 'Unable to create item.',
+          : mode === 'edit'
+            ? 'Unable to update item.'
+            : 'Unable to create item.',
       )
     },
   })
 
   return (
-    <Screen title="New item" subtitle="Item master with optional opening stock">
-      {!isReady ? null : null}
-
+    <Screen
+      title={mode === 'edit' ? 'Edit item' : 'New item'}
+      subtitle={
+        mode === 'edit'
+          ? 'Update item master fields'
+          : 'Item master with optional opening stock'
+      }
+    >
       <View className="gap-section-header">
         <SectionHeader title="Basics" compact icon="cube-outline" />
         <FormField
@@ -221,7 +262,7 @@ export function ItemCreateScreen() {
             }
           />
         </View>
-        {form.tracksInventory ? (
+        {mode === 'create' && form.tracksInventory ? (
           <View>
             <Text className="mb-1 text-sm text-muted-foreground">
               Opening quantity
@@ -284,4 +325,8 @@ export function ItemCreateScreen() {
       />
     </Screen>
   )
+}
+
+export function ItemCreateScreen() {
+  return <ItemFormScreen mode="create" />
 }

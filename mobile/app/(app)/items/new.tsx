@@ -1,5 +1,1 @@
-import { ItemCreateScreen } from '@/features/item-create-screen'
-
-export default function NewItemScreen() {
-  return <ItemCreateScreen />
-}
+export { ItemCreateScreen } from '@/features/item-form-screen'

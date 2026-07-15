@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { createItem } from '#/features/inventory/item-service.ts'
+import { createItem, updateItem } from '#/features/inventory/item-service.ts'
 import type {
   ItemRecord,
   ItemRepository,
@@ -21,6 +21,15 @@ class InMemoryItemRepository implements ItemRepository {
 
   async create(item: ItemRecord) {
     this.items.push(item)
+    return item
+  }
+
+  async update(item: ItemRecord) {
+    const index = this.items.findIndex((entry) => entry.id === item.id)
+    if (index === -1) {
+      throw new Error(`Item not found: ${item.id}`)
+    }
+    this.items[index] = item
     return item
   }
 
@@ -135,6 +144,41 @@ describe('createItem', () => {
     expect(item.conversionFactor).toBe('50')
     expect(item.mrp).toBe('150.00')
     expect(item.reorderLevel).toBe('20')
+  })
+})
+
+describe('updateItem', () => {
+  test('updates an existing item master record', async () => {
+    const repository = new InMemoryItemRepository()
+
+    const item = await createItem(repository, {
+      companyId: 'company-1',
+      name: 'Cotton Fabric',
+      hsnCode: '5208',
+      gstRate: '5.00',
+      baseUnit: 'meter',
+      purchaseRate: '80.00',
+      saleRate: '120.00',
+      tracksInventory: true,
+    })
+
+    const updated = await updateItem(repository, {
+      companyId: 'company-1',
+      itemId: item.id,
+      name: 'Premium Cotton',
+      alias: 'CTN-PREM',
+      itemGroup: 'Fabrics',
+      hsnCode: '5209',
+      gstRate: '12.00',
+      baseUnit: 'meter',
+      purchaseRate: '90.00',
+      saleRate: '140.00',
+      tracksInventory: true,
+    })
+
+    expect(updated.name).toBe('Premium Cotton')
+    expect(updated.hsnCode).toBe('5209')
+    expect(updated.saleRate).toBe('140.00')
   })
 })
 
