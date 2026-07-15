@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 
 import {
   CardRow,
@@ -46,7 +46,21 @@ function pickBadge(record: Record<string, unknown>) {
   )
 }
 
+function pickDetailPath(moduleId: string, record: Record<string, unknown>) {
+  const id = record.id
+  if (typeof id !== 'string' || id.length === 0) {
+    return undefined
+  }
+
+  if (moduleId === 'sales') {
+    return `/(app)/sales/${id}`
+  }
+
+  return undefined
+}
+
 export function ModuleListScreen({ moduleId }: { moduleId: string }) {
+  const router = useRouter()
   const module = getModuleById(moduleId)
   const query = useModuleList(moduleId)
 
@@ -115,15 +129,24 @@ export function ModuleListScreen({ moduleId }: { moduleId: string }) {
       {!query.isLoading && !query.isError && query.data?.length === 0 ? (
         <EmptyState message="No records yet." />
       ) : null}
-      {query.data?.map((record, index) => (
-        <CardRow
-          key={String(record.id ?? index)}
-          title={pickTitle(record)}
-          subtitle={pickSubtitle(record)}
-          amount={pickAmount(record)}
-          badge={pickBadge(record)}
-        />
-      ))}
+      {query.data?.map((record, index) => {
+        const detailPath = pickDetailPath(moduleId, record)
+
+        return (
+          <CardRow
+            key={String(record.id ?? index)}
+            title={pickTitle(record)}
+            subtitle={pickSubtitle(record)}
+            amount={pickAmount(record)}
+            badge={pickBadge(record)}
+            onPress={
+              detailPath
+                ? () => router.push(detailPath as never)
+                : undefined
+            }
+          />
+        )
+      })}
     </Screen>
   )
 }

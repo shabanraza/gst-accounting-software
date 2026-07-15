@@ -16,6 +16,7 @@ export default function AppLayout() {
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="module/[id]" />
+          <Stack.Screen name="sales/[id]" />
           <Stack.Screen name="sales/new" />
           <Stack.Screen name="purchases/new" />
           <Stack.Screen name="purchases/ocr" />
