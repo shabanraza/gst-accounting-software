@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 
 import { authClient } from '@/lib/auth-client'
 import { resolvePostAuthHref } from '@/lib/post-auth-route'
+import { ensureTrpcAuthReady } from '@/lib/trpc-auth'
 
 export default function IndexScreen() {
   const { data: session, isPending } = authClient.useSession()
@@ -17,7 +18,9 @@ export default function IndexScreen() {
       return
     }
 
-    void resolvePostAuthHref().then(setHref)
+    void ensureTrpcAuthReady()
+      .then(() => resolvePostAuthHref())
+      .then(setHref)
   }, [isPending, session])
 
   if (isPending || !href) return null

@@ -1,12 +1,39 @@
+import { ensureTrpcAuthReady } from './trpc-auth.ts'
 import { trpcClient } from './trpc-client.ts'
 
-export async function resolvePostAuthHref(): Promise<'/(app)/(tabs)/dashboard' | '/onboarding'> {
-  try {
-    const companies = await trpcClient.companies.list.query()
-    if (companies.length === 0) {
-      return '/onboarding'
+function isUnauthorizedError(error: unknown) {
+  if (error && typeof error === 'object' && 'data' in error) {
+    const code = (error as { data?: { code?: string } }).data?.code
+    if (code === 'UNAUTHORIZED') return true
+  }
+
+  const message = error instanceof Error ? error.message : String(error)
+  return message.includes('UNAUTHORIZED')
+}
+
+export async function resolvePostAuthHref(): Promise<
+  '/(app)/(tabs)/dashboard' | '/onboarding'
+> {
+  await ensureTrpcAuthReady()
+
+  let companies: Array<{ id: string }> = []
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      companies = await trpcClient.companies.list.query()
+      break
+    } catch (error) {
+      if (attempt < 2 && isUnauthorizedError(error)) {
+        await ensureTrpcAuthReady()
+        continue
+      }
+
+      // Match web app.tsx: auth/transient failures should not force onboarding.
+      return '/(app)/(tabs)/dashboard'
     }
-  } catch {
+  }
+
+  if (companies.length === 0) {
     return '/onboarding'
   }
 

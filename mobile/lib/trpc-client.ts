@@ -1,13 +1,13 @@
 import { createAppTrpcClient } from '@accounting/api-client'
 
-import { authClient } from './auth-client.ts'
 import { resolveTrpcUrl } from './env.ts'
+import { readAuthCookieHeader } from './trpc-auth.ts'
 
 export function createMobileTrpcClient() {
   return createAppTrpcClient({
     url: resolveTrpcUrl(),
     getAuthHeaders: async () => {
-      const cookie = authClient.getCookie?.()
+      const cookie = readAuthCookieHeader()
       return cookie ? { cookie } : {}
     },
   })
