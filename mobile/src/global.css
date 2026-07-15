@@ -1,3 +1,11 @@
-/* NativeWind processes utility classes from TSX. Custom @theme imports are
-   disabled in the monorepo until tailwindcss/theme.css parses cleanly with
-   react-native-css + lightningcss in CI. Use standard Tailwind colors in TSX. */
+@import 'tailwindcss/utilities.css';
+
+@theme {
+  --color-white: #ffffff;
+  --color-gray-900: #111827;
+  --color-gray-500: #6b7280;
+  --color-gray-200: #e5e7eb;
+  --color-indigo-600: #4f46e5;
+  --color-red-600: #dc2626;
+  --color-emerald-600: #059669;
+}
