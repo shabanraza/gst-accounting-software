@@ -3,8 +3,8 @@ import { DynamicColorIOS, Platform } from 'react-native'
 
 const TAB_TINT =
   Platform.OS === 'ios'
-    ? DynamicColorIOS({ light: '#0d9488', dark: '#14b8a6' })
-    : '#0d9488'
+    ? DynamicColorIOS({ light: '#2563eb', dark: '#3b82f6' })
+    : '#2563eb'
 
 export default function TabsLayout() {
   return (

@@ -10,12 +10,12 @@
 @source '../lib';
 
 @theme {
-  --color-primary: #0d9488;
-  --color-primary-foreground: #f0fdfa;
-  --color-muted: #f0fdfa;
-  --color-muted-foreground: #5eead4;
+  --color-primary: #2563eb;
+  --color-primary-foreground: #eff6ff;
+  --color-muted: #eff6ff;
+  --color-muted-foreground: #60a5fa;
   --color-border: #e5e7eb;
-  --color-ring: #0d9488;
+  --color-ring: #2563eb;
 }
 
 @media android {

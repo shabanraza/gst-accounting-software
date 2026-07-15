@@ -31,7 +31,7 @@ export function Screen({
       </ScrollView>
       {actionHref && actionLabel ? (
         <Link href={actionHref as never} asChild>
-          <Pressable className="absolute bottom-6 right-4 size-14 items-center justify-center rounded-full bg-teal-600 shadow-lg">
+          <Pressable className="absolute bottom-6 right-4 size-14 items-center justify-center rounded-full bg-blue-600 shadow-lg">
             <Ionicons name="add" size={28} color="white" />
           </Pressable>
         </Link>
@@ -70,7 +70,7 @@ export function CardRow({
         ) : null}
       </View>
       {badge ? (
-        <Text className="text-teal-600 mt-2 text-xs font-medium uppercase">
+        <Text className="text-blue-600 mt-2 text-xs font-medium uppercase">
           {badge}
         </Text>
       ) : null}

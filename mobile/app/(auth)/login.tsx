@@ -65,7 +65,7 @@ export default function LoginScreen() {
       />
       {error ? <Text className="text-red-600">{error}</Text> : null}
       <Pressable
-        className="items-center rounded-xl bg-teal-600 px-4 py-3"
+        className="items-center rounded-xl bg-blue-600 px-4 py-3"
         disabled={loading}
         onPress={() => void handleSubmit()}
       >
@@ -74,7 +74,7 @@ export default function LoginScreen() {
         </Text>
       </Pressable>
       <Link href="/(auth)/signup">
-        <Text className="text-teal-600">Create account</Text>
+        <Text className="text-blue-600">Create account</Text>
       </Link>
       <Link href="/(auth)/forgot-password">
         <Text className="text-gray-500">Forgot password?</Text>

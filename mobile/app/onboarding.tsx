@@ -51,7 +51,7 @@ export default function OnboardingScreen() {
       />
       {error ? <Text className="text-red-600">{error}</Text> : null}
       <Pressable
-        className="items-center rounded-xl bg-teal-600 px-4 py-3"
+        className="items-center rounded-xl bg-blue-600 px-4 py-3"
         onPress={() => void handleCreate()}
       >
         <Text className="font-semibold text-white">

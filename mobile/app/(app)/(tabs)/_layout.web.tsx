@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 
-const TAB_ACTIVE_TINT = '#0d9488'
+const TAB_ACTIVE_TINT = '#2563eb'
 
 export default function TabsLayoutWeb() {
   return (

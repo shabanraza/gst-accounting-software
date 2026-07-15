@@ -11,7 +11,7 @@ export default function NotFoundScreen() {
           This screen does not exist.
         </Text>
         <Link href="/">
-          <Text className="text-teal-600">Go to home</Text>
+          <Text className="text-blue-600">Go to home</Text>
         </Link>
       </View>
     </>
