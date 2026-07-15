@@ -1,16 +1,14 @@
 import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
-import { Modal, Pressable } from 'react-native'
 
-import { SectionHeader } from '@/components/section-header'
-import {
-  CardRow,
-  FormField,
-  PrimaryButton,
-  Screen,
-  SecondaryButton,
-} from '@/components/screen'
+import { SectionHeader } from '@/components/layout/section-header'
+import { Screen } from '@/components/layout/screen'
+import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
+import { OptionChip } from '@/components/ui/chip'
+import { FormField } from '@/components/ui/form-field'
+import { PickerField } from '@/components/ui/picker-field'
+import { PickerModal } from '@/components/ui/picker-modal'
 import { useSalesItems, useSalesParties } from '@/features/use-sales-masters'
 import {
   SALES_DOCUMENT_SERIES,
@@ -30,72 +28,6 @@ const documentTypeLabels: Record<SalesDocumentType, string> = {
   quotation: 'Quotation',
   sales_order: 'Sales order',
   delivery_challan: 'Delivery challan',
-}
-
-function OptionChip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string
-  active: boolean
-  onPress: () => void
-}) {
-  return (
-    <Pressable
-      className={`rounded-full border px-4 py-2 ${active ? 'border-primary bg-primary/10' : 'border-border bg-card'}`}
-      onPress={onPress}
-    >
-      <Text
-        className={`text-sm font-medium ${active ? 'text-primary' : 'text-foreground'}`}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  )
-}
-
-function PickerModal<T extends { id: string }>({
-  visible,
-  title,
-  items,
-  renderLabel,
-  onSelect,
-  onClose,
-}: {
-  visible: boolean
-  title: string
-  items: Array<T>
-  renderLabel: (item: T) => string
-  onSelect: (item: T) => void
-  onClose: () => void
-}) {
-  return (
-    <Modal animationType="slide" transparent visible={visible}>
-      <View className="flex-1 justify-end bg-black/40">
-        <View className="max-h-[70%] rounded-t-3xl bg-background p-page-x pb-page-bottom">
-          <View className="mb-4 flex-row items-center justify-between">
-            <Text className="text-lg font-semibold text-foreground">{title}</Text>
-            <Pressable onPress={onClose}>
-              <Text className="text-sm font-medium text-primary">Close</Text>
-            </Pressable>
-          </View>
-          <View className="gap-3">
-            {items.map((item) => (
-              <CardRow
-                key={item.id}
-                title={renderLabel(item)}
-                onPress={() => {
-                  onSelect(item)
-                  onClose()
-                }}
-              />
-            ))}
-          </View>
-        </View>
-      </View>
-    </Modal>
-  )
 }
 
 export function SalesDocumentCreateScreen() {
@@ -198,28 +130,22 @@ export function SalesDocumentCreateScreen() {
             setForm((current) => ({ ...current, documentDate }))
           }
         />
-        <Pressable
-          className="rounded-xl border border-border bg-card px-4 py-3"
+        <PickerField
+          label="Customer"
+          value={selectedCustomer?.name}
+          placeholder="Select customer"
           onPress={() => setCustomerPickerOpen(true)}
-        >
-          <Text className="text-sm text-muted-foreground">Customer</Text>
-          <Text className="font-medium text-foreground">
-            {selectedCustomer?.name ?? 'Select customer'}
-          </Text>
-        </Pressable>
+        />
       </View>
 
       <View className="gap-section-header">
         <SectionHeader title="Line item" compact icon="cube-outline" />
-        <Pressable
-          className="rounded-xl border border-border bg-card px-4 py-3"
+        <PickerField
+          label="Item"
+          value={selectedItem?.name}
+          placeholder="Select item"
           onPress={() => setItemPickerOpen(true)}
-        >
-          <Text className="text-sm text-muted-foreground">Item</Text>
-          <Text className="font-medium text-foreground">
-            {selectedItem?.name ?? 'Select item'}
-          </Text>
-        </Pressable>
+        />
         <View className="flex-row gap-3">
           <View className="flex-1">
             <Text className="mb-1 text-sm text-muted-foreground">Quantity</Text>
@@ -271,24 +197,27 @@ export function SalesDocumentCreateScreen() {
       <PickerModal
         visible={customerPickerOpen}
         title="Customer"
-        items={customers}
-        renderLabel={(party) => party.name}
-        onSelect={(party) =>
-          setForm((current) => ({ ...current, customerId: party.id }))
+        options={customers.map((party) => ({
+          key: party.id,
+          label: party.name,
+        }))}
+        onSelect={(customerId) =>
+          setForm((current) => ({ ...current, customerId }))
         }
         onClose={() => setCustomerPickerOpen(false)}
       />
       <PickerModal
         visible={itemPickerOpen}
         title="Item"
-        items={items}
-        renderLabel={(item) => item.name}
-        onSelect={(item) =>
+        options={items.map((item) => ({ key: item.id, label: item.name }))}
+        onSelect={(itemId) => {
+          const item = items.find((entry) => entry.id === itemId)
+          if (!item) return
           setForm((current) => ({
             ...current,
             line: applyItemToSalesDocumentLine(current.line, item),
           }))
-        }
+        }}
         onClose={() => setItemPickerOpen(false)}
       />
     </Screen>

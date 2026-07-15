@@ -2,15 +2,15 @@ import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocalSearchParams } from 'expo-router'
 
-import { SectionHeader } from '@/components/section-header'
-import {
-  CardRow,
-  EmptyState,
-  FormField,
-  LoadingState,
-  PrimaryButton,
-  Screen,
-} from '@/components/screen'
+import { CardRow } from '@/components/data/card-row'
+import { DetailCard } from '@/components/data/detail-card'
+import { DetailRow } from '@/components/data/detail-row'
+import { EmptyState } from '@/components/data/empty-state'
+import { LoadingState } from '@/components/data/loading-state'
+import { SectionHeader } from '@/components/layout/section-header'
+import { Screen } from '@/components/layout/screen'
+import { PrimaryButton } from '@/components/ui/button'
+import { FormField } from '@/components/ui/form-field'
 import { formatInr, formatShortDate } from '@/lib/format-inr'
 import {
   purchaseBillSummaryRows,
@@ -23,34 +23,6 @@ import {
 import { trpcClient } from '@/lib/trpc-client'
 import { Text, View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View className="flex-row items-center justify-between gap-3 py-2">
-      <Text className="text-sm text-muted-foreground">{label}</Text>
-      <Text className="text-sm font-medium text-foreground">{value}</Text>
-    </View>
-  )
-}
-
-function DetailCard({
-  title,
-  icon,
-  children,
-}: {
-  title: string
-  icon: import('@expo/vector-icons').Ionicons['name']
-  children: React.ReactNode
-}) {
-  return (
-    <View className="gap-section-header">
-      <SectionHeader title={title} compact icon={icon} />
-      <View className="rounded-xl border border-border bg-card p-card-padding">
-        {children}
-      </View>
-    </View>
-  )
-}
 
 export function PurchaseBillDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()

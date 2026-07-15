@@ -9,6 +9,7 @@ import { SectionHeader } from '@/components/layout/section-header'
 import { Screen } from '@/components/layout/screen'
 import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
+import { formatInr } from '@/lib/format-inr'
 import { themeSpacing } from '@/lib/theme'
 import {
   buildCustomerReceiptInput,

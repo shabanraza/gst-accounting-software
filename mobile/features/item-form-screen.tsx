@@ -1,16 +1,14 @@
 import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
-import { Modal, Pressable } from 'react-native'
 
-import { SectionHeader } from '@/components/section-header'
-import {
-  CardRow,
-  FormField,
-  PrimaryButton,
-  Screen,
-  SecondaryButton,
-} from '@/components/screen'
+import { SectionHeader } from '@/components/layout/section-header'
+import { Screen } from '@/components/layout/screen'
+import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
+import { OptionChip } from '@/components/ui/chip'
+import { FormField } from '@/components/ui/form-field'
+import { PickerField } from '@/components/ui/picker-field'
+import { PickerModal } from '@/components/ui/picker-modal'
 import {
   gstRateOptions,
   itemGroups,
@@ -26,70 +24,6 @@ import {
 import { trpcClient } from '@/lib/trpc-client'
 import { Text, View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
-
-function OptionChip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string
-  active: boolean
-  onPress: () => void
-}) {
-  return (
-    <Pressable
-      className={`rounded-full border px-4 py-2 ${active ? 'border-primary bg-primary/10' : 'border-border bg-card'}`}
-      onPress={onPress}
-    >
-      <Text
-        className={`text-sm font-medium ${active ? 'text-primary' : 'text-foreground'}`}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  )
-}
-
-function PickerModal({
-  visible,
-  title,
-  options,
-  onSelect,
-  onClose,
-}: {
-  visible: boolean
-  title: string
-  options: Array<string>
-  onSelect: (value: string) => void
-  onClose: () => void
-}) {
-  return (
-    <Modal animationType="slide" transparent visible={visible}>
-      <View className="flex-1 justify-end bg-black/40">
-        <View className="max-h-[70%] rounded-t-3xl bg-background p-page-x pb-page-bottom">
-          <View className="mb-4 flex-row items-center justify-between">
-            <Text className="text-lg font-semibold text-foreground">{title}</Text>
-            <Pressable onPress={onClose}>
-              <Text className="text-sm font-medium text-primary">Close</Text>
-            </Pressable>
-          </View>
-          <View className="gap-3">
-            {options.map((option) => (
-              <CardRow
-                key={option}
-                title={option}
-                onPress={() => {
-                  onSelect(option)
-                  onClose()
-                }}
-              />
-            ))}
-          </View>
-        </View>
-      </View>
-    </Modal>
-  )
-}
 
 type ItemFormScreenProps = {
   mode: 'create' | 'edit'
@@ -187,13 +121,11 @@ export function ItemFormScreen({
           value={form.alias}
           onChangeText={(alias) => setForm((current) => ({ ...current, alias }))}
         />
-        <Pressable
-          className="rounded-xl border border-border bg-card px-4 py-3"
+        <PickerField
+          label="Group"
+          value={form.itemGroup}
           onPress={() => setGroupPickerOpen(true)}
-        >
-          <Text className="text-sm text-muted-foreground">Group</Text>
-          <Text className="font-medium text-foreground">{form.itemGroup}</Text>
-        </Pressable>
+        />
         <FormField
           placeholder="HSN code"
           value={form.hsnCode}
@@ -201,20 +133,16 @@ export function ItemFormScreen({
             setForm((current) => ({ ...current, hsnCode }))
           }
         />
-        <Pressable
-          className="rounded-xl border border-border bg-card px-4 py-3"
+        <PickerField
+          label="GST rate"
+          value={`${form.gstRate}%`}
           onPress={() => setGstPickerOpen(true)}
-        >
-          <Text className="text-sm text-muted-foreground">GST rate</Text>
-          <Text className="font-medium text-foreground">{form.gstRate}%</Text>
-        </Pressable>
-        <Pressable
-          className="rounded-xl border border-border bg-card px-4 py-3"
+        />
+        <PickerField
+          label="Base unit"
+          value={form.baseUnit}
           onPress={() => setUnitPickerOpen(true)}
-        >
-          <Text className="text-sm text-muted-foreground">Base unit</Text>
-          <Text className="font-medium text-foreground">{form.baseUnit}</Text>
-        </Pressable>
+        />
       </View>
 
       <View className="gap-section-header">
@@ -299,7 +227,7 @@ export function ItemFormScreen({
       <PickerModal
         visible={groupPickerOpen}
         title="Item group"
-        options={[...itemGroups]}
+        options={itemGroups.map((group) => ({ key: group, label: group }))}
         onSelect={(itemGroup) =>
           setForm((current) => ({ ...current, itemGroup }))
         }
@@ -308,19 +236,19 @@ export function ItemFormScreen({
       <PickerModal
         visible={unitPickerOpen}
         title="Base unit"
-        options={[...unitOptions]}
+        options={unitOptions.map((unit) => ({ key: unit, label: unit }))}
         onSelect={(baseUnit) => setForm((current) => ({ ...current, baseUnit }))}
         onClose={() => setUnitPickerOpen(false)}
       />
       <PickerModal
         visible={gstPickerOpen}
         title="GST rate"
-        options={gstRateOptions.map((rate) => `${rate}%`)}
-        onSelect={(label) =>
-          setForm((current) => ({
-            ...current,
-            gstRate: label.replace('%', ''),
-          }))
+        options={gstRateOptions.map((rate) => ({
+          key: String(rate),
+          label: `${rate}%`,
+        }))}
+        onSelect={(gstRate) =>
+          setForm((current) => ({ ...current, gstRate }))
         }
         onClose={() => setGstPickerOpen(false)}
       />

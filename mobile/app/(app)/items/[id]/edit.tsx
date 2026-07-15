@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { useLocalSearchParams } from 'expo-router'
 
-import { EmptyState, LoadingState, Screen } from '@/components/screen'
+import { EmptyState } from '@/components/data/empty-state'
+import { LoadingState } from '@/components/data/loading-state'
+import { Screen } from '@/components/layout/screen'
 import { ItemFormScreen } from '@/features/item-form-screen'
 import { itemFormFromRecord } from '@/lib/item-form'
 import { trpcClient } from '@/lib/trpc-client'

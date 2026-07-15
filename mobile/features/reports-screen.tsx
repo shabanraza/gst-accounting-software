@@ -1,13 +1,11 @@
 import * as React from 'react'
 import { useQuery } from '@tanstack/react-query'
 
-import { SectionHeader } from '@/components/section-header'
-import {
-  CardRow,
-  EmptyState,
-  LoadingState,
-  Screen,
-} from '@/components/screen'
+import { CardRow } from '@/components/data/card-row'
+import { EmptyState } from '@/components/data/empty-state'
+import { LoadingState } from '@/components/data/loading-state'
+import { SectionHeader } from '@/components/layout/section-header'
+import { Screen } from '@/components/layout/screen'
 import { formatInr } from '@/lib/format-inr'
 import { currentMonthPeriod } from '@/lib/report-period'
 import { trpcClient } from '@/lib/trpc-client'

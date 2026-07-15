@@ -1,18 +1,19 @@
 import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
-import { Modal, Pressable } from 'react-native'
+import { Pressable } from 'react-native'
 
-import { SectionHeader } from '@/components/section-header'
-import {
-  CardRow,
-  EmptyState,
-  FormField,
-  LoadingState,
-  PrimaryButton,
-  Screen,
-  SecondaryButton,
-} from '@/components/screen'
+import { CardRow } from '@/components/data/card-row'
+import { EmptyState } from '@/components/data/empty-state'
+import { LoadingState } from '@/components/data/loading-state'
+import { SectionHeader } from '@/components/layout/section-header'
+import { Screen } from '@/components/layout/screen'
+import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
+import { OptionChip } from '@/components/ui/chip'
+import { FormField } from '@/components/ui/form-field'
+import { PickerField } from '@/components/ui/picker-field'
+import { PickerModal } from '@/components/ui/picker-modal'
+import { StepPills } from '@/components/ui/step-pills'
 import { useSalesItems, useSalesParties } from '@/features/use-sales-masters'
 import { formatInr } from '@/lib/format-inr'
 import {
@@ -29,7 +30,6 @@ import {
   type PurchaseBillFormDraft,
   type PurchaseBillLineDraft,
   type PurchaseItemLike,
-  type PurchasePartyLike,
 } from '@/lib/purchase-bill-form'
 import { trpcClient } from '@/lib/trpc-client'
 import { Text, View } from '@/tw'
@@ -37,102 +37,11 @@ import { useWorkspace } from '@/lib/workspace'
 
 type WizardStep = 'supplier' | 'lines' | 'review'
 
-function StepPills({ step }: { step: WizardStep }) {
-  const steps: Array<{ id: WizardStep; label: string }> = [
-    { id: 'supplier', label: 'Supplier' },
-    { id: 'lines', label: 'Items' },
-    { id: 'review', label: 'Review' },
-  ]
-
-  return (
-    <View className="flex-row gap-2">
-      {steps.map((entry) => {
-        const active = entry.id === step
-        return (
-          <View
-            key={entry.id}
-            className={`rounded-full px-3 py-1 ${active ? 'bg-primary' : 'bg-muted'}`}
-          >
-            <Text
-              className={`text-caption font-medium ${active ? 'text-primary-foreground' : 'text-muted-foreground'}`}
-            >
-              {entry.label}
-            </Text>
-          </View>
-        )
-      })}
-    </View>
-  )
-}
-
-function OptionChip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string
-  active: boolean
-  onPress: () => void
-}) {
-  return (
-    <Pressable
-      className={`rounded-full border px-4 py-2 ${active ? 'border-primary bg-primary/10' : 'border-border bg-card'}`}
-      onPress={onPress}
-    >
-      <Text
-        className={`text-sm font-medium ${active ? 'text-primary' : 'text-foreground'}`}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  )
-}
-
-function PickerModal<T extends { id: string }>({
-  visible,
-  title,
-  items,
-  renderLabel,
-  onSelect,
-  onClose,
-}: {
-  visible: boolean
-  title: string
-  items: Array<T>
-  renderLabel: (item: T) => string
-  onSelect: (item: T) => void
-  onClose: () => void
-}) {
-  return (
-    <Modal animationType="slide" transparent visible={visible}>
-      <View className="flex-1 justify-end bg-black/40">
-        <View className="max-h-[70%] rounded-t-3xl bg-background p-page-x pb-page-bottom">
-          <View className="mb-4 flex-row items-center justify-between">
-            <Text className="text-lg font-semibold text-foreground">{title}</Text>
-            <Pressable onPress={onClose}>
-              <Text className="text-sm font-medium text-primary">Close</Text>
-            </Pressable>
-          </View>
-          <View className="gap-3">
-            {items.map((item) => (
-              <CardRow
-                key={item.id}
-                title={renderLabel(item)}
-                onPress={() => {
-                  onSelect(item)
-                  onClose()
-                }}
-              />
-            ))}
-            {items.length === 0 ? (
-              <EmptyState message="No options available." />
-            ) : null}
-          </View>
-        </View>
-      </View>
-    </Modal>
-  )
-}
+const PURCHASE_STEPS: Array<{ id: WizardStep; label: string }> = [
+  { id: 'supplier', label: 'Supplier' },
+  { id: 'lines', label: 'Items' },
+  { id: 'review', label: 'Review' },
+]
 
 function LineItemEditor({
   line,
@@ -198,11 +107,12 @@ function LineItemEditor({
       <PickerModal
         visible={pickerOpen}
         title="Select item"
-        items={items}
-        renderLabel={(item) => item.name}
-        onSelect={(item) =>
+        options={items.map((item) => ({ key: item.id, label: item.name }))}
+        onSelect={(itemId) => {
+          const item = items.find((entry) => entry.id === itemId)
+          if (!item) return
           onChange(applyItemToPurchaseLine(line, item, godownName))
-        }
+        }}
         onClose={() => setPickerOpen(false)}
       />
     </View>
@@ -384,7 +294,7 @@ export function PurchaseBillCreateScreen() {
 
   return (
     <Screen title="New purchase bill" subtitle="Create purchase bill" keyboardAvoiding>
-      <StepPills step={step} />
+      <StepPills step={step} steps={PURCHASE_STEPS} />
 
       {!isReady || mastersLoading ? <LoadingState /> : null}
       {mastersError ? (
@@ -394,15 +304,12 @@ export function PurchaseBillCreateScreen() {
       {step === 'supplier' ? (
         <View className="gap-section-header">
           <SectionHeader title="Supplier" compact icon="business-outline" />
-          <Pressable
-            className="rounded-xl border border-border bg-card px-4 py-3"
+          <PickerField
+            label="Supplier"
+            value={selectedSupplier?.name}
+            placeholder="Select supplier"
             onPress={() => setSupplierPickerOpen(true)}
-          >
-            <Text className="text-sm text-muted-foreground">Supplier</Text>
-            <Text className="font-medium text-foreground">
-              {selectedSupplier?.name ?? 'Select supplier'}
-            </Text>
-          </Pressable>
+          />
           <View>
             <Text className="mb-1 text-sm text-muted-foreground">Bill date</Text>
             <FormField
@@ -529,10 +436,12 @@ export function PurchaseBillCreateScreen() {
       <PickerModal
         visible={supplierPickerOpen}
         title="Select supplier"
-        items={suppliers}
-        renderLabel={(party) => party.name}
-        onSelect={(party: PurchasePartyLike) =>
-          setForm((current) => ({ ...current, supplierId: party.id }))
+        options={suppliers.map((party) => ({
+          key: party.id,
+          label: party.name,
+        }))}
+        onSelect={(supplierId) =>
+          setForm((current) => ({ ...current, supplierId }))
         }
         onClose={() => setSupplierPickerOpen(false)}
       />

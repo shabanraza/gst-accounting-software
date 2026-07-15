@@ -1,4 +1,4 @@
-import type { ActionGridItem } from '@/components/action-grid'
+import type { ActionGridItem } from '@/components/dashboard/action-grid'
 
 export const SALES_TAB_ACTIONS: Array<ActionGridItem> = [
   {

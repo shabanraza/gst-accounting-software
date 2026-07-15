@@ -1,12 +1,13 @@
-import { ActionGrid } from '@/components/action-grid'
-import { ModuleLinkCard, Screen } from '@/components/screen'
-import { SectionHeader } from '@/components/section-header'
+import { ActionGrid } from '@/components/dashboard/action-grid'
+import type { ActionGridItem } from '@/components/dashboard/action-grid'
+import { ModuleLinkCard } from '@/components/data/module-link-card'
+import { Screen } from '@/components/layout/screen'
+import { SectionHeader } from '@/components/layout/section-header'
 import { CompanySwitcher } from '@/components/company-switcher'
 import { Pressable, Text, View } from '@/tw'
 import { getModulesForTab } from '@/lib/nav-config'
 import { authClient } from '@/lib/auth-client'
 import { clearWorkspaceStorage } from '@/lib/workspace'
-import type { ActionGridItem } from '@/components/action-grid'
 
 const MORE_QUICK_ACTIONS: Array<ActionGridItem> = [
   {

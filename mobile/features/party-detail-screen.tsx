@@ -2,29 +2,16 @@ import * as React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
-import { SectionHeader } from '@/components/section-header'
-import {
-  EmptyState,
-  LoadingState,
-  PrimaryButton,
-  Screen,
-  SecondaryButton,
-} from '@/components/screen'
+import { DetailRow } from '@/components/data/detail-row'
+import { EmptyState } from '@/components/data/empty-state'
+import { LoadingState } from '@/components/data/loading-state'
+import { SectionHeader } from '@/components/layout/section-header'
+import { Screen } from '@/components/layout/screen'
+import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
 import { partyTypeLabel, stateLabel } from '@/lib/india-masters'
 import { trpcClient } from '@/lib/trpc-client'
 import { Text, View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View className="flex-row items-center justify-between gap-3 py-2">
-      <Text className="text-sm text-muted-foreground">{label}</Text>
-      <Text className="shrink text-right text-sm font-medium text-foreground">
-        {value}
-      </Text>
-    </View>
-  )
-}
 
 export function PartyDetailScreen() {
   const router = useRouter()

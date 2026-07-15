@@ -3,15 +3,12 @@ import { useRouter } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import { useState } from 'react'
 
-import { SectionHeader } from '@/components/section-header'
-import {
-  CardRow,
-  EmptyState,
-  LoadingState,
-  PrimaryButton,
-  Screen,
-  SecondaryButton,
-} from '@/components/screen'
+import { CardRow } from '@/components/data/card-row'
+import { EmptyState } from '@/components/data/empty-state'
+import { LoadingState } from '@/components/data/loading-state'
+import { SectionHeader } from '@/components/layout/section-header'
+import { Screen } from '@/components/layout/screen'
+import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
 import { Text, View } from '@/tw'
 import { useModuleList } from '@/features/use-module-list'
 import { createOcrDraftFromCapture } from '@/lib/ocr-upload'

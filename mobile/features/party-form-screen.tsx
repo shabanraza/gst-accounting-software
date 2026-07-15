@@ -1,17 +1,15 @@
 import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
-import { Modal, Pressable } from 'react-native'
 
-import { SectionHeader } from '@/components/section-header'
-import {
-  CardRow,
-  EmptyState,
-  FormField,
-  PrimaryButton,
-  Screen,
-  SecondaryButton,
-} from '@/components/screen'
+import { EmptyState } from '@/components/data/empty-state'
+import { SectionHeader } from '@/components/layout/section-header'
+import { Screen } from '@/components/layout/screen'
+import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
+import { OptionChip } from '@/components/ui/chip'
+import { FormField } from '@/components/ui/form-field'
+import { PickerField } from '@/components/ui/picker-field'
+import { PickerModal } from '@/components/ui/picker-modal'
 import {
   indianStates,
   paymentTermsOptions,
@@ -30,70 +28,6 @@ import {
 import { trpcClient } from '@/lib/trpc-client'
 import { Text, View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
-
-function OptionChip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string
-  active: boolean
-  onPress: () => void
-}) {
-  return (
-    <Pressable
-      className={`rounded-full border px-4 py-2 ${active ? 'border-primary bg-primary/10' : 'border-border bg-card'}`}
-      onPress={onPress}
-    >
-      <Text
-        className={`text-sm font-medium ${active ? 'text-primary' : 'text-foreground'}`}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  )
-}
-
-function PickerModal({
-  visible,
-  title,
-  options,
-  onSelect,
-  onClose,
-}: {
-  visible: boolean
-  title: string
-  options: Array<{ value: string; label: string }>
-  onSelect: (value: string) => void
-  onClose: () => void
-}) {
-  return (
-    <Modal animationType="slide" transparent visible={visible}>
-      <View className="flex-1 justify-end bg-black/40">
-        <View className="max-h-[70%] rounded-t-3xl bg-background p-page-x pb-page-bottom">
-          <View className="mb-4 flex-row items-center justify-between">
-            <Text className="text-lg font-semibold text-foreground">{title}</Text>
-            <Pressable onPress={onClose}>
-              <Text className="text-sm font-medium text-primary">Close</Text>
-            </Pressable>
-          </View>
-          <View className="gap-3">
-            {options.map((option) => (
-              <CardRow
-                key={option.value}
-                title={option.label}
-                onPress={() => {
-                  onSelect(option.value)
-                  onClose()
-                }}
-              />
-            ))}
-          </View>
-        </View>
-      </View>
-    </Modal>
-  )
-}
 
 type PartyFormScreenProps = {
   mode: 'create' | 'edit'
@@ -212,17 +146,15 @@ export function PartyFormScreen({
             )}
           </View>
         </View>
-        <Pressable
-          className="rounded-xl border border-border bg-card px-4 py-3"
-          onPress={() => setStatePickerOpen(true)}
-        >
-          <Text className="text-sm text-muted-foreground">State / POS</Text>
-          <Text className="font-medium text-foreground">
-            {selectedState
+        <PickerField
+          label="State / POS"
+          value={
+            selectedState
               ? `${selectedState.name} (${selectedState.code})`
-              : form.stateCode}
-          </Text>
-        </Pressable>
+              : form.stateCode
+          }
+          onPress={() => setStatePickerOpen(true)}
+        />
         <View className="flex-row gap-3">
           <View className="flex-1">
             <Text className="mb-1 text-sm text-muted-foreground">GSTIN</Text>
@@ -313,15 +245,11 @@ export function PartyFormScreen({
 
       <View className="gap-section-header">
         <SectionHeader title="Credit" compact icon="wallet-outline" />
-        <Pressable
-          className="rounded-xl border border-border bg-card px-4 py-3"
+        <PickerField
+          label="Payment terms"
+          value={selectedTerms?.label ?? `${form.paymentTermsDays} days`}
           onPress={() => setTermsPickerOpen(true)}
-        >
-          <Text className="text-sm text-muted-foreground">Payment terms</Text>
-          <Text className="font-medium text-foreground">
-            {selectedTerms?.label ?? `${form.paymentTermsDays} days`}
-          </Text>
-        </Pressable>
+        />
         <View>
           <Text className="mb-1 text-sm text-muted-foreground">Credit limit</Text>
           <FormField
@@ -355,7 +283,7 @@ export function PartyFormScreen({
         visible={statePickerOpen}
         title="Select state"
         options={indianStates.map((state) => ({
-          value: state.code,
+          key: state.code,
           label: `${state.name} (${state.code})`,
         }))}
         onSelect={(stateCode) =>
@@ -368,7 +296,7 @@ export function PartyFormScreen({
         visible={termsPickerOpen}
         title="Payment terms"
         options={paymentTermsOptions.map((term) => ({
-          value: String(term.days),
+          key: String(term.days),
           label: term.label,
         }))}
         onSelect={(paymentTermsDays) =>

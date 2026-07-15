@@ -1,7 +1,9 @@
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 
-import { AuthShell, FormField, PrimaryButton } from '@/components/screen'
+import { AuthShell } from '@/components/layout/auth-shell'
+import { FormField } from '@/components/ui/form-field'
+import { PrimaryButton } from '@/components/ui/button'
 import { Text } from '@/tw'
 import { trpcClient } from '@/lib/trpc-client'
 

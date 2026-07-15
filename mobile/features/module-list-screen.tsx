@@ -1,14 +1,12 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
-import { ActionGrid } from '@/components/action-grid'
-import { SectionHeader } from '@/components/section-header'
+import { ActionGrid } from '@/components/dashboard/action-grid'
+import { CardRow } from '@/components/data/card-row'
+import { EmptyState } from '@/components/data/empty-state'
+import { LoadingState } from '@/components/data/loading-state'
+import { SectionHeader } from '@/components/layout/section-header'
+import { Screen } from '@/components/layout/screen'
 import { View } from '@/tw'
-import {
-  CardRow,
-  EmptyState,
-  LoadingState,
-  Screen,
-} from '@/components/screen'
 import { formatInr, formatShortDate } from '@/lib/format-inr'
 import { getModuleById } from '@/lib/nav-config'
 import { TAB_HUB_CONFIG } from '@/lib/tab-actions'

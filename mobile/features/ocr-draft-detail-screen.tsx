@@ -2,15 +2,12 @@ import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
-import { SectionHeader } from '@/components/section-header'
-import {
-  EmptyState,
-  FormField,
-  LoadingState,
-  PrimaryButton,
-  Screen,
-  SecondaryButton,
-} from '@/components/screen'
+import { EmptyState } from '@/components/data/empty-state'
+import { LoadingState } from '@/components/data/loading-state'
+import { SectionHeader } from '@/components/layout/section-header'
+import { Screen } from '@/components/layout/screen'
+import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
+import { FormField } from '@/components/ui/form-field'
 import { formatInr } from '@/lib/format-inr'
 import {
   withEditedOcrField,
