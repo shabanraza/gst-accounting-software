@@ -2,13 +2,15 @@ import { Redirect, Stack } from 'expo-router'
 
 import { WorkspaceGate } from '@/components/workspace-gate'
 import { authClient } from '@/lib/auth-client'
+import { hasStoredAuthSession } from '@/lib/trpc-auth'
 import { WorkspaceProvider } from '@/lib/workspace'
 
 export default function AppLayout() {
   const { data: session, isPending } = authClient.useSession()
+  const hasStoredToken = hasStoredAuthSession()
 
-  if (isPending) return null
-  if (!session) return <Redirect href="/(auth)/login" />
+  if (isPending && !hasStoredToken) return null
+  if (!session && !hasStoredToken) return <Redirect href="/(auth)/login" />
 
   return (
     <WorkspaceProvider>

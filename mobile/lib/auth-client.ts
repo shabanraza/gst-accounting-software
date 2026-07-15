@@ -13,6 +13,19 @@ import { resolveAuthBaseUrl } from './env.ts'
 
 const isWeb = Platform.OS === 'web'
 
+let lastAuthToken: string | null = null
+
+export function consumeLastAuthToken() {
+  const token = lastAuthToken
+  lastAuthToken = null
+  return token
+}
+
+export async function refreshAuthSession() {
+  await authClient.getSession()
+  authClient.$store.notify('$sessionSignal')
+}
+
 export const authClient = createAuthClient({
   baseURL: resolveAuthBaseUrl(),
   fetchOptions: {
@@ -21,16 +34,18 @@ export const authClient = createAuthClient({
       type: 'Bearer',
       token: () => readSessionToken() ?? '',
     },
-    onSuccess: (ctx) => {
+    onSuccess: async (ctx) => {
       const authToken = ctx.response.headers.get('set-auth-token')
       if (authToken) {
-        void writeSessionToken(authToken)
+        lastAuthToken = authToken
+        await writeSessionToken(authToken)
         return
       }
 
       const url = String(ctx.request?.url ?? '')
       if (url.includes('sign-out')) {
-        void clearSessionToken()
+        lastAuthToken = null
+        await clearSessionToken()
       }
     },
   },

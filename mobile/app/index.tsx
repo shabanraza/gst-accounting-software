@@ -5,7 +5,7 @@ import { ActivityIndicator } from 'react-native'
 import { View } from '@/tw'
 import { authClient } from '@/lib/auth-client'
 import { resolvePostAuthHref } from '@/lib/post-auth-route'
-import { ensureTrpcAuthReady } from '@/lib/trpc-auth'
+import { ensureTrpcAuthReady, hasStoredAuthSession } from '@/lib/trpc-auth'
 
 export default function IndexScreen() {
   const { data: session, isPending } = authClient.useSession()
@@ -14,8 +14,8 @@ export default function IndexScreen() {
   >(null)
 
   useEffect(() => {
-    if (isPending) return
-    if (!session) {
+    if (isPending && !hasStoredAuthSession()) return
+    if (!session && !hasStoredAuthSession()) {
       setHref('/(auth)/login')
       return
     }
@@ -26,7 +26,7 @@ export default function IndexScreen() {
       .catch(() => setHref('/(auth)/login'))
   }, [isPending, session])
 
-  if (isPending || !href) {
+  if ((isPending && !hasStoredAuthSession()) || !href) {
     return (
       <View className="flex-1 items-center justify-center bg-white">
         <ActivityIndicator size="large" />

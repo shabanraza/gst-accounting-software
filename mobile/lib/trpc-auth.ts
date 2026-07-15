@@ -1,4 +1,4 @@
-import { authClient } from './auth-client.ts'
+import { authClient, consumeLastAuthToken } from './auth-client.ts'
 import {
   readSessionToken,
   SESSION_COOKIE_NAME,
@@ -7,6 +7,26 @@ import {
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+export function normalizeSessionToken(token: string) {
+  const trimmed = token.trim()
+  try {
+    return decodeURIComponent(trimmed)
+  } catch {
+    return trimmed
+  }
+}
+
+export function pickBestSessionToken(
+  ...candidates: Array<string | null | undefined>
+) {
+  const valid = candidates
+    .map((token) => (token ? normalizeSessionToken(token) : null))
+    .filter((token): token is string => Boolean(token))
+
+  const signed = valid.find((token) => token.includes('.'))
+  return signed ?? valid[0] ?? null
 }
 
 export function extractTokenFromCookieHeader(cookie: string) {
@@ -19,10 +39,14 @@ export function extractTokenFromCookieHeader(cookie: string) {
 
 export function readSessionTokenForAuth() {
   const stored = readSessionToken()
-  if (stored) return stored
-
   const cookie = authClient.getCookie?.() ?? ''
-  return extractTokenFromCookieHeader(cookie)
+  const fromCookie = cookie ? extractTokenFromCookieHeader(cookie) : null
+
+  return pickBestSessionToken(stored, fromCookie)
+}
+
+export function hasStoredAuthSession() {
+  return Boolean(readSessionTokenForAuth())
 }
 
 export function readTrpcAuthHeaders(): Record<string, string> {
@@ -31,17 +55,36 @@ export function readTrpcAuthHeaders(): Record<string, string> {
 }
 
 export async function persistSessionToken(token: string) {
-  await writeSessionToken(token)
+  const bestToken = pickBestSessionToken(token, readSessionToken())
+  if (!bestToken) return
+  await writeSessionToken(bestToken)
 }
 
 export function extractSignInToken(result: {
   data?: { token?: string | null } | null
+  response?: Response
 }) {
-  return result.data?.token ?? null
+  return pickBestSessionToken(
+    consumeLastAuthToken(),
+    result.response ? extractAuthTokenFromResponse(result.response) : null,
+    result.data?.token,
+    readSessionToken(),
+    extractTokenFromCookieHeader(authClient.getCookie?.() ?? ''),
+  )
 }
 
 export function extractAuthTokenFromResponse(response: Response) {
   return response.headers.get('set-auth-token')
+}
+
+export async function persistAuthTokenFromSignIn(result: {
+  data?: { token?: string | null } | null
+  response?: Response
+}) {
+  const token = extractSignInToken(result)
+  if (!token) return false
+  await persistSessionToken(token)
+  return true
 }
 
 export async function ensureTrpcAuthReady(options?: {
@@ -74,5 +117,14 @@ export async function ensureTrpcAuthReady(options?: {
     }
 
     await delay(50)
+  }
+}
+
+export async function requireTrpcAuthReady(options?: {
+  signInToken?: string | null
+}) {
+  await ensureTrpcAuthReady(options)
+  if (!readSessionTokenForAuth()) {
+    throw new Error('Session token was not saved after sign-in.')
   }
 }

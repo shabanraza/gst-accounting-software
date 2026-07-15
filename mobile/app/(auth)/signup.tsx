@@ -2,10 +2,13 @@ import { Link, useRouter } from 'expo-router'
 import { useState } from 'react'
 
 import { Pressable, Text, TextInput, View } from '@/tw'
-import { authClient } from '@/lib/auth-client'
+import { authClient, refreshAuthSession } from '@/lib/auth-client'
 import { formatAuthNetworkError } from '@/lib/auth-error'
-import { resolvePostAuthHref } from '@/lib/post-auth-route'
-import { ensureTrpcAuthReady, extractSignInToken } from '@/lib/trpc-auth'
+import { PostAuthRouteError, resolvePostAuthHref } from '@/lib/post-auth-route'
+import {
+  persistAuthTokenFromSignIn,
+  requireTrpcAuthReady,
+} from '@/lib/trpc-auth'
 
 export default function SignupScreen() {
   const router = useRouter()
@@ -22,9 +25,18 @@ export default function SignupScreen() {
         setError(result.error.message ?? 'Unable to create account.')
         return
       }
-      await ensureTrpcAuthReady({ signInToken: extractSignInToken(result) })
+      if (!(await persistAuthTokenFromSignIn(result))) {
+        setError('Account created but the session token was not saved.')
+        return
+      }
+      await requireTrpcAuthReady()
+      await refreshAuthSession()
       router.replace(await resolvePostAuthHref())
     } catch (caught) {
+      if (caught instanceof PostAuthRouteError) {
+        setError(caught.message)
+        return
+      }
       setError(formatAuthNetworkError(caught))
     }
   }
