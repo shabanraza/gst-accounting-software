@@ -1,15 +1,26 @@
 import { Redirect } from 'expo-router'
+import { useEffect, useState } from 'react'
 
 import { authClient } from '@/lib/auth-client'
+import { resolvePostAuthHref } from '@/lib/post-auth-route'
 
 export default function IndexScreen() {
   const { data: session, isPending } = authClient.useSession()
+  const [href, setHref] = useState<
+    '/(auth)/login' | '/(app)/(tabs)/dashboard' | '/onboarding' | null
+  >(null)
 
-  if (isPending) return null
+  useEffect(() => {
+    if (isPending) return
+    if (!session) {
+      setHref('/(auth)/login')
+      return
+    }
 
-  if (!session) {
-    return <Redirect href="/(auth)/login" />
-  }
+    void resolvePostAuthHref().then(setHref)
+  }, [isPending, session])
 
-  return <Redirect href="/(app)/(tabs)/dashboard" />
+  if (isPending || !href) return null
+
+  return <Redirect href={href} />
 }

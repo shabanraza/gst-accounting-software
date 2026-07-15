@@ -1,5 +1,6 @@
 import { trpcClient } from './trpc-client.ts'
 import { buildPlaceholderOcrFields } from './ocr-fields.ts'
+import { readFileAsBase64 } from './read-file-base64.ts'
 
 type CaptureAsset = {
   uri: string
@@ -12,13 +13,17 @@ export async function createOcrDraftFromCapture(
   companyId: string,
   asset: CaptureAsset,
 ) {
-  const attachment = await trpcClient.documents.createAttachment.mutate({
+  const linkedDocumentId = crypto.randomUUID()
+  const contentBase64 = await readFileAsBase64(asset.uri)
+
+  const attachment = await trpcClient.documents.uploadAttachment.mutate({
     companyId,
     linkedDocumentType: 'ocr_capture',
-    linkedDocumentId: crypto.randomUUID(),
+    linkedDocumentId,
     originalFilename: asset.fileName ?? 'bill.jpg',
     contentType: asset.mimeType ?? 'image/jpeg',
     sizeBytes: asset.fileSize ?? 0,
+    contentBase64,
   })
 
   return trpcClient.ocr.createOcrDraft.mutate({

@@ -3,6 +3,7 @@ import { useState } from 'react'
 
 import { Pressable, Text, TextInput, View } from '@/tw'
 import { authClient } from '@/lib/auth-client'
+import { resolvePostAuthHref } from '@/lib/post-auth-route'
 
 export default function LoginScreen() {
   const router = useRouter()
@@ -20,7 +21,7 @@ export default function LoginScreen() {
       setError(result.error.message ?? 'Unable to sign in.')
       return
     }
-    router.replace('/(app)/(tabs)/dashboard')
+    router.replace(await resolvePostAuthHref())
   }
 
   return (

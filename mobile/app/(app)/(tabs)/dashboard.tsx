@@ -8,14 +8,14 @@ import { trpcClient } from '@/lib/trpc-client'
 import { useWorkspace } from '@/lib/workspace'
 
 export default function DashboardScreen() {
-  const { companyId } = useWorkspace()
+  const { companyId, companyStateCode } = useWorkspace()
   const snapshotQuery = useQuery({
-    queryKey: ['dashboard', companyId],
-    enabled: Boolean(companyId),
+    queryKey: ['dashboard', companyId, companyStateCode],
+    enabled: Boolean(companyId && companyStateCode),
     queryFn: () =>
       trpcClient.dashboard.getOwnerSnapshot.query({
         companyId: companyId!,
-        companyStateCode: '27',
+        companyStateCode: companyStateCode!,
       }),
   })
 

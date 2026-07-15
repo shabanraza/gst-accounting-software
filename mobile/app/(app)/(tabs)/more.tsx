@@ -5,9 +5,15 @@ import { CompanySwitcher } from '@/components/company-switcher'
 import { Pressable, Text } from '@/tw'
 import { getModulesForTab } from '@/lib/nav-config'
 import { authClient } from '@/lib/auth-client'
+import { clearWorkspaceStorage } from '@/lib/workspace'
 
 export default function MoreScreen() {
   const modules = getModulesForTab('more')
+
+  async function handleSignOut() {
+    await clearWorkspaceStorage()
+    await authClient.signOut()
+  }
 
   return (
     <Screen title="More" subtitle="Banking, masters, reports">
@@ -17,7 +23,7 @@ export default function MoreScreen() {
       ))}
       <Pressable
         className="rounded-xl border border-gray-200 bg-white p-4"
-        onPress={() => void authClient.signOut()}
+        onPress={() => void handleSignOut()}
       >
         <Text className="font-semibold text-red-600">Sign out</Text>
       </Pressable>

@@ -22,10 +22,10 @@ function getNestedProcedure(namespace: string, procedure: string) {
 
 export function useModuleList(moduleId: string) {
   const module = getModuleById(moduleId)
-  const { companyId } = useWorkspace()
+  const { companyId, companyStateCode } = useWorkspace()
 
   return useQuery({
-    queryKey: ['module-list', moduleId, companyId],
+    queryKey: ['module-list', moduleId, companyId, companyStateCode],
     enabled: Boolean(module && companyId && module.trpcNamespace && module.listProcedure),
     queryFn: async () => {
       if (!module?.trpcNamespace || !module.listProcedure || !companyId) {
@@ -47,7 +47,7 @@ export function useModuleList(moduleId: string) {
           : module.trpcNamespace === 'dashboard'
             ? {
                 companyId,
-                companyStateCode: '27',
+                companyStateCode: companyStateCode ?? '27',
               }
             : { companyId }
 
