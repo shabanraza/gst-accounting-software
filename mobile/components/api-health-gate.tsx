@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
+import { ActivityIndicator } from 'react-native'
 
 import { Pressable, Text, View } from '@/tw'
-import { checkApiHealth } from '@/lib/api-health'
+import { checkApiHealthWithTimeout } from '@/lib/api-health-timeout'
 import { resolveApiBaseUrl } from '@/lib/env'
 
 export function ApiHealthGate({ children }: { children: React.ReactNode }) {
@@ -12,7 +13,7 @@ export function ApiHealthGate({ children }: { children: React.ReactNode }) {
     setStatus('checking')
     setMessage(null)
 
-    const result = await checkApiHealth()
+    const result = await checkApiHealthWithTimeout()
     if (result.ok) {
       setStatus('ready')
       return
@@ -26,7 +27,15 @@ export function ApiHealthGate({ children }: { children: React.ReactNode }) {
     void runHealthCheck()
   }, [])
 
-  if (status === 'checking') return null
+  if (status === 'checking') {
+    return (
+      <View className="flex-1 items-center justify-center gap-3 bg-white px-6">
+        <ActivityIndicator size="large" />
+        <Text className="text-base text-gray-600">Connecting to API…</Text>
+        <Text className="text-sm text-gray-500">{resolveApiBaseUrl()}</Text>
+      </View>
+    )
+  }
 
   if (status === 'error') {
     return (

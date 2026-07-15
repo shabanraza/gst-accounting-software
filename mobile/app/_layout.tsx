@@ -3,30 +3,42 @@ import '../src/global.css'
 import { IBMPlexSans_400Regular, IBMPlexSans_600SemiBold, useFonts } from '@expo-google-fonts/ibm-plex-sans'
 import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import 'react-native-gesture-handler'
 import 'react-native-reanimated'
 
 import { ApiHealthGate } from '@/components/api-health-gate'
 import { AppProviders } from '@/lib/providers'
 
-SplashScreen.preventAutoHideAsync()
+const FONT_LOAD_TIMEOUT_MS = 8_000
+
+SplashScreen.preventAutoHideAsync().catch(() => {
+  /* splash may already be hidden in dev reloads */
+})
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     IBMPlexSans_400Regular,
     IBMPlexSans_600SemiBold,
   })
+  const [fontTimedOut, setFontTimedOut] = useState(false)
+
+  const fontsReady = fontsLoaded || Boolean(fontError) || fontTimedOut
 
   useEffect(() => {
-    if (error) throw error
-  }, [error])
+    const timer = setTimeout(() => setFontTimedOut(true), FONT_LOAD_TIMEOUT_MS)
+    return () => clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
-    if (loaded) SplashScreen.hideAsync()
-  }, [loaded])
+    if (fontsReady) {
+      void SplashScreen.hideAsync().catch(() => {
+        /* ignore if splash is already hidden */
+      })
+    }
+  }, [fontsReady])
 
-  if (!loaded) return null
+  if (!fontsReady) return null
 
   return (
     <AppProviders>
