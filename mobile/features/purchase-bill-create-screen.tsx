@@ -96,8 +96,16 @@ export function PurchaseBillCreateScreen({
   const itemsQuery = useSalesItems()
 
   const defaultGodown = godowns[0]?.name ?? 'Main'
-  const godownNames =
-    godowns.length > 0 ? godowns.map((entry) => entry.name) : [defaultGodown]
+  const godownNamesKey =
+    godowns.length > 0
+      ? godowns.map((entry) => entry.name).join('\0')
+      : defaultGodown
+  const godownNames = React.useMemo(() => {
+    if (godowns.length > 0) {
+      return godowns.map((entry) => entry.name)
+    }
+    return [defaultGodown]
+  }, [defaultGodown, godownNamesKey])
 
   const [step, setStep] = React.useState<WizardStep>('supplier')
   const [form, setForm] = React.useState<PurchaseBillFormDraft>(() =>
@@ -129,13 +137,23 @@ export function PurchaseBillCreateScreen({
 
   React.useEffect(() => {
     if (!companyStateCode) return
-    setForm((current) => ({
-      ...current,
-      godownName: godownNames.includes(current.godownName)
+    setForm((current) => {
+      const nextGodownName = godownNames.includes(current.godownName)
         ? current.godownName
-        : defaultGodown,
-      placeOfSupply: current.placeOfSupply || companyStateCode,
-    }))
+        : defaultGodown
+      const nextPlaceOfSupply = current.placeOfSupply || companyStateCode
+      if (
+        current.godownName === nextGodownName &&
+        current.placeOfSupply === nextPlaceOfSupply
+      ) {
+        return current
+      }
+      return {
+        ...current,
+        godownName: nextGodownName,
+        placeOfSupply: nextPlaceOfSupply,
+      }
+    })
   }, [companyStateCode, defaultGodown, godownNames])
 
   React.useEffect(() => {
