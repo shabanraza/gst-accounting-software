@@ -181,6 +181,35 @@ describe('purchase-bill-form', () => {
     })
   })
 
+  it('includes skipStockMovement when converting from GRN', () => {
+    const form = createInitialPurchaseBillForm('Main', '27')
+    form.supplierId = 'supplier-1'
+    form.supplierBillNumber = 'SUP-100'
+    form.lines = [
+      applyItemToPurchaseLine(
+        createEmptyPurchaseLine('Main'),
+        {
+          id: 'item-1',
+          name: 'Cotton Fabric',
+          hsnCode: '5208',
+          gstRate: '12',
+          baseUnit: 'meter',
+          purchaseRate: '100.00',
+        },
+        'Main',
+      ),
+    ]
+
+    const payload = buildPostPurchaseBillInput(form, {
+      company,
+      ledgerBySystemKey,
+      supplier,
+      skipStockMovement: true,
+    })
+
+    expect(payload.skipStockMovement).toBe(true)
+  })
+
   it('requires core ledger mappings', () => {
     expect(validatePurchaseLedgerMappings(ledgerBySystemKey)).toBeNull()
     expect(

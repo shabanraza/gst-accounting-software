@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import * as React from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Pressable } from 'react-native'
 
 import { CardRow } from '@/components/data/card-row'
@@ -44,6 +44,7 @@ import {
   type TaxMode,
   type SupplyRegion,
 } from '@/lib/sales-invoice-form'
+import { applySalesDocumentDraft } from '@/lib/voucher-prefill'
 import { trpcClient } from '@/lib/trpc-client'
 import { themeColors } from '@/lib/theme'
 import { Text, View } from '@/tw'
@@ -71,7 +72,11 @@ function syncPlaceOfSupply(
   })
 }
 
-export function SalesInvoiceCreateScreen() {
+export function SalesInvoiceCreateScreen({
+  sourceDocumentId,
+}: {
+  sourceDocumentId?: string
+} = {}) {
   const queryClient = useQueryClient()
   const {
     company,
@@ -102,6 +107,19 @@ export function SalesInvoiceCreateScreen() {
   const [successTarget, setSuccessTarget] =
     React.useState<VoucherSuccessTarget | null>(null)
   const [successOpen, setSuccessOpen] = React.useState(false)
+  const [prefillApplied, setPrefillApplied] = React.useState(!sourceDocumentId)
+  const [prefillError, setPrefillError] = React.useState<string | null>(null)
+
+  const salesDraftQuery = useQuery({
+    queryKey: ['sales-document-draft', company?.id, sourceDocumentId],
+    enabled: Boolean(company?.id && sourceDocumentId && !prefillApplied),
+    queryFn: () =>
+      trpcClient.salesDocuments.buildInvoiceDraft.query({
+        companyId: company!.id,
+        documentId: sourceDocumentId!,
+      }),
+    retry: false,
+  })
 
   React.useEffect(() => {
     if (!companyStateCode) return
@@ -113,6 +131,13 @@ export function SalesInvoiceCreateScreen() {
       placeOfSupply: current.placeOfSupply || companyStateCode,
     }))
   }, [companyStateCode, defaultGodown, godownNames])
+
+  React.useEffect(() => {
+    if (salesDraftQuery.isError) {
+      setPrefillError('Unable to load sales document for conversion.')
+      setPrefillApplied(true)
+    }
+  }, [salesDraftQuery.isError])
 
   const customers = filterCustomerParties(partiesQuery.data ?? [])
   const items = (itemsQuery.data ?? []).map((item) => ({
@@ -130,6 +155,31 @@ export function SalesInvoiceCreateScreen() {
     selectedCustomer && companyStateCode
       ? computeFormTotals(form, selectedCustomer.stateCode, companyStateCode)
       : null
+
+  React.useEffect(() => {
+    if (prefillApplied || !salesDraftQuery.data || !companyStateCode) {
+      return
+    }
+
+    const customer = customers.find(
+      (party) => party.id === salesDraftQuery.data.customerId,
+    )
+
+    setForm((current) =>
+      applySalesDocumentDraft(current, salesDraftQuery.data, {
+        godownName: defaultGodown,
+        companyStateCode,
+        partyStateCode: customer?.stateCode,
+      }),
+    )
+    setPrefillApplied(true)
+  }, [
+    companyStateCode,
+    customers,
+    defaultGodown,
+    prefillApplied,
+    salesDraftQuery.data,
+  ])
 
   const postMutation = useMutation({
     mutationFn: async () => {
@@ -179,6 +229,17 @@ export function SalesInvoiceCreateScreen() {
       return trpcClient.sales.postInvoice.mutate(payload)
     },
     onSuccess: async (invoice) => {
+      if (sourceDocumentId && company) {
+        await trpcClient.salesDocuments.markConverted.mutate({
+          companyId: company.id,
+          documentId: sourceDocumentId,
+          invoiceId: invoice.id,
+        })
+        await queryClient.invalidateQueries({
+          queryKey: ['module-list', 'sales-documents'],
+        })
+      }
+
       await queryClient.invalidateQueries({ queryKey: ['module-list', 'sales'] })
       setSuccessTarget({
         kind: 'sales',
@@ -304,7 +365,10 @@ export function SalesInvoiceCreateScreen() {
     }
   }
 
-  const mastersLoading = partiesQuery.isLoading || itemsQuery.isLoading
+  const mastersLoading =
+    partiesQuery.isLoading ||
+    itemsQuery.isLoading ||
+    (Boolean(sourceDocumentId) && !prefillApplied)
   const mastersError = partiesQuery.isError || itemsQuery.isError
 
   const wizardFooter =
@@ -343,12 +407,15 @@ export function SalesInvoiceCreateScreen() {
   return (
     <Screen
       title="New invoice"
-      subtitle="Create sales invoice"
+      subtitle={
+        sourceDocumentId ? 'Convert sales document to invoice' : 'Create sales invoice'
+      }
       keyboardAvoiding
       footer={wizardFooter}
     >
       <StepPills step={step} steps={INVOICE_STEPS} />
 
+      {prefillError ? <EmptyState message={prefillError} /> : null}
       {!isReady || mastersLoading ? <LoadingState /> : null}
       {workspaceError ? <EmptyState message={workspaceError} /> : null}
       {!workspaceError && isReady && !company ? (

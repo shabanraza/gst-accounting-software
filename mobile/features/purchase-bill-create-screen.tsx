@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import * as React from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import * as ImagePicker from 'expo-image-picker'
 import { Pressable } from 'react-native'
 
 import { CardRow } from '@/components/data/card-row'
@@ -43,6 +44,11 @@ import {
   type TaxMode,
 } from '@/lib/purchase-bill-form'
 import { resolvePlaceOfSupply } from '@/lib/sales-invoice-form'
+import {
+  uploadPurchaseBillAttachment,
+  type PurchaseAttachmentAsset,
+} from '@/lib/purchase-attachment'
+import { applyGrnDraft } from '@/lib/voucher-prefill'
 import { trpcClient } from '@/lib/trpc-client'
 import { themeColors } from '@/lib/theme'
 import { Text, View } from '@/tw'
@@ -70,7 +76,11 @@ function syncPlaceOfSupply(
   })
 }
 
-export function PurchaseBillCreateScreen() {
+export function PurchaseBillCreateScreen({
+  sourceGrnId,
+}: {
+  sourceGrnId?: string
+} = {}) {
   const queryClient = useQueryClient()
   const {
     company,
@@ -101,6 +111,21 @@ export function PurchaseBillCreateScreen() {
   const [successTarget, setSuccessTarget] =
     React.useState<VoucherSuccessTarget | null>(null)
   const [successOpen, setSuccessOpen] = React.useState(false)
+  const [attachmentAsset, setAttachmentAsset] =
+    React.useState<PurchaseAttachmentAsset | null>(null)
+  const [prefillApplied, setPrefillApplied] = React.useState(!sourceGrnId)
+  const [prefillError, setPrefillError] = React.useState<string | null>(null)
+
+  const grnDraftQuery = useQuery({
+    queryKey: ['purchase-grn-draft', company?.id, sourceGrnId],
+    enabled: Boolean(company?.id && sourceGrnId && !prefillApplied),
+    queryFn: () =>
+      trpcClient.purchaseGrns.buildBillDraft.query({
+        companyId: company!.id,
+        grnId: sourceGrnId!,
+      }),
+    retry: false,
+  })
 
   React.useEffect(() => {
     if (!companyStateCode) return
@@ -112,6 +137,13 @@ export function PurchaseBillCreateScreen() {
       placeOfSupply: current.placeOfSupply || companyStateCode,
     }))
   }, [companyStateCode, defaultGodown, godownNames])
+
+  React.useEffect(() => {
+    if (grnDraftQuery.isError) {
+      setPrefillError('Unable to load GRN for conversion.')
+      setPrefillApplied(true)
+    }
+  }, [grnDraftQuery.isError])
 
   const suppliers = filterSupplierParties(partiesQuery.data ?? [])
   const items = (itemsQuery.data ?? []).map((item) => ({
@@ -133,6 +165,31 @@ export function PurchaseBillCreateScreen() {
           companyStateCode,
         )
       : null
+
+  React.useEffect(() => {
+    if (prefillApplied || !grnDraftQuery.data || !companyStateCode) {
+      return
+    }
+
+    const supplier = suppliers.find(
+      (party) => party.id === grnDraftQuery.data.supplierId,
+    )
+
+    setForm((current) =>
+      applyGrnDraft(current, grnDraftQuery.data, {
+        defaultGodownName: defaultGodown,
+        companyStateCode,
+        partyStateCode: supplier?.stateCode,
+      }),
+    )
+    setPrefillApplied(true)
+  }, [
+    companyStateCode,
+    defaultGodown,
+    grnDraftQuery.data,
+    prefillApplied,
+    suppliers,
+  ])
 
   const postMutation = useMutation({
     mutationFn: async () => {
@@ -165,14 +222,34 @@ export function PurchaseBillCreateScreen() {
         company,
         ledgerBySystemKey,
         supplier: selectedSupplier,
+        skipStockMovement: Boolean(sourceGrnId),
       })
 
-      return trpcClient.purchases.postBill.mutate(payload)
+      const bill = await trpcClient.purchases.postBill.mutate(payload)
+
+      if (sourceGrnId) {
+        await trpcClient.purchaseGrns.markConverted.mutate({
+          companyId: company.id,
+          grnId: sourceGrnId,
+          billId: bill.id,
+        })
+      }
+
+      if (attachmentAsset) {
+        await uploadPurchaseBillAttachment(company.id, bill.id, attachmentAsset)
+      }
+
+      return bill
     },
     onSuccess: async (bill) => {
       await queryClient.invalidateQueries({
         queryKey: ['module-list', 'purchases'],
       })
+      if (sourceGrnId) {
+        await queryClient.invalidateQueries({
+          queryKey: ['module-list', 'purchase-grns'],
+        })
+      }
       setSuccessTarget({
         kind: 'purchase',
         id: bill.id,
@@ -189,6 +266,32 @@ export function PurchaseBillCreateScreen() {
       )
     },
   })
+
+  async function handleAttachmentPick(source: 'camera' | 'library') {
+    if (source === 'camera') {
+      const permission = await ImagePicker.requestCameraPermissionsAsync()
+      if (!permission.granted) {
+        setError('Camera permission is required to attach a bill photo.')
+        return
+      }
+    }
+
+    const result =
+      source === 'camera'
+        ? await ImagePicker.launchCameraAsync({ quality: 0.8 })
+        : await ImagePicker.launchImageLibraryAsync({ quality: 0.8 })
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0]
+      setAttachmentAsset({
+        uri: asset.uri,
+        fileName: asset.fileName,
+        mimeType: asset.mimeType,
+        fileSize: asset.fileSize,
+      })
+      setError(null)
+    }
+  }
 
   function selectSupplier(supplierId: string) {
     const supplier = suppliers.find((entry) => entry.id === supplierId)
@@ -311,7 +414,10 @@ export function PurchaseBillCreateScreen() {
     }
   }
 
-  const mastersLoading = partiesQuery.isLoading || itemsQuery.isLoading
+  const mastersLoading =
+    partiesQuery.isLoading ||
+    itemsQuery.isLoading ||
+    (Boolean(sourceGrnId) && !prefillApplied)
   const mastersError = partiesQuery.isError || itemsQuery.isError
 
   const wizardFooter =
@@ -350,12 +456,15 @@ export function PurchaseBillCreateScreen() {
   return (
     <Screen
       title="New purchase bill"
-      subtitle="Create purchase bill"
+      subtitle={
+        sourceGrnId ? 'Convert GRN to purchase bill' : 'Create purchase bill'
+      }
       keyboardAvoiding
       footer={wizardFooter}
     >
       <StepPills step={step} steps={PURCHASE_STEPS} />
 
+      {prefillError ? <EmptyState message={prefillError} /> : null}
       {!isReady || mastersLoading ? <LoadingState /> : null}
       {workspaceError ? <EmptyState message={workspaceError} /> : null}
       {!workspaceError && isReady && !company ? (
@@ -423,6 +532,34 @@ export function PurchaseBillCreateScreen() {
                   value={form.series}
                   onPress={() => setSeriesPickerOpen(true)}
                 />
+                <View className="gap-2">
+                  <Text className="text-sm text-muted-foreground">
+                    Bill attachment
+                  </Text>
+                  <View className="flex-row gap-3">
+                    <View className="flex-1">
+                      <SecondaryButton
+                        label="Camera"
+                        onPress={() => void handleAttachmentPick('camera')}
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <SecondaryButton
+                        label="Gallery"
+                        onPress={() => void handleAttachmentPick('library')}
+                      />
+                    </View>
+                  </View>
+                  {attachmentAsset ? (
+                    <Text className="text-sm text-foreground">
+                      {attachmentAsset.fileName ?? 'Attached image'}
+                    </Text>
+                  ) : (
+                    <Text className="text-sm text-muted-foreground">
+                      Optional supplier bill photo or scan
+                    </Text>
+                  )}
+                </View>
               </FormSection>
 
               <FormSection title="Bill options" icon="options-outline">

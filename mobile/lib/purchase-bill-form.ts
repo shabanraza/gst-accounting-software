@@ -77,6 +77,7 @@ export type PostPurchaseBillContext = {
   company: WorkspaceCompanyLike
   ledgerBySystemKey: Partial<Record<string, string>>
   supplier: PurchasePartyLike
+  skipStockMovement?: boolean
 }
 
 const REQUIRED_LEDGER_KEYS = [
@@ -355,7 +356,7 @@ export function buildPostPurchaseBillInput(
   form: PurchaseBillFormDraft,
   context: PostPurchaseBillContext,
 ) {
-  const { company, ledgerBySystemKey, supplier } = context
+  const { company, ledgerBySystemKey, supplier, skipStockMovement } = context
 
   const companyStateCode = company.stateCode
   const placeOfSupply = resolvePlaceOfSupply({
@@ -416,5 +417,6 @@ export function buildPostPurchaseBillInput(
       discountPercent: line.discountPercent || undefined,
       godownName: line.godownName || form.godownName,
     })),
+    ...(skipStockMovement ? { skipStockMovement: true } : {}),
   }
 }
