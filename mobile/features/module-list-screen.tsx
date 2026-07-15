@@ -13,6 +13,7 @@ import { formatInr, formatShortDate } from '@/lib/format-inr'
 import { getModuleById } from '@/lib/nav-config'
 import { TAB_HUB_CONFIG } from '@/lib/tab-actions'
 import { ReportsScreen } from '@/features/reports-screen'
+import { PaymentsScreen } from '@/features/payments-screen'
 import { useModuleList } from '@/features/use-module-list'
 
 function pickTitle(record: Record<string, unknown>) {
@@ -73,6 +74,14 @@ function pickDetailPath(moduleId: string, record: Record<string, unknown>) {
 
   if (moduleId === 'parties') {
     return `/(app)/parties/${id}`
+  }
+
+  if (moduleId === 'items') {
+    return `/(app)/items/${id}`
+  }
+
+  if (moduleId === 'ocr') {
+    return `/(app)/purchases/ocr/${id}`
   }
 
   return undefined
@@ -136,11 +145,7 @@ export function ModuleListScreen({ moduleId }: { moduleId: string }) {
   }
 
   if (module.id === 'payments') {
-    return (
-      <Screen title={module.title} subtitle="Receipts and supplier payments">
-        <EmptyState message="Record customer receipts and supplier payments from invoice or bill detail screens." />
-      </Screen>
-    )
+    return <PaymentsScreen />
   }
 
   if (module.id === 'imports') {
