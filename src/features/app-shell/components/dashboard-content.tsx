@@ -225,7 +225,7 @@ export function DashboardContent() {
   return (
     <WorkspacePage
       actions={
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           {!isToday ? (
             <Button
               onClick={() => setSelectedDate(todayDate)}
@@ -237,7 +237,7 @@ export function DashboardContent() {
           ) : null}
           <DatePicker
             align="end"
-            className="min-w-32"
+            className="w-full min-w-0 sm:w-auto sm:min-w-32"
             max={todayDate}
             onChange={setSelectedDate}
             size="default"

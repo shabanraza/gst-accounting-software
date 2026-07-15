@@ -392,3 +392,38 @@ body {
   [data-voucher-grid-control]:disabled {
   @apply opacity-50;
 }
+
+/* Mobile layout: prevent horizontal page scroll and tighten dense UI */
+@media (max-width: 639px) {
+  [data-ui='chrome'] h1 {
+    @apply text-lg;
+  }
+
+  [data-ui='data'] .text-2xl {
+    @apply text-xl;
+  }
+
+  [data-ui='data'] [data-slot='card-content'].px-0 {
+    @apply -mx-1;
+  }
+
+  [data-ui='data'] [data-slot='card-header'] {
+    @apply gap-3;
+  }
+
+  [data-ui='data'] [data-slot='card-footer'] {
+    @apply flex-col gap-3;
+  }
+
+  [data-ui='data'] [data-slot='chart'] {
+    @apply min-w-0;
+  }
+
+  [data-voucher-grid] {
+    @apply overflow-x-auto;
+  }
+
+  [data-voucher-grid] table {
+    min-width: 42rem;
+  }
+}

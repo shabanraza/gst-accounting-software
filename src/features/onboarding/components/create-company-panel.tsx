@@ -186,7 +186,7 @@ export function CreateCompanyPanel() {
 
           {step === 2 ? (
             <ToggleGroup
-              className="grid w-full grid-cols-2 gap-2"
+              className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2"
               onValueChange={(value) => {
                 if (value) setBusinessType(value as BusinessType)
               }}
@@ -208,7 +208,7 @@ export function CreateCompanyPanel() {
           ) : null}
         </CardContent>
 
-        <CardFooter className="flex justify-between gap-3">
+        <CardFooter className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
           <Button
             disabled={step === 0}
             onClick={() => setStep((current) => Math.max(0, current - 1))}

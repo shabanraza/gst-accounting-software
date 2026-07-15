@@ -4,28 +4,31 @@
   "license": "MIT",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "imports": {
     "#/*": "./src/*"
   },
   "scripts": {
-    "dev": "./scripts/with-node-runtime.sh vite dev --port 3000",
-    "generate-routes": "./scripts/with-node-runtime.sh tsr generate",
-    "build": "./scripts/with-node-runtime.sh vite build",
-    "preview": "./scripts/with-node-runtime.sh vite preview",
-    "test": "./scripts/with-node-runtime.sh vitest run",
-    "lint": "./scripts/with-node-runtime.sh eslint",
-    "format": "./scripts/with-node-runtime.sh prettier --write . && ./scripts/with-node-runtime.sh eslint --fix",
-    "check": "./scripts/with-node-runtime.sh prettier --check .",
-    "deploy": "bun run build && ./scripts/with-node-runtime.sh wrangler deploy",
-    "db:generate": "./scripts/with-node-runtime.sh drizzle-kit generate",
-    "db:migrate": "./scripts/with-node-runtime.sh drizzle-kit migrate",
+    "dev": "vite dev --port 3000",
+    "generate-routes": "tsr generate",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "lint": "eslint",
+    "format": "prettier --write . && eslint --fix",
+    "check": "prettier --check .",
+    "deploy": "bun run build && wrangler deploy",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
     "db:apply-0007": "bun scripts/apply-migration-0007.ts",
     "db:apply-0008": "bun scripts/apply-migration-0008.ts",
     "db:apply-0009": "bun scripts/apply-migration-0009.ts",
     "db:reconcile": "bun scripts/reconcile-drizzle-migrations.ts",
-    "db:push": "./scripts/with-node-runtime.sh drizzle-kit push",
-    "db:pull": "./scripts/with-node-runtime.sh drizzle-kit pull",
-    "db:studio": "./scripts/with-node-runtime.sh drizzle-kit studio"
+    "db:push": "drizzle-kit push",
+    "db:pull": "drizzle-kit pull",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.44.0",

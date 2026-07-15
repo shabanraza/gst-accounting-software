@@ -27,7 +27,8 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table.tsx'
-import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs.tsx'
+import { ScrollableTabsList } from '#/components/ui/scrollable-tabs-list.tsx'
+import { Tabs, TabsTrigger } from '#/components/ui/tabs.tsx'
 import {
   Tooltip,
   TooltipContent,
@@ -129,12 +130,12 @@ export function PurchasesPanel() {
               }
               value={filter}
             >
-              <TabsList>
+              <ScrollableTabsList>
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="Pending">Pending</TabsTrigger>
                 <TabsTrigger value="Part paid">Part paid</TabsTrigger>
                 <TabsTrigger value="Paid">Paid</TabsTrigger>
-              </TabsList>
+              </ScrollableTabsList>
             </Tabs>
             <SearchInput
               onChange={(event) => setQuery(event.target.value)}

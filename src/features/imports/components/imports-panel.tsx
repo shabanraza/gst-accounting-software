@@ -14,7 +14,8 @@ import {
 import { Input } from '#/components/ui/input.tsx'
 import { Label } from '#/components/ui/label.tsx'
 import { Textarea } from '#/components/ui/textarea.tsx'
-import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs.tsx'
+import { ScrollableTabsList } from '#/components/ui/scrollable-tabs-list.tsx'
+import { Tabs, TabsTrigger } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
@@ -275,14 +276,14 @@ export function ImportsPanel() {
               }}
               value={mode}
             >
-              <TabsList>
+              <ScrollableTabsList>
                 <TabsTrigger value="parties">Parties</TabsTrigger>
                 <TabsTrigger value="stock">Opening stock</TabsTrigger>
                 <TabsTrigger value="items">Items</TabsTrigger>
                 <TabsTrigger value="openingBalances">
                   Opening balances
                 </TabsTrigger>
-              </TabsList>
+              </ScrollableTabsList>
             </Tabs>
             <Tabs
               onValueChange={(value) => {
@@ -293,11 +294,11 @@ export function ImportsPanel() {
               }}
               value={format}
             >
-              <TabsList>
+              <ScrollableTabsList>
                 <TabsTrigger value="json">JSON</TabsTrigger>
                 <TabsTrigger value="csv">CSV</TabsTrigger>
                 <TabsTrigger value="busy">BUSY/EZY</TabsTrigger>
-              </TabsList>
+              </ScrollableTabsList>
             </Tabs>
           </div>
         </CardHeader>

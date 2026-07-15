@@ -25,10 +25,10 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table.tsx'
+import { ScrollableTabsList } from '#/components/ui/scrollable-tabs-list.tsx'
 import {
   Tabs,
   TabsContent,
-  TabsList,
   TabsTrigger,
 } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
@@ -288,7 +288,7 @@ export function ReportsPanel() {
       title="Reports"
     >
       <Tabs onValueChange={setTab} value={tab}>
-        <TabsList>
+        <ScrollableTabsList>
           <TabsTrigger value="gstr1">GSTR-1</TabsTrigger>
           <TabsTrigger value="gstr3b">GSTR-3B</TabsTrigger>
           <TabsTrigger value="trial">Trial balance</TabsTrigger>
@@ -302,7 +302,7 @@ export function ReportsPanel() {
           <TabsTrigger value="hsn">HSN summary</TabsTrigger>
           <TabsTrigger value="gstr2b">GSTR-2B</TabsTrigger>
           <TabsTrigger value="export">Export</TabsTrigger>
-        </TabsList>
+        </ScrollableTabsList>
 
         <TabsContent className="mt-4" value="gstr1">
           <Card>
@@ -398,7 +398,7 @@ export function ReportsPanel() {
               </Button>
               {gstr1ReconReport ? (
                 <>
-                  <div className="grid gap-3 sm:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <div className="rounded-lg border p-3">
                       <p className="text-xs text-muted-foreground">Matched</p>
                       <p className="text-lg font-semibold">
@@ -1135,7 +1135,7 @@ export function ReportsPanel() {
               </div>
               {gstr2bReport ? (
                 <>
-                  <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                     <div className="rounded-lg border p-3">
                       <p className="text-xs text-muted-foreground">Matched</p>
                       <p className="text-lg font-semibold">
@@ -1313,7 +1313,7 @@ export function ReportsPanel() {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <div className="rounded-lg border p-4">
                   <p className="text-xs text-muted-foreground">
                     Sales invoices

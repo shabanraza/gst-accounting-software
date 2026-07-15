@@ -6,7 +6,7 @@
 - Use `bun run <script>` instead of `npm run <script>` or `pnpm run <script>`.
 - Use `bunx --bun shadcn@latest ...` for shadcn CLI commands.
 - Prefer the latest stable compatible versions of dependencies when adding or updating packages.
-- App scripts run on Node.js through the repo runtime shim; keep `.nvmrc` current and prefer `nvm` for local Node management.
+- App scripts use Node.js (see `.nvmrc`); run `nvm use` so your shell uses the right version.
 - Prefer machine-terminal execution for repo work and verification when available, especially for Bun, Node, Vite, Vitest, and Wrangler commands.
 - Do not use `npm`, `pnpm`, or `npx` unless the user explicitly asks for them or Bun is unavailable and the user approves the fallback.
 
