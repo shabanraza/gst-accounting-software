@@ -1,1 +1,3 @@
-export { default } from '@/features/item-detail-screen'
+import { ItemDetailScreen } from '@/features/item-detail-screen'
+
+export default ItemDetailScreen

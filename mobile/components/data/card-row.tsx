@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons'
 
 import { Pressable, Text, View } from '@/tw'
+
+import { pageLayout, spacing } from '@/lib/spacing'
 import { themeColors } from '@/lib/theme'
 
 export function CardRow({
@@ -18,7 +20,8 @@ export function CardRow({
 }) {
   return (
     <Pressable
-      className="rounded-xl border border-border bg-card p-card-padding"
+      className="rounded-xl border border-border bg-card"
+      style={{ padding: pageLayout.cardPadding }}
       onPress={onPress}
     >
       <View className="flex-row items-start justify-between gap-3">
@@ -44,7 +47,7 @@ export function CardRow({
         </View>
       </View>
       {badge ? (
-        <Text className="mt-2 text-caption font-medium uppercase text-primary">
+        <Text className="text-caption font-medium uppercase text-primary" style={{ marginTop: spacing.sm }}>
           {badge}
         </Text>
       ) : null}

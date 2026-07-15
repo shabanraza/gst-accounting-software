@@ -2,13 +2,14 @@ import * as React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
+import { DetailCard } from '@/components/data/detail-card'
 import { DetailRow } from '@/components/data/detail-row'
 import { EmptyState } from '@/components/data/empty-state'
 import { LoadingState } from '@/components/data/loading-state'
-import { SectionHeader } from '@/components/layout/section-header'
 import { Screen } from '@/components/layout/screen'
 import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
 import { partyTypeLabel, stateLabel } from '@/lib/india-masters'
+import { pageLayout } from '@/lib/spacing'
 import { trpcClient } from '@/lib/trpc-client'
 import { Text, View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
@@ -57,35 +58,25 @@ export function PartyDetailScreen() {
 
   return (
     <Screen title={party.name} subtitle={partyTypeLabel(party.partyType)}>
-      <View className="gap-section-header">
-        <SectionHeader title="Tax & state" compact icon="document-text-outline" />
-        <View className="rounded-xl border border-border bg-card p-card-padding">
+      <View style={{ gap: pageLayout.sectionGap }}>
+        <DetailCard title="Tax & state" icon="document-text-outline">
           <DetailRow label="GSTIN" value={party.gstin ?? 'Unregistered'} />
           <DetailRow label="PAN" value={party.pan?.trim() || '—'} />
           <DetailRow label="State" value={stateLabel(party.stateCode)} />
-        </View>
-      </View>
+        </DetailCard>
 
-      {address ? (
-        <View className="gap-section-header">
-          <SectionHeader title="Address" compact icon="location-outline" />
-          <View className="rounded-xl border border-border bg-card p-card-padding">
+        {address ? (
+          <DetailCard title="Address" icon="location-outline">
             <Text className="text-sm text-foreground">{address}</Text>
-          </View>
-        </View>
-      ) : null}
+          </DetailCard>
+        ) : null}
 
-      <View className="gap-section-header">
-        <SectionHeader title="Contact" compact icon="call-outline" />
-        <View className="rounded-xl border border-border bg-card p-card-padding">
+        <DetailCard title="Contact" icon="call-outline">
           <DetailRow label="Phone" value={party.contactPhone?.trim() || '—'} />
           <DetailRow label="Email" value={party.contactEmail?.trim() || '—'} />
-        </View>
-      </View>
+        </DetailCard>
 
-      <View className="gap-section-header">
-        <SectionHeader title="Credit" compact icon="wallet-outline" />
-        <View className="rounded-xl border border-border bg-card p-card-padding">
+        <DetailCard title="Credit" icon="wallet-outline">
           <DetailRow
             label="Payment terms"
             value={`${party.paymentTermsDays} days`}
@@ -94,16 +85,16 @@ export function PartyDetailScreen() {
             label="Credit limit"
             value={party.creditLimit?.trim() || '—'}
           />
-        </View>
-      </View>
+        </DetailCard>
 
-      <PrimaryButton
-        label="Edit party"
-        onPress={() =>
-          router.push(`/(app)/parties/${party.id}/edit` as never)
-        }
-      />
-      <SecondaryButton label="Back" onPress={() => router.back()} />
+        <PrimaryButton
+          label="Edit party"
+          onPress={() =>
+            router.push(`/(app)/parties/${party.id}/edit` as never)
+          }
+        />
+        <SecondaryButton label="Back" onPress={() => router.back()} />
+      </View>
     </Screen>
   )
 }

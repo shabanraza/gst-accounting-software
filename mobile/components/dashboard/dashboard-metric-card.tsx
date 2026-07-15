@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { Pressable, Text, View } from '@/tw'
 
-import { layout } from '@/lib/spacing'
+import { pageLayout } from '@/lib/spacing'
 import { themeColors } from '@/lib/theme'
 
 export function DashboardMetricCard({
@@ -18,7 +18,7 @@ export function DashboardMetricCard({
   return (
     <Pressable
       className="min-w-[120px] rounded-xl border border-border bg-icon-bg"
-      style={{ padding: layout.cardPadding }}
+      style={{ padding: pageLayout.cardPadding }}
       onPress={onPress}
     >
       <View className="mb-2 size-8 items-center justify-center rounded-lg bg-background/80">

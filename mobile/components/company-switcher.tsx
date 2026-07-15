@@ -4,7 +4,7 @@ import { useState } from 'react'
 
 import { BottomSheet } from '@/components/ui/dialog'
 import { CardRow } from '@/components/data/card-row'
-import { layout } from '@/lib/spacing'
+import { pageLayout } from '@/lib/spacing'
 import { themeColors } from '@/lib/theme'
 import { useWorkspace } from '@/lib/workspace'
 
@@ -33,7 +33,7 @@ export function CompanySwitcher({
           onOpenChange={setOpen}
           title="Switch company"
         >
-          <View style={{ gap: layout.sectionHeaderGap }}>
+          <View style={{ gap: pageLayout.sectionHeaderGap }}>
             {companies.map((company) => (
               <CardRow
                 key={company.id}
@@ -75,7 +75,7 @@ export function CompanySwitcher({
         onOpenChange={setOpen}
         title="Switch company"
       >
-        <View style={{ gap: layout.sectionHeaderGap }}>
+        <View style={{ gap: pageLayout.sectionHeaderGap }}>
           {companies.map((company) => (
             <CardRow
               key={company.id}

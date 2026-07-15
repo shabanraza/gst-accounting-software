@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { Pressable, Text, View } from '@/tw'
 
 import { Separator } from '@/components/ui/separator'
-import { layout, spacing } from '@/lib/spacing'
+import { pageLayout, spacing } from '@/lib/spacing'
 import { themeColors } from '@/lib/theme'
 
 function BalanceSection({
@@ -17,7 +17,7 @@ function BalanceSection({
   return (
     <Pressable
       className="flex-1 justify-center"
-      style={{ paddingHorizontal: layout.cardPadding, paddingVertical: layout.cardPadding }}
+      style={{ paddingHorizontal: pageLayout.cardPadding, paddingVertical: pageLayout.cardPadding }}
       onPress={onPress}
       disabled={!onPress}
     >
@@ -51,7 +51,7 @@ function OverdueCard({
   return (
     <Pressable
       className={`flex-1 justify-center rounded-2xl ${backgroundClass}`}
-      style={{ paddingHorizontal: layout.cardPadding - 4, paddingVertical: layout.sectionHeaderGap }}
+      style={{ paddingHorizontal: pageLayout.cardPadding - 4, paddingVertical: pageLayout.sectionHeaderGap }}
       onPress={onPress}
       disabled={!onPress}
     >
@@ -86,14 +86,14 @@ export function BalanceHero({
   onOverdueBillsPress?: () => void
 }) {
   return (
-    <View className="min-w-0 flex-row" style={{ gap: layout.balanceHeroGap }}>
+    <View className="min-w-0 flex-row" style={{ gap: pageLayout.balanceHeroGap }}>
       <View className="min-w-0 flex-[3] overflow-hidden rounded-2xl bg-balance-bg">
         <BalanceSection
           label="Total Receivables"
           amount={receivables}
           onPress={onReceivablesPress}
         />
-        <View style={{ marginHorizontal: layout.cardPadding }}>
+        <View style={{ marginHorizontal: pageLayout.cardPadding }}>
           <Separator />
         </View>
         <BalanceSection

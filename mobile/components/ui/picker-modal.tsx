@@ -1,7 +1,7 @@
 import { CardRow } from '@/components/data/card-row'
 import { EmptyState } from '@/components/data/empty-state'
 import { BottomSheet } from '@/components/ui/dialog'
-import { layout } from '@/lib/spacing'
+import { pageLayout } from '@/lib/spacing'
 import { View } from '@/tw'
 
 export type PickerOption = {
@@ -31,7 +31,7 @@ export function PickerModal({
       title={title}
       maxHeightRatio={0.7}
     >
-      <View style={{ gap: layout.sectionHeaderGap }}>
+      <View style={{ gap: pageLayout.sectionHeaderGap }}>
         {options.map((option) => (
           <CardRow
             key={option.key}

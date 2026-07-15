@@ -11,7 +11,7 @@ import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
 import { BottomSheet } from '@/components/ui/dialog'
 import { FormField } from '@/components/ui/form-field'
 import { formatInr } from '@/lib/format-inr'
-import { layout } from '@/lib/spacing'
+import { pageLayout } from '@/lib/spacing'
 import {
   buildCustomerReceiptInput,
   buildSupplierPaymentInput,
@@ -97,10 +97,10 @@ function AllocationModal({
           }
         />
       ) : (
-        <View style={{ gap: layout.sectionGap }}>
-          <View style={{ gap: layout.sectionHeaderGap }}>
+        <View style={{ gap: pageLayout.sectionGap }}>
+          <View style={{ gap: pageLayout.sectionHeaderGap }}>
             <SectionHeader title="Document" compact icon="document-text-outline" />
-            <View style={{ gap: layout.sectionHeaderGap }}>
+            <View style={{ gap: pageLayout.sectionHeaderGap }}>
               {documents.map((document) => (
                 <CardRow
                   key={document.id}
@@ -119,7 +119,7 @@ function AllocationModal({
             </View>
           </View>
 
-          <View style={{ gap: layout.sectionHeaderGap }}>
+          <View style={{ gap: pageLayout.sectionHeaderGap }}>
             <SectionHeader title="Amount" compact icon="cash-outline" />
             <FormField
               keyboardType="decimal-pad"
@@ -132,7 +132,7 @@ function AllocationModal({
             </Text>
           </View>
 
-          <View style={{ gap: layout.sectionHeaderGap }}>
+          <View style={{ gap: pageLayout.sectionHeaderGap }}>
             <SectionHeader title="Date" compact icon="calendar-outline" />
             <FormField
               placeholder="YYYY-MM-DD"

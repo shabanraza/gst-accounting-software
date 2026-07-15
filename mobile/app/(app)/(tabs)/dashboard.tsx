@@ -21,7 +21,7 @@ import {
   getOverdueCounts,
   mapOwnerSnapshotMetrics,
 } from '@/lib/dashboard-metrics'
-import { layout, spacing } from '@/lib/spacing'
+import { pageLayout, spacing } from '@/lib/spacing'
 import { pagePaddingHorizontal, themeColors } from '@/lib/theme'
 import { trpcClient } from '@/lib/trpc-client'
 import { useWorkspace } from '@/lib/workspace'
@@ -38,7 +38,7 @@ function DateRangePill({ label }: { label: string }) {
 export default function DashboardScreen() {
   const { companyId, companyStateCode } = useWorkspace()
   const insets = useSafeAreaInsets()
-  const scrollBottomPadding = insets.bottom + layout.tabBarHeight + spacing.lg
+  const scrollBottomPadding = insets.bottom + pageLayout.tabBarHeight + spacing.lg
   const snapshotQuery = useQuery({
     queryKey: ['dashboard', companyId, companyStateCode],
     enabled: Boolean(companyId && companyStateCode),
@@ -73,7 +73,7 @@ export default function DashboardScreen() {
         contentContainerStyle={{
           paddingTop: spacing.lg,
           paddingBottom: scrollBottomPadding,
-          gap: layout.sectionGap,
+          gap: pageLayout.sectionGap,
           ...pagePaddingHorizontal,
         }}
         showsVerticalScrollIndicator={false}
@@ -82,14 +82,14 @@ export default function DashboardScreen() {
 
         {snapshot ? (
           <>
-            <View style={{ marginHorizontal: -layout.pageX }}>
+            <View style={{ marginHorizontal: -pageLayout.pageX }}>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{
-                  gap: layout.metricCarouselGap,
-                  paddingLeft: layout.pageX,
-                  paddingRight: layout.pageX,
+                  gap: pageLayout.metricCarouselGap,
+                  paddingLeft: pageLayout.pageX,
+                  paddingRight: pageLayout.pageX,
                 }}
               >
                 {mapOwnerSnapshotMetrics(snapshot).map((metric) => (
@@ -110,17 +110,17 @@ export default function DashboardScreen() {
               overdueBillCount={overdueCounts?.bills ?? 0}
             />
 
-            <View style={{ gap: layout.sectionHeaderGap }}>
+            <View style={{ gap: pageLayout.sectionHeaderGap }}>
               <SectionHeader title="Quick Create" compact icon="flash-outline" />
               <ActionGrid items={QUICK_CREATE_ACTIONS} />
             </View>
 
-            <View style={{ gap: layout.sectionHeaderGap }}>
+            <View style={{ gap: pageLayout.sectionHeaderGap }}>
               <SectionHeader title="View & Share" compact icon="eye-outline" />
               <ActionGrid items={VIEW_SHARE_ACTIONS} />
             </View>
 
-            <View style={{ gap: layout.sectionHeaderGap }}>
+            <View style={{ gap: pageLayout.sectionHeaderGap }}>
               <SectionHeader title="Reports" compact icon="bar-chart-outline" />
               <ActionGrid items={REPORT_ACTIONS} />
             </View>

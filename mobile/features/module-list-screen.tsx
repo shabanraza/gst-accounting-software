@@ -10,6 +10,7 @@ import { View } from '@/tw'
 import { formatInr, formatShortDate } from '@/lib/format-inr'
 import { getModuleById } from '@/lib/nav-config'
 import { TAB_HUB_CONFIG } from '@/lib/tab-actions'
+import { pageLayout } from '@/lib/spacing'
 import { ReportsScreen } from '@/features/reports-screen'
 import { PaymentsScreen } from '@/features/payments-screen'
 import { useModuleList } from '@/features/use-module-list'
@@ -103,7 +104,8 @@ function ModuleRecordsList({
       {!query.isLoading && !query.isError && query.data?.length === 0 ? (
         <EmptyState message="No records yet." />
       ) : null}
-      {query.data?.map((record, index) => {
+      <View style={{ gap: pageLayout.sectionHeaderGap }}>
+        {query.data?.map((record, index) => {
         const detailPath = pickDetailPath(moduleId, record)
 
         return (
@@ -121,6 +123,7 @@ function ModuleRecordsList({
           />
         )
       })}
+      </View>
     </>
   )
 }
@@ -178,11 +181,11 @@ export function ModuleListScreen({ moduleId }: { moduleId: string }) {
         actionHref={module.createPath}
         actionLabel={module.createPath ? 'Create' : undefined}
       >
-        <View className="gap-section-header">
+        <View style={{ gap: pageLayout.sectionHeaderGap }}>
           <SectionHeader title="Quick links" compact icon="flash-outline" />
           <ActionGrid items={tabHub.actions} />
         </View>
-        <View className="gap-section-header">
+        <View style={{ gap: pageLayout.sectionHeaderGap }}>
           <SectionHeader
             title={tabHub.listTitle}
             compact

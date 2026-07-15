@@ -25,17 +25,17 @@ export const themeSizes = {
   actionTile: 44,
 } as const
 
-import { layout, spacing } from './spacing'
+import { pageLayout, spacing } from './spacing'
 
 /** Mirrors global.css spacing tokens. Prefer inline on Android where custom classes may not apply. */
 export const themeSpacing = {
   ...spacing,
-  pageX: layout.pageX,
-  sectionGap: layout.sectionGap,
-  sectionHeaderGap: layout.sectionHeaderGap,
-  cardPadding: layout.cardPadding,
+  pageX: pageLayout.pageX,
+  sectionGap: pageLayout.sectionGap,
+  sectionHeaderGap: pageLayout.sectionHeaderGap,
+  cardPadding: pageLayout.cardPadding,
 } as const
 
 export const pagePaddingHorizontal = {
-  paddingHorizontal: layout.pageX,
+  paddingHorizontal: pageLayout.pageX,
 } as const

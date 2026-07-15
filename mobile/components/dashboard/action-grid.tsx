@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { Link } from 'expo-router'
 
-import { layout, spacing } from '@/lib/spacing'
+import { pageLayout } from '@/lib/spacing'
 import { Pressable, Text, View } from '@/tw'
 import { themeColors, themeSizes } from '@/lib/theme'
 
@@ -39,7 +39,7 @@ export function ActionGrid({ items }: { items: Array<ActionGridItem> }) {
   return (
     <View
       className="-mx-1 flex-row flex-wrap"
-      style={{ rowGap: layout.actionGridRowGap }}
+      style={{ rowGap: pageLayout.actionGridRowGap }}
     >
       {items.map((item) => (
         <Link key={item.id} href={item.href as never} asChild>

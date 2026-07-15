@@ -22,11 +22,13 @@ function getNestedProcedure(namespace: string, procedure: string) {
 
 export function useModuleList(moduleId: string) {
   const module = getModuleById(moduleId)
-  const { companyId, companyStateCode } = useWorkspace()
+  const { companyId, companyStateCode, isReady } = useWorkspace()
 
   return useQuery({
     queryKey: ['module-list', moduleId, companyId, companyStateCode],
-    enabled: Boolean(module && companyId && module.trpcNamespace && module.listProcedure),
+    enabled: Boolean(
+      isReady && module && companyId && module.trpcNamespace && module.listProcedure,
+    ),
     queryFn: async () => {
       if (!module?.trpcNamespace || !module.listProcedure || !companyId) {
         return []

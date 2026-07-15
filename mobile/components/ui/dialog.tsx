@@ -3,7 +3,7 @@ import * as React from 'react'
 import { Pressable } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { layout, spacing } from '@/lib/spacing'
+import { pageLayout, spacing } from '@/lib/spacing'
 import { Text, View } from '@/tw'
 
 type BottomSheetProps = {
@@ -37,9 +37,9 @@ export function BottomSheet({
             className="rounded-t-3xl bg-background"
             style={{
               maxHeight: `${maxHeightRatio * 100}%`,
-              paddingHorizontal: layout.pageX,
+              paddingHorizontal: pageLayout.pageX,
               paddingTop: spacing.lg,
-              paddingBottom: Math.max(insets.bottom, spacing.lg) + layout.tabBarHeight / 2,
+              paddingBottom: Math.max(insets.bottom, spacing.lg) + pageLayout.tabBarHeight / 2,
             }}
           >
             <View

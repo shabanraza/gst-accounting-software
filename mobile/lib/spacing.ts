@@ -19,7 +19,7 @@ export const spacing = {
   '3xl': 32,
 } as const
 
-export const layout = {
+export const pageLayout = {
   pageX: spacing.lg,
   sectionGap: spacing['2xl'],
   sectionHeaderGap: spacing.md,

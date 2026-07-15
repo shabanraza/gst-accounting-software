@@ -8,6 +8,7 @@ import { Pressable, Text, View } from '@/tw'
 import { getModulesForTab } from '@/lib/nav-config'
 import { authClient } from '@/lib/auth-client'
 import { clearWorkspaceStorage } from '@/lib/workspace'
+import { pageLayout } from '@/lib/spacing'
 
 const MORE_QUICK_ACTIONS: Array<ActionGridItem> = [
   {
@@ -49,18 +50,21 @@ export default function MoreScreen() {
   return (
     <Screen title="More" subtitle="Banking, masters, reports">
       <CompanySwitcher />
-      <View className="gap-section-header">
+      <View style={{ gap: pageLayout.sectionHeaderGap }}>
         <SectionHeader title="Quick links" compact icon="flash-outline" />
         <ActionGrid items={MORE_QUICK_ACTIONS} />
       </View>
-      <View className="gap-section-header">
+      <View style={{ gap: pageLayout.sectionHeaderGap }}>
         <SectionHeader title="All modules" compact icon="grid-outline" />
-        {modules.map((module) => (
-          <ModuleLinkCard key={module.id} module={module} />
-        ))}
+        <View style={{ gap: pageLayout.sectionHeaderGap }}>
+          {modules.map((module) => (
+            <ModuleLinkCard key={module.id} module={module} />
+          ))}
+        </View>
       </View>
       <Pressable
-        className="flex-row items-center gap-3 rounded-xl border border-border bg-card p-card-padding"
+        className="flex-row items-center gap-3 rounded-xl border border-border bg-card"
+        style={{ padding: pageLayout.cardPadding }}
         onPress={() => void handleSignOut()}
       >
         <Text className="flex-1 font-semibold text-icon-accent-red">Sign out</Text>

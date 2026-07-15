@@ -11,14 +11,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { View, Text, ScrollView, Pressable } from '@/tw'
 import { pagePaddingHorizontal, themeColors } from '@/lib/theme'
-import { layout, spacing } from '@/lib/spacing'
+import { pageLayout, spacing } from '@/lib/spacing'
 
 function useScreenInsets() {
   const insets = useSafeAreaInsets()
   return {
     top: insets.top,
-    bottom: insets.bottom + layout.tabBarHeight + spacing.lg,
-    fabBottom: insets.bottom + layout.tabBarHeight + spacing.sm,
+    bottom: insets.bottom + pageLayout.tabBarHeight + spacing.lg,
+    fabBottom: insets.bottom + pageLayout.tabBarHeight + spacing.sm,
   }
 }
 
@@ -55,7 +55,7 @@ export function Screen({
         contentContainerStyle={{
           paddingTop: spacing.lg,
           paddingBottom: bottom,
-          gap: layout.sectionGap,
+          gap: pageLayout.sectionGap,
           ...pagePaddingHorizontal,
         }}
         keyboardShouldPersistTaps="handled"
