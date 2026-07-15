@@ -1,11 +1,41 @@
-import { Link } from 'expo-router'
-
+import { ActionGrid } from '@/components/action-grid'
 import { ModuleLinkCard, Screen } from '@/components/screen'
+import { SectionHeader } from '@/components/section-header'
 import { CompanySwitcher } from '@/components/company-switcher'
-import { Pressable, Text } from '@/tw'
+import { Pressable, Text, View } from '@/tw'
 import { getModulesForTab } from '@/lib/nav-config'
 import { authClient } from '@/lib/auth-client'
 import { clearWorkspaceStorage } from '@/lib/workspace'
+import type { ActionGridItem } from '@/components/action-grid'
+
+const MORE_QUICK_ACTIONS: Array<ActionGridItem> = [
+  {
+    id: 'parties',
+    label: 'Parties',
+    icon: 'people-outline',
+    href: '/(app)/module/parties',
+    accent: 'blue',
+  },
+  {
+    id: 'reports',
+    label: 'GST\nReports',
+    icon: 'bar-chart-outline',
+    href: '/(app)/module/reports',
+  },
+  {
+    id: 'banking',
+    label: 'Banking',
+    icon: 'card-outline',
+    href: '/(app)/module/bank-reconciliation',
+    accent: 'orange',
+  },
+  {
+    id: 'settings',
+    label: 'Settings',
+    icon: 'settings-outline',
+    href: '/(app)/module/settings',
+  },
+]
 
 export default function MoreScreen() {
   const modules = getModulesForTab('more')
@@ -18,14 +48,21 @@ export default function MoreScreen() {
   return (
     <Screen title="More" subtitle="Banking, masters, reports">
       <CompanySwitcher />
-      {modules.map((module) => (
-        <ModuleLinkCard key={module.id} module={module} />
-      ))}
+      <View className="gap-section-header">
+        <SectionHeader title="Quick links" compact icon="flash-outline" />
+        <ActionGrid items={MORE_QUICK_ACTIONS} />
+      </View>
+      <View className="gap-section-header">
+        <SectionHeader title="All modules" compact icon="grid-outline" />
+        {modules.map((module) => (
+          <ModuleLinkCard key={module.id} module={module} />
+        ))}
+      </View>
       <Pressable
-        className="rounded-xl border border-gray-100 bg-white p-4"
+        className="flex-row items-center gap-3 rounded-xl border border-border bg-card p-card-padding"
         onPress={() => void handleSignOut()}
       >
-        <Text className="font-semibold text-red-600">Sign out</Text>
+        <Text className="flex-1 font-semibold text-icon-accent-red">Sign out</Text>
       </Pressable>
     </Screen>
   )

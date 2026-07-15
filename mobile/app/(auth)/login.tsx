@@ -1,7 +1,8 @@
 import { Link, useRouter } from 'expo-router'
 import { useState } from 'react'
 
-import { Pressable, Text, TextInput, View } from '@/tw'
+import { AuthShell, FormField, PrimaryButton } from '@/components/screen'
+import { Text } from '@/tw'
 import { authClient, refreshAuthSession } from '@/lib/auth-client'
 import { formatAuthNetworkError } from '@/lib/auth-error'
 import { PostAuthRouteError, resolvePostAuthHref } from '@/lib/post-auth-route'
@@ -45,40 +46,33 @@ export default function LoginScreen() {
   }
 
   return (
-    <View className="flex-1 justify-center gap-4 bg-white px-6">
-      <Text className="text-3xl font-bold text-gray-900">GST Books</Text>
-      <Text className="text-gray-500">Sign in to your workspace</Text>
-      <TextInput
+    <AuthShell title="GST Books" subtitle="Sign in to your workspace">
+      <FormField
         autoCapitalize="none"
-        className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900"
         keyboardType="email-address"
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
       />
-      <TextInput
-        className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900"
+      <FormField
         placeholder="Password"
         secureTextEntry
         value={password}
         onChangeText={setPassword}
       />
-      {error ? <Text className="text-red-600">{error}</Text> : null}
-      <Pressable
-        className="items-center rounded-xl bg-blue-600 px-4 py-3"
+      {error ? <Text className="text-icon-accent-red">{error}</Text> : null}
+      <PrimaryButton
+        label={loading ? 'Signing in…' : 'Sign in'}
+        loading={loading}
         disabled={loading}
         onPress={() => void handleSubmit()}
-      >
-        <Text className="font-semibold text-white">
-          {loading ? 'Signing in…' : 'Sign in'}
-        </Text>
-      </Pressable>
+      />
       <Link href="/(auth)/signup">
-        <Text className="text-blue-600">Create account</Text>
+        <Text className="text-primary">Create account</Text>
       </Link>
       <Link href="/(auth)/forgot-password">
-        <Text className="text-gray-500">Forgot password?</Text>
+        <Text className="text-muted-foreground">Forgot password?</Text>
       </Link>
-    </View>
+    </AuthShell>
   )
 }

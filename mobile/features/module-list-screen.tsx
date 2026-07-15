@@ -1,5 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
+import { View } from '@/tw'
+import { SectionHeader } from '@/components/section-header'
 import {
   CardRow,
   EmptyState,
@@ -8,6 +10,7 @@ import {
 } from '@/components/screen'
 import { formatInr, formatShortDate } from '@/lib/format-inr'
 import { getModuleById } from '@/lib/nav-config'
+import { TAB_HUB_CONFIG } from '@/lib/tab-actions'
 import { useModuleList } from '@/features/use-module-list'
 
 function pickTitle(record: Record<string, unknown>) {
@@ -59,10 +62,50 @@ function pickDetailPath(moduleId: string, record: Record<string, unknown>) {
   return undefined
 }
 
-export function ModuleListScreen({ moduleId }: { moduleId: string }) {
+function ModuleRecordsList({
+  moduleId,
+  query,
+}: {
+  moduleId: string
+  query: ReturnType<typeof useModuleList>
+}) {
   const router = useRouter()
+
+  return (
+    <>
+      {query.isLoading ? <LoadingState /> : null}
+      {query.isError ? (
+        <EmptyState message="Unable to load records. Check your connection and company access." />
+      ) : null}
+      {!query.isLoading && !query.isError && query.data?.length === 0 ? (
+        <EmptyState message="No records yet." />
+      ) : null}
+      {query.data?.map((record, index) => {
+        const detailPath = pickDetailPath(moduleId, record)
+
+        return (
+          <CardRow
+            key={String(record.id ?? index)}
+            title={pickTitle(record)}
+            subtitle={pickSubtitle(record)}
+            amount={pickAmount(record)}
+            badge={pickBadge(record)}
+            onPress={
+              detailPath
+                ? () => router.push(detailPath as never)
+                : undefined
+            }
+          />
+        )
+      })}
+    </>
+  )
+}
+
+export function ModuleListScreen({ moduleId }: { moduleId: string }) {
   const module = getModuleById(moduleId)
   const query = useModuleList(moduleId)
+  const tabHub = TAB_HUB_CONFIG[moduleId]
 
   if (!module) {
     return (
@@ -116,37 +159,36 @@ export function ModuleListScreen({ moduleId }: { moduleId: string }) {
     )
   }
 
+  if (tabHub) {
+    return (
+      <Screen
+        title={module.title}
+        actionHref={module.createPath}
+        actionLabel={module.createPath ? 'Create' : undefined}
+      >
+        <View className="gap-section-header">
+          <SectionHeader title="Quick links" compact icon="flash-outline" />
+          <ActionGrid items={tabHub.actions} />
+        </View>
+        <View className="gap-section-header">
+          <SectionHeader
+            title={tabHub.listTitle}
+            compact
+            icon={tabHub.listIcon}
+          />
+          <ModuleRecordsList moduleId={moduleId} query={query} />
+        </View>
+      </Screen>
+    )
+  }
+
   return (
     <Screen
       title={module.title}
       actionHref={module.createPath}
       actionLabel={module.createPath ? 'Create' : undefined}
     >
-      {query.isLoading ? <LoadingState /> : null}
-      {query.isError ? (
-        <EmptyState message="Unable to load records. Check your connection and company access." />
-      ) : null}
-      {!query.isLoading && !query.isError && query.data?.length === 0 ? (
-        <EmptyState message="No records yet." />
-      ) : null}
-      {query.data?.map((record, index) => {
-        const detailPath = pickDetailPath(moduleId, record)
-
-        return (
-          <CardRow
-            key={String(record.id ?? index)}
-            title={pickTitle(record)}
-            subtitle={pickSubtitle(record)}
-            amount={pickAmount(record)}
-            badge={pickBadge(record)}
-            onPress={
-              detailPath
-                ? () => router.push(detailPath as never)
-                : undefined
-            }
-          />
-        )
-      })}
+      <ModuleRecordsList moduleId={moduleId} query={query} />
     </Screen>
   )
 }

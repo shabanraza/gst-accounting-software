@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 
-import { Pressable, Text, TextInput, View } from '@/tw'
+import { AuthShell, FormField, PrimaryButton } from '@/components/screen'
+import { Text } from '@/tw'
 import { trpcClient } from '@/lib/trpc-client'
 
 export default function OnboardingScreen() {
@@ -29,35 +30,24 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <View className="flex-1 justify-center gap-4 bg-white px-6">
-      <Text className="text-3xl font-bold text-gray-900">Set up company</Text>
-      <TextInput
-        className="rounded-xl border border-gray-200 bg-white px-4 py-3"
+    <AuthShell title="Set up company">
+      <FormField
         placeholder="Legal name"
         value={legalName}
         onChangeText={setLegalName}
       />
-      <TextInput
-        className="rounded-xl border border-gray-200 bg-white px-4 py-3"
+      <FormField
         placeholder="Trade name"
         value={tradeName}
         onChangeText={setTradeName}
       />
-      <TextInput
-        className="rounded-xl border border-gray-200 bg-white px-4 py-3"
+      <FormField
         placeholder="State code"
         value={stateCode}
         onChangeText={setStateCode}
       />
-      {error ? <Text className="text-red-600">{error}</Text> : null}
-      <Pressable
-        className="items-center rounded-xl bg-blue-600 px-4 py-3"
-        onPress={() => void handleCreate()}
-      >
-        <Text className="font-semibold text-white">
-          Create company
-        </Text>
-      </Pressable>
-    </View>
+      {error ? <Text className="text-icon-accent-red">{error}</Text> : null}
+      <PrimaryButton label="Create company" onPress={() => void handleCreate()} />
+    </AuthShell>
   )
 }

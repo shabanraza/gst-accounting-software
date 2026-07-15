@@ -1,9 +1,11 @@
 import * as React from 'react'
-import { View, Text, ScrollView, Pressable } from '@/tw'
 import { Ionicons } from '@expo/vector-icons'
 import { Link } from 'expo-router'
 
+import { View, Text, ScrollView, Pressable, TextInput } from '@/tw'
+import { getModuleIcon } from '@/lib/module-icons'
 import type { MobileNavModule } from '@/lib/nav-config'
+import { themeColors } from '@/lib/theme'
 
 export function Screen({
   title,
@@ -19,20 +21,24 @@ export function Screen({
   actionLabel?: string
 }) {
   return (
-    <View className="flex-1 bg-white">
-      <View className="border-b border-gray-200 px-4 pb-3 pt-14">
-        <Text className="text-2xl font-bold text-gray-900">{title}</Text>
+    <View className="flex-1 bg-background">
+      <View className="border-b border-border bg-background px-page-x pb-dashboard-header-pb pt-dashboard-header-pt">
+        <Text className="text-2xl font-bold text-foreground">{title}</Text>
         {subtitle ? (
-          <Text className="text-gray-500 mt-1">{subtitle}</Text>
+          <Text className="mt-1 text-sm text-muted-foreground">{subtitle}</Text>
         ) : null}
       </View>
-      <ScrollView className="flex-1" contentContainerClassName="gap-4 p-4 pb-24">
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="gap-dashboard-section p-page-x pb-page-bottom"
+        showsVerticalScrollIndicator={false}
+      >
         {children}
       </ScrollView>
       {actionHref && actionLabel ? (
         <Link href={actionHref as never} asChild>
-          <Pressable className="absolute bottom-6 right-4 size-14 items-center justify-center rounded-full bg-blue-600 shadow-lg">
-            <Ionicons name="add" size={28} color="white" />
+          <Pressable className="absolute bottom-6 right-4 size-14 items-center justify-center rounded-full bg-primary">
+            <Ionicons name="add" size={28} color={themeColors.primaryForeground} />
           </Pressable>
         </Link>
       ) : null}
@@ -55,22 +61,27 @@ export function CardRow({
 }) {
   return (
     <Pressable
-      className="rounded-xl border border-gray-100 bg-white p-4"
+      className="rounded-xl border border-border bg-card p-card-padding"
       onPress={onPress}
     >
       <View className="flex-row items-start justify-between gap-3">
-        <View className="flex-1 gap-1">
-          <Text className="font-semibold text-gray-900">{title}</Text>
+        <View className="min-w-0 flex-1 gap-1">
+          <Text className="font-semibold text-foreground">{title}</Text>
           {subtitle ? (
-            <Text className="text-sm text-gray-500">{subtitle}</Text>
+            <Text className="text-sm text-muted-foreground">{subtitle}</Text>
           ) : null}
         </View>
-        {amount ? (
-          <Text className="font-semibold text-gray-900">{amount}</Text>
-        ) : null}
+        <View className="flex-row items-center gap-2">
+          {amount ? (
+            <Text className="font-semibold text-foreground">{amount}</Text>
+          ) : null}
+          {onPress ? (
+            <Ionicons name="chevron-forward" size={16} color={themeColors.chevron} />
+          ) : null}
+        </View>
       </View>
       {badge ? (
-        <Text className="text-blue-600 mt-2 text-xs font-medium uppercase">
+        <Text className="mt-2 text-caption font-medium uppercase text-primary">
           {badge}
         </Text>
       ) : null}
@@ -79,10 +90,18 @@ export function CardRow({
 }
 
 export function ModuleLinkCard({ module }: { module: MobileNavModule }) {
+  const icon = getModuleIcon(module)
+
   return (
     <Link href={module.path as never} asChild>
-      <Pressable className="rounded-xl border border-gray-100 bg-white p-4">
-        <Text className="font-semibold text-gray-900">{module.title}</Text>
+      <Pressable className="flex-row items-center gap-3 rounded-xl border border-border bg-card p-card-padding">
+        <View className="size-action-icon items-center justify-center rounded-xl bg-icon-bg">
+          <Ionicons name={icon} size={20} color={themeColors.icon} />
+        </View>
+        <Text className="min-w-0 flex-1 font-semibold text-foreground">
+          {module.title}
+        </Text>
+        <Ionicons name="chevron-forward" size={16} color={themeColors.chevron} />
       </Pressable>
     </Link>
   )
@@ -90,8 +109,8 @@ export function ModuleLinkCard({ module }: { module: MobileNavModule }) {
 
 export function EmptyState({ message }: { message: string }) {
   return (
-    <View className="items-center justify-center rounded-xl border border-dashed border-gray-200 p-8">
-      <Text className="text-center text-gray-500">{message}</Text>
+    <View className="items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 p-8">
+      <Text className="text-center text-sm text-muted-foreground">{message}</Text>
     </View>
   )
 }
@@ -102,6 +121,77 @@ export function LoadingState() {
       <View className="h-20 rounded-xl bg-muted" />
       <View className="h-20 rounded-xl bg-muted" />
       <View className="h-20 rounded-xl bg-muted" />
+    </View>
+  )
+}
+
+export function PrimaryButton({
+  label,
+  loading,
+  disabled,
+  onPress,
+}: {
+  label: string
+  loading?: boolean
+  disabled?: boolean
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      className="items-center rounded-xl bg-primary px-4 py-3 disabled:opacity-60"
+      disabled={disabled || loading}
+      onPress={onPress}
+    >
+      <Text className="font-semibold text-primary-foreground">{label}</Text>
+    </Pressable>
+  )
+}
+
+export function SecondaryButton({
+  label,
+  onPress,
+}: {
+  label: string
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      className="items-center rounded-xl border border-border bg-card px-4 py-3"
+      onPress={onPress}
+    >
+      <Text className="font-semibold text-foreground">{label}</Text>
+    </Pressable>
+  )
+}
+
+export function FormField({
+  ...props
+}: React.ComponentProps<typeof TextInput>) {
+  return (
+    <TextInput
+      className="rounded-xl border border-border bg-card px-4 py-3 text-foreground"
+      placeholderTextColor={themeColors.mutedForeground}
+      {...props}
+    />
+  )
+}
+
+export function AuthShell({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string
+  subtitle?: string
+  children: React.ReactNode
+}) {
+  return (
+    <View className="flex-1 justify-center gap-4 bg-background px-page-x">
+      <Text className="text-3xl font-bold text-foreground">{title}</Text>
+      {subtitle ? (
+        <Text className="text-muted-foreground">{subtitle}</Text>
+      ) : null}
+      {children}
     </View>
   )
 }

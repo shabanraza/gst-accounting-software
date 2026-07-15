@@ -1,7 +1,8 @@
 import { Link, useRouter } from 'expo-router'
 import { useState } from 'react'
 
-import { Pressable, Text, TextInput, View } from '@/tw'
+import { AuthShell, FormField, PrimaryButton } from '@/components/screen'
+import { Text } from '@/tw'
 import { authClient, refreshAuthSession } from '@/lib/auth-client'
 import { formatAuthNetworkError } from '@/lib/auth-error'
 import { PostAuthRouteError, resolvePostAuthHref } from '@/lib/post-auth-route'
@@ -42,39 +43,26 @@ export default function SignupScreen() {
   }
 
   return (
-    <View className="flex-1 justify-center gap-4 bg-white px-6">
-      <Text className="text-3xl font-bold text-gray-900">Create account</Text>
-      <TextInput
-        className="rounded-xl border border-gray-200 bg-white px-4 py-3"
-        placeholder="Name"
-        value={name}
-        onChangeText={setName}
-      />
-      <TextInput
+    <AuthShell title="Create account">
+      <FormField placeholder="Name" value={name} onChangeText={setName} />
+      <FormField
         autoCapitalize="none"
-        className="rounded-xl border border-gray-200 bg-white px-4 py-3"
         keyboardType="email-address"
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
       />
-      <TextInput
-        className="rounded-xl border border-gray-200 bg-white px-4 py-3"
+      <FormField
         placeholder="Password"
         secureTextEntry
         value={password}
         onChangeText={setPassword}
       />
-      {error ? <Text className="text-red-600">{error}</Text> : null}
-      <Pressable
-        className="items-center rounded-xl bg-blue-600 px-4 py-3"
-        onPress={() => void handleSubmit()}
-      >
-        <Text className="font-semibold text-white">Sign up</Text>
-      </Pressable>
+      {error ? <Text className="text-icon-accent-red">{error}</Text> : null}
+      <PrimaryButton label="Sign up" onPress={() => void handleSubmit()} />
       <Link href="/(auth)/login">
-        <Text className="text-blue-600">Already have an account?</Text>
+        <Text className="text-primary">Already have an account?</Text>
       </Link>
-    </View>
+    </AuthShell>
   )
 }

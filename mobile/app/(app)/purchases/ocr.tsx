@@ -2,13 +2,16 @@ import * as ImagePicker from 'expo-image-picker'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
+import { SectionHeader } from '@/components/section-header'
 import {
   CardRow,
   EmptyState,
   LoadingState,
+  PrimaryButton,
   Screen,
+  SecondaryButton,
 } from '@/components/screen'
-import { Pressable, Text, View } from '@/tw'
+import { Text, View } from '@/tw'
 import { useModuleList } from '@/features/use-module-list'
 import { createOcrDraftFromCapture } from '@/lib/ocr-upload'
 import { useWorkspace } from '@/lib/workspace'
@@ -53,34 +56,40 @@ export default function OcrReviewScreen() {
 
   return (
     <Screen title="OCR review" subtitle="Capture bills and review drafts">
-      <View className="flex-row gap-3">
-        <Pressable
-          className="flex-1 items-center rounded-xl bg-blue-600 px-4 py-3"
-          onPress={() => void handleCapture('camera')}
-        >
-          <Text className="font-semibold text-white">Camera</Text>
-        </Pressable>
-        <Pressable
-          className="flex-1 items-center rounded-xl border border-gray-200 bg-white px-4 py-3"
-          onPress={() => void handleCapture('library')}
-        >
-          <Text className="font-semibold text-gray-900">Gallery</Text>
-        </Pressable>
+      <View className="gap-section-header">
+        <SectionHeader title="Capture bill" compact icon="camera-outline" />
+        <View className="flex-row gap-3">
+          <View className="flex-1">
+            <PrimaryButton
+              label="Camera"
+              onPress={() => void handleCapture('camera')}
+            />
+          </View>
+          <View className="flex-1">
+            <SecondaryButton
+              label="Gallery"
+              onPress={() => void handleCapture('library')}
+            />
+          </View>
+        </View>
       </View>
-      {status ? <Text className="text-gray-500">{status}</Text> : null}
+      {status ? <Text className="text-muted-foreground">{status}</Text> : null}
       {uploadMutation.isPending ? <LoadingState /> : null}
-      {draftsQuery.isLoading ? <LoadingState /> : null}
-      {draftsQuery.data?.map((draft, index) => (
-        <CardRow
-          key={String(draft.id ?? index)}
-          title={String(draft.fields?.supplierName?.value ?? 'OCR draft')}
-          subtitle={String(draft.fields?.billNumber?.value ?? 'Needs review')}
-          badge={String(draft.status ?? 'draft')}
-        />
-      ))}
-      {!draftsQuery.isLoading && draftsQuery.data?.length === 0 ? (
-        <EmptyState message="No OCR drafts yet. Capture a bill to start review." />
-      ) : null}
+      <View className="gap-section-header">
+        <SectionHeader title="Drafts" compact icon="document-outline" />
+        {draftsQuery.isLoading ? <LoadingState /> : null}
+        {draftsQuery.data?.map((draft, index) => (
+          <CardRow
+            key={String(draft.id ?? index)}
+            title={String(draft.fields?.supplierName?.value ?? 'OCR draft')}
+            subtitle={String(draft.fields?.billNumber?.value ?? 'Needs review')}
+            badge={String(draft.status ?? 'draft')}
+          />
+        ))}
+        {!draftsQuery.isLoading && draftsQuery.data?.length === 0 ? (
+          <EmptyState message="No OCR drafts yet. Capture a bill to start review." />
+        ) : null}
+      </View>
     </Screen>
   )
 }

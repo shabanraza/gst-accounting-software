@@ -1,7 +1,8 @@
 import { Link } from 'expo-router'
 import { useState } from 'react'
 
-import { Pressable, Text, TextInput, View } from '@/tw'
+import { AuthShell, FormField, PrimaryButton } from '@/components/screen'
+import { Text } from '@/tw'
 import { authClient } from '@/lib/auth-client'
 
 export default function ForgotPasswordScreen() {
@@ -14,26 +15,22 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <View className="flex-1 justify-center gap-4 bg-white px-6">
-      <Text className="text-2xl font-bold text-gray-900">Reset password</Text>
-      <TextInput
+    <AuthShell title="Reset password">
+      <FormField
         autoCapitalize="none"
-        className="rounded-xl border border-gray-200 bg-white px-4 py-3"
         keyboardType="email-address"
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
       />
-      {message ? <Text className="text-emerald-600">{message}</Text> : null}
-      <Pressable
-        className="items-center rounded-xl bg-blue-600 px-4 py-3"
+      {message ? <Text className="text-primary">{message}</Text> : null}
+      <PrimaryButton
+        label="Send reset link"
         onPress={() => void handleSubmit()}
-      >
-        <Text className="font-semibold text-white">Send reset link</Text>
-      </Pressable>
+      />
       <Link href="/(auth)/login">
-        <Text className="text-blue-600">Back to sign in</Text>
+        <Text className="text-primary">Back to sign in</Text>
       </Link>
-    </View>
+    </AuthShell>
   )
 }

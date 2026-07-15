@@ -4,6 +4,7 @@
  */
 export const themeColors = {
   primary: '#2563eb',
+  primaryForeground: '#ffffff',
   icon: '#374151',
   iconAccentBlue: '#2563eb',
   iconAccentRed: '#ef4444',

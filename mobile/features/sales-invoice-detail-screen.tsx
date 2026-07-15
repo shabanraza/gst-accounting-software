@@ -1,6 +1,8 @@
+import * as React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLocalSearchParams } from 'expo-router'
 
+import { SectionHeader } from '@/components/section-header'
 import {
   CardRow,
   EmptyState,
@@ -19,8 +21,27 @@ import { useWorkspace } from '@/lib/workspace'
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <View className="flex-row items-center justify-between gap-3 py-2">
-      <Text className="text-sm text-gray-500">{label}</Text>
-      <Text className="text-sm font-medium text-gray-900">{value}</Text>
+      <Text className="text-sm text-muted-foreground">{label}</Text>
+      <Text className="text-sm font-medium text-foreground">{value}</Text>
+    </View>
+  )
+}
+
+function DetailCard({
+  title,
+  icon,
+  children,
+}: {
+  title: string
+  icon: import('@expo/vector-icons').Ionicons['name']
+  children: React.ReactNode
+}) {
+  return (
+    <View className="gap-section-header">
+      <SectionHeader title={title} compact icon={icon} />
+      <View className="rounded-xl border border-border bg-card p-card-padding">
+        {children}
+      </View>
     </View>
   )
 }
@@ -56,12 +77,12 @@ export function SalesInvoiceDetailScreen() {
       ) : null}
       {invoice ? (
         <>
-          <View className="rounded-xl border border-gray-200 bg-white p-4">
+          <DetailCard title="Summary" icon="information-circle-outline">
             {salesInvoiceSummaryRows(invoice).map((row) => (
               <DetailRow key={row.label} label={row.label} value={row.value} />
             ))}
-          </View>
-          <View className="rounded-xl border border-gray-200 bg-white p-4">
+          </DetailCard>
+          <DetailCard title="Totals" icon="calculator-outline">
             {salesInvoiceTotalsRows(invoice).map((row) => (
               <DetailRow
                 key={row.label}
@@ -69,16 +90,19 @@ export function SalesInvoiceDetailScreen() {
                 value={formatInr(row.value)}
               />
             ))}
+          </DetailCard>
+          <View className="gap-section-header">
+            <SectionHeader title="Line items" compact icon="list-outline" />
+            {invoice.lines.map((line, index) => (
+              <CardRow
+                key={`${line.description}-${index}`}
+                title={line.description}
+                subtitle={`${line.quantity} ${line.unit} × ${formatInr(line.rate)}`}
+                amount={formatInr(line.lineAmount)}
+                badge={`GST ${line.gstRate}%`}
+              />
+            ))}
           </View>
-          {invoice.lines.map((line, index) => (
-            <CardRow
-              key={`${line.description}-${index}`}
-              title={line.description}
-              subtitle={`${line.quantity} ${line.unit} × ${formatInr(line.rate)}`}
-              amount={formatInr(line.lineAmount)}
-              badge={`GST ${line.gstRate}%`}
-            />
-          ))}
         </>
       ) : null}
     </Screen>
