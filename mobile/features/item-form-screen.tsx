@@ -2,7 +2,7 @@ import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 
-import { DetailCard } from '@/components/data/detail-card'
+import { FormSection } from '@/components/layout/form-section'
 import { Screen } from '@/components/layout/screen'
 import { WizardFooter } from '@/components/layout/wizard-footer'
 import { PrimaryButton } from '@/components/ui/button'
@@ -123,7 +123,7 @@ export function ItemFormScreen({
         </WizardFooter>
       }
     >
-      <DetailCard title="Basic details" icon="cube-outline">
+      <FormSection title="Basic details" icon="cube-outline">
         <View className="gap-3">
           <FormField
             placeholder="Item name"
@@ -158,9 +158,9 @@ export function ItemFormScreen({
             onPress={() => setUnitPickerOpen(true)}
           />
         </View>
-      </DetailCard>
+      </FormSection>
 
-      <DetailCard title="Pricing" icon="pricetag-outline">
+      <FormSection title="Pricing" icon="pricetag-outline">
         <View className="flex-row gap-3">
           <View className="flex-1">
             <Text className="mb-1 text-sm text-muted-foreground">Purchase</Text>
@@ -185,9 +185,9 @@ export function ItemFormScreen({
             />
           </View>
         </View>
-      </DetailCard>
+      </FormSection>
 
-      <DetailCard title="Inventory" icon="layers-outline">
+      <FormSection title="Inventory" icon="layers-outline">
         <View className="gap-3">
           <View className="flex-row flex-wrap gap-2">
             <OptionChip
@@ -221,7 +221,7 @@ export function ItemFormScreen({
             </View>
           ) : null}
         </View>
-      </DetailCard>
+      </FormSection>
 
       <PickerModal
         visible={groupPickerOpen}

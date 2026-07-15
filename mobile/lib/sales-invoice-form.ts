@@ -6,6 +6,7 @@ export type SalesInvoiceLineDraft = {
   key: string
   itemId: string
   itemName: string
+  hsnCode: string
   gstRate: string
   unit: string
   quantity: string
@@ -19,11 +20,13 @@ export type SalesPartyLike = {
   name: string
   partyType: 'customer' | 'supplier' | 'both'
   stateCode: string
+  gstin?: string | null
 }
 
 export type SalesItemLike = {
   id: string
   name: string
+  hsnCode: string
   gstRate: string
   baseUnit: string
   saleRate: string
@@ -31,12 +34,24 @@ export type SalesItemLike = {
 
 export type SalesInvoiceFormDraft = {
   customerId: string
+  series: string
   invoiceDate: string
+  dueDate: string
   paymentMode: PaymentMode
   taxMode: TaxMode
   region: SupplyRegion
+  placeOfSupply: string
   godownName: string
+  poReference: string
+  transportMode: string
+  vehicleNo: string
+  lrNumber: string
+  challanRef: string
   narration: string
+  freight: string
+  packing: string
+  roundOff: string
+  billDiscount: string
   lines: Array<SalesInvoiceLineDraft>
 }
 
@@ -80,14 +95,27 @@ export function isValidStateCode(code: string | null | undefined) {
 
 export function resolvePlaceOfSupply(input: {
   region: SupplyRegion
+  selectedPlaceOfSupply: string
   partyStateCode: string
   companyStateCode: string
+  fallbackStateCode?: string
 }) {
+  const fallback = input.fallbackStateCode ?? '27'
+  const companyState = isValidStateCode(input.companyStateCode)
+    ? input.companyStateCode
+    : fallback
+  const partyState = isValidStateCode(input.partyStateCode)
+    ? input.partyStateCode
+    : companyState
+  const selected = isValidStateCode(input.selectedPlaceOfSupply)
+    ? input.selectedPlaceOfSupply
+    : ''
+
   if (input.region === 'local') {
-    return input.companyStateCode
+    return companyState
   }
 
-  return input.partyStateCode || input.companyStateCode
+  return selected || partyState || companyState
 }
 
 export function partyStateForRegion(
@@ -110,11 +138,14 @@ export function filterCustomerParties(parties: Array<SalesPartyLike>) {
 
 import { randomId } from './random-id.ts'
 
+export const DEFAULT_SALES_SERIES = 'INV'
+
 export function createEmptySalesLine(godownName: string): SalesInvoiceLineDraft {
   return {
     key: randomId(),
     itemId: '',
     itemName: '',
+    hsnCode: '',
     gstRate: '0',
     unit: '',
     quantity: '1',
@@ -126,15 +157,28 @@ export function createEmptySalesLine(godownName: string): SalesInvoiceLineDraft 
 
 export function createInitialSalesInvoiceForm(
   godownName: string,
+  companyStateCode = '27',
 ): SalesInvoiceFormDraft {
   return {
     customerId: '',
+    series: DEFAULT_SALES_SERIES,
     invoiceDate: new Date().toISOString().slice(0, 10),
+    dueDate: '',
     paymentMode: 'credit',
     taxMode: 'exclusive',
     region: 'local',
+    placeOfSupply: companyStateCode,
     godownName,
+    poReference: '',
+    transportMode: '',
+    vehicleNo: '',
+    lrNumber: '',
+    challanRef: '',
     narration: '',
+    freight: '0.00',
+    packing: '0.00',
+    roundOff: '0.00',
+    billDiscount: '0.00',
     lines: [createEmptySalesLine(godownName)],
   }
 }
@@ -148,6 +192,7 @@ export function applyItemToLine(
     ...line,
     itemId: item.id,
     itemName: item.name,
+    hsnCode: item.hsnCode,
     gstRate: item.gstRate,
     unit: item.baseUnit,
     rate: item.saleRate,
@@ -191,10 +236,10 @@ export function computeLinePreview(
 
   return {
     taxableAmount: formatMoney(taxableAmount),
-    totalGstAmount: formatMoney(totalGstAmount),
     cgstAmount: formatMoney(cgstAmount),
     sgstAmount: formatMoney(sgstAmount),
     igstAmount: formatMoney(igstAmount),
+    totalGstAmount: formatMoney(totalGstAmount),
     lineTotal: formatMoney(lineTotal),
   }
 }
@@ -219,19 +264,36 @@ export function computeFormTotals(
     (sum, line) => sum + money(line.taxableAmount),
     0,
   )
-  const totalGstAmount = lineTotals.reduce(
-    (sum, line) => sum + money(line.totalGstAmount),
+  const cgstAmount = lineTotals.reduce(
+    (sum, line) => sum + money(line.cgstAmount),
     0,
   )
-  const grandTotal = lineTotals.reduce(
-    (sum, line) => sum + money(line.lineTotal),
+  const sgstAmount = lineTotals.reduce(
+    (sum, line) => sum + money(line.sgstAmount),
     0,
   )
+  const igstAmount = lineTotals.reduce(
+    (sum, line) => sum + money(line.igstAmount),
+    0,
+  )
+  const totalGstAmount = cgstAmount + sgstAmount + igstAmount
+  const billDiscountAmount = money(form.billDiscount)
+  const sundryTotal =
+    money(form.freight) +
+    money(form.packing) +
+    money(form.roundOff) -
+    billDiscountAmount
+  const grandTotal = taxableAmount + totalGstAmount + sundryTotal
 
   return {
     lineCount: filledLines.length,
     taxableAmount: formatMoney(taxableAmount),
+    cgstAmount: formatMoney(cgstAmount),
+    sgstAmount: formatMoney(sgstAmount),
+    igstAmount: formatMoney(igstAmount),
     totalGstAmount: formatMoney(totalGstAmount),
+    sundryTotal: formatMoney(sundryTotal),
+    billDiscountAmount: formatMoney(billDiscountAmount),
     grandTotal: formatMoney(grandTotal),
   }
 }
@@ -247,6 +309,21 @@ export function validateSalesInvoiceForm(
 
   if (!form.invoiceDate.trim()) {
     return 'Invoice date is required.'
+  }
+
+  if (!isValidStateCode(companyStateCode)) {
+    return 'Set a valid company state code in Company settings before posting.'
+  }
+
+  const resolvedPlaceOfSupply = resolvePlaceOfSupply({
+    region: form.region,
+    selectedPlaceOfSupply: form.placeOfSupply,
+    partyStateCode: customer.stateCode,
+    companyStateCode,
+  })
+
+  if (!isValidStateCode(resolvedPlaceOfSupply)) {
+    return 'Select a place of supply or set the customer state.'
   }
 
   const filledLines = form.lines.filter(
@@ -268,7 +345,7 @@ export function validateSalesInvoiceForm(
   )
 
   if (!isValidStateCode(gstPartyState)) {
-    return 'Customer state is missing. Update the customer master.'
+    return 'Customer state is missing. Update the customer master or place of supply.'
   }
 
   return null
@@ -321,16 +398,12 @@ export function buildPostSalesInvoiceInput(
   form: SalesInvoiceFormDraft,
   context: PostSalesInvoiceContext,
 ) {
-  const {
-    company,
-    ledgerBySystemKey,
-    customer,
-    invoiceNumber,
-  } = context
+  const { company, ledgerBySystemKey, customer, invoiceNumber } = context
 
   const companyStateCode = company.stateCode
   const placeOfSupply = resolvePlaceOfSupply({
     region: form.region,
+    selectedPlaceOfSupply: form.placeOfSupply,
     partyStateCode: customer.stateCode,
     companyStateCode,
   })
@@ -342,9 +415,7 @@ export function buildPostSalesInvoiceInput(
 
   const filledLines = form.lines.filter(
     (line) =>
-      line.itemId &&
-      line.itemName.trim() &&
-      money(line.quantity) > 0,
+      line.itemId && line.itemName.trim() && money(line.quantity) > 0,
   )
 
   return {
@@ -360,14 +431,19 @@ export function buildPostSalesInvoiceInput(
     placeOfSupply,
     invoiceNumber,
     invoiceDate: form.invoiceDate,
-    dueDate: form.invoiceDate,
+    dueDate: form.dueDate.trim() || form.invoiceDate,
     paymentMode: form.paymentMode,
     taxMode: form.taxMode,
-    narration: form.narration || undefined,
-    freight: '0.00',
-    packing: '0.00',
-    roundOff: '0.00',
-    billDiscount: '0.00',
+    poReference: form.poReference.trim() || undefined,
+    transportMode: form.transportMode.trim() || undefined,
+    vehicleNo: form.vehicleNo.trim() || undefined,
+    lrNumber: form.lrNumber.trim() || undefined,
+    challanRef: form.challanRef.trim() || undefined,
+    narration: form.narration.trim() || undefined,
+    freight: form.freight,
+    packing: form.packing,
+    roundOff: form.roundOff,
+    billDiscount: form.billDiscount,
     godownName: form.godownName,
     salesAccountId: ledgerBySystemKey.sales!,
     outputGstAccountId: ledgerBySystemKey.output_gst!,
@@ -387,5 +463,3 @@ export function buildPostSalesInvoiceInput(
     })),
   }
 }
-
-export const DEFAULT_SALES_SERIES = 'INV'

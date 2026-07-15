@@ -1,13 +1,12 @@
 import { Ionicons } from '@expo/vector-icons'
 import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'expo-router'
 import { Pressable } from 'react-native'
 
 import { CardRow } from '@/components/data/card-row'
-import { DetailCard } from '@/components/data/detail-card'
 import { EmptyState } from '@/components/data/empty-state'
 import { LoadingState } from '@/components/data/loading-state'
+import { FormSection } from '@/components/layout/form-section'
 import { Screen } from '@/components/layout/screen'
 import { WizardFooter } from '@/components/layout/wizard-footer'
 import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
@@ -16,10 +15,19 @@ import { FormField } from '@/components/ui/form-field'
 import { PickerField } from '@/components/ui/picker-field'
 import { PickerModal } from '@/components/ui/picker-modal'
 import { StepPills } from '@/components/ui/step-pills'
+import {
+  VoucherSuccessSheet,
+  type VoucherSuccessTarget,
+} from '@/components/voucher/voucher-success-sheet'
+import { VoucherLineEditor } from '@/components/voucher/voucher-line-editor'
 import { useSalesItems, useSalesParties } from '@/features/use-sales-masters'
 import { formatInr } from '@/lib/format-inr'
 import {
-  DEFAULT_SALES_SERIES,
+  indianStates,
+  salesSeriesOptions,
+  stateLabel,
+} from '@/lib/india-masters'
+import {
   applyItemToLine,
   buildPostSalesInvoiceInput,
   computeFormTotals,
@@ -27,12 +35,14 @@ import {
   createInitialSalesInvoiceForm,
   filterCustomerParties,
   formRequiresInventoryLedgers,
+  resolvePlaceOfSupply,
   validateLedgerMappings,
   validateSalesInvoiceForm,
   type PaymentMode,
   type SalesInvoiceFormDraft,
   type SalesInvoiceLineDraft,
-  type SalesItemLike,
+  type TaxMode,
+  type SupplyRegion,
 } from '@/lib/sales-invoice-form'
 import { trpcClient } from '@/lib/trpc-client'
 import { themeColors } from '@/lib/theme'
@@ -47,99 +57,25 @@ const INVOICE_STEPS: Array<{ id: WizardStep; label: string }> = [
   { id: 'review', label: 'Review' },
 ]
 
-function LineItemEditor({
-  line,
-  index,
-  godownName,
-  items,
-  onChange,
-  onRemove,
-  canRemove,
-}: {
-  line: SalesInvoiceLineDraft
-  index: number
-  godownName: string
-  items: Array<SalesItemLike>
-  onChange: (line: SalesInvoiceLineDraft) => void
-  onRemove: () => void
-  canRemove: boolean
-}) {
-  const [pickerOpen, setPickerOpen] = React.useState(false)
-
-  const lineAmount =
-    Number(line.quantity) > 0 && Number(line.rate) >= 0
-      ? Number(line.quantity) * Number(line.rate)
-      : null
-
-  return (
-    <View className="gap-3 rounded-xl border border-border bg-card p-card-padding">
-      <View className="flex-row items-center justify-between">
-        <Text className="font-semibold text-foreground">Line {index + 1}</Text>
-        <View className="flex-row items-center gap-3">
-          {lineAmount !== null ? (
-            <Text className="font-semibold text-foreground">
-              {formatInr(String(lineAmount))}
-            </Text>
-          ) : null}
-          {canRemove ? (
-            <Pressable onPress={onRemove}>
-              <Text className="text-sm font-medium text-destructive">Remove</Text>
-            </Pressable>
-          ) : null}
-        </View>
-      </View>
-      <Pressable
-        className="rounded-xl border border-border bg-background px-4 py-3"
-        onPress={() => setPickerOpen(true)}
-      >
-        <Text className="text-sm text-muted-foreground">Item</Text>
-        <Text className="font-medium text-foreground">
-          {line.itemName || 'Select item'}
-        </Text>
-      </Pressable>
-      <View className="flex-row gap-3">
-        <View className="flex-1">
-          <Text className="mb-1 text-sm text-muted-foreground">Quantity</Text>
-          <FormField
-            keyboardType="decimal-pad"
-            value={line.quantity}
-            onChangeText={(quantity) => onChange({ ...line, quantity })}
-          />
-        </View>
-        <View className="flex-1">
-          <Text className="mb-1 text-sm text-muted-foreground">Rate</Text>
-          <FormField
-            keyboardType="decimal-pad"
-            value={line.rate}
-            onChangeText={(rate) => onChange({ ...line, rate })}
-          />
-        </View>
-      </View>
-      {line.itemId ? (
-        <Text className="text-sm text-muted-foreground">
-          GST {line.gstRate}% · {line.unit}
-        </Text>
-      ) : null}
-      <PickerModal
-        visible={pickerOpen}
-        title="Select item"
-        options={items.map((item) => ({ key: item.id, label: item.name }))}
-        onSelect={(itemId) => {
-          const item = items.find((entry) => entry.id === itemId)
-          if (!item) return
-          onChange(applyItemToLine(line, item, godownName))
-        }}
-        onClose={() => setPickerOpen(false)}
-      />
-    </View>
-  )
+function syncPlaceOfSupply(
+  form: SalesInvoiceFormDraft,
+  partyStateCode: string,
+  companyStateCode: string,
+  region = form.region,
+) {
+  return resolvePlaceOfSupply({
+    region,
+    selectedPlaceOfSupply: form.placeOfSupply,
+    partyStateCode,
+    companyStateCode,
+  })
 }
 
 export function SalesInvoiceCreateScreen() {
-  const router = useRouter()
   const queryClient = useQueryClient()
   const {
     company,
+    companyName,
     companyStateCode,
     ledgerBySystemKey,
     godowns,
@@ -151,24 +87,42 @@ export function SalesInvoiceCreateScreen() {
   const itemsQuery = useSalesItems()
 
   const defaultGodown = godowns[0]?.name ?? 'Main'
+  const godownNames =
+    godowns.length > 0 ? godowns.map((entry) => entry.name) : [defaultGodown]
+
   const [step, setStep] = React.useState<WizardStep>('customer')
   const [form, setForm] = React.useState<SalesInvoiceFormDraft>(() =>
-    createInitialSalesInvoiceForm(defaultGodown),
+    createInitialSalesInvoiceForm(defaultGodown, companyStateCode ?? '27'),
   )
   const [customerPickerOpen, setCustomerPickerOpen] = React.useState(false)
+  const [placePickerOpen, setPlacePickerOpen] = React.useState(false)
+  const [seriesPickerOpen, setSeriesPickerOpen] = React.useState(false)
+  const [godownPickerOpen, setGodownPickerOpen] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [successTarget, setSuccessTarget] =
+    React.useState<VoucherSuccessTarget | null>(null)
+  const [successOpen, setSuccessOpen] = React.useState(false)
 
   React.useEffect(() => {
-    if (defaultGodown && form.godownName !== defaultGodown && !godowns.length) {
-      return
-    }
-    if (defaultGodown && form.godownName === 'Main' && defaultGodown !== 'Main') {
-      setForm(createInitialSalesInvoiceForm(defaultGodown))
-    }
-  }, [defaultGodown, form.godownName, godowns.length])
+    if (!companyStateCode) return
+    setForm((current) => ({
+      ...current,
+      godownName: godownNames.includes(current.godownName)
+        ? current.godownName
+        : defaultGodown,
+      placeOfSupply: current.placeOfSupply || companyStateCode,
+    }))
+  }, [companyStateCode, defaultGodown, godownNames])
 
   const customers = filterCustomerParties(partiesQuery.data ?? [])
-  const items = itemsQuery.data ?? []
+  const items = (itemsQuery.data ?? []).map((item) => ({
+    id: item.id,
+    name: item.name,
+    hsnCode: item.hsnCode,
+    gstRate: item.gstRate,
+    baseUnit: item.baseUnit,
+    rate: item.saleRate,
+  }))
   const selectedCustomer = customers.find(
     (party) => party.id === form.customerId,
   )
@@ -193,7 +147,10 @@ export function SalesInvoiceCreateScreen() {
       }
 
       const ledgerError = validateLedgerMappings(ledgerBySystemKey, {
-        requiresInventoryLedgers: formRequiresInventoryLedgers(form, items),
+        requiresInventoryLedgers: formRequiresInventoryLedgers(
+          form,
+          itemsQuery.data ?? [],
+        ),
       })
       if (ledgerError) {
         throw new Error(ledgerError)
@@ -207,7 +164,7 @@ export function SalesInvoiceCreateScreen() {
         companyId: company.id,
         financialYearId: activeFinancialYearId,
         voucherType: 'sales',
-        series: DEFAULT_SALES_SERIES,
+        series: form.series,
         padLength: 4,
       })
 
@@ -223,7 +180,13 @@ export function SalesInvoiceCreateScreen() {
     },
     onSuccess: async (invoice) => {
       await queryClient.invalidateQueries({ queryKey: ['module-list', 'sales'] })
-      router.replace(`/(app)/sales/${invoice.id}` as never)
+      setSuccessTarget({
+        kind: 'sales',
+        id: invoice.id,
+        number: invoice.invoiceNumber,
+        amount: invoice.totalAmount,
+      })
+      setSuccessOpen(true)
     },
     onError: (mutationError) => {
       setError(
@@ -233,6 +196,53 @@ export function SalesInvoiceCreateScreen() {
       )
     },
   })
+
+  function selectCustomer(customerId: string) {
+    const customer = customers.find((entry) => entry.id === customerId)
+    if (!customer || !companyStateCode) {
+      setForm((current) => ({ ...current, customerId }))
+      return
+    }
+
+    const nextRegion: SupplyRegion =
+      customer.stateCode === companyStateCode ? 'local' : 'central'
+    setForm((current) => {
+      const nextForm = {
+        ...current,
+        customerId,
+        region: nextRegion,
+      }
+      return {
+        ...nextForm,
+        placeOfSupply: syncPlaceOfSupply(
+          nextForm,
+          customer.stateCode,
+          companyStateCode,
+          nextRegion,
+        ),
+      }
+    })
+  }
+
+  function updateRegion(region: SalesInvoiceFormDraft['region']) {
+    if (!selectedCustomer || !companyStateCode) {
+      setForm((current) => ({ ...current, region }))
+      return
+    }
+
+    setForm((current) => {
+      const nextForm = { ...current, region }
+      return {
+        ...nextForm,
+        placeOfSupply: syncPlaceOfSupply(
+          nextForm,
+          selectedCustomer.stateCode,
+          companyStateCode,
+          region,
+        ),
+      }
+    })
+  }
 
   function updateLine(index: number, line: SalesInvoiceLineDraft) {
     setForm((current) => ({
@@ -254,6 +264,18 @@ export function SalesInvoiceCreateScreen() {
     setForm((current) => ({
       ...current,
       lines: current.lines.filter((_, entryIndex) => entryIndex !== index),
+    }))
+  }
+
+  function handleHeaderGodownChange(godownName: string) {
+    setForm((current) => ({
+      ...current,
+      godownName,
+      lines: current.lines.map((line) =>
+        !line.itemId || line.godownName === current.godownName
+          ? { ...line, godownName }
+          : line,
+      ),
     }))
   }
 
@@ -328,9 +350,7 @@ export function SalesInvoiceCreateScreen() {
       <StepPills step={step} steps={INVOICE_STEPS} />
 
       {!isReady || mastersLoading ? <LoadingState /> : null}
-      {workspaceError ? (
-        <EmptyState message={workspaceError} />
-      ) : null}
+      {workspaceError ? <EmptyState message={workspaceError} /> : null}
       {!workspaceError && isReady && !company ? (
         <EmptyState message="Set up your company before creating invoices." />
       ) : null}
@@ -339,154 +359,388 @@ export function SalesInvoiceCreateScreen() {
       ) : null}
 
       {isReady && company && !mastersLoading && !mastersError ? (
-        <>
-      {step === 'customer' ? (
-        <DetailCard title="Invoice details" icon="person-outline">
-          <View className="gap-3">
-            <PickerField
-              label="Customer"
-              value={selectedCustomer?.name}
-              placeholder="Select customer"
-              onPress={() => setCustomerPickerOpen(true)}
-            />
-            <View>
-              <Text className="mb-1 text-sm text-muted-foreground">Invoice date</Text>
-              <FormField
-                placeholder="YYYY-MM-DD"
-                value={form.invoiceDate}
-                onChangeText={(invoiceDate) =>
-                  setForm((current) => ({ ...current, invoiceDate }))
-                }
+        <View className="gap-section-header">
+          {step === 'customer' ? (
+            <FormSection title="Invoice details" icon="person-outline">
+              <PickerField
+                label="Customer"
+                value={selectedCustomer?.name}
+                placeholder="Select customer"
+                onPress={() => setCustomerPickerOpen(true)}
               />
-            </View>
-            <View className="gap-2">
-              <Text className="text-sm text-muted-foreground">Payment mode</Text>
-              <View className="flex-row flex-wrap gap-2">
-                {(['credit', 'cash'] as Array<PaymentMode>).map((mode) => (
+              {selectedCustomer ? (
+                <Text className="text-sm text-muted-foreground">
+                  {selectedCustomer.gstin || 'Unregistered'} ·{' '}
+                  {stateLabel(form.placeOfSupply)}
+                </Text>
+              ) : null}
+              <View>
+                <Text className="mb-1 text-sm text-muted-foreground">
+                  Invoice date
+                </Text>
+                <FormField
+                  placeholder="YYYY-MM-DD"
+                  value={form.invoiceDate}
+                  onChangeText={(invoiceDate) =>
+                    setForm((current) => ({ ...current, invoiceDate }))
+                  }
+                />
+              </View>
+              <View>
+                <Text className="mb-1 text-sm text-muted-foreground">Due date</Text>
+                <FormField
+                  placeholder="YYYY-MM-DD"
+                  value={form.dueDate}
+                  onChangeText={(dueDate) =>
+                    setForm((current) => ({ ...current, dueDate }))
+                  }
+                />
+              </View>
+              <PickerField
+                label="Series"
+                value={`${form.series} · auto`}
+                onPress={() => setSeriesPickerOpen(true)}
+              />
+              <View className="gap-2">
+                <Text className="text-sm text-muted-foreground">Supply type</Text>
+                <View className="flex-row flex-wrap gap-2">
                   <OptionChip
-                    key={mode}
-                    label={mode === 'credit' ? 'Credit' : 'Cash'}
-                    active={form.paymentMode === mode}
-                    onPress={() =>
-                      setForm((current) => ({ ...current, paymentMode: mode }))
+                    label="Local (CGST+SGST)"
+                    active={form.region === 'local'}
+                    onPress={() => updateRegion('local')}
+                  />
+                  <OptionChip
+                    label="IGST"
+                    active={form.region === 'central'}
+                    onPress={() => updateRegion('central')}
+                  />
+                </View>
+              </View>
+              <View className="gap-2">
+                <Text className="text-sm text-muted-foreground">Payment</Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {(['credit', 'cash'] as Array<PaymentMode>).map((mode) => (
+                    <OptionChip
+                      key={mode}
+                      label={mode === 'credit' ? 'Credit' : 'Cash'}
+                      active={form.paymentMode === mode}
+                      onPress={() =>
+                        setForm((current) => ({ ...current, paymentMode: mode }))
+                      }
+                    />
+                  ))}
+                </View>
+              </View>
+              <PickerField
+                label="Place of supply"
+                value={stateLabel(form.placeOfSupply)}
+                onPress={() => setPlacePickerOpen(true)}
+              />
+              <View className="gap-2">
+                <Text className="text-sm text-muted-foreground">Tax type</Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {(['exclusive', 'inclusive'] as Array<TaxMode>).map((mode) => (
+                    <OptionChip
+                      key={mode}
+                      label={mode === 'exclusive' ? 'Exclusive' : 'Inclusive'}
+                      active={form.taxMode === mode}
+                      onPress={() =>
+                        setForm((current) => ({ ...current, taxMode: mode }))
+                      }
+                    />
+                  ))}
+                </View>
+              </View>
+              <PickerField
+                label="Godown"
+                value={form.godownName}
+                onPress={() => setGodownPickerOpen(true)}
+              />
+            </FormSection>
+          ) : null}
+
+          {step === 'lines' ? (
+            <View className="gap-section-header">
+              {form.lines.map((line, index) => (
+                <VoucherLineEditor
+                  key={line.key}
+                  line={line}
+                  index={index}
+                  godownNames={godownNames}
+                  items={items}
+                  onChange={(nextLine) => updateLine(index, nextLine)}
+                  onRemove={() => removeLine(index)}
+                  canRemove={form.lines.length > 1}
+                  applyItem={(currentLine, item) =>
+                    applyItemToLine(
+                      currentLine,
+                      {
+                        id: item.id,
+                        name: item.name,
+                        hsnCode: item.hsnCode,
+                        gstRate: item.gstRate,
+                        baseUnit: item.baseUnit,
+                        saleRate: item.rate,
+                      },
+                      form.godownName,
+                    )
+                  }
+                />
+              ))}
+              <Pressable
+                className="flex-row items-center justify-center gap-2 rounded-xl border border-dashed border-primary bg-primary/5 px-4 py-3"
+                onPress={addLine}
+              >
+                <Ionicons
+                  name="add-circle-outline"
+                  size={20}
+                  color={themeColors.primary}
+                />
+                <Text className="font-semibold text-primary">Add line</Text>
+              </Pressable>
+
+              <FormSection title="Transport & references" icon="car-outline">
+                <View>
+                  <Text className="mb-1 text-sm text-muted-foreground">
+                    PO / order ref
+                  </Text>
+                  <FormField
+                    value={form.poReference}
+                    onChangeText={(poReference) =>
+                      setForm((current) => ({ ...current, poReference }))
                     }
                   />
+                </View>
+                <View>
+                  <Text className="mb-1 text-sm text-muted-foreground">
+                    Challan ref
+                  </Text>
+                  <FormField
+                    value={form.challanRef}
+                    onChangeText={(challanRef) =>
+                      setForm((current) => ({ ...current, challanRef }))
+                    }
+                  />
+                </View>
+                <View>
+                  <Text className="mb-1 text-sm text-muted-foreground">
+                    Transport
+                  </Text>
+                  <FormField
+                    placeholder="Road / Rail"
+                    value={form.transportMode}
+                    onChangeText={(transportMode) =>
+                      setForm((current) => ({ ...current, transportMode }))
+                    }
+                  />
+                </View>
+                <View className="flex-row gap-3">
+                  <View className="flex-1">
+                    <Text className="mb-1 text-sm text-muted-foreground">
+                      Vehicle no.
+                    </Text>
+                    <FormField
+                      value={form.vehicleNo}
+                      onChangeText={(vehicleNo) =>
+                        setForm((current) => ({ ...current, vehicleNo }))
+                      }
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="mb-1 text-sm text-muted-foreground">
+                      LR / AWB
+                    </Text>
+                    <FormField
+                      value={form.lrNumber}
+                      onChangeText={(lrNumber) =>
+                        setForm((current) => ({ ...current, lrNumber }))
+                      }
+                    />
+                  </View>
+                </View>
+              </FormSection>
+
+              <FormSection title="Charges & notes" icon="receipt-outline">
+                <View className="flex-row gap-3">
+                  <View className="flex-1">
+                    <Text className="mb-1 text-sm text-muted-foreground">
+                      Freight
+                    </Text>
+                    <FormField
+                      keyboardType="decimal-pad"
+                      value={form.freight}
+                      onChangeText={(freight) =>
+                        setForm((current) => ({ ...current, freight }))
+                      }
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="mb-1 text-sm text-muted-foreground">
+                      Packing
+                    </Text>
+                    <FormField
+                      keyboardType="decimal-pad"
+                      value={form.packing}
+                      onChangeText={(packing) =>
+                        setForm((current) => ({ ...current, packing }))
+                      }
+                    />
+                  </View>
+                </View>
+                <View className="flex-row gap-3">
+                  <View className="flex-1">
+                    <Text className="mb-1 text-sm text-muted-foreground">
+                      Round off
+                    </Text>
+                    <FormField
+                      keyboardType="decimal-pad"
+                      value={form.roundOff}
+                      onChangeText={(roundOff) =>
+                        setForm((current) => ({ ...current, roundOff }))
+                      }
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="mb-1 text-sm text-muted-foreground">
+                      Bill discount
+                    </Text>
+                    <FormField
+                      keyboardType="decimal-pad"
+                      value={form.billDiscount}
+                      onChangeText={(billDiscount) =>
+                        setForm((current) => ({ ...current, billDiscount }))
+                      }
+                    />
+                  </View>
+                </View>
+                <View>
+                  <Text className="mb-1 text-sm text-muted-foreground">
+                    Narration
+                  </Text>
+                  <FormField
+                    placeholder="Optional notes"
+                    value={form.narration}
+                    onChangeText={(narration) =>
+                      setForm((current) => ({ ...current, narration }))
+                    }
+                  />
+                </View>
+              </FormSection>
+
+              {totals ? (
+                <FormSection title="GST summary" icon="calculator-outline">
+                  <CardRow
+                    title="Taxable"
+                    amount={formatInr(totals.taxableAmount)}
+                  />
+                  {form.region === 'local' ? (
+                    <>
+                      <CardRow title="CGST" amount={formatInr(totals.cgstAmount)} />
+                      <CardRow title="SGST" amount={formatInr(totals.sgstAmount)} />
+                    </>
+                  ) : (
+                    <CardRow title="IGST" amount={formatInr(totals.igstAmount)} />
+                  )}
+                  <CardRow title="Sundry" amount={formatInr(totals.sundryTotal)} />
+                  <CardRow
+                    title="Grand total"
+                    amount={formatInr(totals.grandTotal)}
+                  />
+                </FormSection>
+              ) : null}
+            </View>
+          ) : null}
+
+          {step === 'review' ? (
+            <View className="gap-3">
+              <CardRow
+                title={selectedCustomer?.name ?? 'Customer'}
+                subtitle={`${form.invoiceDate}${form.dueDate ? ` · Due ${form.dueDate}` : ''}`}
+                badge={form.paymentMode === 'credit' ? 'Credit' : 'Cash'}
+              />
+              <CardRow
+                title="Place of supply"
+                subtitle={stateLabel(form.placeOfSupply)}
+              />
+              {form.lines
+                .filter((line) => line.itemId)
+                .map((line) => (
+                  <CardRow
+                    key={line.key}
+                    title={line.itemName}
+                    subtitle={`${line.quantity} ${line.unit} × ${formatInr(line.rate)}${Number(line.discountPercent) > 0 ? ` · Disc ${line.discountPercent}%` : ''}`}
+                    badge={`GST ${line.gstRate}%`}
+                  />
                 ))}
-              </View>
+              {totals ? (
+                <>
+                  <CardRow
+                    title="Taxable amount"
+                    amount={formatInr(totals.taxableAmount)}
+                  />
+                  <CardRow title="GST" amount={formatInr(totals.totalGstAmount)} />
+                  <CardRow
+                    title="Grand total"
+                    amount={formatInr(totals.grandTotal)}
+                  />
+                </>
+              ) : null}
             </View>
-            <View className="gap-2">
-              <Text className="text-sm text-muted-foreground">Supply</Text>
-              <View className="flex-row flex-wrap gap-2">
-                <OptionChip
-                  label="Local"
-                  active={form.region === 'local'}
-                  onPress={() =>
-                    setForm((current) => ({ ...current, region: 'local' }))
-                  }
-                />
-                <OptionChip
-                  label="Inter-state"
-                  active={form.region === 'central'}
-                  onPress={() =>
-                    setForm((current) => ({ ...current, region: 'central' }))
-                  }
-                />
-              </View>
-            </View>
-            <View>
-              <Text className="mb-1 text-sm text-muted-foreground">Narration</Text>
-              <FormField
-                placeholder="Optional note"
-                value={form.narration}
-                onChangeText={(narration) =>
-                  setForm((current) => ({ ...current, narration }))
-                }
-              />
-            </View>
-          </View>
-        </DetailCard>
-      ) : null}
-
-      {step === 'lines' ? (
-        <View className="gap-3">
-          {form.lines.map((line, index) => (
-            <LineItemEditor
-              key={line.key}
-              line={line}
-              index={index}
-              godownName={form.godownName}
-              items={items}
-              onChange={(nextLine) => updateLine(index, nextLine)}
-              onRemove={() => removeLine(index)}
-              canRemove={form.lines.length > 1}
-            />
-          ))}
-          <Pressable
-            className="flex-row items-center justify-center gap-2 rounded-xl border border-dashed border-primary bg-primary/5 px-4 py-3"
-            onPress={addLine}
-          >
-            <Ionicons name="add-circle-outline" size={20} color={themeColors.primary} />
-            <Text className="font-semibold text-primary">Add line</Text>
-          </Pressable>
-          {totals ? (
-            <CardRow
-              title="Subtotal"
-              amount={formatInr(totals.grandTotal)}
-              subtitle={`${totals.lineCount} line(s) · GST ${formatInr(totals.totalGstAmount)}`}
-            />
           ) : null}
         </View>
-      ) : null}
-
-      {step === 'review' ? (
-        <View className="gap-3">
-          <CardRow
-            title={selectedCustomer?.name ?? 'Customer'}
-            subtitle={form.invoiceDate}
-            badge={form.paymentMode === 'credit' ? 'Credit' : 'Cash'}
-          />
-          {form.lines
-            .filter((line) => line.itemId)
-            .map((line) => (
-              <CardRow
-                key={line.key}
-                title={line.itemName}
-                subtitle={`${line.quantity} ${line.unit} × ${formatInr(line.rate)}`}
-                badge={`GST ${line.gstRate}%`}
-              />
-            ))}
-          {totals ? (
-            <>
-              <CardRow
-                title="Taxable amount"
-                amount={formatInr(totals.taxableAmount)}
-              />
-              <CardRow
-                title="GST"
-                amount={formatInr(totals.totalGstAmount)}
-              />
-              <CardRow
-                title="Grand total"
-                amount={formatInr(totals.grandTotal)}
-              />
-            </>
-          ) : null}
-        </View>
-      ) : null}
-        </>
       ) : null}
 
       <PickerModal
         visible={customerPickerOpen}
         title="Select customer"
+        searchable
+        searchPlaceholder="Search name / GSTIN"
         options={customers.map((party) => ({
           key: party.id,
           label: party.name,
+          description: `${party.gstin ?? 'Unregistered'} · ${stateLabel(party.stateCode)}`,
+          keywords: party.gstin ?? '',
         }))}
-        onSelect={(customerId) =>
-          setForm((current) => ({ ...current, customerId }))
-        }
+        onSelect={selectCustomer}
         onClose={() => setCustomerPickerOpen(false)}
+      />
+      <PickerModal
+        visible={placePickerOpen}
+        title="Place of supply"
+        searchable
+        searchPlaceholder="Search state"
+        options={indianStates.map((state) => ({
+          key: state.code,
+          label: `${state.name} (${state.code})`,
+        }))}
+        onSelect={(placeOfSupply) =>
+          setForm((current) => ({ ...current, placeOfSupply }))
+        }
+        onClose={() => setPlacePickerOpen(false)}
+      />
+      <PickerModal
+        visible={seriesPickerOpen}
+        title="Invoice series"
+        options={salesSeriesOptions.map((series) => ({
+          key: series,
+          label: series,
+        }))}
+        onSelect={(series) => setForm((current) => ({ ...current, series }))}
+        onClose={() => setSeriesPickerOpen(false)}
+      />
+      <PickerModal
+        visible={godownPickerOpen}
+        title="Default godown"
+        options={godownNames.map((name) => ({ key: name, label: name }))}
+        onSelect={handleHeaderGodownChange}
+        onClose={() => setGodownPickerOpen(false)}
+      />
+
+      <VoucherSuccessSheet
+        open={successOpen}
+        onOpenChange={setSuccessOpen}
+        target={successTarget}
+        companyName={companyName ?? company?.tradeName ?? 'Company'}
       />
     </Screen>
   )

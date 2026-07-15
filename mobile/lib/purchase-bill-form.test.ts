@@ -63,6 +63,7 @@ describe('purchase-bill-form', () => {
       {
         id: 'item-1',
         name: 'Cotton Fabric',
+        hsnCode: '5208',
         gstRate: '12',
         baseUnit: 'meter',
         purchaseRate: '90.00',
@@ -73,14 +74,15 @@ describe('purchase-bill-form', () => {
     expect(line).toMatchObject({
       itemId: 'item-1',
       itemName: 'Cotton Fabric',
+      hsnCode: '5208',
       gstRate: '12',
       unit: 'meter',
       rate: '90.00',
     })
   })
 
-  it('validates supplier and line requirements', () => {
-    const form = createInitialPurchaseBillForm('Main')
+  it('validates supplier bill number and line requirements', () => {
+    const form = createInitialPurchaseBillForm('Main', '27')
     form.supplierId = supplier.id
 
     expect(validatePurchaseBillForm(form, undefined, '27')).toBe(
@@ -88,19 +90,27 @@ describe('purchase-bill-form', () => {
     )
 
     expect(validatePurchaseBillForm(form, supplier, '27')).toBe(
+      'Supplier bill no. is required.',
+    )
+
+    form.supplierBillNumber = 'SUP-100'
+    expect(validatePurchaseBillForm(form, supplier, '27')).toBe(
       'Add at least one line item with quantity and rate.',
     )
   })
 
-  it('computes totals for filled lines', () => {
-    const form = createInitialPurchaseBillForm('Main')
+  it('computes totals with sundry charges', () => {
+    const form = createInitialPurchaseBillForm('Main', '27')
     form.supplierId = supplier.id
+    form.supplierBillNumber = 'SUP-100'
+    form.packing = '20.00'
     form.lines = [
       applyItemToPurchaseLine(
         createEmptyPurchaseLine('Main'),
         {
           id: 'item-1',
           name: 'Cotton Fabric',
+          hsnCode: '5208',
           gstRate: '12',
           baseUnit: 'meter',
           purchaseRate: '100.00',
@@ -115,20 +125,29 @@ describe('purchase-bill-form', () => {
     ).toEqual({
       lineCount: 1,
       taxableAmount: '200.00',
+      cgstAmount: '12.00',
+      sgstAmount: '12.00',
+      igstAmount: '0.00',
       totalGstAmount: '24.00',
-      grandTotal: '224.00',
+      sundryTotal: '20.00',
+      billDiscountAmount: '0.00',
+      grandTotal: '244.00',
     })
   })
 
-  it('builds postBill payload with ledger mappings', () => {
-    const form = createInitialPurchaseBillForm('Main')
+  it('builds postBill payload with references and charges', () => {
+    const form = createInitialPurchaseBillForm('Main', '27')
     form.supplierId = supplier.id
+    form.supplierBillNumber = 'SUP-100'
+    form.dueDate = '2026-08-01'
+    form.lrNumber = 'LR-55'
     form.lines = [
       applyItemToPurchaseLine(
         createEmptyPurchaseLine('Main'),
         {
           id: 'item-1',
           name: 'Cotton Fabric',
+          hsnCode: '5208',
           gstRate: '12',
           baseUnit: 'meter',
           purchaseRate: '100.00',
@@ -141,13 +160,14 @@ describe('purchase-bill-form', () => {
       company,
       ledgerBySystemKey,
       supplier,
-      supplierBillNumber: 'PUR-0001',
     })
 
     expect(payload).toMatchObject({
       companyId: 'company-1',
       supplierId: 'supplier-1',
-      supplierBillNumber: 'PUR-0001',
+      supplierBillNumber: 'SUP-100',
+      dueDate: '2026-08-01',
+      lrNumber: 'LR-55',
       financialYearStart: '2025-04-01',
       purchaseAccountId: 'ledger-purchase',
       lines: [

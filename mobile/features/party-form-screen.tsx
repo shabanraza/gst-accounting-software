@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 
 import { EmptyState } from '@/components/data/empty-state'
-import { DetailCard } from '@/components/data/detail-card'
+import { FormSection } from '@/components/layout/form-section'
 import { Screen } from '@/components/layout/screen'
 import { WizardFooter } from '@/components/layout/wizard-footer'
 import { PrimaryButton } from '@/components/ui/button'
@@ -131,7 +131,7 @@ export function PartyFormScreen({
     >
       {!isReady ? <EmptyState message="Loading workspace…" /> : null}
 
-      <DetailCard title="Basics" icon="person-outline">
+      <FormSection title="Basics" icon="person-outline">
         <View className="gap-3">
           <View>
             <Text className="mb-1 text-sm text-muted-foreground">Name</Text>
@@ -190,9 +190,9 @@ export function PartyFormScreen({
             </View>
           </View>
         </View>
-      </DetailCard>
+      </FormSection>
 
-      <DetailCard title="Address" icon="location-outline">
+      <FormSection title="Address" icon="location-outline">
         <View className="gap-3">
           <FormField
             placeholder="Address line 1"
@@ -228,9 +228,9 @@ export function PartyFormScreen({
             </View>
           </View>
         </View>
-      </DetailCard>
+      </FormSection>
 
-      <DetailCard title="Contact" icon="call-outline">
+      <FormSection title="Contact" icon="call-outline">
         <View className="flex-row gap-3">
           <View className="flex-1">
             <FormField
@@ -254,9 +254,9 @@ export function PartyFormScreen({
             />
           </View>
         </View>
-      </DetailCard>
+      </FormSection>
 
-      <DetailCard title="Credit" icon="wallet-outline">
+      <FormSection title="Credit" icon="wallet-outline">
         <View className="gap-3">
           <PickerField
             label="Payment terms"
@@ -275,7 +275,7 @@ export function PartyFormScreen({
             />
           </View>
         </View>
-      </DetailCard>
+      </FormSection>
 
       <PickerModal
         visible={statePickerOpen}

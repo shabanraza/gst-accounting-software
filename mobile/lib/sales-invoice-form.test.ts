@@ -64,6 +64,7 @@ describe('sales-invoice-form', () => {
       {
         id: 'item-1',
         name: 'Cotton Fabric',
+        hsnCode: '5208',
         gstRate: '12',
         baseUnit: 'meter',
         saleRate: '120.00',
@@ -74,6 +75,7 @@ describe('sales-invoice-form', () => {
     expect(line).toMatchObject({
       itemId: 'item-1',
       itemName: 'Cotton Fabric',
+      hsnCode: '5208',
       gstRate: '12',
       unit: 'meter',
       rate: '120.00',
@@ -81,7 +83,7 @@ describe('sales-invoice-form', () => {
   })
 
   it('validates customer and line requirements', () => {
-    const form = createInitialSalesInvoiceForm('Main')
+    const form = createInitialSalesInvoiceForm('Main', '27')
     form.customerId = customer.id
 
     expect(validateSalesInvoiceForm(form, undefined, '27')).toBe(
@@ -93,15 +95,41 @@ describe('sales-invoice-form', () => {
     )
   })
 
-  it('computes totals for filled lines', () => {
-    const form = createInitialSalesInvoiceForm('Main')
+  it('validates place of supply for inter-state supply', () => {
+    const form = createInitialSalesInvoiceForm('Main', '27')
     form.customerId = customer.id
+    form.region = 'central'
+    form.placeOfSupply = ''
     form.lines = [
       applyItemToLine(
         createEmptySalesLine('Main'),
         {
           id: 'item-1',
           name: 'Cotton Fabric',
+          hsnCode: '5208',
+          gstRate: '12',
+          baseUnit: 'meter',
+          saleRate: '100.00',
+        },
+        'Main',
+      ),
+    ]
+
+    expect(validateSalesInvoiceForm(form, customer, '27')).toBeNull()
+  })
+
+  it('computes totals with sundry charges', () => {
+    const form = createInitialSalesInvoiceForm('Main', '27')
+    form.customerId = customer.id
+    form.freight = '10.00'
+    form.billDiscount = '5.00'
+    form.lines = [
+      applyItemToLine(
+        createEmptySalesLine('Main'),
+        {
+          id: 'item-1',
+          name: 'Cotton Fabric',
+          hsnCode: '5208',
           gstRate: '12',
           baseUnit: 'meter',
           saleRate: '100.00',
@@ -115,21 +143,31 @@ describe('sales-invoice-form', () => {
       {
         lineCount: 1,
         taxableAmount: '200.00',
+        cgstAmount: '12.00',
+        sgstAmount: '12.00',
+        igstAmount: '0.00',
         totalGstAmount: '24.00',
-        grandTotal: '224.00',
+        sundryTotal: '5.00',
+        billDiscountAmount: '5.00',
+        grandTotal: '229.00',
       },
     )
   })
 
-  it('builds postInvoice payload with ledger mappings', () => {
-    const form = createInitialSalesInvoiceForm('Main')
+  it('builds postInvoice payload with transport and charges', () => {
+    const form = createInitialSalesInvoiceForm('Main', '27')
     form.customerId = customer.id
+    form.dueDate = '2026-07-20'
+    form.poReference = 'PO-100'
+    form.transportMode = 'Road'
+    form.freight = '50.00'
     form.lines = [
       applyItemToLine(
         createEmptySalesLine('Main'),
         {
           id: 'item-1',
           name: 'Cotton Fabric',
+          hsnCode: '5208',
           gstRate: '12',
           baseUnit: 'meter',
           saleRate: '100.00',
@@ -150,6 +188,10 @@ describe('sales-invoice-form', () => {
       companyId: 'company-1',
       customerId: 'customer-1',
       invoiceNumber: 'INV-0001',
+      dueDate: '2026-07-20',
+      poReference: 'PO-100',
+      transportMode: 'Road',
+      freight: '50.00',
       salesAccountId: 'ledger-sales',
       lines: [
         {
@@ -170,13 +212,14 @@ describe('sales-invoice-form', () => {
   })
 
   it('requires inventory ledgers for tracked items', () => {
-    const form = createInitialSalesInvoiceForm('Main')
+    const form = createInitialSalesInvoiceForm('Main', '27')
     form.lines = [
       applyItemToLine(
         createEmptySalesLine('Main'),
         {
           id: 'item-1',
           name: 'Cotton Fabric',
+          hsnCode: '5208',
           gstRate: '12',
           baseUnit: 'meter',
           saleRate: '100.00',

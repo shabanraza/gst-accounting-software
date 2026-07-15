@@ -13,7 +13,7 @@ export function PickerField({
 }) {
   return (
     <Pressable
-      className="rounded-xl border border-border bg-card px-4 py-3"
+      className="rounded-xl border border-border bg-background px-4 py-3"
       onPress={onPress}
     >
       <Text className="text-sm text-muted-foreground">{label}</Text>

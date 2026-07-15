@@ -12,6 +12,7 @@ export type PurchaseBillLineDraft = {
   key: string
   itemId: string
   itemName: string
+  hsnCode: string
   gstRate: string
   unit: string
   quantity: string
@@ -25,11 +26,14 @@ export type PurchasePartyLike = {
   name: string
   partyType: 'customer' | 'supplier' | 'both'
   stateCode: string
+  gstin?: string | null
+  paymentTermsDays?: number
 }
 
 export type PurchaseItemLike = {
   id: string
   name: string
+  hsnCode: string
   gstRate: string
   baseUnit: string
   purchaseRate: string
@@ -37,11 +41,24 @@ export type PurchaseItemLike = {
 
 export type PurchaseBillFormDraft = {
   supplierId: string
+  series: string
+  supplierBillNumber: string
   billDate: string
+  dueDate: string
   taxMode: TaxMode
   region: SupplyRegion
+  placeOfSupply: string
   godownName: string
+  poReference: string
+  transportMode: string
+  vehicleNo: string
+  lrNumber: string
+  challanRef: string
   narration: string
+  freight: string
+  packing: string
+  roundOff: string
+  billDiscount: string
   lines: Array<PurchaseBillLineDraft>
 }
 
@@ -60,7 +77,6 @@ export type PostPurchaseBillContext = {
   company: WorkspaceCompanyLike
   ledgerBySystemKey: Partial<Record<string, string>>
   supplier: PurchasePartyLike
-  supplierBillNumber: string
 }
 
 const REQUIRED_LEDGER_KEYS = [
@@ -87,6 +103,8 @@ export function filterSupplierParties(parties: Array<PurchasePartyLike>) {
 
 import { randomId } from './random-id.ts'
 
+export const DEFAULT_PURCHASE_SERIES = 'PUR'
+
 export function createEmptyPurchaseLine(
   godownName: string,
 ): PurchaseBillLineDraft {
@@ -94,6 +112,7 @@ export function createEmptyPurchaseLine(
     key: randomId(),
     itemId: '',
     itemName: '',
+    hsnCode: '',
     gstRate: '0',
     unit: '',
     quantity: '1',
@@ -105,14 +124,28 @@ export function createEmptyPurchaseLine(
 
 export function createInitialPurchaseBillForm(
   godownName: string,
+  companyStateCode = '27',
 ): PurchaseBillFormDraft {
   return {
     supplierId: '',
+    series: DEFAULT_PURCHASE_SERIES,
+    supplierBillNumber: '',
     billDate: new Date().toISOString().slice(0, 10),
+    dueDate: '',
     taxMode: 'exclusive',
     region: 'local',
+    placeOfSupply: companyStateCode,
     godownName,
+    poReference: '',
+    transportMode: '',
+    vehicleNo: '',
+    lrNumber: '',
+    challanRef: '',
     narration: '',
+    freight: '0.00',
+    packing: '0.00',
+    roundOff: '0.00',
+    billDiscount: '0.00',
     lines: [createEmptyPurchaseLine(godownName)],
   }
 }
@@ -126,6 +159,7 @@ export function applyItemToPurchaseLine(
     ...line,
     itemId: item.id,
     itemName: item.name,
+    hsnCode: item.hsnCode,
     gstRate: item.gstRate,
     unit: item.baseUnit,
     rate: item.purchaseRate,
@@ -169,10 +203,10 @@ export function computePurchaseLinePreview(
 
   return {
     taxableAmount: formatMoney(taxableAmount),
-    totalGstAmount: formatMoney(totalGstAmount),
     cgstAmount: formatMoney(cgstAmount),
     sgstAmount: formatMoney(sgstAmount),
     igstAmount: formatMoney(igstAmount),
+    totalGstAmount: formatMoney(totalGstAmount),
     lineTotal: formatMoney(lineTotal),
   }
 }
@@ -197,19 +231,36 @@ export function computePurchaseFormTotals(
     (sum, line) => sum + money(line.taxableAmount),
     0,
   )
-  const totalGstAmount = lineTotals.reduce(
-    (sum, line) => sum + money(line.totalGstAmount),
+  const cgstAmount = lineTotals.reduce(
+    (sum, line) => sum + money(line.cgstAmount),
     0,
   )
-  const grandTotal = lineTotals.reduce(
-    (sum, line) => sum + money(line.lineTotal),
+  const sgstAmount = lineTotals.reduce(
+    (sum, line) => sum + money(line.sgstAmount),
     0,
   )
+  const igstAmount = lineTotals.reduce(
+    (sum, line) => sum + money(line.igstAmount),
+    0,
+  )
+  const totalGstAmount = cgstAmount + sgstAmount + igstAmount
+  const billDiscountAmount = money(form.billDiscount)
+  const sundryTotal =
+    money(form.freight) +
+    money(form.packing) +
+    money(form.roundOff) -
+    billDiscountAmount
+  const grandTotal = taxableAmount + totalGstAmount + sundryTotal
 
   return {
     lineCount: filledLines.length,
     taxableAmount: formatMoney(taxableAmount),
+    cgstAmount: formatMoney(cgstAmount),
+    sgstAmount: formatMoney(sgstAmount),
+    igstAmount: formatMoney(igstAmount),
     totalGstAmount: formatMoney(totalGstAmount),
+    sundryTotal: formatMoney(sundryTotal),
+    billDiscountAmount: formatMoney(billDiscountAmount),
     grandTotal: formatMoney(grandTotal),
   }
 }
@@ -225,6 +276,25 @@ export function validatePurchaseBillForm(
 
   if (!form.billDate.trim()) {
     return 'Bill date is required.'
+  }
+
+  if (!form.supplierBillNumber.trim()) {
+    return 'Supplier bill no. is required.'
+  }
+
+  if (!isValidStateCode(companyStateCode)) {
+    return 'Set a valid company state code in Company settings before posting.'
+  }
+
+  const resolvedPlaceOfSupply = resolvePlaceOfSupply({
+    region: form.region,
+    selectedPlaceOfSupply: form.placeOfSupply,
+    partyStateCode: supplier.stateCode,
+    companyStateCode,
+  })
+
+  if (!isValidStateCode(resolvedPlaceOfSupply)) {
+    return 'Select a place of supply or set the supplier state.'
   }
 
   const filledLines = form.lines.filter(
@@ -285,11 +355,12 @@ export function buildPostPurchaseBillInput(
   form: PurchaseBillFormDraft,
   context: PostPurchaseBillContext,
 ) {
-  const { company, ledgerBySystemKey, supplier, supplierBillNumber } = context
+  const { company, ledgerBySystemKey, supplier } = context
 
   const companyStateCode = company.stateCode
   const placeOfSupply = resolvePlaceOfSupply({
     region: form.region,
+    selectedPlaceOfSupply: form.placeOfSupply,
     partyStateCode: supplier.stateCode,
     companyStateCode,
   })
@@ -316,15 +387,20 @@ export function buildPostPurchaseBillInput(
     supplierId: supplier.id,
     supplierStateCode,
     placeOfSupply,
-    supplierBillNumber,
+    supplierBillNumber: form.supplierBillNumber.trim(),
     billDate: form.billDate,
-    dueDate: form.billDate,
+    dueDate: form.dueDate.trim() || form.billDate,
     taxMode: form.taxMode,
-    narration: form.narration || undefined,
-    freight: '0.00',
-    packing: '0.00',
-    roundOff: '0.00',
-    billDiscount: '0.00',
+    poReference: form.poReference.trim() || undefined,
+    transportMode: form.transportMode.trim() || undefined,
+    vehicleNo: form.vehicleNo.trim() || undefined,
+    lrNumber: form.lrNumber.trim() || undefined,
+    challanRef: form.challanRef.trim() || undefined,
+    narration: form.narration.trim() || undefined,
+    freight: form.freight,
+    packing: form.packing,
+    roundOff: form.roundOff,
+    billDiscount: form.billDiscount,
     godownName: form.godownName,
     purchaseAccountId: ledgerBySystemKey.purchase!,
     inputGstAccountId: ledgerBySystemKey.input_gst!,
@@ -342,5 +418,3 @@ export function buildPostPurchaseBillInput(
     })),
   }
 }
-
-export const DEFAULT_PURCHASE_SERIES = 'PUR'

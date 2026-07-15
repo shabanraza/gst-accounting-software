@@ -80,3 +80,6 @@ export function partyTypeLabel(partyType: 'customer' | 'supplier' | 'both') {
   if (partyType === 'supplier') return 'Supplier'
   return 'Both'
 }
+
+export const salesSeriesOptions = ['INV', 'TAX', 'RET'] as const
+export const purchaseSeriesOptions = ['PUR', 'EXP', 'IMP'] as const
