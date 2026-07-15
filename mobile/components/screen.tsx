@@ -26,12 +26,12 @@ export function Screen({
           <Text className="text-gray-500 mt-1">{subtitle}</Text>
         ) : null}
       </View>
-      <ScrollView className="flex-1" contentContainerClassName="gap-3 p-4 pb-24">
+      <ScrollView className="flex-1" contentContainerClassName="gap-4 p-4 pb-24">
         {children}
       </ScrollView>
       {actionHref && actionLabel ? (
         <Link href={actionHref as never} asChild>
-          <Pressable className="absolute bottom-6 right-4 size-14 items-center justify-center rounded-full bg-indigo-600 shadow-lg">
+          <Pressable className="absolute bottom-6 right-4 size-14 items-center justify-center rounded-full bg-teal-600 shadow-lg">
             <Ionicons name="add" size={28} color="white" />
           </Pressable>
         </Link>
@@ -55,7 +55,7 @@ export function CardRow({
 }) {
   return (
     <Pressable
-      className="rounded-xl border border-gray-200 bg-white p-4"
+      className="rounded-xl border border-gray-100 bg-white p-4"
       onPress={onPress}
     >
       <View className="flex-row items-start justify-between gap-3">
@@ -70,7 +70,7 @@ export function CardRow({
         ) : null}
       </View>
       {badge ? (
-        <Text className="text-indigo-600 mt-2 text-xs font-medium uppercase">
+        <Text className="text-teal-600 mt-2 text-xs font-medium uppercase">
           {badge}
         </Text>
       ) : null}
@@ -81,7 +81,7 @@ export function CardRow({
 export function ModuleLinkCard({ module }: { module: MobileNavModule }) {
   return (
     <Link href={module.path as never} asChild>
-      <Pressable className="rounded-xl border border-gray-200 bg-white p-4">
+      <Pressable className="rounded-xl border border-gray-100 bg-white p-4">
         <Text className="font-semibold text-gray-900">{module.title}</Text>
       </Pressable>
     </Link>

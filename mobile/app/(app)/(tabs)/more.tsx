@@ -22,7 +22,7 @@ export default function MoreScreen() {
         <ModuleLinkCard key={module.id} module={module} />
       ))}
       <Pressable
-        className="rounded-xl border border-gray-200 bg-white p-4"
+        className="rounded-xl border border-gray-100 bg-white p-4"
         onPress={() => void handleSignOut()}
       >
         <Text className="font-semibold text-red-600">Sign out</Text>

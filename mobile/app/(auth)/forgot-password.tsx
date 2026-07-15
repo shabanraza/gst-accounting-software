@@ -26,13 +26,13 @@ export default function ForgotPasswordScreen() {
       />
       {message ? <Text className="text-emerald-600">{message}</Text> : null}
       <Pressable
-        className="items-center rounded-xl bg-indigo-600 px-4 py-3"
+        className="items-center rounded-xl bg-teal-600 px-4 py-3"
         onPress={() => void handleSubmit()}
       >
         <Text className="font-semibold text-white">Send reset link</Text>
       </Pressable>
       <Link href="/(auth)/login">
-        <Text className="text-indigo-600">Back to sign in</Text>
+        <Text className="text-teal-600">Back to sign in</Text>
       </Link>
     </View>
   )

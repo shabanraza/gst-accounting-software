@@ -67,13 +67,13 @@ export default function SignupScreen() {
       />
       {error ? <Text className="text-red-600">{error}</Text> : null}
       <Pressable
-        className="items-center rounded-xl bg-indigo-600 px-4 py-3"
+        className="items-center rounded-xl bg-teal-600 px-4 py-3"
         onPress={() => void handleSubmit()}
       >
         <Text className="font-semibold text-white">Sign up</Text>
       </Pressable>
       <Link href="/(auth)/login">
-        <Text className="text-indigo-600">Already have an account?</Text>
+        <Text className="text-teal-600">Already have an account?</Text>
       </Link>
     </View>
   )

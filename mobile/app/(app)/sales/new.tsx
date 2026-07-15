@@ -27,7 +27,7 @@ export default function NewSalesInvoiceScreen() {
       />
       {message ? <Text className="text-gray-500">{message}</Text> : null}
       <Pressable
-        className="items-center rounded-xl bg-indigo-600 px-4 py-3"
+        className="items-center rounded-xl bg-teal-600 px-4 py-3"
         onPress={() => void handleCreateStub()}
       >
         <Text className="font-semibold text-white">Continue</Text>

@@ -46,7 +46,7 @@ export function ApiHealthGate({ children }: { children: React.ReactNode }) {
           API URL: {resolveApiBaseUrl()}
         </Text>
         <Pressable
-          className="items-center rounded-xl bg-indigo-600 px-4 py-3"
+          className="items-center rounded-xl bg-teal-600 px-4 py-3"
           onPress={() => void runHealthCheck()}
         >
           <Text className="font-semibold text-white">Retry connection</Text>

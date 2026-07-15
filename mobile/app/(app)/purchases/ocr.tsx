@@ -55,7 +55,7 @@ export default function OcrReviewScreen() {
     <Screen title="OCR review" subtitle="Capture bills and review drafts">
       <View className="flex-row gap-3">
         <Pressable
-          className="flex-1 items-center rounded-xl bg-indigo-600 px-4 py-3"
+          className="flex-1 items-center rounded-xl bg-teal-600 px-4 py-3"
           onPress={() => void handleCapture('camera')}
         >
           <Text className="font-semibold text-white">Camera</Text>
