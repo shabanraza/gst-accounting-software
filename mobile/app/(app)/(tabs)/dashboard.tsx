@@ -93,7 +93,7 @@ export default function DashboardScreen() {
             />
 
             <View className="gap-1.5">
-              <SectionHeader title="Quick Create" compact />
+              <SectionHeader title="Quick Create" compact icon="flash-outline" />
               <ActionGrid items={QUICK_CREATE_ACTIONS} />
             </View>
 

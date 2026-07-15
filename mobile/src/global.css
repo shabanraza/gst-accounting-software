@@ -16,13 +16,16 @@
   --color-card: #ffffff;
   --color-card-foreground: #111827;
 
-  /* Primary brand & icon system (muted blue only) */
+  /* Primary brand & icon system */
   --color-primary: #2563eb;
   --color-primary-foreground: #ffffff;
   --color-primary-muted: #eff6ff;
-  --color-icon: #2563eb;
-  --color-icon-bg: #eff6ff;
-  --color-icon-foreground: #1d4ed8;
+  --color-icon: #374151;
+  --color-icon-bg: #f3f4f6;
+  --color-icon-foreground: #111827;
+  --color-icon-accent-blue: #2563eb;
+  --color-icon-accent-red: #ef4444;
+  --color-icon-accent-orange: #f97316;
 
   /* Muted / secondary text */
   --color-muted: #f3f4f6;

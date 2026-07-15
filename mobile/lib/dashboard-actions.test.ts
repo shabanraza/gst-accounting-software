@@ -16,6 +16,14 @@ describe('dashboard action grids', () => {
       'item',
     ])
     expect(QUICK_CREATE_ACTIONS[0]?.href).toBe('/(app)/sales/new')
+    expect(QUICK_CREATE_ACTIONS.every((item) => item.accent)).toBe(true)
+    expect(QUICK_CREATE_ACTIONS.map((item) => item.accent)).toEqual([
+      'blue',
+      'red',
+      'orange',
+      'blue',
+      'orange',
+    ])
   })
 
   it('defines view and report navigation stubs', () => {

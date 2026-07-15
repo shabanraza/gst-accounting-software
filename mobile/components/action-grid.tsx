@@ -3,13 +3,36 @@ import { Link } from 'expo-router'
 
 import { Pressable, Text, View } from '@/tw'
 
-const ICON_COLOR = '#2563eb'
+const ICON_STROKE = '#374151'
+
+const ACCENT_COLORS = {
+  blue: '#2563eb',
+  red: '#ef4444',
+  orange: '#f97316',
+} as const
+
+export type ActionAccent = keyof typeof ACCENT_COLORS
 
 export type ActionGridItem = {
   id: string
   label: string
   icon: keyof typeof Ionicons.glyphMap
   href: string
+  accent?: ActionAccent
+}
+
+function ActionIcon({ icon, accent }: { icon: ActionGridItem['icon']; accent?: ActionAccent }) {
+  return (
+    <View className="relative size-11 items-center justify-center rounded-xl bg-icon-bg">
+      <Ionicons name={icon} size={20} color={ICON_STROKE} />
+      {accent ? (
+        <View
+          className="absolute bottom-1.5 right-1.5 size-2 rounded-full"
+          style={{ backgroundColor: ACCENT_COLORS[accent] }}
+        />
+      ) : null}
+    </View>
+  )
 }
 
 export function ActionGrid({ items }: { items: Array<ActionGridItem> }) {
@@ -18,10 +41,8 @@ export function ActionGrid({ items }: { items: Array<ActionGridItem> }) {
       {items.map((item) => (
         <Link key={item.id} href={item.href as never} asChild>
           <Pressable className="w-1/4 items-center gap-1 px-0.5">
-            <View className="size-10 items-center justify-center rounded-lg bg-icon-bg">
-              <Ionicons name={item.icon} size={18} color={ICON_COLOR} />
-            </View>
-            <Text className="text-center text-xs text-foreground" numberOfLines={2}>
+            <ActionIcon icon={item.icon} accent={item.accent} />
+            <Text className="text-center text-xs leading-tight text-foreground" numberOfLines={2}>
               {item.label}
             </Text>
           </Pressable>

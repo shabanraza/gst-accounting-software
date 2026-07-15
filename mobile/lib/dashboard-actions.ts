@@ -3,33 +3,38 @@ import type { ActionGridItem } from '@/components/action-grid'
 export const QUICK_CREATE_ACTIONS: Array<ActionGridItem> = [
   {
     id: 'invoice',
-    label: 'Invoice',
+    label: 'New\nInvoice',
     icon: 'document-text-outline',
     href: '/(app)/sales/new',
+    accent: 'blue',
   },
   {
     id: 'receipt',
-    label: 'Receipt',
+    label: 'New\nReceipt',
     icon: 'wallet-outline',
     href: '/(app)/module/payments',
+    accent: 'red',
   },
   {
     id: 'purchase',
-    label: 'Purchase',
+    label: 'New\nPurchase',
     icon: 'cart-outline',
     href: '/(app)/purchases/new',
+    accent: 'orange',
   },
   {
     id: 'party',
-    label: 'Party',
+    label: 'New\nParty',
     icon: 'people-outline',
     href: '/(app)/module/parties',
+    accent: 'blue',
   },
   {
     id: 'item',
-    label: 'Item',
+    label: 'New\nItem',
     icon: 'cube-outline',
     href: '/(app)/module/items',
+    accent: 'orange',
   },
 ]
 
