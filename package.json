@@ -4,6 +4,10 @@
   "license": "MIT",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "mobile",
+    "packages/*"
+  ],
   "engines": {
     "node": ">=24.0.0"
   },
@@ -16,6 +20,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:mobile": "bun run --filter mobile test",
+    "test:api-client": "bun run --filter @accounting/api-client test",
     "lint": "eslint",
     "format": "prettier --write . && eslint --fix",
     "check": "prettier --check .",
@@ -31,7 +37,8 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@cloudflare/vite-plugin": "^1.44.0",
+    "@accounting/api-client": "workspace:*",
+    "@better-auth/expo": "^1.6.23",
     "@faker-js/faker": "^10.5.0",
     "@fontsource-variable/ibm-plex-sans": "^5.2.8",
     "@fontsource-variable/jetbrains-mono": "^5.2.8",

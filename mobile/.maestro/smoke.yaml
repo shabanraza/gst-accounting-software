@@ -1,0 +1,4 @@
+appId: com.gstbooks.mobile
+---
+- launchApp
+- assertVisible: "GST Books"

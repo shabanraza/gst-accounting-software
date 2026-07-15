@@ -1,0 +1,3 @@
+/* NativeWind processes utility classes from TSX. Custom @theme imports are
+   disabled in the monorepo until tailwindcss/theme.css parses cleanly with
+   react-native-css + lightningcss in CI. Use standard Tailwind colors in TSX. */
