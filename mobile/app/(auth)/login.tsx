@@ -5,7 +5,7 @@ import { Pressable, Text, TextInput, View } from '@/tw'
 import { authClient } from '@/lib/auth-client'
 import { formatAuthNetworkError } from '@/lib/auth-error'
 import { resolvePostAuthHref } from '@/lib/post-auth-route'
-import { ensureTrpcAuthReady } from '@/lib/trpc-auth'
+import { ensureTrpcAuthReady, extractSignInToken } from '@/lib/trpc-auth'
 
 export default function LoginScreen() {
   const router = useRouter()
@@ -23,7 +23,7 @@ export default function LoginScreen() {
         setError(result.error.message ?? 'Unable to sign in.')
         return
       }
-      await ensureTrpcAuthReady({ signInToken: result.data?.token })
+      await ensureTrpcAuthReady({ signInToken: extractSignInToken(result) })
       router.replace(await resolvePostAuthHref())
     } catch (caught) {
       setError(formatAuthNetworkError(caught))

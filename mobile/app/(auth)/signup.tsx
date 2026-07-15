@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Pressable, Text, TextInput, View } from '@/tw'
 import { authClient } from '@/lib/auth-client'
 import { formatAuthNetworkError } from '@/lib/auth-error'
+import { resolvePostAuthHref } from '@/lib/post-auth-route'
+import { ensureTrpcAuthReady, extractSignInToken } from '@/lib/trpc-auth'
 
 export default function SignupScreen() {
   const router = useRouter()
@@ -20,7 +22,8 @@ export default function SignupScreen() {
         setError(result.error.message ?? 'Unable to create account.')
         return
       }
-      router.replace('/onboarding')
+      await ensureTrpcAuthReady({ signInToken: extractSignInToken(result) })
+      router.replace(await resolvePostAuthHref())
     } catch (caught) {
       setError(formatAuthNetworkError(caught))
     }

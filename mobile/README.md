@@ -37,6 +37,19 @@ Find your LAN IP (macOS Wi‑Fi): `ipconfig getifaddr en0`
 
 Expo web on this machine can omit `.env`; it defaults to `http://localhost:3000`.
 
+Restart Expo after changing `.env` (`r` in the Expo terminal).
+
+## Test on Expo Go today
+
+1. Connect phone and Mac to the same Wi‑Fi.
+2. In repo root: `bun run dev:lan`
+3. Confirm API is reachable from your Mac: `curl http://$(ipconfig getifaddr en0):3000/api/auth/get-session`
+4. In `mobile/.env`, set `EXPO_PUBLIC_API_URL=http://<LAN_IP>:3000`
+5. In `mobile/`: `bun run start`
+6. Open Expo Go on the phone and scan the QR code
+7. If the app shows **Cannot reach API**, fix `.env` or firewall, then tap **Retry connection**
+8. Sign in — you should land on the dashboard if you already have a company
+
 ## Test (TDD)
 
 ```bash
@@ -52,12 +65,17 @@ eas build --profile preview
 
 ## Auth
 
-Uses `@better-auth/expo` with scheme `gstbooks://`. The web server trusts mobile origins (see `src/lib/auth-mobile-config.ts`). Expo web uses `credentials: 'omit'` for cross-origin auth to `localhost:3000`.
+Uses `@better-auth/expo` with scheme `gstbooks://`. The web server trusts mobile origins (see `src/lib/auth-mobile-config.ts`).
+
+- Expo web uses `credentials: 'omit'` for cross-origin auth to `localhost:3000`; session cookies are stored in localStorage and forwarded to tRPC via the `cookie` header.
+- Expo Go stores the session in SecureStore and forwards the same `cookie` header on tRPC requests.
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---------|-----|
-| `Failed to fetch` on login | Start API with `bun run dev:lan` from repo root |
-| Expo Go cannot connect | Same Wi‑Fi; use `bun run start` (includes `--lan`); allow port 8081 in firewall |
-| Phone login fails | Set `EXPO_PUBLIC_API_URL` to `http://<LAN_IP>:3000`, not `localhost` |
+| `Cannot reach API` on launch | Start API with `bun run dev:lan` from repo root |
+| `Failed to fetch` on login | Same as above; confirm `curl` to LAN IP works |
+| Expo Go cannot connect to Metro | Same Wi‑Fi; use `bun run start` (includes `--lan`); allow port 8081 in firewall |
+| Phone login fails / 401 on companies | Set `EXPO_PUBLIC_API_URL` to `http://<LAN_IP>:3000`, not `localhost`; restart Expo after `.env` changes |
+| Web login lands on onboarding incorrectly | Sign out, sign in again; tRPC now waits for the session cookie before `companies.list` |

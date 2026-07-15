@@ -7,6 +7,7 @@ import { useEffect } from 'react'
 import 'react-native-gesture-handler'
 import 'react-native-reanimated'
 
+import { ApiHealthGate } from '@/components/api-health-gate'
 import { AppProviders } from '@/lib/providers'
 
 SplashScreen.preventAutoHideAsync()
@@ -29,12 +30,14 @@ export default function RootLayout() {
 
   return (
     <AppProviders>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="(app)" />
-      </Stack>
+      <ApiHealthGate>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="onboarding" />
+          <Stack.Screen name="(app)" />
+        </Stack>
+      </ApiHealthGate>
     </AppProviders>
   )
 }

@@ -18,7 +18,25 @@ vi.mock('@better-auth/expo/client', () => ({
     parsed[name] = { value, expires: null }
     return JSON.stringify(parsed)
   },
+  getCookie: (cookie: string) => {
+    const parsed = JSON.parse(cookie) as Record<
+      string,
+      { value: string; expires: string | null }
+    >
+    return Object.entries(parsed)
+      .map(([key, entry]) => `${key}=${entry.value}`)
+      .join('; ')
+  },
   normalizeCookieName: (name: string) => name,
+  storageAdapter: (storage: {
+    getItem: (key: string) => string | null
+    setItem: (key: string, value: string) => unknown
+  }) => ({
+    getItem: (key: string) => storage.getItem(key),
+    setItem: async (key: string, value: string) => {
+      storage.setItem(key, value)
+    },
+  }),
 }))
 
 vi.mock('expo-secure-store', () => ({
@@ -41,6 +59,7 @@ vi.mock('./auth-client.ts', () => ({
 
 import {
   ensureTrpcAuthReady,
+  extractSignInToken,
   persistSignInSessionToken,
   readAuthCookieHeader,
 } from './trpc-auth.ts'
@@ -59,7 +78,16 @@ describe('trpc-auth', () => {
     expect(readAuthCookieHeader()).toBe('better-auth.session_token=abc')
   })
 
-  it('persists a sign-in token into expo cookie storage', () => {
+  it('falls back to stored cookie json when auth client cookie is empty', async () => {
+    getCookie.mockReturnValue('')
+    await persistSignInSessionToken('session-token-123')
+
+    expect(readAuthCookieHeader()).toContain(
+      'better-auth.session_token=session-token-123',
+    )
+  })
+
+  it('persists a sign-in token into expo cookie storage', async () => {
     getCookie.mockImplementation(() => {
       const raw = storage.get('gstbooks_cookie')
       if (!raw) return ''
@@ -72,9 +100,11 @@ describe('trpc-auth', () => {
         .join('; ')
     })
 
-    persistSignInSessionToken('session-token-123')
+    await persistSignInSessionToken('session-token-123')
 
-    expect(readAuthCookieHeader()).toContain('better-auth.session_token=session-token-123')
+    expect(readAuthCookieHeader()).toContain(
+      'better-auth.session_token=session-token-123',
+    )
   })
 
   it('uses the sign-in token when the auth cookie is not ready yet', async () => {
@@ -93,6 +123,13 @@ describe('trpc-auth', () => {
     await ensureTrpcAuthReady({ signInToken: 'session-token-123' })
 
     expect(getSession).toHaveBeenCalled()
-    expect(readAuthCookieHeader()).toContain('better-auth.session_token=session-token-123')
+    expect(readAuthCookieHeader()).toContain(
+      'better-auth.session_token=session-token-123',
+    )
+  })
+
+  it('extracts sign-in tokens from auth responses', () => {
+    expect(extractSignInToken({ data: { token: 'abc' } })).toBe('abc')
+    expect(extractSignInToken({ data: null })).toBeNull()
   })
 })

@@ -1,21 +1,12 @@
 import { createAuthClient } from 'better-auth/react'
 import { expoClient } from '@better-auth/expo/client'
-import * as SecureStore from 'expo-secure-store'
 import { Platform } from 'react-native'
 
+import { createMobileAuthCookiePlugin } from './auth-cookie-plugin.ts'
+import { authRawStorage, AUTH_STORAGE_PREFIX } from './auth-storage.ts'
 import { resolveAuthBaseUrl } from './env.ts'
 
 const isWeb = Platform.OS === 'web'
-
-const webStorage = {
-  getItem: (key: string) => {
-    if (typeof localStorage === 'undefined') return null
-    return localStorage.getItem(key)
-  },
-  setItem: async (key: string, value: string) => {
-    localStorage.setItem(key, value)
-  },
-}
 
 export const authClient = createAuthClient({
   baseURL: resolveAuthBaseUrl(),
@@ -23,8 +14,9 @@ export const authClient = createAuthClient({
   plugins: [
     expoClient({
       scheme: 'gstbooks',
-      storagePrefix: 'gstbooks',
-      storage: isWeb ? webStorage : SecureStore,
+      storagePrefix: AUTH_STORAGE_PREFIX,
+      storage: authRawStorage,
     }),
+    ...(isWeb ? [createMobileAuthCookiePlugin()] : []),
   ],
 })

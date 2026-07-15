@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { authClient } from './auth-client.ts'
 import { WORKSPACE_COMPANY_KEY } from './env.ts'
+import { ensureTrpcAuthReady } from './trpc-auth.ts'
 import { trpcClient } from './trpc-client.ts'
 
 const COMPANY_ID_PATTERN =
@@ -67,10 +68,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const workspaceQuery = useQuery({
     queryKey: workspaceQueryKey(accountId, preferredCompanyId),
-    queryFn: () =>
-      trpcClient.companies.ensureWorkspace.mutate({
+    queryFn: async () => {
+      await ensureTrpcAuthReady()
+      return trpcClient.companies.ensureWorkspace.mutate({
         preferredCompanyId,
-      }),
+      })
+    },
     enabled: Boolean(accountId),
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
