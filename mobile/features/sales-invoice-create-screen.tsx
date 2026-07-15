@@ -145,6 +145,7 @@ export function SalesInvoiceCreateScreen() {
     godowns,
     activeFinancialYearId,
     isReady,
+    error: workspaceError,
   } = useWorkspace()
   const partiesQuery = useSalesParties()
   const itemsQuery = useSalesItems()
@@ -287,6 +288,7 @@ export function SalesInvoiceCreateScreen() {
   const wizardFooter =
     step === 'review' ? (
       <WizardFooter>
+        {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
         <SecondaryButton label="Back to items" onPress={() => setStep('lines')} />
         <PrimaryButton
           label={postMutation.isPending ? 'Posting…' : 'Post invoice'}
@@ -326,10 +328,18 @@ export function SalesInvoiceCreateScreen() {
       <StepPills step={step} steps={INVOICE_STEPS} />
 
       {!isReady || mastersLoading ? <LoadingState /> : null}
+      {workspaceError ? (
+        <EmptyState message={workspaceError} />
+      ) : null}
+      {!workspaceError && isReady && !company ? (
+        <EmptyState message="Set up your company before creating invoices." />
+      ) : null}
       {mastersError ? (
         <EmptyState message="Unable to load customers or items." />
       ) : null}
 
+      {isReady && company && !mastersLoading && !mastersError ? (
+        <>
       {step === 'customer' ? (
         <DetailCard title="Invoice details" icon="person-outline">
           <View className="gap-3">
@@ -462,6 +472,8 @@ export function SalesInvoiceCreateScreen() {
             </>
           ) : null}
         </View>
+      ) : null}
+        </>
       ) : null}
 
       <PickerModal

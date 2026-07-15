@@ -162,6 +162,7 @@ export function PurchaseBillCreateScreen() {
     godowns,
     activeFinancialYearId,
     isReady,
+    error: workspaceError,
   } = useWorkspace()
   const partiesQuery = useSalesParties()
   const itemsQuery = useSalesItems()
@@ -310,6 +311,7 @@ export function PurchaseBillCreateScreen() {
   const wizardFooter =
     step === 'review' ? (
       <WizardFooter>
+        {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
         <SecondaryButton label="Back to items" onPress={() => setStep('lines')} />
         <PrimaryButton
           label={postMutation.isPending ? 'Posting…' : 'Post bill'}
@@ -349,10 +351,18 @@ export function PurchaseBillCreateScreen() {
       <StepPills step={step} steps={PURCHASE_STEPS} />
 
       {!isReady || mastersLoading ? <LoadingState /> : null}
+      {workspaceError ? (
+        <EmptyState message={workspaceError} />
+      ) : null}
+      {!workspaceError && isReady && !company ? (
+        <EmptyState message="Set up your company before creating purchase bills." />
+      ) : null}
       {mastersError ? (
         <EmptyState message="Unable to load suppliers or items." />
       ) : null}
 
+      {isReady && company && !mastersLoading && !mastersError ? (
+        <>
       {step === 'supplier' ? (
         <DetailCard title="Bill details" icon="business-outline">
           <View className="gap-3">
@@ -469,6 +479,8 @@ export function PurchaseBillCreateScreen() {
             </>
           ) : null}
         </View>
+      ) : null}
+        </>
       ) : null}
 
       <PickerModal

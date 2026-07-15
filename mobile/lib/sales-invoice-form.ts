@@ -274,23 +274,32 @@ export function validateSalesInvoiceForm(
   return null
 }
 
+const LEDGER_LABELS: Record<string, string> = {
+  sales: 'Sales account',
+  output_gst: 'Output GST account',
+  customer_receivable: 'Customer receivable account',
+  cash: 'Cash account',
+  cogs: 'Cost of goods sold account',
+  stock_in_hand: 'Stock in hand account',
+}
+
 export function validateLedgerMappings(
   ledgerBySystemKey: Partial<Record<string, string>>,
   options?: { requiresInventoryLedgers?: boolean },
 ) {
   for (const key of REQUIRED_LEDGER_KEYS) {
     if (!ledgerBySystemKey[key]) {
-      return `Missing ledger mapping: ${key}`
+      return `Missing chart of accounts mapping: ${LEDGER_LABELS[key] ?? key}. Ask your admin to complete company setup.`
     }
   }
 
   if (options?.requiresInventoryLedgers) {
     if (!ledgerBySystemKey.cogs) {
-      return 'Missing ledger mapping: cogs'
+      return `Missing chart of accounts mapping: ${LEDGER_LABELS.cogs}. Ask your admin to complete company setup.`
     }
 
     if (!ledgerBySystemKey.stock_in_hand) {
-      return 'Missing ledger mapping: stock_in_hand'
+      return `Missing chart of accounts mapping: ${LEDGER_LABELS.stock_in_hand}. Ask your admin to complete company setup.`
     }
   }
 

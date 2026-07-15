@@ -166,7 +166,7 @@ describe('sales-invoice-form', () => {
     expect(validateLedgerMappings(ledgerBySystemKey)).toBeNull()
     expect(
       validateLedgerMappings({ ...ledgerBySystemKey, cash: undefined }),
-    ).toBe('Missing ledger mapping: cash')
+    ).toContain('Cash account')
   })
 
   it('requires inventory ledgers for tracked items', () => {
@@ -201,6 +201,6 @@ describe('sales-invoice-form', () => {
         },
         { requiresInventoryLedgers: true },
       ),
-    ).toBe('Missing ledger mapping: cogs')
+    ).toContain('Cost of goods sold account')
   })
 })

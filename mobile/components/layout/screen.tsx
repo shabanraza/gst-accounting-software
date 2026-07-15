@@ -89,6 +89,7 @@ export function Screen({
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
+          flexGrow: 1,
           paddingTop: spacing.lg,
           paddingBottom: bottom,
           gap: pageLayout.sectionGap,
@@ -99,7 +100,7 @@ export function Screen({
       >
         {children}
       </ScrollView>
-      {footer}
+      {footer ? <View style={{ flexShrink: 0 }}>{footer}</View> : null}
       {actionHref && actionLabel ? (
         <Link href={actionHref as never} asChild>
           <Pressable
@@ -113,16 +114,13 @@ export function Screen({
     </View>
   )
 
-  if (!keyboardAvoiding) {
+  // Android `height` behavior collapses stack wizard screens to a blank view.
+  if (!keyboardAvoiding || Platform.OS !== 'ios') {
     return content
   }
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1"
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={top}
-    >
+    <KeyboardAvoidingView className="flex-1" behavior="padding">
       {content}
     </KeyboardAvoidingView>
   )

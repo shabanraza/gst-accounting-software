@@ -252,12 +252,19 @@ export function validatePurchaseBillForm(
   return null
 }
 
+const LEDGER_LABELS: Record<string, string> = {
+  purchase: 'Purchase account',
+  input_gst: 'Input GST account',
+  supplier_payable: 'Supplier payable account',
+  stock_in_hand: 'Stock in hand account',
+}
+
 export function validatePurchaseLedgerMappings(
   ledgerBySystemKey: Partial<Record<string, string>>,
 ) {
   for (const key of REQUIRED_LEDGER_KEYS) {
     if (!ledgerBySystemKey[key]) {
-      return `Missing ledger mapping: ${key}`
+      return `Missing chart of accounts mapping: ${LEDGER_LABELS[key] ?? key}. Ask your admin to complete company setup.`
     }
   }
 

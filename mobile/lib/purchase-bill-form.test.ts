@@ -168,7 +168,7 @@ describe('purchase-bill-form', () => {
         ...ledgerBySystemKey,
         stock_in_hand: undefined,
       }),
-    ).toBe('Missing ledger mapping: stock_in_hand')
+    ).toContain('Stock in hand account')
   })
 
   it('requires active financial year id', () => {
