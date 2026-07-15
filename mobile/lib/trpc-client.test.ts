@@ -8,6 +8,10 @@ vi.mock('./trpc-auth.ts', () => ({
   })),
 }))
 
+vi.mock('./session-expired.ts', () => ({
+  handleUnauthorizedSession: vi.fn(),
+}))
+
 describe('createMobileTrpcClient', () => {
   it('creates a client configured for the mobile API URL', () => {
     const client = createMobileTrpcClient()

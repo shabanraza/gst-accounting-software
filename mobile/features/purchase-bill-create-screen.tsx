@@ -25,6 +25,7 @@ import {
   filterSupplierParties,
   validatePurchaseBillForm,
   validatePurchaseLedgerMappings,
+  validateActiveFinancialYearId,
   type PurchaseBillFormDraft,
   type PurchaseBillLineDraft,
   type PurchaseItemLike,
@@ -291,15 +292,16 @@ export function PurchaseBillCreateScreen() {
         throw new Error(ledgerError)
       }
 
-      const financialYearId =
-        activeFinancialYearId ?? company.financialYearStart
-      if (!financialYearId) {
-        throw new Error('Financial year is not configured.')
+      const financialYearError = validateActiveFinancialYearId(
+        activeFinancialYearId,
+      )
+      if (financialYearError) {
+        throw new Error(financialYearError)
       }
 
       const supplierBillNumber = await trpcClient.documents.nextNumber.mutate({
         companyId: company.id,
-        financialYearId,
+        financialYearId: activeFinancialYearId,
         voucherType: 'purchase',
         series: DEFAULT_PURCHASE_SERIES,
         padLength: 4,

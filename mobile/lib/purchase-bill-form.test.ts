@@ -9,6 +9,7 @@ import {
   filterSupplierParties,
   validatePurchaseBillForm,
   validatePurchaseLedgerMappings,
+  validateActiveFinancialYearId,
 } from './purchase-bill-form.ts'
 
 const supplier = {
@@ -168,5 +169,12 @@ describe('purchase-bill-form', () => {
         stock_in_hand: undefined,
       }),
     ).toBe('Missing ledger mapping: stock_in_hand')
+  })
+
+  it('requires active financial year id', () => {
+    expect(validateActiveFinancialYearId(null)).toBe(
+      'Financial year is not configured.',
+    )
+    expect(validateActiveFinancialYearId('fy-1')).toBeNull()
   })
 })

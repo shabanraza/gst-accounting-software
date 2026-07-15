@@ -13,6 +13,7 @@ import {
 } from '@/components/screen'
 import { useSalesItems, useSalesParties } from '@/features/use-sales-masters'
 import {
+  SALES_DOCUMENT_SERIES,
   applyItemToSalesDocumentLine,
   buildCreateSalesDocumentInput,
   createInitialSalesDocumentForm,
@@ -100,7 +101,7 @@ function PickerModal<T extends { id: string }>({
 export function SalesDocumentCreateScreen() {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { companyId } = useWorkspace()
+  const { companyId, activeFinancialYearId, company } = useWorkspace()
   const partiesQuery = useSalesParties()
   const itemsQuery = useSalesItems()
   const [form, setForm] = React.useState<SalesDocumentFormDraft>(
@@ -117,7 +118,7 @@ export function SalesDocumentCreateScreen() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!companyId) {
+      if (!companyId || !company) {
         throw new Error('Workspace not ready')
       }
 
@@ -126,8 +127,22 @@ export function SalesDocumentCreateScreen() {
         throw new Error(validationError)
       }
 
+      if (!activeFinancialYearId) {
+        throw new Error('Financial year is not configured.')
+      }
+
+      const documentNumber =
+        form.documentNumber.trim() ||
+        (await trpcClient.documents.nextNumber.mutate({
+          companyId: company.id,
+          financialYearId: activeFinancialYearId,
+          voucherType: 'sales',
+          series: SALES_DOCUMENT_SERIES[form.documentType],
+          padLength: 4,
+        }))
+
       return trpcClient.salesDocuments.create.mutate(
-        buildCreateSalesDocumentInput(form, companyId),
+        buildCreateSalesDocumentInput(form, companyId, documentNumber),
       )
     },
     onSuccess: async () => {

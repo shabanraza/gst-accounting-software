@@ -286,3 +286,35 @@ export async function listOcrDraftsByCompany(
 ): Promise<Array<OcrDraftRecord>> {
   return repository.listByCompanyId(companyId)
 }
+
+export async function updateOcrDraftFields(
+  repository: OcrDraftRepository,
+  input: {
+    companyId: string
+    draftId: string
+    fields: OcrDraftFields
+  },
+): Promise<OcrDraftRecord> {
+  const draft = await repository.findById(input.draftId)
+
+  if (!draft || draft.companyId !== input.companyId) {
+    throw new Error('OCR draft not found for company')
+  }
+
+  if (draft.status === 'posted') {
+    throw new Error('Cannot edit posted OCR draft')
+  }
+
+  const lowConfidenceFields = (
+    Object.entries(input.fields) as Array<[keyof OcrDraftFields, OcrFieldValue]>
+  )
+    .filter(([, field]) => field.confidence < LOW_CONFIDENCE_THRESHOLD)
+    .map(([key]) => key)
+
+  return repository.save({
+    ...draft,
+    fields: input.fields,
+    lowConfidenceFields,
+    updatedAt: new Date(),
+  })
+}

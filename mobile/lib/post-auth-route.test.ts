@@ -4,6 +4,7 @@ import { resolvePostAuthHref, PostAuthRouteError } from './post-auth-route.ts'
 
 const listCompanies = vi.fn()
 const ensureTrpcAuthReady = vi.fn()
+const handleUnauthorizedSession = vi.fn()
 
 vi.mock('./trpc-client.ts', () => ({
   trpcClient: {
@@ -21,6 +22,11 @@ vi.mock('./trpc-auth.ts', () => ({
     readSessionTokenForAuth(...args),
 }))
 
+vi.mock('./session-expired.ts', () => ({
+  handleUnauthorizedSession: (...args: unknown[]) =>
+    handleUnauthorizedSession(...args),
+}))
+
 const readSessionTokenForAuth = vi.fn()
 
 describe('resolvePostAuthHref', () => {
@@ -28,7 +34,9 @@ describe('resolvePostAuthHref', () => {
     listCompanies.mockReset()
     ensureTrpcAuthReady.mockReset()
     readSessionTokenForAuth.mockReset()
+    handleUnauthorizedSession.mockReset()
     ensureTrpcAuthReady.mockResolvedValue(undefined)
+    handleUnauthorizedSession.mockResolvedValue(undefined)
     readSessionTokenForAuth.mockReturnValue(null)
   })
   it('routes new accounts to onboarding', async () => {
@@ -60,7 +68,7 @@ describe('resolvePostAuthHref', () => {
     expect(ensureTrpcAuthReady).toHaveBeenCalledTimes(2)
   })
 
-  it('throws when company lookup stays unauthorized with a stored token', async () => {
+  it('clears session when company lookup stays unauthorized with a stored token', async () => {
     listCompanies.mockRejectedValue({ data: { code: 'UNAUTHORIZED' } })
     readSessionTokenForAuth.mockReturnValue('stored-token')
 
@@ -68,5 +76,6 @@ describe('resolvePostAuthHref', () => {
       PostAuthRouteError,
     )
     expect(listCompanies).toHaveBeenCalledTimes(3)
+    expect(handleUnauthorizedSession).toHaveBeenCalled()
   })
 })

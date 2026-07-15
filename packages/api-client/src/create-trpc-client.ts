@@ -1,6 +1,8 @@
 import superjson from 'superjson'
 import { createTRPCClient, httpBatchLink } from '@trpc/client'
 
+import { createUnauthorizedLink } from './unauthorized-link.ts'
+
 import type { TRPCRouter } from './types.ts'
 
 export type AuthHeaderProvider = () =>
@@ -10,6 +12,7 @@ export type AuthHeaderProvider = () =>
 export type CreateAppTrpcClientOptions = {
   url: string
   getAuthHeaders?: AuthHeaderProvider
+  onUnauthorized?: () => void
 }
 
 export async function buildTrpcAuthHeaders(
@@ -29,10 +32,13 @@ export async function buildTrpcAuthHeaders(
 }
 
 export function createAppTrpcClient(options: CreateAppTrpcClientOptions) {
-  const { url, getAuthHeaders } = options
+  const { url, getAuthHeaders, onUnauthorized } = options
 
   return createTRPCClient<TRPCRouter>({
     links: [
+      ...(onUnauthorized
+        ? [createUnauthorizedLink(onUnauthorized)]
+        : []),
       httpBatchLink({
         transformer: superjson,
         url,

@@ -1,16 +1,40 @@
 import { Redirect, Stack } from 'expo-router'
+import { useEffect, useState } from 'react'
 
 import { WorkspaceGate } from '@/components/workspace-gate'
 import { authClient } from '@/lib/auth-client'
-import { hasStoredAuthSession } from '@/lib/trpc-auth'
+import {
+  hasStoredAuthSession,
+} from '@/lib/trpc-auth'
+import {
+  isSessionExpired,
+  resetSessionExpiredState,
+  subscribeSessionExpired,
+} from '@/lib/session-expired'
 import { WorkspaceProvider } from '@/lib/workspace'
 
 export default function AppLayout() {
   const { data: session, isPending } = authClient.useSession()
   const hasStoredToken = hasStoredAuthSession()
+  const [expired, setExpired] = useState(isSessionExpired())
+
+  useEffect(() => {
+    return subscribeSessionExpired(() => {
+      setExpired(true)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (session) {
+      resetSessionExpiredState()
+      setExpired(false)
+    }
+  }, [session])
 
   if (isPending && !hasStoredToken) return null
-  if (!session && !hasStoredToken) return <Redirect href="/(auth)/login" />
+  if (expired || (!session && !hasStoredToken)) {
+    return <Redirect href="/(auth)/login" />
+  }
 
   return (
     <WorkspaceProvider>

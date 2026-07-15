@@ -274,6 +274,7 @@ export function validateSalesInvoiceForm(
 
 export function validateLedgerMappings(
   ledgerBySystemKey: Partial<Record<string, string>>,
+  options?: { requiresInventoryLedgers?: boolean },
 ) {
   for (const key of REQUIRED_LEDGER_KEYS) {
     if (!ledgerBySystemKey[key]) {
@@ -281,7 +282,28 @@ export function validateLedgerMappings(
     }
   }
 
+  if (options?.requiresInventoryLedgers) {
+    if (!ledgerBySystemKey.cogs) {
+      return 'Missing ledger mapping: cogs'
+    }
+
+    if (!ledgerBySystemKey.stock_in_hand) {
+      return 'Missing ledger mapping: stock_in_hand'
+    }
+  }
+
   return null
+}
+
+export function formRequiresInventoryLedgers(
+  form: SalesInvoiceFormDraft,
+  items: Array<{ id: string; tracksInventory: boolean }>,
+) {
+  const itemById = new Map(items.map((item) => [item.id, item]))
+  return form.lines.some((line) => {
+    if (!line.itemId) return false
+    return itemById.get(line.itemId)?.tracksInventory ?? false
+  })
 }
 
 export function buildPostSalesInvoiceInput(

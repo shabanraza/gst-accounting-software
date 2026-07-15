@@ -170,7 +170,12 @@ export class DrizzleItemRepository implements ItemRepository {
         saleRate: item.saleRate,
         tracksInventory: item.tracksInventory,
       })
-      .where(eq(schema.items.id, item.id))
+      .where(
+        and(
+          eq(schema.items.id, item.id),
+          eq(schema.items.companyId, item.companyId),
+        ),
+      )
       .returning()
 
     return mapRowToItemRecord(updatedItem)

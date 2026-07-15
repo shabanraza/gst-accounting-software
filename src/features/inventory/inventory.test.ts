@@ -180,6 +180,35 @@ describe('updateItem', () => {
     expect(updated.hsnCode).toBe('5209')
     expect(updated.saleRate).toBe('140.00')
   })
+
+  test('rejects cross-company item updates', async () => {
+    const repository = new InMemoryItemRepository()
+
+    const item = await createItem(repository, {
+      companyId: 'company-1',
+      name: 'Cotton Fabric',
+      hsnCode: '5208',
+      gstRate: '5.00',
+      baseUnit: 'meter',
+      purchaseRate: '80.00',
+      saleRate: '120.00',
+      tracksInventory: true,
+    })
+
+    await expect(
+      updateItem(repository, {
+        companyId: 'company-2',
+        itemId: item.id,
+        name: 'Premium Cotton',
+        hsnCode: '5209',
+        gstRate: '12.00',
+        baseUnit: 'meter',
+        purchaseRate: '90.00',
+        saleRate: '140.00',
+        tracksInventory: true,
+      }),
+    ).rejects.toThrow(/Item not found/)
+  })
 })
 
 describe('stock movements', () => {

@@ -7,6 +7,7 @@ import {
   createEmptySalesLine,
   createInitialSalesInvoiceForm,
   filterCustomerParties,
+  formRequiresInventoryLedgers,
   validateLedgerMappings,
   validateSalesInvoiceForm,
 } from './sales-invoice-form.ts'
@@ -166,5 +167,40 @@ describe('sales-invoice-form', () => {
     expect(
       validateLedgerMappings({ ...ledgerBySystemKey, cash: undefined }),
     ).toBe('Missing ledger mapping: cash')
+  })
+
+  it('requires inventory ledgers for tracked items', () => {
+    const form = createInitialSalesInvoiceForm('Main')
+    form.lines = [
+      applyItemToLine(
+        createEmptySalesLine('Main'),
+        {
+          id: 'item-1',
+          name: 'Cotton Fabric',
+          gstRate: '12',
+          baseUnit: 'meter',
+          saleRate: '100.00',
+        },
+        'Main',
+      ),
+    ]
+
+    expect(
+      formRequiresInventoryLedgers(form, [
+        { id: 'item-1', tracksInventory: true },
+      ]),
+    ).toBe(true)
+
+    expect(
+      validateLedgerMappings(
+        {
+          sales: 'ledger-sales',
+          output_gst: 'ledger-gst',
+          customer_receivable: 'ledger-ar',
+          cash: 'ledger-cash',
+        },
+        { requiresInventoryLedgers: true },
+      ),
+    ).toBe('Missing ledger mapping: cogs')
   })
 })

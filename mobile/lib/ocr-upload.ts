@@ -1,5 +1,5 @@
 import { trpcClient } from './trpc-client.ts'
-import { buildPlaceholderOcrFields } from './ocr-fields.ts'
+import { buildEmptyOcrFields } from './ocr-fields.ts'
 import { readFileAsBase64 } from './read-file-base64.ts'
 
 type CaptureAsset = {
@@ -29,6 +29,6 @@ export async function createOcrDraftFromCapture(
   return trpcClient.ocr.createOcrDraft.mutate({
     companyId,
     attachmentId: attachment.id,
-    fields: buildPlaceholderOcrFields(),
+    fields: buildEmptyOcrFields(),
   })
 }

@@ -30,6 +30,15 @@ describe('payment-form', () => {
           outstandingAmount: '0.00',
           paymentStatus: 'Paid',
         },
+        {
+          id: '3',
+          invoiceNumber: 'INV-3',
+          customerId: 'c3',
+          totalAmount: '100.00',
+          outstandingAmount: '50.00',
+          paymentStatus: 'Part paid',
+          status: 'cancelled',
+        },
       ]),
     ).toHaveLength(1)
 

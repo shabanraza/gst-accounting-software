@@ -1,5 +1,11 @@
 export type SalesDocumentType = 'quotation' | 'sales_order' | 'delivery_challan'
 
+export const SALES_DOCUMENT_SERIES: Record<SalesDocumentType, string> = {
+  quotation: 'QT',
+  sales_order: 'SO',
+  delivery_challan: 'DC',
+}
+
 export type SalesDocumentLineDraft = {
   itemId: string
   itemName: string
@@ -95,13 +101,12 @@ export function validateSalesDocumentForm(form: SalesDocumentFormDraft) {
 export function buildCreateSalesDocumentInput(
   form: SalesDocumentFormDraft,
   companyId: string,
+  documentNumber: string,
 ) {
   return {
     companyId,
     documentType: form.documentType,
-    documentNumber:
-      form.documentNumber.trim() ||
-      `${form.documentType.toUpperCase()}-${Date.now()}`,
+    documentNumber,
     documentDate: form.documentDate,
     customerId: form.customerId,
     lines: [

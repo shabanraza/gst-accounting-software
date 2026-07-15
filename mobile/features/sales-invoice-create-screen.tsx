@@ -23,6 +23,7 @@ import {
   createEmptySalesLine,
   createInitialSalesInvoiceForm,
   filterCustomerParties,
+  formRequiresInventoryLedgers,
   validateLedgerMappings,
   validateSalesInvoiceForm,
   type PaymentMode,
@@ -265,7 +266,9 @@ export function SalesInvoiceCreateScreen() {
         throw new Error(validationError)
       }
 
-      const ledgerError = validateLedgerMappings(ledgerBySystemKey)
+      const ledgerError = validateLedgerMappings(ledgerBySystemKey, {
+        requiresInventoryLedgers: formRequiresInventoryLedgers(form, items),
+      })
       if (ledgerError) {
         throw new Error(ledgerError)
       }

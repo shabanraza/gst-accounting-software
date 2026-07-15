@@ -9,6 +9,7 @@ export type OpenSalesDocument = {
   totalAmount: string
   outstandingAmount: string
   paymentStatus: string
+  status?: string
 }
 
 export type OpenPurchaseDocument = {
@@ -18,6 +19,7 @@ export type OpenPurchaseDocument = {
   totalAmount: string
   outstandingAmount: string
   paymentStatus: string
+  status?: string
 }
 
 export type PaymentAllocationDraft = {
@@ -29,6 +31,7 @@ export type PaymentAllocationDraft = {
 export function filterOpenSalesDocuments(documents: Array<OpenSalesDocument>) {
   return documents.filter(
     (document) =>
+      document.status !== 'cancelled' &&
       document.paymentStatus !== 'Paid' &&
       hasOutstandingBalance(document.outstandingAmount),
   )
@@ -39,6 +42,7 @@ export function filterOpenPurchaseDocuments(
 ) {
   return documents.filter(
     (document) =>
+      document.status !== 'cancelled' &&
       document.paymentStatus !== 'Paid' &&
       hasOutstandingBalance(document.outstandingAmount),
   )

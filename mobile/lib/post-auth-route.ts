@@ -2,6 +2,7 @@ import {
   ensureTrpcAuthReady,
   readSessionTokenForAuth,
 } from './trpc-auth.ts'
+import { handleUnauthorizedSession } from './session-expired.ts'
 import { trpcClient } from './trpc-client.ts'
 
 export class PostAuthRouteError extends Error {
@@ -39,9 +40,8 @@ export async function resolvePostAuthHref(): Promise<
       }
 
       if (isUnauthorizedError(error) && readSessionTokenForAuth()) {
-        throw new PostAuthRouteError(
-          'Signed in, but workspace access failed. Try signing out and back in.',
-        )
+        await handleUnauthorizedSession()
+        throw new PostAuthRouteError('Session expired')
       }
 
       // Match web app.tsx: auth/transient failures should not force onboarding.

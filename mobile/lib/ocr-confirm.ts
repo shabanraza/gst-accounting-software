@@ -1,12 +1,6 @@
-export type OcrDraftFieldsLike = {
-  supplierName: { value: string; confidence: number }
-  supplierGstin: { value: string; confidence: number }
-  billNumber: { value: string; confidence: number }
-  billDate: { value: string; confidence: number }
-  taxableAmount: { value: string; confidence: number }
-  gstAmount: { value: string; confidence: number }
-  totalAmount: { value: string; confidence: number }
-}
+import type { OcrFieldsDraft } from './ocr-fields.ts'
+
+export type OcrDraftFieldsLike = OcrFieldsDraft
 
 export type OcrDraftLike = {
   id: string
@@ -27,6 +21,30 @@ const REQUIRED_LEDGER_KEYS = [
   'stock_in_hand',
 ] as const
 
+const LOW_CONFIDENCE_THRESHOLD = 0.8
+
+const REQUIRED_FIELD_KEYS = [
+  'supplierName',
+  'billNumber',
+  'billDate',
+  'totalAmount',
+] as const
+
+function parsePositiveAmount(value: string) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
+
+export function computeLowConfidenceFields(fields: OcrDraftFieldsLike) {
+  return (
+    Object.entries(fields) as Array<[keyof OcrDraftFieldsLike, OcrFieldDraft]>
+  )
+    .filter(([, field]) => field.confidence < LOW_CONFIDENCE_THRESHOLD)
+    .map(([key]) => key)
+}
+
+type OcrFieldDraft = { value: string; confidence: number }
+
 export function isOcrDraftConfirmable(draft: OcrDraftLike) {
   return draft.status !== 'posted'
 }
@@ -38,6 +56,35 @@ export function validateOcrConfirmLedgers(
 
   if (missing.length > 0) {
     return 'Ledger mappings required before posting OCR bills.'
+  }
+
+  return null
+}
+
+export function validateOcrDraftFields(fields: OcrDraftFieldsLike) {
+  if (!fields.supplierName.value.trim()) {
+    return 'Supplier name is required.'
+  }
+
+  if (!fields.billNumber.value.trim()) {
+    return 'Bill number is required.'
+  }
+
+  if (!fields.billDate.value.trim()) {
+    return 'Bill date is required.'
+  }
+
+  if (!parsePositiveAmount(fields.totalAmount.value)) {
+    return 'Total amount must be greater than zero.'
+  }
+
+  const lowConfidenceFields = computeLowConfidenceFields(fields)
+  const blockingLowConfidence = lowConfidenceFields.filter((field) =>
+    (REQUIRED_FIELD_KEYS as ReadonlyArray<string>).includes(field),
+  )
+
+  if (blockingLowConfidence.length > 0) {
+    return 'Review low-confidence fields before confirming.'
   }
 
   return null
@@ -61,14 +108,26 @@ export function buildOcrConfirmInput(input: {
   }
 }
 
-export function ocrDraftSummaryRows(draft: OcrDraftLike) {
+export function buildOcrUpdateDraftInput(input: {
+  companyId: string
+  draftId: string
+  fields: OcrDraftFieldsLike
+}) {
+  return {
+    companyId: input.companyId,
+    draftId: input.draftId,
+    fields: input.fields,
+  }
+}
+
+export function ocrDraftSummaryRows(fields: OcrDraftFieldsLike) {
   return [
-    { label: 'Supplier', value: draft.fields.supplierName.value || '—' },
-    { label: 'GSTIN', value: draft.fields.supplierGstin.value || 'Unregistered' },
-    { label: 'Bill number', value: draft.fields.billNumber.value || '—' },
-    { label: 'Bill date', value: draft.fields.billDate.value || '—' },
-    { label: 'Taxable', value: draft.fields.taxableAmount.value || '0' },
-    { label: 'GST', value: draft.fields.gstAmount.value || '0' },
-    { label: 'Total', value: draft.fields.totalAmount.value || '0' },
+    { label: 'Supplier', value: fields.supplierName.value || '—' },
+    { label: 'GSTIN', value: fields.supplierGstin.value || 'Unregistered' },
+    { label: 'Bill number', value: fields.billNumber.value || '—' },
+    { label: 'Bill date', value: fields.billDate.value || '—' },
+    { label: 'Taxable', value: fields.taxableAmount.value || '0' },
+    { label: 'GST', value: fields.gstAmount.value || '0' },
+    { label: 'Total', value: fields.totalAmount.value || '0' },
   ]
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  SALES_DOCUMENT_SERIES,
   applyItemToSalesDocumentLine,
   buildCreateSalesDocumentInput,
   createInitialSalesDocumentForm,
@@ -17,6 +18,12 @@ describe('sales-document-form', () => {
         { id: '3', name: 'Both', partyType: 'both' },
       ]),
     ).toHaveLength(2)
+  })
+
+  it('maps document types to voucher series', () => {
+    expect(SALES_DOCUMENT_SERIES.quotation).toBe('QT')
+    expect(SALES_DOCUMENT_SERIES.sales_order).toBe('SO')
+    expect(SALES_DOCUMENT_SERIES.delivery_challan).toBe('DC')
   })
 
   it('applies item defaults to line', () => {
@@ -51,7 +58,7 @@ describe('sales-document-form', () => {
     expect(validateSalesDocumentForm(form)).toBeNull()
   })
 
-  it('builds create payload', () => {
+  it('builds create payload with allocated document number', () => {
     const form = createInitialSalesDocumentForm()
     form.customerId = 'cust-1'
     form.documentNumber = 'QT-1'
@@ -63,10 +70,12 @@ describe('sales-document-form', () => {
       rate: '100.00',
     }
 
-    expect(buildCreateSalesDocumentInput(form, 'company-1')).toMatchObject({
+    expect(
+      buildCreateSalesDocumentInput(form, 'company-1', 'QT-0001'),
+    ).toMatchObject({
       companyId: 'company-1',
       documentType: 'quotation',
-      documentNumber: 'QT-1',
+      documentNumber: 'QT-0001',
       customerId: 'cust-1',
       lines: [
         {

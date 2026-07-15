@@ -262,6 +262,16 @@ export function validatePurchaseLedgerMappings(
   return null
 }
 
+export function validateActiveFinancialYearId(
+  activeFinancialYearId: string | null,
+) {
+  if (!activeFinancialYearId) {
+    return 'Financial year is not configured.'
+  }
+
+  return null
+}
+
 export function buildPostPurchaseBillInput(
   form: PurchaseBillFormDraft,
   context: PostPurchaseBillContext,

@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { SectionHeader } from '@/components/section-header'
 import {
   EmptyState,
+  FormField,
   LoadingState,
   PrimaryButton,
   Screen,
@@ -12,26 +13,31 @@ import {
 } from '@/components/screen'
 import { formatInr } from '@/lib/format-inr'
 import {
+  withEditedOcrField,
+  type OcrFieldsDraft,
+} from '@/lib/ocr-fields'
+import {
   buildOcrConfirmInput,
+  buildOcrUpdateDraftInput,
+  computeLowConfidenceFields,
   isOcrDraftConfirmable,
-  ocrDraftSummaryRows,
   validateOcrConfirmLedgers,
+  validateOcrDraftFields,
 } from '@/lib/ocr-confirm'
 import { trpcClient } from '@/lib/trpc-client'
 import { Text, View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
 
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View className="flex-row items-center justify-between gap-3 py-2">
-      <Text className="text-sm text-muted-foreground">{label}</Text>
-      <Text className="shrink text-right text-sm font-medium text-foreground">
-        {label === 'Taxable' || label === 'GST' || label === 'Total'
-          ? formatInr(value)
-          : value}
-      </Text>
-    </View>
-  )
+function fieldsFromDraft(fields: OcrFieldsDraft): OcrFieldsDraft {
+  return {
+    supplierName: { ...fields.supplierName },
+    supplierGstin: { ...fields.supplierGstin },
+    billNumber: { ...fields.billNumber },
+    billDate: { ...fields.billDate },
+    taxableAmount: { ...fields.taxableAmount },
+    gstAmount: { ...fields.gstAmount },
+    totalAmount: { ...fields.totalAmount },
+  }
 }
 
 export function OcrDraftDetailScreen() {
@@ -41,6 +47,7 @@ export function OcrDraftDetailScreen() {
   const { companyId, company, ledgerBySystemKey } = useWorkspace()
   const [message, setMessage] = React.useState<string | null>(null)
   const [error, setError] = React.useState<string | null>(null)
+  const [fields, setFields] = React.useState<OcrFieldsDraft | null>(null)
 
   const draftsQuery = useQuery({
     queryKey: ['ocr-draft', companyId, id],
@@ -59,16 +66,35 @@ export function OcrDraftDetailScreen() {
 
   const draft = draftsQuery.data
 
+  React.useEffect(() => {
+    if (draft) {
+      setFields(fieldsFromDraft(draft.fields))
+    }
+  }, [draft])
+
   const confirmMutation = useMutation({
     mutationFn: async () => {
-      if (!companyId || !company || !draft) {
+      if (!companyId || !company || !draft || !fields) {
         throw new Error('Draft not loaded')
+      }
+
+      const fieldError = validateOcrDraftFields(fields)
+      if (fieldError) {
+        throw new Error(fieldError)
       }
 
       const ledgerError = validateOcrConfirmLedgers(ledgerBySystemKey)
       if (ledgerError) {
         throw new Error(ledgerError)
       }
+
+      await trpcClient.ocr.updateDraft.mutate(
+        buildOcrUpdateDraftInput({
+          companyId,
+          draftId: draft.id,
+          fields,
+        }),
+      )
 
       return trpcClient.ocr.confirm.mutate(
         buildOcrConfirmInput({
@@ -99,6 +125,19 @@ export function OcrDraftDetailScreen() {
     },
   })
 
+  function updateField<Key extends keyof OcrFieldsDraft>(
+    key: Key,
+    value: string,
+  ) {
+    setFields((current) => {
+      if (!current) return current
+      return {
+        ...current,
+        [key]: withEditedOcrField(current[key], value),
+      }
+    })
+  }
+
   if (draftsQuery.isLoading) {
     return (
       <Screen title="OCR draft">
@@ -107,7 +146,7 @@ export function OcrDraftDetailScreen() {
     )
   }
 
-  if (draftsQuery.isError || !draft) {
+  if (draftsQuery.isError || !draft || !fields) {
     return (
       <Screen title="OCR draft">
         <EmptyState message="OCR draft not found or unavailable." />
@@ -116,33 +155,73 @@ export function OcrDraftDetailScreen() {
   }
 
   const confirmable = isOcrDraftConfirmable(draft)
+  const lowConfidenceFields = computeLowConfidenceFields(fields)
 
   return (
     <Screen
-      title={draft.fields.supplierName.value || 'OCR draft'}
-      subtitle={draft.fields.billNumber.value || 'Review extracted fields'}
+      title={fields.supplierName.value || 'OCR draft'}
+      subtitle={fields.billNumber.value || 'Review extracted fields'}
     >
-      {draft.lowConfidenceFields.length > 0 ? (
+      {lowConfidenceFields.length > 0 ? (
         <View className="rounded-xl border border-warning/40 bg-warning/10 p-card-padding">
           <Text className="text-sm text-foreground">
-            Low confidence fields: {draft.lowConfidenceFields.join(', ')}
+            Low confidence fields: {lowConfidenceFields.join(', ')}
           </Text>
         </View>
       ) : null}
 
       <View className="gap-section-header">
         <SectionHeader title="Extracted fields" compact icon="scan-outline" />
-        <View className="rounded-xl border border-border bg-card p-card-padding">
-          {ocrDraftSummaryRows(draft).map((row) => (
-            <DetailRow key={row.label} label={row.label} value={row.value} />
-          ))}
+        <View className="rounded-xl border border-border bg-card p-card-padding gap-3">
+          <FormField
+            placeholder="Supplier name"
+            value={fields.supplierName.value}
+            onChangeText={(value) => updateField('supplierName', value)}
+          />
+          <FormField
+            placeholder="Supplier GSTIN"
+            value={fields.supplierGstin.value}
+            onChangeText={(value) => updateField('supplierGstin', value)}
+          />
+          <FormField
+            placeholder="Bill number"
+            value={fields.billNumber.value}
+            onChangeText={(value) => updateField('billNumber', value)}
+          />
+          <FormField
+            placeholder="YYYY-MM-DD"
+            value={fields.billDate.value}
+            onChangeText={(value) => updateField('billDate', value)}
+          />
+          <FormField
+            keyboardType="decimal-pad"
+            placeholder="Taxable amount"
+            value={fields.taxableAmount.value}
+            onChangeText={(value) => updateField('taxableAmount', value)}
+          />
+          <FormField
+            keyboardType="decimal-pad"
+            placeholder="GST amount"
+            value={fields.gstAmount.value}
+            onChangeText={(value) => updateField('gstAmount', value)}
+          />
+          <FormField
+            keyboardType="decimal-pad"
+            placeholder="Total amount"
+            value={fields.totalAmount.value}
+            onChangeText={(value) => updateField('totalAmount', value)}
+          />
+          <Text className="text-sm text-muted-foreground">
+            Total preview: {formatInr(fields.totalAmount.value || '0')}
+          </Text>
         </View>
       </View>
 
       <View className="gap-section-header">
         <SectionHeader title="Status" compact icon="flag-outline" />
         <View className="rounded-xl border border-border bg-card p-card-padding">
-          <DetailRow label="Draft status" value={draft.status} />
+          <Text className="text-sm text-muted-foreground">Draft status</Text>
+          <Text className="font-medium text-foreground">{draft.status}</Text>
         </View>
       </View>
 

@@ -8,6 +8,7 @@ import { InMemoryPartyRepository } from '#/features/parties/party-store.ts'
 import {
   confirmOcrDraft,
   createOcrDraft,
+  updateOcrDraftFields,
 } from '#/features/ocr/ocr-draft-service.ts'
 import type {
   OcrDraftRecord,
@@ -112,6 +113,30 @@ const sampleFields = {
   gstAmount: { value: '400.00', confidence: 0.9 },
   totalAmount: { value: '8400.00', confidence: 0.91 },
 } as const
+
+describe('updateOcrDraftFields', () => {
+  test('updates draft fields and recomputes low-confidence flags', async () => {
+    const repository = new InMemoryOcrDraftRepository()
+    const attachments = new InMemoryAttachmentRepository()
+    const draft = await createOcrDraft(repository, attachments, {
+      companyId: 'company-1',
+      attachmentId: 'att-1',
+      fields: sampleFields,
+    })
+
+    const updated = await updateOcrDraftFields(repository, {
+      companyId: 'company-1',
+      draftId: draft.id,
+      fields: {
+        ...sampleFields,
+        supplierName: { value: 'Updated Supplier', confidence: 1 },
+      },
+    })
+
+    expect(updated.fields.supplierName.value).toBe('Updated Supplier')
+    expect(updated.lowConfidenceFields).not.toContain('supplierName')
+  })
+})
 
 describe('confirmOcrDraft', () => {
   test('posts a purchase bill and marks the draft posted', async () => {
