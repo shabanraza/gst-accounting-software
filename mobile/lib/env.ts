@@ -38,7 +38,7 @@ export function getApiReachabilityHint() {
   }
 
   if (isAndroidEmulator()) {
-    return 'Start the API with "bun run dev:lan" from the repo root. On the Android emulator use EXPO_PUBLIC_API_URL=http://10.0.2.2:3000 (or leave it unset).'
+    return 'Start the API with "bun run dev" from the repo root. Use "bun run android:emulator" in mobile/ (adb reverse + --localhost). Set EXPO_PUBLIC_API_URL=http://10.0.2.2:3000 in mobile/.env or leave unset.'
   }
 
   return 'Start the API with "bun run dev:lan" and set EXPO_PUBLIC_API_URL in mobile/.env to your computer\'s LAN IP.'

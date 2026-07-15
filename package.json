@@ -36,7 +36,8 @@
     "db:reconcile": "bun scripts/reconcile-drizzle-migrations.ts",
     "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "dev:mobile:android": "bun run --filter mobile android:emulator"
   },
   "dependencies": {
     "@accounting/api-client": "workspace:*",

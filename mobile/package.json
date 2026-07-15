@@ -9,7 +9,8 @@
     "ios": "expo start --ios --lan",
     "web": "expo start --web",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "android:emulator": "./scripts/start-android-emulator.sh"
   },
   "dependencies": {
     "@accounting/api-client": "workspace:*",
