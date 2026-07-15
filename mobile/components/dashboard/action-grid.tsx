@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { Link } from 'expo-router'
 
+import { layout, spacing } from '@/lib/spacing'
 import { Pressable, Text, View } from '@/tw'
 import { themeColors, themeSizes } from '@/lib/theme'
 
@@ -36,7 +37,10 @@ function ActionIcon({ icon, accent }: { icon: ActionGridItem['icon']; accent?: A
 
 export function ActionGrid({ items }: { items: Array<ActionGridItem> }) {
   return (
-    <View className="-mx-1 flex-row flex-wrap gap-y-action-grid-row">
+    <View
+      className="-mx-1 flex-row flex-wrap"
+      style={{ rowGap: layout.actionGridRowGap }}
+    >
       {items.map((item) => (
         <Link key={item.id} href={item.href as never} asChild>
           <Pressable className="w-1/4 min-w-0 max-w-[25%] items-center gap-1 px-1">

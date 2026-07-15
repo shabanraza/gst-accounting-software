@@ -2,6 +2,9 @@ import { Ionicons } from '@expo/vector-icons'
 import { Pressable, Text, View } from '@/tw'
 import { useState } from 'react'
 
+import { BottomSheet } from '@/components/ui/dialog'
+import { CardRow } from '@/components/data/card-row'
+import { layout } from '@/lib/spacing'
 import { themeColors } from '@/lib/theme'
 import { useWorkspace } from '@/lib/workspace'
 
@@ -18,33 +21,31 @@ export function CompanySwitcher({
       <View className="flex-1">
         <Pressable
           className="flex-row items-center gap-1 self-start"
-          onPress={() => setOpen((value) => !value)}
+          onPress={() => setOpen(true)}
         >
           <Text className="text-lg font-semibold text-foreground" numberOfLines={1}>
             {companyName ?? 'Select company'}
           </Text>
-          <Ionicons
-            name={open ? 'chevron-up' : 'chevron-down'}
-            size={16}
-            color={themeColors.primary}
-          />
+          <Ionicons name="chevron-down" size={16} color={themeColors.primary} />
         </Pressable>
-        {open ? (
-          <View className="absolute top-8 z-10 w-64 gap-0.5 rounded-xl border border-border bg-card p-1.5 shadow-sm">
+        <BottomSheet
+          open={open}
+          onOpenChange={setOpen}
+          title="Switch company"
+        >
+          <View style={{ gap: layout.sectionHeaderGap }}>
             {companies.map((company) => (
-              <Pressable
+              <CardRow
                 key={company.id}
-                className="rounded-lg px-3 py-2 active:bg-muted"
+                title={company.tradeName}
                 onPress={() => {
                   void setActiveCompany(company.id)
                   setOpen(false)
                 }}
-              >
-                <Text className="font-medium text-foreground">{company.tradeName}</Text>
-              </Pressable>
+              />
             ))}
           </View>
-        ) : null}
+        </BottomSheet>
       </View>
     )
   }
@@ -53,7 +54,7 @@ export function CompanySwitcher({
     <View>
       <Pressable
         className="flex-row items-center justify-between rounded-2xl border border-border bg-card px-4 py-3"
-        onPress={() => setOpen((value) => !value)}
+        onPress={() => setOpen(true)}
       >
         <View className="flex-1 gap-0.5">
           <Text className="text-xs font-medium uppercase tracking-wide text-primary">
@@ -64,27 +65,29 @@ export function CompanySwitcher({
           </Text>
         </View>
         <Ionicons
-          name={open ? 'chevron-up' : 'chevron-down'}
+          name="chevron-down"
           size={18}
           color={themeColors.primary}
         />
       </Pressable>
-      {open ? (
-        <View className="mt-2 gap-1 rounded-2xl border border-border bg-card p-2">
+      <BottomSheet
+        open={open}
+        onOpenChange={setOpen}
+        title="Switch company"
+      >
+        <View style={{ gap: layout.sectionHeaderGap }}>
           {companies.map((company) => (
-            <Pressable
+            <CardRow
               key={company.id}
-              className="rounded-xl px-3 py-2.5 active:bg-muted"
+              title={company.tradeName}
               onPress={() => {
                 void setActiveCompany(company.id)
                 setOpen(false)
               }}
-            >
-              <Text className="font-medium text-foreground">{company.tradeName}</Text>
-            </Pressable>
+            />
           ))}
         </View>
-      ) : null}
+      </BottomSheet>
     </View>
   )
 }

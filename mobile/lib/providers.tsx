@@ -1,3 +1,4 @@
+import { PortalHost } from '@rn-primitives/portal'
 import * as React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createTRPCContext } from '@trpc/tanstack-react-query'
@@ -29,6 +30,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
           {children}
+          <PortalHost />
         </TRPCProvider>
       </QueryClientProvider>
     </SafeAreaProvider>

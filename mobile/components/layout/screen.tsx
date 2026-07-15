@@ -11,15 +11,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { View, Text, ScrollView, Pressable } from '@/tw'
 import { pagePaddingHorizontal, themeColors } from '@/lib/theme'
-
-const TAB_BAR_HEIGHT = 56
+import { layout, spacing } from '@/lib/spacing'
 
 function useScreenInsets() {
   const insets = useSafeAreaInsets()
   return {
     top: insets.top,
-    bottom: insets.bottom + TAB_BAR_HEIGHT + 16,
-    fabBottom: insets.bottom + TAB_BAR_HEIGHT + 8,
+    bottom: insets.bottom + layout.tabBarHeight + spacing.lg,
+    fabBottom: insets.bottom + layout.tabBarHeight + spacing.sm,
   }
 }
 
@@ -44,7 +43,7 @@ export function Screen({
     <View className="flex-1 bg-background">
       <View
         className="border-b border-border bg-background pb-dashboard-header-pb"
-        style={{ paddingTop: top + 12, ...pagePaddingHorizontal }}
+        style={{ paddingTop: top + spacing.md, ...pagePaddingHorizontal }}
       >
         <Text className="text-2xl font-bold text-foreground">{title}</Text>
         {subtitle ? (
@@ -53,8 +52,12 @@ export function Screen({
       </View>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-dashboard-section"
-        contentContainerStyle={{ paddingBottom: bottom, ...pagePaddingHorizontal }}
+        contentContainerStyle={{
+          paddingTop: spacing.lg,
+          paddingBottom: bottom,
+          gap: layout.sectionGap,
+          ...pagePaddingHorizontal,
+        }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

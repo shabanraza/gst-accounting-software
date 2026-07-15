@@ -25,11 +25,17 @@ export const themeSizes = {
   actionTile: 44,
 } as const
 
-/** Mirrors --spacing-page-x (1rem). Use inline on Android where px-page-x may not apply. */
+import { layout, spacing } from './spacing'
+
+/** Mirrors global.css spacing tokens. Prefer inline on Android where custom classes may not apply. */
 export const themeSpacing = {
-  pageX: 16,
+  ...spacing,
+  pageX: layout.pageX,
+  sectionGap: layout.sectionGap,
+  sectionHeaderGap: layout.sectionHeaderGap,
+  cardPadding: layout.cardPadding,
 } as const
 
 export const pagePaddingHorizontal = {
-  paddingHorizontal: themeSpacing.pageX,
+  paddingHorizontal: layout.pageX,
 } as const

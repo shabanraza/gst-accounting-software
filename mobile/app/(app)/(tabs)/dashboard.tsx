@@ -21,7 +21,8 @@ import {
   getOverdueCounts,
   mapOwnerSnapshotMetrics,
 } from '@/lib/dashboard-metrics'
-import { pagePaddingHorizontal, themeColors, themeSpacing } from '@/lib/theme'
+import { layout, spacing } from '@/lib/spacing'
+import { pagePaddingHorizontal, themeColors } from '@/lib/theme'
 import { trpcClient } from '@/lib/trpc-client'
 import { useWorkspace } from '@/lib/workspace'
 
@@ -37,7 +38,7 @@ function DateRangePill({ label }: { label: string }) {
 export default function DashboardScreen() {
   const { companyId, companyStateCode } = useWorkspace()
   const insets = useSafeAreaInsets()
-  const scrollBottomPadding = insets.bottom + 56 + 16
+  const scrollBottomPadding = insets.bottom + layout.tabBarHeight + spacing.lg
   const snapshotQuery = useQuery({
     queryKey: ['dashboard', companyId, companyStateCode],
     enabled: Boolean(companyId && companyStateCode),
@@ -55,7 +56,7 @@ export default function DashboardScreen() {
     <View className="flex-1 bg-background">
       <View
         className="flex-row items-center justify-between gap-3 border-b border-border bg-background pb-dashboard-header-pb"
-        style={{ paddingTop: insets.top + 12, ...pagePaddingHorizontal }}
+        style={{ paddingTop: insets.top + spacing.md, ...pagePaddingHorizontal }}
       >
         <CompanySwitcher variant="header" />
         <DateRangePill
@@ -69,9 +70,10 @@ export default function DashboardScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-dashboard-section"
         contentContainerStyle={{
+          paddingTop: spacing.lg,
           paddingBottom: scrollBottomPadding,
+          gap: layout.sectionGap,
           ...pagePaddingHorizontal,
         }}
         showsVerticalScrollIndicator={false}
@@ -80,12 +82,15 @@ export default function DashboardScreen() {
 
         {snapshot ? (
           <>
-            <View style={{ marginHorizontal: -themeSpacing.pageX }}>
+            <View style={{ marginHorizontal: -layout.pageX }}>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerClassName="gap-metric-carousel"
-                contentContainerStyle={{ paddingLeft: themeSpacing.pageX }}
+                contentContainerStyle={{
+                  gap: layout.metricCarouselGap,
+                  paddingLeft: layout.pageX,
+                  paddingRight: layout.pageX,
+                }}
               >
                 {mapOwnerSnapshotMetrics(snapshot).map((metric) => (
                   <DashboardMetricCard
@@ -105,17 +110,17 @@ export default function DashboardScreen() {
               overdueBillCount={overdueCounts?.bills ?? 0}
             />
 
-            <View className="gap-section-header">
+            <View style={{ gap: layout.sectionHeaderGap }}>
               <SectionHeader title="Quick Create" compact icon="flash-outline" />
               <ActionGrid items={QUICK_CREATE_ACTIONS} />
             </View>
 
-            <View className="gap-section-header">
+            <View style={{ gap: layout.sectionHeaderGap }}>
               <SectionHeader title="View & Share" compact icon="eye-outline" />
               <ActionGrid items={VIEW_SHARE_ACTIONS} />
             </View>
 
-            <View className="gap-section-header">
+            <View style={{ gap: layout.sectionHeaderGap }}>
               <SectionHeader title="Reports" compact icon="bar-chart-outline" />
               <ActionGrid items={REPORT_ACTIONS} />
             </View>
