@@ -1,5 +1,6 @@
-import * as ImagePicker from 'expo-image-picker'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useRouter } from 'expo-router'
+import * as ImagePicker from 'expo-image-picker'
 import { useState } from 'react'
 
 import { SectionHeader } from '@/components/section-header'
@@ -17,6 +18,7 @@ import { createOcrDraftFromCapture } from '@/lib/ocr-upload'
 import { useWorkspace } from '@/lib/workspace'
 
 export default function OcrReviewScreen() {
+  const router = useRouter()
   const { companyId } = useWorkspace()
   const queryClient = useQueryClient()
   const [status, setStatus] = useState<string | null>(null)
@@ -84,6 +86,12 @@ export default function OcrReviewScreen() {
             title={String(draft.fields?.supplierName?.value ?? 'OCR draft')}
             subtitle={String(draft.fields?.billNumber?.value ?? 'Needs review')}
             badge={String(draft.status ?? 'draft')}
+            onPress={
+              draft.id
+                ? () =>
+                    router.push(`/(app)/purchases/ocr/${String(draft.id)}` as never)
+                : undefined
+            }
           />
         ))}
         {!draftsQuery.isLoading && draftsQuery.data?.length === 0 ? (
