@@ -97,12 +97,12 @@ export default function DashboardScreen() {
             </View>
 
             <View className="gap-section-header">
-              <SectionHeader title="View & Share" compact />
+              <SectionHeader title="View & Share" compact icon="eye-outline" />
               <ActionGrid items={VIEW_SHARE_ACTIONS} />
             </View>
 
             <View className="gap-section-header">
-              <SectionHeader title="Reports" compact />
+              <SectionHeader title="Reports" compact icon="bar-chart-outline" />
               <ActionGrid items={REPORT_ACTIONS} />
             </View>
           </>
