@@ -104,6 +104,7 @@ export const MOBILE_NAV_MODULES: Array<MobileNavModule> = [
     path: '/(app)/module/items',
     trpcNamespace: 'inventory',
     listProcedure: 'listItems',
+    createPath: '/(app)/items/new',
   },
   {
     id: 'godowns',
@@ -128,6 +129,7 @@ export const MOBILE_NAV_MODULES: Array<MobileNavModule> = [
     path: '/(app)/module/parties',
     trpcNamespace: 'parties',
     listProcedure: 'list',
+    createPath: '/(app)/parties/new',
   },
   {
     id: 'reports',

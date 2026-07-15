@@ -45,6 +45,11 @@ function pickAmount(record: Record<string, unknown>) {
 }
 
 function pickBadge(record: Record<string, unknown>) {
+  const partyType = record.partyType as string | undefined
+  if (partyType === 'customer') return 'Customer'
+  if (partyType === 'supplier') return 'Supplier'
+  if (partyType === 'both') return 'Both'
+
   return (
     (record.status as string | undefined) ??
     (record.paymentStatus as string | undefined) ??
@@ -64,6 +69,10 @@ function pickDetailPath(moduleId: string, record: Record<string, unknown>) {
 
   if (moduleId === 'purchases') {
     return `/(app)/purchases/${id}`
+  }
+
+  if (moduleId === 'parties') {
+    return `/(app)/parties/${id}`
   }
 
   return undefined

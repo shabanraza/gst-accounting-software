@@ -23,6 +23,10 @@ export default function AppLayout() {
           <Stack.Screen name="purchases/new" />
           <Stack.Screen name="purchases/[id]" />
           <Stack.Screen name="purchases/ocr" />
+          <Stack.Screen name="parties/new" />
+          <Stack.Screen name="parties/[id]" />
+          <Stack.Screen name="parties/[id]/edit" />
+          <Stack.Screen name="items/new" />
         </Stack>
       </WorkspaceGate>
     </WorkspaceProvider>
