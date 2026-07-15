@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { Pressable, Text, View } from '@/tw'
 
-const CHEVRON_COLOR = '#9ca3af'
+import { themeColors } from '@/lib/theme'
 
 function BalanceSection({
   label,
@@ -21,7 +21,7 @@ function BalanceSection({
       <Text className="text-xs text-muted-foreground">{label}</Text>
       <View className="flex-row items-center justify-between gap-2">
         <Text className="flex-1 text-xl font-bold text-foreground">{amount}</Text>
-        <Ionicons name="chevron-down" size={16} color={CHEVRON_COLOR} />
+        <Ionicons name="chevron-down" size={16} color={themeColors.chevron} />
       </View>
     </Pressable>
   )
@@ -49,7 +49,7 @@ function OverdueCard({
         <Text className="flex-1 text-xs leading-4 text-muted-foreground" numberOfLines={2}>
           {label}
         </Text>
-        <Ionicons name="chevron-forward" size={14} color={CHEVRON_COLOR} />
+        <Ionicons name="chevron-forward" size={14} color={themeColors.chevron} />
       </View>
     </Pressable>
   )
@@ -75,7 +75,7 @@ export function BalanceHero({
   onOverdueBillsPress?: () => void
 }) {
   return (
-    <View className="flex-row gap-2">
+    <View className="flex-row gap-balance-hero-gap">
       <View className="flex-[3] overflow-hidden rounded-2xl bg-balance-bg">
         <BalanceSection
           label="Total Receivables"

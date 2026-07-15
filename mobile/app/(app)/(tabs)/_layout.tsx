@@ -1,14 +1,39 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs'
 import { DynamicColorIOS, Platform } from 'react-native'
 
+import { themeColors, themeSizes } from '@/lib/theme'
+
 const TAB_TINT =
   Platform.OS === 'ios'
-    ? DynamicColorIOS({ light: '#2563eb', dark: '#3b82f6' })
-    : '#2563eb'
+    ? DynamicColorIOS({ light: themeColors.tabActive, dark: '#3b82f6' })
+    : themeColors.tabActive
+
+const TAB_LABEL_STYLE = {
+  default: {
+    color: themeColors.tabInactive,
+    fontSize: themeSizes.tabLabel,
+    fontWeight: '500' as const,
+  },
+  selected: {
+    color: themeColors.tabActive,
+    fontSize: themeSizes.tabLabel,
+    fontWeight: '500' as const,
+  },
+}
 
 export default function TabsLayout() {
   return (
-    <NativeTabs minimizeBehavior="onScrollDown" tintColor={TAB_TINT}>
+    <NativeTabs
+      minimizeBehavior="onScrollDown"
+      tintColor={TAB_TINT}
+      backgroundColor={themeColors.tabBar}
+      iconColor={{
+        default: themeColors.tabInactive,
+        selected: themeColors.tabActive,
+      }}
+      labelStyle={TAB_LABEL_STYLE}
+      disableTransparentOnScrollEdge
+    >
       <NativeTabs.Trigger name="dashboard">
         <NativeTabs.Trigger.Icon
           sf={{ default: 'house', selected: 'house.fill' }}

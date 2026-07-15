@@ -19,16 +19,15 @@ import {
   getOverdueCounts,
   mapOwnerSnapshotMetrics,
 } from '@/lib/dashboard-metrics'
+import { themeColors } from '@/lib/theme'
 import { trpcClient } from '@/lib/trpc-client'
 import { useWorkspace } from '@/lib/workspace'
-
-const PRIMARY_COLOR = '#2563eb'
 
 function DateRangePill({ label }: { label: string }) {
   return (
     <View className="flex-row items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5">
-      <Ionicons name="calendar-outline" size={11} color={PRIMARY_COLOR} />
-      <Text className="text-[10px] font-medium text-muted-foreground">{label}</Text>
+      <Ionicons name="calendar-outline" size={11} color={themeColors.primary} />
+      <Text className="text-caption font-medium text-muted-foreground">{label}</Text>
     </View>
   )
 }
@@ -50,7 +49,7 @@ export default function DashboardScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <View className="flex-row items-center justify-between gap-3 border-b border-border bg-background px-4 pb-2 pt-14">
+      <View className="flex-row items-center justify-between gap-3 border-b border-border bg-background px-page-x pb-dashboard-header-pb pt-dashboard-header-pt">
         <CompanySwitcher variant="header" />
         <DateRangePill
           label={
@@ -63,7 +62,7 @@ export default function DashboardScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-3 p-4 pb-28"
+        contentContainerClassName="gap-dashboard-section p-page-x pb-page-bottom"
         showsVerticalScrollIndicator={false}
       >
         {snapshotQuery.isLoading ? <LoadingState /> : null}
@@ -73,7 +72,7 @@ export default function DashboardScreen() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerClassName="gap-2 pr-1"
+              contentContainerClassName="gap-metric-carousel pr-1"
             >
               {mapOwnerSnapshotMetrics(snapshot).map((metric) => (
                 <DashboardMetricCard
@@ -92,17 +91,17 @@ export default function DashboardScreen() {
               overdueBillCount={overdueCounts?.bills ?? 0}
             />
 
-            <View className="gap-1.5">
+            <View className="gap-section-header">
               <SectionHeader title="Quick Create" compact icon="flash-outline" />
               <ActionGrid items={QUICK_CREATE_ACTIONS} />
             </View>
 
-            <View className="gap-1.5">
+            <View className="gap-section-header">
               <SectionHeader title="View & Share" compact />
               <ActionGrid items={VIEW_SHARE_ACTIONS} />
             </View>
 
-            <View className="gap-1.5">
+            <View className="gap-section-header">
               <SectionHeader title="Reports" compact />
               <ActionGrid items={REPORT_ACTIONS} />
             </View>

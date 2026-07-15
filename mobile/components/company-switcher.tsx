@@ -2,9 +2,8 @@ import { Ionicons } from '@expo/vector-icons'
 import { Pressable, Text, View } from '@/tw'
 import { useState } from 'react'
 
+import { themeColors } from '@/lib/theme'
 import { useWorkspace } from '@/lib/workspace'
-
-const PRIMARY_COLOR = '#2563eb'
 
 export function CompanySwitcher({
   variant = 'card',
@@ -27,7 +26,7 @@ export function CompanySwitcher({
           <Ionicons
             name={open ? 'chevron-up' : 'chevron-down'}
             size={16}
-            color={PRIMARY_COLOR}
+            color={themeColors.primary}
           />
         </Pressable>
         {open ? (
@@ -67,7 +66,7 @@ export function CompanySwitcher({
         <Ionicons
           name={open ? 'chevron-up' : 'chevron-down'}
           size={18}
-          color={PRIMARY_COLOR}
+          color={themeColors.primary}
         />
       </Pressable>
       {open ? (

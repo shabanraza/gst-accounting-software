@@ -1,59 +1,43 @@
 import { Tabs } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
 
-const TAB_ACTIVE_TINT = '#2563eb'
+import { createTabIcon, tabScreenOptions } from '@/lib/tab-bar-options'
 
 export default function TabsLayoutWeb() {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: TAB_ACTIVE_TINT,
-      }}
-    >
+    <Tabs screenOptions={tabScreenOptions}>
       <Tabs.Screen
         name="dashboard"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" color={color} size={size} />
-          ),
+          tabBarIcon: createTabIcon('home-outline', 'home'),
         }}
       />
       <Tabs.Screen
         name="sales"
         options={{
           title: 'Sales',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cart-outline" color={color} size={size} />
-          ),
+          tabBarIcon: createTabIcon('cart-outline', 'cart'),
         }}
       />
       <Tabs.Screen
         name="purchases"
         options={{
           title: 'Purchase',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="receipt-outline" color={color} size={size} />
-          ),
+          tabBarIcon: createTabIcon('receipt-outline', 'receipt'),
         }}
       />
       <Tabs.Screen
         name="stock"
         options={{
           title: 'Stock',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cube-outline" color={color} size={size} />
-          ),
+          tabBarIcon: createTabIcon('cube-outline', 'cube'),
         }}
       />
       <Tabs.Screen
         name="more"
         options={{
           title: 'More',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="grid-outline" color={color} size={size} />
-          ),
+          tabBarIcon: createTabIcon('grid-outline', 'grid'),
         }}
       />
     </Tabs>
