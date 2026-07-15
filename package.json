@@ -20,6 +20,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "dev:mobile": "bun run --filter mobile web",
     "test:mobile": "bun run --filter mobile test",
     "test:api-client": "bun run --filter @accounting/api-client test",
     "lint": "eslint",
