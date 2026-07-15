@@ -12,11 +12,14 @@ import {
   Screen,
 } from '@/components/screen'
 import { formatInr, formatShortDate } from '@/lib/format-inr'
-import { validatePaymentAmount, hasOutstandingBalance } from '@/lib/payment-allocation'
 import {
-  salesInvoiceSummaryRows,
-  salesInvoiceTotalsRows,
-} from '@/lib/sales-invoice-detail'
+  purchaseBillSummaryRows,
+  purchaseBillTotalsRows,
+} from '@/lib/purchase-bill-detail'
+import {
+  hasOutstandingBalance,
+  validatePaymentAmount,
+} from '@/lib/payment-allocation'
 import { trpcClient } from '@/lib/trpc-client'
 import { Text, View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
@@ -49,97 +52,97 @@ function DetailCard({
   )
 }
 
-export function SalesInvoiceDetailScreen() {
+export function PurchaseBillDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const queryClient = useQueryClient()
   const { companyId, ledgerBySystemKey } = useWorkspace()
   const [amount, setAmount] = React.useState('')
-  const [receiptError, setReceiptError] = React.useState<string | null>(null)
-  const [receiptMessage, setReceiptMessage] = React.useState<string | null>(null)
+  const [paymentError, setPaymentError] = React.useState<string | null>(null)
+  const [paymentMessage, setPaymentMessage] = React.useState<string | null>(null)
 
-  const invoiceQuery = useQuery({
-    queryKey: ['sales-invoice', companyId, id],
+  const billQuery = useQuery({
+    queryKey: ['purchase-bill', companyId, id],
     enabled: Boolean(companyId && id),
     queryFn: () =>
-      trpcClient.sales.getById.query({
+      trpcClient.purchases.getById.query({
         companyId: companyId!,
         id: id!,
       }),
   })
 
-  const invoice = invoiceQuery.data
+  const bill = billQuery.data
 
   React.useEffect(() => {
-    if (invoice?.outstandingAmount && !amount) {
-      setAmount(invoice.outstandingAmount)
+    if (bill?.outstandingAmount && !amount) {
+      setAmount(bill.outstandingAmount)
     }
-  }, [amount, invoice?.outstandingAmount])
+  }, [amount, bill?.outstandingAmount])
 
-  const receiptMutation = useMutation({
+  const paymentMutation = useMutation({
     mutationFn: async () => {
-      if (!companyId || !invoice) {
-        throw new Error('Invoice not loaded')
+      if (!companyId || !bill) {
+        throw new Error('Bill not loaded')
       }
 
       const validationError = validatePaymentAmount(
         amount,
-        invoice.outstandingAmount,
+        bill.outstandingAmount,
       )
       if (validationError) {
         throw new Error(validationError)
       }
 
-      if (!ledgerBySystemKey.cash || !ledgerBySystemKey.customer_receivable) {
-        throw new Error('Cash or receivable ledger mapping is missing.')
+      if (!ledgerBySystemKey.cash || !ledgerBySystemKey.supplier_payable) {
+        throw new Error('Cash or payable ledger mapping is missing.')
       }
 
-      return trpcClient.payments.allocateCustomerReceipt.mutate({
+      return trpcClient.payments.allocateSupplierPayment.mutate({
         companyId,
-        invoiceId: invoice.id,
+        purchaseBillId: bill.id,
         amount,
-        receiptDate: new Date().toISOString().slice(0, 10),
+        paymentDate: new Date().toISOString().slice(0, 10),
         cashAccountId: ledgerBySystemKey.cash,
-        receivableAccountId: ledgerBySystemKey.customer_receivable,
+        payableAccountId: ledgerBySystemKey.supplier_payable,
       })
     },
     onSuccess: async () => {
-      setReceiptError(null)
-      setReceiptMessage('Receipt posted.')
+      setPaymentError(null)
+      setPaymentMessage('Payment posted.')
       await queryClient.invalidateQueries({
-        queryKey: ['sales-invoice', companyId, id],
+        queryKey: ['purchase-bill', companyId, id],
       })
-      await queryClient.invalidateQueries({ queryKey: ['module-list', 'sales'] })
+      await queryClient.invalidateQueries({ queryKey: ['module-list', 'purchases'] })
     },
     onError: (error) => {
-      setReceiptMessage(null)
-      setReceiptError(
-        error instanceof Error ? error.message : 'Receipt failed.',
+      setPaymentMessage(null)
+      setPaymentError(
+        error instanceof Error ? error.message : 'Payment failed.',
       )
     },
   })
 
   return (
     <Screen
-      title={invoice?.invoiceNumber ?? 'Invoice'}
+      title={bill?.supplierBillNumber ?? 'Purchase bill'}
       subtitle={
-        invoice?.invoiceDate
-          ? formatShortDate(invoice.invoiceDate.slice(0, 10))
-          : 'Sales invoice'
+        bill?.billDate
+          ? formatShortDate(bill.billDate.slice(0, 10))
+          : 'Purchase bill'
       }
     >
-      {invoiceQuery.isLoading ? <LoadingState /> : null}
-      {invoiceQuery.isError ? (
-        <EmptyState message="Unable to load this invoice." />
+      {billQuery.isLoading ? <LoadingState /> : null}
+      {billQuery.isError ? (
+        <EmptyState message="Unable to load this purchase bill." />
       ) : null}
-      {invoice ? (
+      {bill ? (
         <>
           <DetailCard title="Summary" icon="information-circle-outline">
-            {salesInvoiceSummaryRows(invoice).map((row) => (
+            {purchaseBillSummaryRows(bill).map((row) => (
               <DetailRow key={row.label} label={row.label} value={row.value} />
             ))}
           </DetailCard>
           <DetailCard title="Totals" icon="calculator-outline">
-            {salesInvoiceTotalsRows(invoice).map((row) => (
+            {purchaseBillTotalsRows(bill).map((row) => (
               <DetailRow
                 key={row.label}
                 label={row.label}
@@ -149,22 +152,22 @@ export function SalesInvoiceDetailScreen() {
           </DetailCard>
           <View className="gap-section-header">
             <SectionHeader title="Line items" compact icon="list-outline" />
-            {invoice.lines.map((line, index) => (
+            {bill.lines.map((line, index) => (
               <CardRow
                 key={`${line.description}-${index}`}
                 title={line.description}
                 subtitle={`${line.quantity} ${line.unit} × ${formatInr(line.rate)}`}
-                amount={formatInr(line.lineAmount)}
+                amount={formatInr(line.lineTotal)}
                 badge={`GST ${line.gstRate}%`}
               />
             ))}
           </View>
-          {hasOutstandingBalance(invoice.outstandingAmount) ? (
+          {hasOutstandingBalance(bill.outstandingAmount) ? (
             <View className="gap-section-header">
-              <SectionHeader title="Record receipt" compact icon="cash-outline" />
+              <SectionHeader title="Record payment" compact icon="card-outline" />
               <View className="gap-3 rounded-xl border border-border bg-card p-card-padding">
                 <Text className="text-sm text-muted-foreground">
-                  Outstanding {formatInr(invoice.outstandingAmount)}
+                  Outstanding {formatInr(bill.outstandingAmount)}
                 </Text>
                 <FormField
                   keyboardType="decimal-pad"
@@ -172,19 +175,19 @@ export function SalesInvoiceDetailScreen() {
                   value={amount}
                   onChangeText={setAmount}
                 />
-                {receiptError ? (
-                  <Text className="text-sm text-destructive">{receiptError}</Text>
+                {paymentError ? (
+                  <Text className="text-sm text-destructive">{paymentError}</Text>
                 ) : null}
-                {receiptMessage ? (
+                {paymentMessage ? (
                   <Text className="text-sm text-muted-foreground">
-                    {receiptMessage}
+                    {paymentMessage}
                   </Text>
                 ) : null}
                 <PrimaryButton
-                  label={receiptMutation.isPending ? 'Posting…' : 'Post receipt'}
-                  loading={receiptMutation.isPending}
-                  disabled={receiptMutation.isPending}
-                  onPress={() => receiptMutation.mutate()}
+                  label={paymentMutation.isPending ? 'Posting…' : 'Post payment'}
+                  loading={paymentMutation.isPending}
+                  disabled={paymentMutation.isPending}
+                  onPress={() => paymentMutation.mutate()}
                 />
               </View>
             </View>

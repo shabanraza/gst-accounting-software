@@ -12,11 +12,13 @@ import {
 import { formatInr, formatShortDate } from '@/lib/format-inr'
 import { getModuleById } from '@/lib/nav-config'
 import { TAB_HUB_CONFIG } from '@/lib/tab-actions'
+import { ReportsScreen } from '@/features/reports-screen'
 import { useModuleList } from '@/features/use-module-list'
 
 function pickTitle(record: Record<string, unknown>) {
   return (
     (record.invoiceNumber as string | undefined) ??
+    (record.supplierBillNumber as string | undefined) ??
     (record.billNumber as string | undefined) ??
     (record.documentNumber as string | undefined) ??
     (record.name as string | undefined) ??
@@ -58,6 +60,10 @@ function pickDetailPath(moduleId: string, record: Record<string, unknown>) {
 
   if (moduleId === 'sales') {
     return `/(app)/sales/${id}`
+  }
+
+  if (moduleId === 'purchases') {
+    return `/(app)/purchases/${id}`
   }
 
   return undefined
@@ -117,14 +123,7 @@ export function ModuleListScreen({ moduleId }: { moduleId: string }) {
   }
 
   if (module.id === 'reports') {
-    return (
-      <Screen title={module.title} subtitle="GST and books">
-        <CardRow title="GSTR-1" subtitle="Outward supplies" badge="Report" />
-        <CardRow title="GSTR-3B" subtitle="Monthly summary" badge="Report" />
-        <CardRow title="Trial balance" subtitle="Ledger balances" badge="Report" />
-        <CardRow title="Receivables ageing" subtitle="Outstanding customers" badge="Report" />
-      </Screen>
-    )
+    return <ReportsScreen />
   }
 
   if (module.id === 'payments') {

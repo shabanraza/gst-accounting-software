@@ -16,4 +16,18 @@ describe('useModuleList configuration', () => {
       listProcedure: 'list',
     })
   })
+
+  it('maps purchases to purchases.list procedure', () => {
+    expect(getModuleById('purchases')).toMatchObject({
+      trpcNamespace: 'purchases',
+      listProcedure: 'list',
+      createPath: '/(app)/purchases/new',
+    })
+  })
+
+  it('maps reports module without list procedure', () => {
+    const reports = getModuleById('reports')
+    expect(reports?.id).toBe('reports')
+    expect(reports?.listProcedure).toBeUndefined()
+  })
 })

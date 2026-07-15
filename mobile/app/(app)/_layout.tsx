@@ -21,6 +21,7 @@ export default function AppLayout() {
           <Stack.Screen name="sales/[id]" />
           <Stack.Screen name="sales/new" />
           <Stack.Screen name="purchases/new" />
+          <Stack.Screen name="purchases/[id]" />
           <Stack.Screen name="purchases/ocr" />
         </Stack>
       </WorkspaceGate>
