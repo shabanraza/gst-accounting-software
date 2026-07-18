@@ -6,6 +6,7 @@ import { DetailRow } from '@/components/data/detail-row'
 import { EmptyState } from '@/components/data/empty-state'
 import { LoadingState } from '@/components/data/loading-state'
 import { Screen } from '@/components/layout/screen'
+import { useLedgerAccounts } from '@/features/use-ledger-accounts'
 import { formatInr, formatShortDate } from '@/lib/format-inr'
 import { trpcClient } from '@/lib/trpc-client'
 import { useWorkspace } from '@/lib/workspace'
@@ -13,6 +14,7 @@ import { useWorkspace } from '@/lib/workspace'
 export function ExpenseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { companyId } = useWorkspace()
+  const ledgersQuery = useLedgerAccounts()
 
   const expenseQuery = useQuery({
     queryKey: ['expense', companyId, id],
@@ -26,6 +28,9 @@ export function ExpenseDetailScreen() {
   })
 
   const expense = expenseQuery.data
+  const expenseAccount = (ledgersQuery.data ?? []).find(
+    (account) => account.id === expense?.expenseAccountId,
+  )
 
   if (expenseQuery.isLoading) {
     return (
@@ -48,7 +53,16 @@ export function ExpenseDetailScreen() {
       <DetailCard title="Summary" icon="information-circle-outline">
         <DetailRow label="Date" value={formatShortDate(expense.expenseDate)} />
         <DetailRow label="Narration" value={expense.narration} />
-        <DetailRow label="Amount" value={formatInr(expense.amount)} />
+      </DetailCard>
+
+      <DetailCard title="Amount" icon="calculator-outline">
+        <DetailRow label="Total" value={formatInr(expense.amount)} />
+        {expenseAccount ? (
+          <DetailRow
+            label="Expense account"
+            value={`${expenseAccount.code} · ${expenseAccount.name}`}
+          />
+        ) : null}
       </DetailCard>
     </Screen>
   )

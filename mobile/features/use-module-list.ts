@@ -11,7 +11,10 @@ function getNestedProcedure(namespace: string, procedure: string) {
     namespace
   ]
   const method = router?.[procedure]
-  if (typeof method !== 'object' || method === null) {
+  if (
+    (typeof method !== 'object' && typeof method !== 'function') ||
+    method === null
+  ) {
     return null
   }
   return method as {

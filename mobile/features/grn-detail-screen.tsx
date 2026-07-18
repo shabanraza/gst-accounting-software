@@ -10,6 +10,7 @@ import { SectionHeader } from '@/components/layout/section-header'
 import { Screen } from '@/components/layout/screen'
 import { PrimaryButton } from '@/components/ui/button'
 import { formatInr, formatShortDate } from '@/lib/format-inr'
+import { computeLineAmount } from '@/lib/document-lines'
 import { trpcClient } from '@/lib/trpc-client'
 import { View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
@@ -52,22 +53,34 @@ export function GrnDetailScreen() {
       <DetailCard title="Summary" icon="information-circle-outline">
         <DetailRow label="Date" value={formatShortDate(grn.grnDate)} />
         <DetailRow label="Status" value={grn.status} />
-        <DetailRow label="Total" value={formatInr(grn.totalAmount)} />
         {grn.godownName ? (
           <DetailRow label="Godown" value={grn.godownName} />
         ) : null}
+        {grn.narration ? (
+          <DetailRow label="Note" value={grn.narration} />
+        ) : null}
+      </DetailCard>
+
+      <DetailCard title="Totals" icon="calculator-outline">
+        <DetailRow label="Items" value={String(grn.lines.length)} />
+        <DetailRow label="Total" value={formatInr(grn.totalAmount)} />
       </DetailCard>
 
       <View className="gap-section-header">
-        <SectionHeader title="Lines" compact icon="list-outline" />
-        {grn.lines.map((line) => (
-          <CardRow
-            key={line.id}
-            title={line.description}
-            subtitle={`${line.quantity} ${line.unit} @ ${formatInr(line.rate)}`}
-            badge={`GST ${line.gstRate}%`}
-          />
-        ))}
+        <SectionHeader title="Line items" compact icon="list-outline" />
+        {grn.lines.map((line) => {
+          const lineAmount = computeLineAmount(line.quantity, line.rate)
+
+          return (
+            <CardRow
+              key={line.id}
+              title={line.description}
+              subtitle={`${line.quantity} ${line.unit} × ${formatInr(line.rate)}`}
+              amount={lineAmount ? formatInr(lineAmount) : undefined}
+              badge={`GST ${line.gstRate}%`}
+            />
+          )
+        })}
       </View>
 
       {grn.status === 'open' ? (

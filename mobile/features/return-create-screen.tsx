@@ -2,11 +2,13 @@ import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 
-import { SectionHeader } from '@/components/layout/section-header'
+import { CreateScreenFooter } from '@/components/layout/create-screen-footer'
+import { FormSection } from '@/components/layout/form-section'
 import { Screen } from '@/components/layout/screen'
-import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
+import { DateField } from '@/components/ui/date-field'
 import { OptionChip } from '@/components/ui/chip'
 import { FormField } from '@/components/ui/form-field'
+import { FormFieldGroup } from '@/components/ui/form-label'
 import { PickerField } from '@/components/ui/picker-field'
 import { PickerModal } from '@/components/ui/picker-modal'
 import { useSalesParties } from '@/features/use-sales-masters'
@@ -21,7 +23,7 @@ import {
   type ReturnMode,
 } from '@/lib/return-form'
 import { trpcClient } from '@/lib/trpc-client'
-import { Text, View } from '@/tw'
+import { View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
 
 export function ReturnCreateScreen() {
@@ -156,9 +158,21 @@ export function ReturnCreateScreen() {
   }
 
   return (
-    <Screen title="Credit / debit note" subtitle="Post a sales or purchase return" keyboardAvoiding>
-      <View className="gap-section-header">
-        <SectionHeader title="Return type" compact icon="return-down-back-outline" />
+    <Screen
+      title="Credit / debit note"
+      subtitle="Post a sales or purchase return"
+      keyboardAvoiding
+      footer={
+        <CreateScreenFooter
+          error={error}
+          loading={saveMutation.isPending}
+          onCancel={() => router.back()}
+          onSubmit={() => saveMutation.mutate()}
+          submitLabel="Post return"
+        />
+      }
+    >
+      <FormSection title="Return type" icon="return-down-back-outline">
         <View className="flex-row flex-wrap gap-2">
           <OptionChip
             label="Sales return"
@@ -171,48 +185,33 @@ export function ReturnCreateScreen() {
             onPress={() => setMode('purchase')}
           />
         </View>
-      </View>
+      </FormSection>
 
-      <View className="gap-section-header">
-        <SectionHeader title="Document" compact icon="document-text-outline" />
+      <FormSection title="Document" icon="document-text-outline">
         <PickerField
           label={form.mode === 'sales' ? 'Sales invoice' : 'Purchase bill'}
           value={documentLabel}
           placeholder="Select document"
           onPress={() => setDocumentPickerOpen(true)}
         />
-        <FormField
-          placeholder="YYYY-MM-DD"
+        <DateField
+          label="Return date"
           value={form.returnDate}
-          onChangeText={(returnDate) =>
+          onChange={(returnDate) =>
             setForm((current) => ({ ...current, returnDate }))
           }
         />
-        <FormField
-          keyboardType="decimal-pad"
-          placeholder="Return quantity"
-          value={form.quantity}
-          onChangeText={(quantity) =>
-            setForm((current) => ({ ...current, quantity }))
-          }
-        />
-      </View>
-
-      {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
-
-      <View className="flex-row gap-3">
-        <View className="flex-1">
-          <SecondaryButton label="Cancel" onPress={() => router.back()} />
-        </View>
-        <View className="flex-1">
-          <PrimaryButton
-            label={saveMutation.isPending ? 'Posting…' : 'Post return'}
-            loading={saveMutation.isPending}
-            disabled={saveMutation.isPending}
-            onPress={() => saveMutation.mutate()}
+        <FormFieldGroup label="Quantity">
+          <FormField
+            keyboardType="decimal-pad"
+            placeholder="1"
+            value={form.quantity}
+            onChangeText={(quantity) =>
+              setForm((current) => ({ ...current, quantity }))
+            }
           />
-        </View>
-      </View>
+        </FormFieldGroup>
+      </FormSection>
 
       <PickerModal
         visible={documentPickerOpen}

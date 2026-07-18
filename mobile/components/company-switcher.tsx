@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons'
 import { Pressable, Text, View } from '@/tw'
 import { useState } from 'react'
+import { StyleSheet } from 'react-native'
 
 import { BottomSheet } from '@/components/ui/dialog'
 import { CardRow } from '@/components/data/card-row'
-import { pageLayout } from '@/lib/spacing'
+import { pageLayout, spacing } from '@/lib/spacing'
 import { themeColors } from '@/lib/theme'
 import { useWorkspace } from '@/lib/workspace'
 
@@ -13,20 +14,29 @@ export function CompanySwitcher({
 }: {
   variant?: 'card' | 'header'
 }) {
-  const { companyName, companies, setActiveCompany } = useWorkspace()
+  const { company, companyName, companies, setActiveCompany } = useWorkspace()
   const [open, setOpen] = useState(false)
+  const gstinLabel = company?.gstin ? `GSTIN ${company.gstin}` : 'GSTIN not set'
 
   if (variant === 'header') {
     return (
       <View className="flex-1">
         <Pressable
-          className="flex-row items-center gap-1 self-start"
+          className="self-start"
+          style={styles.headerPill}
           onPress={() => setOpen(true)}
         >
-          <Text className="text-lg font-semibold text-foreground" numberOfLines={1}>
-            {companyName ?? 'Select company'}
-          </Text>
-          <Ionicons name="chevron-down" size={16} color={themeColors.primary} />
+          <View className="min-w-0" style={styles.headerText}>
+            <View className="flex-row items-center gap-1">
+              <Text className="text-base font-bold text-foreground" numberOfLines={1}>
+                {companyName ?? 'Select company'}
+              </Text>
+              <Ionicons name="chevron-down" size={16} color={themeColors.secondary} />
+            </View>
+            <Text className="text-xs font-medium text-muted-foreground" numberOfLines={1}>
+              {gstinLabel}
+            </Text>
+          </View>
         </Pressable>
         <BottomSheet
           open={open}
@@ -91,3 +101,14 @@ export function CompanySwitcher({
     </View>
   )
 }
+
+const styles = StyleSheet.create({
+  headerPill: {
+    maxWidth: 220,
+    minHeight: 42,
+    paddingVertical: spacing.xs,
+  },
+  headerText: {
+    maxWidth: 190,
+  },
+})

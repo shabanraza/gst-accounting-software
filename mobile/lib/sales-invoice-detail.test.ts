@@ -23,7 +23,7 @@ const sampleInvoice = {
       unit: 'pcs',
       rate: '100.00',
       gstRate: '18',
-      lineAmount: '1000.00',
+      lineTotal: '1000.00',
     },
   ],
 }

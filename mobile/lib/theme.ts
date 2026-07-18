@@ -3,18 +3,43 @@
  * Tailwind classes (Ionicons, React Navigation tab bar, DynamicColorIOS).
  */
 export const themeColors = {
-  primary: '#2563eb',
+  background: '#ffffff',
+  foreground: '#111827',
+  card: '#ffffff',
+  surface: '#f1f5f9',
+  surfaceRaised: '#ffffff',
+  primary: '#4f46e5',
+  primaryPressed: '#4338ca',
+  primaryMuted: '#eef2ff',
   primaryForeground: '#ffffff',
+  secondary: '#2563eb',
+  secondaryMuted: '#eff6ff',
+  accentIndigo: '#7c3aed',
+  accentAmber: '#d97706',
   icon: '#374151',
-  iconAccentBlue: '#2563eb',
-  iconAccentRed: '#ef4444',
-  iconAccentOrange: '#f97316',
-  mutedForeground: '#6b7280',
+  iconBg: '#eef2ff',
+  metricCardBg: '#ffffff',
+  iconAccentSales: '#4f46e5',
+  iconAccentPurchases: '#0284c7',
+  iconAccentStock: '#7c3aed',
+  iconAccentReports: '#d97706',
+  iconAccentOverdue: '#dc2626',
+  mutedForeground: '#64748b',
+  subtleForeground: '#94a3b8',
   chevron: '#9ca3af',
-  tabActive: '#2563eb',
-  tabInactive: '#6b7280',
+  border: '#d8e1ec',
+  borderStrong: '#cbd5e1',
+  fieldBackground: '#ffffff',
+  success: '#047857',
+  successMuted: '#ecfdf5',
+  warning: '#b45309',
+  warningMuted: '#fffbeb',
+  destructive: '#dc2626',
+  destructiveMuted: '#fef2f2',
+  tabActive: '#4f46e5',
+  tabInactive: '#64748b',
   tabBar: '#ffffff',
-  tabBorder: '#e5e7eb',
+  tabBorder: '#d8e1ec',
 } as const
 
 export const themeSizes = {
@@ -23,6 +48,21 @@ export const themeSizes = {
   sectionIcon: 15,
   actionIcon: 20,
   actionTile: 44,
+} as const
+
+export const fontFamilies = {
+  regular: 'IBMPlexSans_400Regular',
+  semibold: 'IBMPlexSans_600SemiBold',
+} as const
+
+export const typography = {
+  body: 14,
+  label: 12,
+  caption: 11,
+  button: 14,
+  control: 14,
+  controlHeight: 48,
+  labelFieldGap: 10,
 } as const
 
 import { pageLayout, spacing } from './spacing'

@@ -17,41 +17,51 @@
   --color-card-foreground: #111827;
 
   /* Primary brand & icon system */
-  --color-primary: #2563eb;
+  --color-primary: #4f46e5;
   --color-primary-foreground: #ffffff;
-  --color-primary-muted: #eff6ff;
+  --color-primary-muted: #eef2ff;
+  --color-secondary: #2563eb;
+  --color-secondary-muted: #eff6ff;
+  --color-accent-indigo: #7c3aed;
+  --color-accent-amber: #d97706;
   --color-icon: #374151;
-  --color-icon-bg: #f3f4f6;
-  --color-metric-card-bg: #f8fafc;
+  --color-icon-bg: #eef2ff;
+  --color-metric-card-bg: #ffffff;
   --color-icon-foreground: #111827;
-  --color-icon-accent-blue: #2563eb;
-  --color-icon-accent-red: #ef4444;
-  --color-icon-accent-orange: #f97316;
+  --color-icon-accent-sales: #4f46e5;
+  --color-icon-accent-purchases: #0284c7;
+  --color-icon-accent-stock: #7c3aed;
+  --color-icon-accent-reports: #d97706;
+  --color-icon-accent-overdue: #dc2626;
   --color-chevron: #9ca3af;
 
   /* Muted / secondary text */
-  --color-muted: #f3f4f6;
-  --color-muted-foreground: #6b7280;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #64748b;
 
   /* Borders & focus */
-  --color-border: #e5e7eb;
-  --color-ring: #2563eb;
+  --color-border: #d8e1ec;
+  --color-ring: #4f46e5;
 
   /* Semantic status (overdue alerts only) */
   --color-warning: #d97706;
   --color-warning-muted: #fffbeb;
   --color-warning-foreground: #92400e;
+  --color-success: #047857;
+  --color-success-muted: #ecfdf5;
+  --color-destructive: #dc2626;
+  --color-destructive-muted: #fef2f2;
 
   /* Dashboard balance hero (Zoho-style) */
-  --color-balance-bg: #eef4fc;
-  --color-overdue-invoice-bg: #fdeceb;
-  --color-overdue-bill-bg: #f3f0ec;
+  --color-balance-bg: #eef2ff;
+  --color-overdue-invoice-bg: #fef2f2;
+  --color-overdue-bill-bg: #fff7ed;
 
   /* Tab bar (Zoho-style flat white bar) */
-  --color-tab-active: #2563eb;
-  --color-tab-inactive: #6b7280;
+  --color-tab-active: #4f46e5;
+  --color-tab-inactive: #64748b;
   --color-tab-bar: #ffffff;
-  --color-tab-border: #e5e7eb;
+  --color-tab-border: #d8e1ec;
 
   /* Page layout spacing (8pt grid — enterprise rhythm) */
   --spacing-page-x: 1rem;
@@ -72,13 +82,19 @@
   --spacing-tab-bar: 3.5rem;
 
   /* Typography scale */
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.35;
+  --text-sm: 0.75rem;
+  --text-sm--line-height: 1.3;
+  --text-xs: 0.6875rem;
+  --text-xs--line-height: 1.25;
   --text-section-title: 0.9375rem;
   --text-section-title--line-height: 1.25;
   --text-action-label: 0.75rem;
   --text-action-label--line-height: 1.25;
-  --text-metric-label: 0.625rem;
+  --text-metric-label: 0.6875rem;
   --text-metric-label--line-height: 1.2;
-  --text-caption: 0.625rem;
+  --text-caption: 0.6875rem;
   --text-caption--line-height: 1.2;
   --text-tab-label: 0.6875rem;
   --text-tab-label--line-height: 1.2;

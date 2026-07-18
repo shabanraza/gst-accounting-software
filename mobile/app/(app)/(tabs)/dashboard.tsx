@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { ScrollView, View, Text } from '@/tw'
 import { Ionicons } from '@expo/vector-icons'
+import { StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ActionGrid } from '@/components/dashboard/action-grid'
-import { BalanceHero } from '@/components/dashboard/balance-hero'
-import { DashboardMetricCard } from '@/components/dashboard/dashboard-metric-card'
+import { BusinessSnapshotHero } from '@/components/dashboard/business-snapshot-hero'
 import { CompanySwitcher } from '@/components/company-switcher'
 import { EmptyState } from '@/components/data/empty-state'
 import { LoadingState } from '@/components/data/loading-state'
@@ -15,12 +15,7 @@ import {
   REPORT_ACTIONS,
   VIEW_SHARE_ACTIONS,
 } from '@/lib/dashboard-actions'
-import { formatInr } from '@/lib/format-inr'
-import {
-  formatDashboardDate,
-  getOverdueCounts,
-  mapOwnerSnapshotMetrics,
-} from '@/lib/dashboard-metrics'
+import { formatDashboardDate } from '@/lib/dashboard-metrics'
 import { pageLayout, spacing } from '@/lib/spacing'
 import { pagePaddingHorizontal, themeColors } from '@/lib/theme'
 import { trpcClient } from '@/lib/trpc-client'
@@ -28,9 +23,14 @@ import { useWorkspace } from '@/lib/workspace'
 
 function DateRangePill({ label }: { label: string }) {
   return (
-    <View className="flex-row items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5">
-      <Ionicons name="calendar-outline" size={11} color={themeColors.primary} />
-      <Text className="text-caption font-medium text-muted-foreground">{label}</Text>
+    <View
+      className="flex-row items-center gap-1"
+      style={styles.datePill}
+    >
+      <Ionicons name="calendar-outline" size={14} color={themeColors.secondary} />
+      <Text className="text-base font-semibold text-muted-foreground" numberOfLines={1}>
+        {label}
+      </Text>
     </View>
   )
 }
@@ -50,12 +50,11 @@ export default function DashboardScreen() {
   })
 
   const snapshot = snapshotQuery.data
-  const overdueCounts = snapshot ? getOverdueCounts(snapshot) : null
 
   return (
     <View className="flex-1 bg-background">
       <View
-        className="flex-row items-center justify-between gap-3 border-b border-border bg-background pb-dashboard-header-pb"
+        className="flex-row items-center justify-between gap-3 bg-background pb-dashboard-header-pb"
         style={{ paddingTop: insets.top + spacing.md, ...pagePaddingHorizontal }}
       >
         <CompanySwitcher variant="header" />
@@ -82,33 +81,7 @@ export default function DashboardScreen() {
 
         {snapshot ? (
           <>
-            <View style={{ marginHorizontal: -pageLayout.pageX }}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{
-                  gap: pageLayout.metricCarouselGap,
-                  paddingLeft: pageLayout.pageX,
-                  paddingRight: pageLayout.pageX,
-                }}
-              >
-                {mapOwnerSnapshotMetrics(snapshot).map((metric) => (
-                  <DashboardMetricCard
-                    key={metric.id}
-                    label={metric.label}
-                    amount={formatInr(metric.amount)}
-                    icon={metric.icon}
-                  />
-                ))}
-              </ScrollView>
-            </View>
-
-            <BalanceHero
-              receivables={formatInr(snapshot.balances.receivableTotal)}
-              payables={formatInr(snapshot.balances.payableTotal)}
-              overdueInvoiceCount={overdueCounts?.invoices ?? 0}
-              overdueBillCount={overdueCounts?.bills ?? 0}
-            />
+            <BusinessSnapshotHero snapshot={snapshot} />
 
             <View style={{ gap: pageLayout.sectionHeaderGap }}>
               <SectionHeader title="Quick Create" compact icon="flash-outline" />
@@ -134,3 +107,12 @@ export default function DashboardScreen() {
     </View>
   )
 }
+
+const styles = StyleSheet.create({
+  datePill: {
+    minHeight: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xs,
+  },
+})

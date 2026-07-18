@@ -1,12 +1,26 @@
+import type { TRPCRouter } from '@accounting/api-client/types'
+
+type TrpcNamespace = keyof TRPCRouter & string
+
+type MobileNavApiConfig = {
+  [Namespace in TrpcNamespace]: {
+    trpcNamespace: Namespace
+    listProcedure: keyof TRPCRouter[Namespace] & string
+  }
+}[TrpcNamespace]
+
+type MobileNavLocalConfig = {
+  trpcNamespace?: undefined
+  listProcedure?: undefined
+}
+
 export type MobileNavModule = {
   id: string
   title: string
   tab: 'home' | 'sales' | 'purchase' | 'stock' | 'more'
   path: string
-  trpcNamespace?: string
-  listProcedure?: string
   createPath?: string
-}
+} & (MobileNavApiConfig | MobileNavLocalConfig)
 
 export const MOBILE_NAV_MODULES: Array<MobileNavModule> = [
   {

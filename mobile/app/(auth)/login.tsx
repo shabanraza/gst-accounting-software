@@ -62,7 +62,7 @@ export default function LoginScreen() {
         value={password}
         onChangeText={setPassword}
       />
-      {error ? <Text className="text-icon-accent-red">{error}</Text> : null}
+      {error ? <Text className="text-destructive">{error}</Text> : null}
       <PrimaryButton
         label={loading ? 'Signing in…' : 'Sign in'}
         loading={loading}

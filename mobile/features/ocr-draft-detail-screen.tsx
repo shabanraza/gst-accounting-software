@@ -2,12 +2,17 @@ import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
+import { DetailCard } from '@/components/data/detail-card'
 import { EmptyState } from '@/components/data/empty-state'
 import { LoadingState } from '@/components/data/loading-state'
-import { SectionHeader } from '@/components/layout/section-header'
+import { SaveScreenFooter } from '@/components/layout/create-screen-footer'
+import { WizardFooter } from '@/components/layout/wizard-footer'
+import { FormSection } from '@/components/layout/form-section'
 import { Screen } from '@/components/layout/screen'
-import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
+import { SecondaryButton } from '@/components/ui/button'
+import { DateField } from '@/components/ui/date-field'
 import { FormField } from '@/components/ui/form-field'
+import { FormFieldGroup } from '@/components/ui/form-label'
 import { formatInr } from '@/lib/format-inr'
 import {
   withEditedOcrField,
@@ -158,6 +163,22 @@ export function OcrDraftDetailScreen() {
     <Screen
       title={fields.supplierName.value || 'OCR draft'}
       subtitle={fields.billNumber.value || 'Review extracted fields'}
+      keyboardAvoiding
+      footer={
+        confirmable ? (
+          <SaveScreenFooter
+            error={error}
+            loading={confirmMutation.isPending}
+            message={message}
+            onSubmit={() => confirmMutation.mutate()}
+            submitLabel="Post bill"
+          />
+        ) : (
+          <WizardFooter>
+            <SecondaryButton label="Back" onPress={() => router.back()} />
+          </WizardFooter>
+        )
+      }
     >
       {lowConfidenceFields.length > 0 ? (
         <View className="rounded-xl border border-warning/40 bg-warning/10 p-card-padding">
@@ -167,78 +188,73 @@ export function OcrDraftDetailScreen() {
         </View>
       ) : null}
 
-      <View className="gap-section-header">
-        <SectionHeader title="Extracted fields" compact icon="scan-outline" />
-        <View className="rounded-xl border border-border bg-card p-card-padding gap-3">
+      <FormSection title="Extracted fields" icon="scan-outline">
+        <FormFieldGroup label="Supplier name">
           <FormField
             placeholder="Supplier name"
             value={fields.supplierName.value}
             onChangeText={(value) => updateField('supplierName', value)}
           />
+        </FormFieldGroup>
+        <FormFieldGroup label="Supplier GSTIN">
           <FormField
-            placeholder="Supplier GSTIN"
+            placeholder="GSTIN"
+            autoCapitalize="characters"
             value={fields.supplierGstin.value}
             onChangeText={(value) => updateField('supplierGstin', value)}
           />
+        </FormFieldGroup>
+        <FormFieldGroup label="Bill number">
           <FormField
             placeholder="Bill number"
             value={fields.billNumber.value}
             onChangeText={(value) => updateField('billNumber', value)}
           />
-          <FormField
-            placeholder="YYYY-MM-DD"
-            value={fields.billDate.value}
-            onChangeText={(value) => updateField('billDate', value)}
-          />
+        </FormFieldGroup>
+        <DateField
+          label="Bill date"
+          value={fields.billDate.value}
+          onChange={(value) => updateField('billDate', value)}
+        />
+        <FormFieldGroup label="Taxable amount">
           <FormField
             keyboardType="decimal-pad"
-            placeholder="Taxable amount"
+            placeholder="0.00"
             value={fields.taxableAmount.value}
             onChangeText={(value) => updateField('taxableAmount', value)}
           />
+        </FormFieldGroup>
+        <FormFieldGroup label="GST amount">
           <FormField
             keyboardType="decimal-pad"
-            placeholder="GST amount"
+            placeholder="0.00"
             value={fields.gstAmount.value}
             onChangeText={(value) => updateField('gstAmount', value)}
           />
+        </FormFieldGroup>
+        <FormFieldGroup label="Total amount">
           <FormField
             keyboardType="decimal-pad"
-            placeholder="Total amount"
+            placeholder="0.00"
             value={fields.totalAmount.value}
             onChangeText={(value) => updateField('totalAmount', value)}
           />
-          <Text className="text-sm text-muted-foreground">
-            Total preview: {formatInr(fields.totalAmount.value || '0')}
-          </Text>
-        </View>
-      </View>
+        </FormFieldGroup>
+        <Text className="text-sm text-muted-foreground">
+          Total preview: {formatInr(fields.totalAmount.value || '0')}
+        </Text>
+      </FormSection>
 
-      <View className="gap-section-header">
-        <SectionHeader title="Status" compact icon="flag-outline" />
-        <View className="rounded-xl border border-border bg-card p-card-padding">
-          <Text className="text-sm text-muted-foreground">Draft status</Text>
-          <Text className="font-medium text-foreground">{draft.status}</Text>
-        </View>
-      </View>
+      <DetailCard title="Status" icon="flag-outline">
+        <Text className="text-sm text-muted-foreground">Draft status</Text>
+        <Text className="font-medium text-foreground">{draft.status}</Text>
+      </DetailCard>
 
-      {message ? <Text className="text-sm text-primary">{message}</Text> : null}
-      {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
-
-      {confirmable ? (
-        <PrimaryButton
-          label={confirmMutation.isPending ? 'Posting…' : 'Confirm & post bill'}
-          loading={confirmMutation.isPending}
-          disabled={confirmMutation.isPending}
-          onPress={() => confirmMutation.mutate()}
-        />
-      ) : (
+      {!confirmable ? (
         <Text className="text-sm text-muted-foreground">
           This draft has already been posted.
         </Text>
-      )}
-
-      <SecondaryButton label="Back" onPress={() => router.back()} />
+      ) : null}
     </Screen>
   )
 }

@@ -1,11 +1,14 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import * as React from 'react'
 
 import { ActionGrid } from '@/components/dashboard/action-grid'
 import { CardRow } from '@/components/data/card-row'
 import { EmptyState } from '@/components/data/empty-state'
 import { LoadingState } from '@/components/data/loading-state'
 import { SectionHeader } from '@/components/layout/section-header'
-import { Screen } from '@/components/layout/screen'
+import { ListScreen, Screen } from '@/components/layout/screen'
+import { FormField } from '@/components/ui/form-field'
+import { FormFieldGroup } from '@/components/ui/form-label'
 import { View } from '@/tw'
 import { formatInr, formatShortDate } from '@/lib/format-inr'
 import { getModuleById } from '@/lib/nav-config'
@@ -143,26 +146,106 @@ function pickDetailPath(moduleId: string, record: Record<string, unknown>) {
   return undefined
 }
 
+function matchesRecordSearch(
+  record: Record<string, unknown>,
+  query: string,
+) {
+  const normalized = query.trim().toLowerCase()
+  if (!normalized) return true
+
+  const haystack = [
+    pickTitle(record),
+    pickSubtitle(record),
+    pickAmount(record),
+    pickBadge(record),
+    record.name,
+    record.itemName,
+    record.tradeName,
+    record.sourceFilename,
+    record.documentType,
+    record.status,
+  ]
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    .join(' ')
+    .toLowerCase()
+
+  return haystack.includes(normalized)
+}
+
 function ModuleRecordsList({
+  title,
+  variant,
+  actionHref,
+  actionLabel,
   moduleId,
   query,
+  header,
 }: {
+  title: string
+  variant: 'tab' | 'stack'
+  actionHref?: string
+  actionLabel?: string
   moduleId: string
   query: ReturnType<typeof useModuleList>
+  header?: React.ReactNode
 }) {
   const router = useRouter()
+  const [search, setSearch] = React.useState('')
+
+  const filteredRecords = React.useMemo(
+    () =>
+      (query.data ?? []).filter((record) =>
+        matchesRecordSearch(record, search),
+      ),
+    [query.data, search],
+  )
+
+  let emptyMessage: string | undefined
+  if (query.isError) {
+    emptyMessage = 'Unable to load records. Check your connection and company access.'
+  } else if (!query.isLoading && query.data?.length === 0) {
+    emptyMessage = 'No records yet.'
+  } else if (
+    !query.isLoading &&
+    !query.isError &&
+    (query.data?.length ?? 0) > 0 &&
+    filteredRecords.length === 0
+  ) {
+    emptyMessage = 'No records match your search.'
+  }
 
   return (
-    <>
-      {query.isLoading ? <LoadingState /> : null}
-      {query.isError ? (
-        <EmptyState message="Unable to load records. Check your connection and company access." />
-      ) : null}
-      {!query.isLoading && !query.isError && query.data?.length === 0 ? (
-        <EmptyState message="No records yet." />
-      ) : null}
-      <View style={{ gap: pageLayout.sectionHeaderGap }}>
-        {query.data?.map((record, index) => {
+    <ListScreen
+      title={title}
+      variant={variant}
+      actionHref={actionHref}
+      actionLabel={actionLabel}
+      data={filteredRecords}
+      keyExtractor={(record, index) => String(record.id ?? index)}
+      ListHeaderComponent={
+        header || (!query.isLoading && !query.isError && (query.data?.length ?? 0) > 0) ? (
+          <View style={{ gap: pageLayout.sectionGap }}>
+            {header}
+            {!query.isLoading && !query.isError && (query.data?.length ?? 0) > 0 ? (
+              <FormFieldGroup label="Search">
+                <FormField
+                  placeholder="Search records"
+                  value={search}
+                  onChangeText={setSearch}
+                />
+              </FormFieldGroup>
+            ) : null}
+          </View>
+        ) : null
+      }
+      ListEmptyComponent={
+        query.isLoading ? (
+          <LoadingState />
+        ) : emptyMessage ? (
+          <EmptyState message={emptyMessage} />
+        ) : null
+      }
+      renderItem={({ item: record, index }) => {
         const detailPath = pickDetailPath(moduleId, record)
 
         return (
@@ -179,9 +262,8 @@ function ModuleRecordsList({
             }
           />
         )
-      })}
-      </View>
-    </>
+      }}
+    />
   )
 }
 
@@ -242,45 +324,52 @@ export function ModuleListScreen({
 
   if (module.id === 'companies') {
     return (
-      <Screen title={module.title} variant={variant}>
-        <ModuleRecordsList moduleId={moduleId} query={query} />
-      </Screen>
+      <ModuleRecordsList
+        title={module.title}
+        variant={variant}
+        moduleId={moduleId}
+        query={query}
+      />
     )
   }
 
   if (tabHub) {
     return (
-      <Screen
+      <ModuleRecordsList
         title={module.title}
         variant={variant}
+        moduleId={moduleId}
+        query={query}
         actionHref={module.createPath}
         actionLabel={module.createPath ? 'Create' : undefined}
-      >
-        <View style={{ gap: pageLayout.sectionHeaderGap }}>
-          <SectionHeader title="Quick links" compact icon="flash-outline" />
-          <ActionGrid items={tabHub.actions} />
-        </View>
-        <View style={{ gap: pageLayout.sectionHeaderGap }}>
-          <SectionHeader
-            title={tabHub.listTitle}
-            compact
-            icon={tabHub.listIcon}
-          />
-          <ModuleRecordsList moduleId={moduleId} query={query} />
-        </View>
-      </Screen>
+        header={
+          <>
+            <View style={{ gap: pageLayout.sectionHeaderGap }}>
+              <SectionHeader title="Quick links" compact icon="flash-outline" />
+              <ActionGrid items={tabHub.actions} />
+            </View>
+            <View style={{ gap: pageLayout.sectionHeaderGap }}>
+              <SectionHeader
+                title={tabHub.listTitle}
+                compact
+                icon={tabHub.listIcon}
+              />
+            </View>
+          </>
+        }
+      />
     )
   }
 
   return (
-    <Screen
+    <ModuleRecordsList
       title={module.title}
       variant={variant}
+      moduleId={moduleId}
+      query={query}
       actionHref={module.createPath}
       actionLabel={module.createPath ? 'Create' : undefined}
-    >
-      <ModuleRecordsList moduleId={moduleId} query={query} />
-    </Screen>
+    />
   )
 }
 

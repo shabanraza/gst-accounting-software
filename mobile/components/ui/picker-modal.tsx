@@ -1,11 +1,13 @@
 import * as React from 'react'
-import { TextInput } from 'react-native'
+import { FlatList, StyleSheet, useWindowDimensions } from 'react-native'
 
 import { CardRow } from '@/components/data/card-row'
 import { EmptyState } from '@/components/data/empty-state'
 import { BottomSheet } from '@/components/ui/dialog'
-import { pageLayout } from '@/lib/spacing'
-import { Text, View } from '@/tw'
+import { FormField } from '@/components/ui/form-field'
+import { useFormPickerOpenRegistration } from '@/lib/form-picker-coordination'
+import { pageLayout, spacing } from '@/lib/spacing'
+import { View } from '@/tw'
 
 export type PickerOption = {
   key: string
@@ -32,6 +34,9 @@ export function PickerModal({
   searchPlaceholder?: string
 }) {
   const [query, setQuery] = React.useState('')
+  const { height } = useWindowDimensions()
+  const listMaxHeight = Math.max(160, height * 0.42)
+  useFormPickerOpenRegistration(visible)
 
   React.useEffect(() => {
     if (!visible) {
@@ -56,35 +61,58 @@ export function PickerModal({
         if (!open) onClose()
       }}
       title={title}
-      maxHeightRatio={0.7}
+      maxHeightRatio={0.75}
     >
-      <View style={{ gap: pageLayout.sectionHeaderGap }}>
+      <View style={styles.content}>
         {searchable ? (
-          <TextInput
-            className="rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground"
+          <FormField
             placeholder={searchPlaceholder}
-            placeholderTextColor="#94a3b8"
             value={query}
             onChangeText={setQuery}
             autoCapitalize="none"
             autoCorrect={false}
           />
         ) : null}
-        {filteredOptions.map((option) => (
-          <CardRow
-            key={option.key}
-            title={option.label}
-            subtitle={option.description}
-            onPress={() => {
-              onSelect(option.key)
-              onClose()
-            }}
-          />
-        ))}
-        {filteredOptions.length === 0 ? (
-          <EmptyState message={options.length === 0 ? 'No options available.' : 'No matches found.'} />
-        ) : null}
+        <FlatList
+          data={filteredOptions}
+          style={[styles.list, { maxHeight: listMaxHeight }]}
+          contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
+          keyExtractor={(option) => option.key}
+          ListEmptyComponent={
+            <EmptyState
+              message={
+                options.length === 0 ? 'No options available.' : 'No matches found.'
+              }
+            />
+          }
+          nestedScrollEnabled
+          renderItem={({ item: option }) => (
+            <CardRow
+              title={option.label}
+              subtitle={option.description}
+              onPress={() => {
+                onSelect(option.key)
+                onClose()
+              }}
+            />
+          )}
+          showsVerticalScrollIndicator={false}
+        />
       </View>
     </BottomSheet>
   )
 }
+
+const styles = StyleSheet.create({
+  content: {
+    gap: pageLayout.sectionHeaderGap,
+  },
+  list: {
+    flexGrow: 0,
+  },
+  listContent: {
+    gap: spacing.sm,
+    paddingBottom: spacing.sm,
+  },
+})

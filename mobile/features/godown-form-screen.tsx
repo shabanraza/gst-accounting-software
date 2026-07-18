@@ -2,10 +2,11 @@ import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 
-import { SectionHeader } from '@/components/layout/section-header'
+import { CreateScreenFooter } from '@/components/layout/create-screen-footer'
+import { FormSection } from '@/components/layout/form-section'
 import { Screen } from '@/components/layout/screen'
-import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
+import { FormFieldGroup } from '@/components/ui/form-label'
 import {
   buildCreateGodownInput,
   buildUpdateGodownInput,
@@ -14,7 +15,6 @@ import {
   type GodownFormDraft,
 } from '@/lib/godown-form'
 import { trpcClient } from '@/lib/trpc-client'
-import { Text, View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
 
 type GodownFormScreenProps = {
@@ -77,31 +77,26 @@ export function GodownFormScreen({
       title={mode === 'edit' ? 'Edit godown' : 'New godown'}
       subtitle="Warehouse / storage location"
       keyboardAvoiding
-    >
-      <View className="gap-section-header">
-        <SectionHeader title="Details" compact icon="business-outline" />
-        <FormField
-          placeholder="Godown name"
-          value={form.name}
-          onChangeText={(name) => setForm((current) => ({ ...current, name }))}
+      footer={
+        <CreateScreenFooter
+          cancelLabel="Cancel"
+          error={error}
+          loading={saveMutation.isPending}
+          onCancel={() => router.back()}
+          onSubmit={() => saveMutation.mutate()}
+          submitLabel={mode === 'edit' ? 'Save godown' : 'Create godown'}
         />
-      </View>
-
-      {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
-
-      <View className="flex-row gap-3">
-        <View className="flex-1">
-          <SecondaryButton label="Cancel" onPress={() => router.back()} />
-        </View>
-        <View className="flex-1">
-          <PrimaryButton
-            label={saveMutation.isPending ? 'Saving…' : 'Save godown'}
-            loading={saveMutation.isPending}
-            disabled={saveMutation.isPending}
-            onPress={() => saveMutation.mutate()}
+      }
+    >
+      <FormSection title="Details" icon="business-outline">
+        <FormFieldGroup label="Godown name">
+          <FormField
+            placeholder="Main Godown"
+            value={form.name}
+            onChangeText={(name) => setForm((current) => ({ ...current, name }))}
           />
-        </View>
-      </View>
+        </FormFieldGroup>
+      </FormSection>
     </Screen>
   )
 }

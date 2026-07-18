@@ -1,8 +1,8 @@
 import * as React from 'react'
-import { Pressable } from 'react-native'
 
-import { FormSection } from '@/components/layout/form-section'
+import { LineCard } from '@/components/layout/line-card'
 import { FormField } from '@/components/ui/form-field'
+import { FormFieldGroup } from '@/components/ui/form-label'
 import { PickerField } from '@/components/ui/picker-field'
 import { PickerModal } from '@/components/ui/picker-modal'
 import { formatInr } from '@/lib/format-inr'
@@ -61,21 +61,18 @@ export function VoucherLineEditor({
       : null
 
   return (
-    <FormSection title={`Line ${index + 1}`} icon="cube-outline">
-      <View className="flex-row items-center justify-between">
-        {lineAmount !== null ? (
+    <LineCard
+      canRemove={canRemove}
+      onRemove={onRemove}
+      title={`Line ${index + 1}`}
+      trailing={
+        lineAmount !== null ? (
           <Text className="font-semibold text-foreground">
             {formatInr(String(lineAmount))}
           </Text>
-        ) : (
-          <View />
-        )}
-        {canRemove ? (
-          <Pressable onPress={onRemove}>
-            <Text className="text-sm font-medium text-destructive">Remove</Text>
-          </Pressable>
-        ) : null}
-      </View>
+        ) : undefined
+      }
+    >
       <PickerField
         label="Item"
         value={line.itemName}
@@ -89,32 +86,38 @@ export function VoucherLineEditor({
       ) : null}
       <View className="flex-row gap-3">
         <View className="flex-1">
-          <Text className="mb-1 text-sm text-muted-foreground">Quantity</Text>
-          <FormField
-            keyboardType="decimal-pad"
-            value={line.quantity}
-            onChangeText={(quantity) => onChange({ ...line, quantity })}
-          />
+          <FormFieldGroup label="Quantity">
+            <FormField
+              keyboardType="decimal-pad"
+              placeholder="1"
+              value={line.quantity}
+              onChangeText={(quantity) => onChange({ ...line, quantity })}
+            />
+          </FormFieldGroup>
         </View>
         <View className="flex-1">
-          <Text className="mb-1 text-sm text-muted-foreground">Rate</Text>
-          <FormField
-            keyboardType="decimal-pad"
-            value={line.rate}
-            onChangeText={(rate) => onChange({ ...line, rate })}
-          />
+          <FormFieldGroup label="Rate">
+            <FormField
+              keyboardType="decimal-pad"
+              placeholder="0.00"
+              value={line.rate}
+              onChangeText={(rate) => onChange({ ...line, rate })}
+            />
+          </FormFieldGroup>
         </View>
       </View>
       <View className="flex-row gap-3">
         <View className="flex-1">
-          <Text className="mb-1 text-sm text-muted-foreground">Discount %</Text>
-          <FormField
-            keyboardType="decimal-pad"
-            value={line.discountPercent}
-            onChangeText={(discountPercent) =>
-              onChange({ ...line, discountPercent })
-            }
-          />
+          <FormFieldGroup label="Discount %">
+            <FormField
+              keyboardType="decimal-pad"
+              placeholder="0"
+              value={line.discountPercent}
+              onChangeText={(discountPercent) =>
+                onChange({ ...line, discountPercent })
+              }
+            />
+          </FormFieldGroup>
         </View>
         <View className="flex-1">
           <PickerField
@@ -150,6 +153,6 @@ export function VoucherLineEditor({
         onSelect={(godownName) => onChange({ ...line, godownName })}
         onClose={() => setGodownPickerOpen(false)}
       />
-    </FormSection>
+    </LineCard>
   )
 }

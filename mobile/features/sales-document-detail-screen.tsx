@@ -10,6 +10,7 @@ import { SectionHeader } from '@/components/layout/section-header'
 import { Screen } from '@/components/layout/screen'
 import { PrimaryButton } from '@/components/ui/button'
 import { formatInr, formatShortDate } from '@/lib/format-inr'
+import { computeLineAmount } from '@/lib/document-lines'
 import { trpcClient } from '@/lib/trpc-client'
 import { View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
@@ -61,21 +62,30 @@ export function SalesDocumentDetailScreen() {
       <DetailCard title="Summary" icon="information-circle-outline">
         <DetailRow label="Date" value={formatShortDate(document.documentDate)} />
         <DetailRow label="Status" value={document.status} />
-        <DetailRow label="Total" value={formatInr(document.totalAmount)} />
         {document.narration ? (
           <DetailRow label="Note" value={document.narration} />
         ) : null}
       </DetailCard>
 
+      <DetailCard title="Totals" icon="calculator-outline">
+        <DetailRow label="Items" value={String(document.lines.length)} />
+        <DetailRow label="Total" value={formatInr(document.totalAmount)} />
+      </DetailCard>
+
       <View className="gap-section-header">
-        <SectionHeader title="Lines" compact icon="list-outline" />
-        {document.lines.map((line, index) => (
-          <CardRow
-            key={`${line.itemId}-${index}`}
-            title={line.description}
-            subtitle={`${line.quantity} ${line.unit} @ ${formatInr(line.rate)}`}
-          />
-        ))}
+        <SectionHeader title="Line items" compact icon="list-outline" />
+        {document.lines.map((line, index) => {
+          const lineAmount = computeLineAmount(line.quantity, line.rate)
+
+          return (
+            <CardRow
+              key={`${line.itemId}-${index}`}
+              title={line.description}
+              subtitle={`${line.quantity} ${line.unit} × ${formatInr(line.rate)}`}
+              amount={lineAmount ? formatInr(lineAmount) : undefined}
+            />
+          )
+        })}
       </View>
 
       {document.status === 'open' ? (

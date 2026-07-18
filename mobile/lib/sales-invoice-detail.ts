@@ -15,7 +15,7 @@ export type SalesInvoiceDetailLike = {
     unit: string
     rate: string
     gstRate: string
-    lineAmount: string
+    lineTotal: string
   }>
 }
 

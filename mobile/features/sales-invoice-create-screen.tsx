@@ -1,17 +1,18 @@
-import { Ionicons } from '@expo/vector-icons'
 import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pressable } from 'react-native'
 
 import { CardRow } from '@/components/data/card-row'
 import { EmptyState } from '@/components/data/empty-state'
 import { LoadingState } from '@/components/data/loading-state'
+import { CollapsibleSection } from '@/components/layout/collapsible-section'
 import { FormSection } from '@/components/layout/form-section'
 import { Screen } from '@/components/layout/screen'
 import { WizardFooter } from '@/components/layout/wizard-footer'
 import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
 import { OptionChip } from '@/components/ui/chip'
+import { DateField } from '@/components/ui/date-field'
 import { FormField } from '@/components/ui/form-field'
+import { FormFieldGroup } from '@/components/ui/form-label'
 import { PickerField } from '@/components/ui/picker-field'
 import { PickerModal } from '@/components/ui/picker-modal'
 import { StepPills } from '@/components/ui/step-pills'
@@ -19,7 +20,13 @@ import {
   VoucherSuccessSheet,
   type VoucherSuccessTarget,
 } from '@/components/voucher/voucher-success-sheet'
+import { AddLineButton } from '@/components/voucher/add-line-button'
+import {
+  RecentPartyChips,
+  useRecentParties,
+} from '@/components/voucher/recent-party-chips'
 import { VoucherLineEditor } from '@/components/voucher/voucher-line-editor'
+import { VoucherTotalsBar } from '@/components/voucher/voucher-totals-bar'
 import { useSalesItems, useSalesParties } from '@/features/use-sales-masters'
 import { formatInr } from '@/lib/format-inr'
 import {
@@ -44,19 +51,28 @@ import {
   type TaxMode,
   type SupplyRegion,
 } from '@/lib/sales-invoice-form'
+import { supplyRegionLabel } from '@/lib/supply-region'
 import { applySalesDocumentDraft } from '@/lib/voucher-prefill'
+import {
+  useFormPickerCoordination,
+} from '@/lib/form-picker-coordination'
 import { trpcClient } from '@/lib/trpc-client'
-import { themeColors } from '@/lib/theme'
 import { Text, View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
 
 type WizardStep = 'customer' | 'lines' | 'review'
+
+const INVOICE_PICKERS = ['customer', 'place', 'series', 'godown'] as const
 
 const INVOICE_STEPS: Array<{ id: WizardStep; label: string }> = [
   { id: 'customer', label: 'Customer' },
   { id: 'lines', label: 'Items' },
   { id: 'review', label: 'Review' },
 ]
+
+function countFilled(...values: Array<string | undefined>) {
+  return values.filter((value) => value?.trim()).length
+}
 
 function syncPlaceOfSupply(
   form: SalesInvoiceFormDraft,
@@ -107,10 +123,7 @@ export function SalesInvoiceCreateScreen({
   const [form, setForm] = React.useState<SalesInvoiceFormDraft>(() =>
     createInitialSalesInvoiceForm(defaultGodown, companyStateCode ?? '27'),
   )
-  const [customerPickerOpen, setCustomerPickerOpen] = React.useState(false)
-  const [placePickerOpen, setPlacePickerOpen] = React.useState(false)
-  const [seriesPickerOpen, setSeriesPickerOpen] = React.useState(false)
-  const [godownPickerOpen, setGodownPickerOpen] = React.useState(false)
+  const pickers = useFormPickerCoordination(INVOICE_PICKERS)
   const [error, setError] = React.useState<string | null>(null)
   const [successTarget, setSuccessTarget] =
     React.useState<VoucherSuccessTarget | null>(null)
@@ -157,6 +170,7 @@ export function SalesInvoiceCreateScreen({
     }
   }, [salesDraftQuery.isError])
 
+  const { recentIds, rememberParty } = useRecentParties(company?.id, 'customer')
   const customers = filterCustomerParties(partiesQuery.data ?? [])
   const items = (itemsQuery.data ?? []).map((item) => ({
     id: item.id,
@@ -277,6 +291,8 @@ export function SalesInvoiceCreateScreen({
   })
 
   function selectCustomer(customerId: string) {
+    void rememberParty(customerId)
+
     const customer = customers.find((entry) => entry.id === customerId)
     if (!customer || !companyStateCode) {
       setForm((current) => ({ ...current, customerId }))
@@ -395,7 +411,7 @@ export function SalesInvoiceCreateScreen({
         {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
         <SecondaryButton label="Back to items" onPress={() => setStep('lines')} />
         <PrimaryButton
-          label={postMutation.isPending ? 'Posting…' : 'Post invoice'}
+          label="Post invoice"
           loading={postMutation.isPending}
           disabled={postMutation.isPending}
           onPress={() => postMutation.mutate()}
@@ -404,6 +420,13 @@ export function SalesInvoiceCreateScreen({
     ) : (
       <WizardFooter>
         {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
+        {step === 'lines' && totals ? (
+          <VoucherTotalsBar
+            taxableAmount={totals.taxableAmount}
+            gstAmount={totals.totalGstAmount}
+            grandTotal={totals.grandTotal}
+          />
+        ) : null}
         <View className="flex-row gap-3">
           {step !== 'customer' ? (
             <View className="flex-1">
@@ -423,14 +446,14 @@ export function SalesInvoiceCreateScreen({
     )
 
   return (
-    <Screen
-      title="New invoice"
-      subtitle={
-        sourceDocumentId ? 'Convert sales document to invoice' : 'Create sales invoice'
-      }
-      keyboardAvoiding
-      footer={wizardFooter}
-    >
+      <Screen
+        title="New invoice"
+        subtitle={
+          sourceDocumentId ? 'Convert sales document to invoice' : 'Create sales invoice'
+        }
+        keyboardAvoiding
+        footer={wizardFooter}
+      >
       <StepPills step={step} steps={INVOICE_STEPS} />
 
       {prefillError ? <EmptyState message={prefillError} /> : null}
@@ -451,58 +474,35 @@ export function SalesInvoiceCreateScreen({
                 label="Customer"
                 value={selectedCustomer?.name}
                 placeholder="Select customer"
-                onPress={() => setCustomerPickerOpen(true)}
+                onPress={() => pickers.open('customer')}
+              />
+              <RecentPartyChips
+                createHref="/(app)/parties/new"
+                createLabel="Add new customer"
+                parties={customers}
+                recentIds={recentIds}
+                selectedId={form.customerId}
+                onSelect={selectCustomer}
               />
               {selectedCustomer ? (
-                <Text className="text-sm text-muted-foreground">
-                  {selectedCustomer.gstin || 'Unregistered'} ·{' '}
-                  {stateLabel(form.placeOfSupply)}
-                </Text>
-              ) : null}
-              <View>
-                <Text className="mb-1 text-sm text-muted-foreground">
-                  Invoice date
-                </Text>
-                <FormField
-                  placeholder="YYYY-MM-DD"
-                  value={form.invoiceDate}
-                  onChangeText={(invoiceDate) =>
-                    setForm((current) => ({ ...current, invoiceDate }))
-                  }
-                />
-              </View>
-              <View>
-                <Text className="mb-1 text-sm text-muted-foreground">Due date</Text>
-                <FormField
-                  placeholder="YYYY-MM-DD"
-                  value={form.dueDate}
-                  onChangeText={(dueDate) =>
-                    setForm((current) => ({ ...current, dueDate }))
-                  }
-                />
-              </View>
-              <PickerField
-                label="Series"
-                value={`${form.series} · auto`}
-                onPress={() => setSeriesPickerOpen(true)}
-              />
-              <View className="gap-2">
-                <Text className="text-sm text-muted-foreground">Supply type</Text>
-                <View className="flex-row flex-wrap gap-2">
-                  <OptionChip
-                    label="Local (CGST+SGST)"
-                    active={form.region === 'local'}
-                    onPress={() => updateRegion('local')}
-                  />
-                  <OptionChip
-                    label="IGST"
-                    active={form.region === 'central'}
-                    onPress={() => updateRegion('central')}
-                  />
+                <View className="rounded-xl bg-muted/40 px-3 py-2">
+                  <Text className="text-sm text-muted-foreground">
+                    {selectedCustomer.gstin || 'Unregistered'} ·{' '}
+                    {stateLabel(form.placeOfSupply)}
+                  </Text>
+                  <Text className="text-sm text-muted-foreground">
+                    {supplyRegionLabel(form.region)}
+                  </Text>
                 </View>
-              </View>
-              <View className="gap-2">
-                <Text className="text-sm text-muted-foreground">Payment</Text>
+              ) : null}
+              <DateField
+                label="Invoice date"
+                value={form.invoiceDate}
+                onChange={(invoiceDate) =>
+                  setForm((current) => ({ ...current, invoiceDate }))
+                }
+              />
+              <FormFieldGroup label="Payment">
                 <View className="flex-row flex-wrap gap-2">
                   {(['credit', 'cash'] as Array<PaymentMode>).map((mode) => (
                     <OptionChip
@@ -510,37 +510,76 @@ export function SalesInvoiceCreateScreen({
                       label={mode === 'credit' ? 'Credit' : 'Cash'}
                       active={form.paymentMode === mode}
                       onPress={() =>
-                        setForm((current) => ({ ...current, paymentMode: mode }))
+                        setForm((current) => ({
+                          ...current,
+                          paymentMode: mode,
+                          dueDate: mode === 'cash' ? '' : current.dueDate,
+                        }))
                       }
                     />
                   ))}
                 </View>
-              </View>
-              <PickerField
-                label="Place of supply"
-                value={stateLabel(form.placeOfSupply)}
-                onPress={() => setPlacePickerOpen(true)}
-              />
-              <View className="gap-2">
-                <Text className="text-sm text-muted-foreground">Tax type</Text>
-                <View className="flex-row flex-wrap gap-2">
-                  {(['exclusive', 'inclusive'] as Array<TaxMode>).map((mode) => (
+              </FormFieldGroup>
+              {form.paymentMode === 'credit' ? (
+                <DateField
+                  label="Due date"
+                  value={form.dueDate}
+                  onChange={(dueDate) =>
+                    setForm((current) => ({ ...current, dueDate }))
+                  }
+                />
+              ) : null}
+              <CollapsibleSection defaultOpen={false} title="Tax & billing">
+                <PickerField
+                  label="Series"
+                  value={`${form.series} · auto`}
+                  onPress={() => pickers.open('series')}
+                />
+                <PickerField
+                  label="Place of supply"
+                  value={stateLabel(form.placeOfSupply)}
+                  onPress={() => pickers.open('place')}
+                />
+                <View className="gap-2">
+                  <Text className="text-sm text-muted-foreground">
+                    Supply type
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
                     <OptionChip
-                      key={mode}
-                      label={mode === 'exclusive' ? 'Exclusive' : 'Inclusive'}
-                      active={form.taxMode === mode}
-                      onPress={() =>
-                        setForm((current) => ({ ...current, taxMode: mode }))
-                      }
+                      label="Local (CGST+SGST)"
+                      active={form.region === 'local'}
+                      onPress={() => updateRegion('local')}
                     />
-                  ))}
+                    <OptionChip
+                      label="IGST"
+                      active={form.region === 'central'}
+                      onPress={() => updateRegion('central')}
+                    />
+                  </View>
                 </View>
-              </View>
-              <PickerField
-                label="Godown"
-                value={form.godownName}
-                onPress={() => setGodownPickerOpen(true)}
-              />
+                <View className="gap-2">
+                  <Text className="text-sm text-muted-foreground">Tax type</Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {(['exclusive', 'inclusive'] as Array<TaxMode>).map(
+                      (mode) => (
+                        <OptionChip
+                          key={mode}
+                          label={mode === 'exclusive' ? 'Exclusive' : 'Inclusive'}
+                          active={form.taxMode === mode}
+                          onPress={() =>
+                            setForm((current) => ({ ...current, taxMode: mode }))
+                          }
+                        />
+                      ),
+                    )}
+                  </View>
+                </View>
+                <PickerField
+                  label="Godown"
+                  value={form.godownName}
+                  onPress={() => pickers.open('godown')}
+                />
+              </CollapsibleSection>
             </FormSection>
           ) : null}
 
@@ -572,45 +611,36 @@ export function SalesInvoiceCreateScreen({
                   }
                 />
               ))}
-              <Pressable
-                className="flex-row items-center justify-center gap-2 rounded-xl border border-dashed border-primary bg-primary/5 px-4 py-3"
-                onPress={addLine}
-              >
-                <Ionicons
-                  name="add-circle-outline"
-                  size={20}
-                  color={themeColors.primary}
-                />
-                <Text className="font-semibold text-primary">Add line</Text>
-              </Pressable>
+              <AddLineButton onPress={addLine} />
 
-              <FormSection title="Transport & references" icon="car-outline">
-                <View>
-                  <Text className="mb-1 text-sm text-muted-foreground">
-                    PO / order ref
-                  </Text>
+              <CollapsibleSection
+                defaultOpen={false}
+                filledCount={countFilled(
+                  form.poReference,
+                  form.challanRef,
+                  form.transportMode,
+                  form.vehicleNo,
+                  form.lrNumber,
+                )}
+                title="Transport & references"
+              >
+                <FormFieldGroup label="PO / order ref">
                   <FormField
                     value={form.poReference}
                     onChangeText={(poReference) =>
                       setForm((current) => ({ ...current, poReference }))
                     }
                   />
-                </View>
-                <View>
-                  <Text className="mb-1 text-sm text-muted-foreground">
-                    Challan ref
-                  </Text>
+                </FormFieldGroup>
+                <FormFieldGroup label="Challan ref">
                   <FormField
                     value={form.challanRef}
                     onChangeText={(challanRef) =>
                       setForm((current) => ({ ...current, challanRef }))
                     }
                   />
-                </View>
-                <View>
-                  <Text className="mb-1 text-sm text-muted-foreground">
-                    Transport
-                  </Text>
+                </FormFieldGroup>
+                <FormFieldGroup label="Transport">
                   <FormField
                     placeholder="Road / Rail"
                     value={form.transportMode}
@@ -618,90 +648,91 @@ export function SalesInvoiceCreateScreen({
                       setForm((current) => ({ ...current, transportMode }))
                     }
                   />
-                </View>
+                </FormFieldGroup>
                 <View className="flex-row gap-3">
                   <View className="flex-1">
-                    <Text className="mb-1 text-sm text-muted-foreground">
-                      Vehicle no.
-                    </Text>
-                    <FormField
-                      value={form.vehicleNo}
-                      onChangeText={(vehicleNo) =>
-                        setForm((current) => ({ ...current, vehicleNo }))
-                      }
-                    />
+                    <FormFieldGroup label="Vehicle no.">
+                      <FormField
+                        value={form.vehicleNo}
+                        onChangeText={(vehicleNo) =>
+                          setForm((current) => ({ ...current, vehicleNo }))
+                        }
+                      />
+                    </FormFieldGroup>
                   </View>
                   <View className="flex-1">
-                    <Text className="mb-1 text-sm text-muted-foreground">
-                      LR / AWB
-                    </Text>
-                    <FormField
-                      value={form.lrNumber}
-                      onChangeText={(lrNumber) =>
-                        setForm((current) => ({ ...current, lrNumber }))
-                      }
-                    />
+                    <FormFieldGroup label="LR / AWB">
+                      <FormField
+                        value={form.lrNumber}
+                        onChangeText={(lrNumber) =>
+                          setForm((current) => ({ ...current, lrNumber }))
+                        }
+                      />
+                    </FormFieldGroup>
                   </View>
                 </View>
-              </FormSection>
+              </CollapsibleSection>
 
-              <FormSection title="Charges & notes" icon="receipt-outline">
+              <CollapsibleSection
+                defaultOpen={false}
+                filledCount={countFilled(
+                  form.freight,
+                  form.packing,
+                  form.roundOff,
+                  form.billDiscount,
+                  form.narration,
+                )}
+                title="Charges & notes"
+              >
                 <View className="flex-row gap-3">
                   <View className="flex-1">
-                    <Text className="mb-1 text-sm text-muted-foreground">
-                      Freight
-                    </Text>
-                    <FormField
-                      keyboardType="decimal-pad"
-                      value={form.freight}
-                      onChangeText={(freight) =>
-                        setForm((current) => ({ ...current, freight }))
-                      }
-                    />
+                    <FormFieldGroup label="Freight">
+                      <FormField
+                        keyboardType="decimal-pad"
+                        value={form.freight}
+                        onChangeText={(freight) =>
+                          setForm((current) => ({ ...current, freight }))
+                        }
+                      />
+                    </FormFieldGroup>
                   </View>
                   <View className="flex-1">
-                    <Text className="mb-1 text-sm text-muted-foreground">
-                      Packing
-                    </Text>
-                    <FormField
-                      keyboardType="decimal-pad"
-                      value={form.packing}
-                      onChangeText={(packing) =>
-                        setForm((current) => ({ ...current, packing }))
-                      }
-                    />
+                    <FormFieldGroup label="Packing">
+                      <FormField
+                        keyboardType="decimal-pad"
+                        value={form.packing}
+                        onChangeText={(packing) =>
+                          setForm((current) => ({ ...current, packing }))
+                        }
+                      />
+                    </FormFieldGroup>
                   </View>
                 </View>
                 <View className="flex-row gap-3">
                   <View className="flex-1">
-                    <Text className="mb-1 text-sm text-muted-foreground">
-                      Round off
-                    </Text>
-                    <FormField
-                      keyboardType="decimal-pad"
-                      value={form.roundOff}
-                      onChangeText={(roundOff) =>
-                        setForm((current) => ({ ...current, roundOff }))
-                      }
-                    />
+                    <FormFieldGroup label="Round off">
+                      <FormField
+                        keyboardType="decimal-pad"
+                        value={form.roundOff}
+                        onChangeText={(roundOff) =>
+                          setForm((current) => ({ ...current, roundOff }))
+                        }
+                      />
+                    </FormFieldGroup>
                   </View>
                   <View className="flex-1">
-                    <Text className="mb-1 text-sm text-muted-foreground">
-                      Bill discount
-                    </Text>
-                    <FormField
-                      keyboardType="decimal-pad"
-                      value={form.billDiscount}
-                      onChangeText={(billDiscount) =>
-                        setForm((current) => ({ ...current, billDiscount }))
-                      }
-                    />
+                    <FormFieldGroup label="Bill discount">
+                      <FormField
+                        keyboardType="decimal-pad"
+                        value={form.billDiscount}
+                        onChangeText={(billDiscount) =>
+                          setForm((current) => ({ ...current, billDiscount }))
+                        }
+                      />
+                    </FormFieldGroup>
                   </View>
                 </View>
-                <View>
-                  <Text className="mb-1 text-sm text-muted-foreground">
-                    Narration
-                  </Text>
+                <FormFieldGroup label="Narration">
                   <FormField
                     placeholder="Optional notes"
                     value={form.narration}
@@ -709,30 +740,8 @@ export function SalesInvoiceCreateScreen({
                       setForm((current) => ({ ...current, narration }))
                     }
                   />
-                </View>
-              </FormSection>
-
-              {totals ? (
-                <FormSection title="GST summary" icon="calculator-outline">
-                  <CardRow
-                    title="Taxable"
-                    amount={formatInr(totals.taxableAmount)}
-                  />
-                  {form.region === 'local' ? (
-                    <>
-                      <CardRow title="CGST" amount={formatInr(totals.cgstAmount)} />
-                      <CardRow title="SGST" amount={formatInr(totals.sgstAmount)} />
-                    </>
-                  ) : (
-                    <CardRow title="IGST" amount={formatInr(totals.igstAmount)} />
-                  )}
-                  <CardRow title="Sundry" amount={formatInr(totals.sundryTotal)} />
-                  <CardRow
-                    title="Grand total"
-                    amount={formatInr(totals.grandTotal)}
-                  />
-                </FormSection>
-              ) : null}
+                </FormFieldGroup>
+              </CollapsibleSection>
             </View>
           ) : null}
 
@@ -776,7 +785,7 @@ export function SalesInvoiceCreateScreen({
       ) : null}
 
       <PickerModal
-        visible={customerPickerOpen}
+        visible={pickers.isOpen('customer')}
         title="Select customer"
         searchable
         searchPlaceholder="Search name / GSTIN"
@@ -787,10 +796,10 @@ export function SalesInvoiceCreateScreen({
           keywords: party.gstin ?? '',
         }))}
         onSelect={selectCustomer}
-        onClose={() => setCustomerPickerOpen(false)}
+        onClose={pickers.closeAll}
       />
       <PickerModal
-        visible={placePickerOpen}
+        visible={pickers.isOpen('place')}
         title="Place of supply"
         searchable
         searchPlaceholder="Search state"
@@ -801,24 +810,24 @@ export function SalesInvoiceCreateScreen({
         onSelect={(placeOfSupply) =>
           setForm((current) => ({ ...current, placeOfSupply }))
         }
-        onClose={() => setPlacePickerOpen(false)}
+        onClose={pickers.closeAll}
       />
       <PickerModal
-        visible={seriesPickerOpen}
+        visible={pickers.isOpen('series')}
         title="Invoice series"
         options={salesSeriesOptions.map((series) => ({
           key: series,
           label: series,
         }))}
         onSelect={(series) => setForm((current) => ({ ...current, series }))}
-        onClose={() => setSeriesPickerOpen(false)}
+        onClose={pickers.closeAll}
       />
       <PickerModal
-        visible={godownPickerOpen}
+        visible={pickers.isOpen('godown')}
         title="Default godown"
         options={godownNames.map((name) => ({ key: name, label: name }))}
         onSelect={handleHeaderGodownChange}
-        onClose={() => setGodownPickerOpen(false)}
+        onClose={pickers.closeAll}
       />
 
       <VoucherSuccessSheet

@@ -18,11 +18,11 @@ describe('dashboard action grids', () => {
     expect(QUICK_CREATE_ACTIONS[0]?.href).toBe('/(app)/sales/new')
     expect(QUICK_CREATE_ACTIONS.every((item) => item.accent)).toBe(true)
     expect(QUICK_CREATE_ACTIONS.map((item) => item.accent)).toEqual([
-      'blue',
-      'red',
-      'orange',
-      'blue',
-      'orange',
+      'sales',
+      'overdue',
+      'purchases',
+      'sales',
+      'stock',
     ])
   })
 

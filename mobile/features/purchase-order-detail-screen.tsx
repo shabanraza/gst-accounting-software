@@ -80,19 +80,23 @@ export function PurchaseOrderDetailScreen() {
       <DetailCard title="Summary" icon="information-circle-outline">
         <DetailRow label="Date" value={formatShortDate(order.orderDate)} />
         <DetailRow label="Status" value={order.status} />
-        <DetailRow label="Total" value={formatInr(order.totalAmount)} />
         {order.narration ? (
           <DetailRow label="Note" value={order.narration} />
         ) : null}
       </DetailCard>
 
+      <DetailCard title="Totals" icon="calculator-outline">
+        <DetailRow label="Items" value={String(order.lines.length)} />
+        <DetailRow label="Total" value={formatInr(order.totalAmount)} />
+      </DetailCard>
+
       <View className="gap-section-header">
-        <SectionHeader title="Lines" compact icon="list-outline" />
+        <SectionHeader title="Line items" compact icon="list-outline" />
         {order.lines.map((line) => (
           <CardRow
             key={line.id}
             title={line.description}
-            subtitle={`${line.quantity} ${line.unit} @ ${formatInr(line.rate)}`}
+            subtitle={`${line.quantity} ${line.unit} × ${formatInr(line.rate)}`}
             amount={formatInr(line.lineTotal)}
             badge={`GST ${line.gstRate}%`}
           />

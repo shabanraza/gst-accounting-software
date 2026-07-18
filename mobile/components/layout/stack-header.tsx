@@ -36,7 +36,7 @@ export function StackHeader({
 
   return (
     <View
-      className="border-b border-border bg-background pb-dashboard-header-pb"
+      className="bg-background pb-dashboard-header-pb"
       style={{ paddingTop: insets.top + spacing.md, ...pagePaddingHorizontal }}
     >
       <View className="flex-row items-center gap-1">

@@ -2,10 +2,12 @@ import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 
-import { SectionHeader } from '@/components/layout/section-header'
+import { CreateScreenFooter } from '@/components/layout/create-screen-footer'
+import { FormSection } from '@/components/layout/form-section'
 import { Screen } from '@/components/layout/screen'
-import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
+import { DateField } from '@/components/ui/date-field'
 import { FormField } from '@/components/ui/form-field'
+import { FormFieldGroup } from '@/components/ui/form-label'
 import { PickerField } from '@/components/ui/picker-field'
 import { PickerModal } from '@/components/ui/picker-modal'
 import { useLedgerAccounts } from '@/features/use-ledger-accounts'
@@ -17,7 +19,6 @@ import {
   type ExpenseFormDraft,
 } from '@/lib/expense-form'
 import { trpcClient } from '@/lib/trpc-client'
-import { Text, View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
 
 export function ExpenseCreateScreen() {
@@ -69,54 +70,54 @@ export function ExpenseCreateScreen() {
   })
 
   return (
-    <Screen title="New expense" subtitle="Record a business expense" keyboardAvoiding>
-      <View className="gap-section-header">
-        <SectionHeader title="Expense" compact icon="wallet-outline" />
-        <FormField
-          placeholder="YYYY-MM-DD"
+    <Screen
+      title="New expense"
+      subtitle="Record a business expense"
+      keyboardAvoiding
+      footer={
+        <CreateScreenFooter
+          error={error}
+          loading={saveMutation.isPending}
+          onCancel={() => router.back()}
+          onSubmit={() => saveMutation.mutate()}
+          submitLabel="Post expense"
+        />
+      }
+    >
+      <FormSection title="Expense" icon="wallet-outline">
+        <DateField
+          label="Date"
           value={form.expenseDate}
-          onChangeText={(expenseDate) =>
+          onChange={(expenseDate) =>
             setForm((current) => ({ ...current, expenseDate }))
           }
         />
-        <FormField
-          placeholder="Narration"
-          value={form.narration}
-          onChangeText={(narration) =>
-            setForm((current) => ({ ...current, narration }))
-          }
-        />
-        <FormField
-          keyboardType="decimal-pad"
-          placeholder="Amount"
-          value={form.amount}
-          onChangeText={(amount) =>
-            setForm((current) => ({ ...current, amount }))
-          }
-        />
+        <FormFieldGroup label="Narration">
+          <FormField
+            placeholder="What was this expense for?"
+            value={form.narration}
+            onChangeText={(narration) =>
+              setForm((current) => ({ ...current, narration }))
+            }
+          />
+        </FormFieldGroup>
+        <FormFieldGroup label="Amount">
+          <FormField
+            keyboardType="decimal-pad"
+            placeholder="0.00"
+            value={form.amount}
+            onChangeText={(amount) =>
+              setForm((current) => ({ ...current, amount }))
+            }
+          />
+        </FormFieldGroup>
         <PickerField
           label="Paid from"
           value={selectedPayment?.name}
           placeholder="Select account"
           onPress={() => setPaymentPickerOpen(true)}
         />
-      </View>
-
-      {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
-
-      <View className="flex-row gap-3">
-        <View className="flex-1">
-          <SecondaryButton label="Cancel" onPress={() => router.back()} />
-        </View>
-        <View className="flex-1">
-          <PrimaryButton
-            label={saveMutation.isPending ? 'Posting…' : 'Post expense'}
-            loading={saveMutation.isPending}
-            disabled={saveMutation.isPending}
-            onPress={() => saveMutation.mutate()}
-          />
-        </View>
-      </View>
+      </FormSection>
 
       <PickerModal
         visible={paymentPickerOpen}

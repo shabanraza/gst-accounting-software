@@ -2,10 +2,14 @@ import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 
-import { SectionHeader } from '@/components/layout/section-header'
+import { CollapsibleSection } from '@/components/layout/collapsible-section'
+import { CardRow } from '@/components/data/card-row'
+import { CreateScreenFooter } from '@/components/layout/create-screen-footer'
+import { FormSection } from '@/components/layout/form-section'
 import { Screen } from '@/components/layout/screen'
-import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
+import { DateField } from '@/components/ui/date-field'
 import { FormField } from '@/components/ui/form-field'
+import { FormFieldGroup } from '@/components/ui/form-label'
 import { PickerField } from '@/components/ui/picker-field'
 import { PickerModal } from '@/components/ui/picker-modal'
 import {
@@ -18,8 +22,12 @@ import {
   validateGrnForm,
   type GrnFormDraft,
 } from '@/lib/grn-form'
+import { formatInr } from '@/lib/format-inr'
+import {
+  useFormPickerCoordination,
+} from '@/lib/form-picker-coordination'
 import { trpcClient } from '@/lib/trpc-client'
-import { Text, View } from '@/tw'
+import { View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
 
 export function GrnCreateScreen() {
@@ -30,12 +38,12 @@ export function GrnCreateScreen() {
   const [form, setForm] = React.useState<GrnFormDraft>(() =>
     createInitialGrnForm(godowns[0]?.name ?? ''),
   )
-  const [poPickerOpen, setPoPickerOpen] = React.useState(false)
-  const [godownPickerOpen, setGodownPickerOpen] = React.useState(false)
+  const pickers = useFormPickerCoordination(['po', 'godown'] as const)
   const [error, setError] = React.useState<string | null>(null)
 
   const openOrders = filterOpenPurchaseOrders(ordersQuery.data ?? [])
   const selectedOrder = openOrders.find((order) => order.id === form.purchaseOrderId)
+  const selectedOrderLines = selectedOrder?.lines ?? []
 
   React.useEffect(() => {
     if (!form.purchaseOrderId && openOrders[0]) {
@@ -78,62 +86,87 @@ export function GrnCreateScreen() {
   })
 
   return (
-    <Screen title="Goods receipt" subtitle="Receive against purchase order" keyboardAvoiding>
-      <View className="gap-section-header">
-        <SectionHeader title="Receipt" compact icon="cube-outline" />
+      <Screen
+        title="Goods receipt"
+        subtitle="Receive against purchase order"
+        keyboardAvoiding
+        footer={
+            <CreateScreenFooter
+              error={error}
+              loading={saveMutation.isPending}
+              onCancel={() => router.back()}
+              onSubmit={() => saveMutation.mutate()}
+              submitLabel="Receive goods"
+            />
+        }
+      >
+      <FormSection title="Receipt" icon="cube-outline">
         <PickerField
           label="Purchase order"
           value={selectedOrder?.orderNumber}
           placeholder="Select purchase order"
-          onPress={() => setPoPickerOpen(true)}
+          onPress={() => pickers.open('po')}
         />
-        <FormField
-          placeholder="GRN number (optional)"
-          value={form.grnNumber}
-          onChangeText={(grnNumber) =>
-            setForm((current) => ({ ...current, grnNumber }))
-          }
-        />
-        <FormField
-          placeholder="YYYY-MM-DD"
+        <DateField
+          label="Receipt date"
           value={form.grnDate}
-          onChangeText={(grnDate) =>
+          onChange={(grnDate) =>
             setForm((current) => ({ ...current, grnDate }))
           }
         />
-        <PickerField
-          label="Godown"
-          value={form.godownName}
-          placeholder="Select godown"
-          onPress={() => setGodownPickerOpen(true)}
-        />
-        <FormField
-          placeholder="Optional note"
-          value={form.narration}
-          onChangeText={(narration) =>
-            setForm((current) => ({ ...current, narration }))
+        <CollapsibleSection
+          defaultOpen={false}
+          filledCount={
+            (form.grnNumber.trim() ? 1 : 0) +
+            (form.godownName && form.godownName !== godowns[0]?.name ? 1 : 0) +
+            (form.narration.trim() ? 1 : 0)
           }
-        />
-      </View>
-
-      {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
-
-      <View className="flex-row gap-3">
-        <View className="flex-1">
-          <SecondaryButton label="Cancel" onPress={() => router.back()} />
-        </View>
-        <View className="flex-1">
-          <PrimaryButton
-            label={saveMutation.isPending ? 'Saving…' : 'Receive goods'}
-            loading={saveMutation.isPending}
-            disabled={saveMutation.isPending || openOrders.length === 0}
-            onPress={() => saveMutation.mutate()}
+          title="References"
+        >
+          <FormFieldGroup label="GRN number">
+            <FormField
+              placeholder="Auto if blank"
+              value={form.grnNumber}
+              onChangeText={(grnNumber) =>
+                setForm((current) => ({ ...current, grnNumber }))
+              }
+            />
+          </FormFieldGroup>
+          <PickerField
+            label="Godown"
+            value={form.godownName}
+            onPress={() => pickers.open('godown')}
           />
-        </View>
-      </View>
+          <FormFieldGroup label="Note">
+            <FormField
+              placeholder="Optional"
+              value={form.narration}
+              onChangeText={(narration) =>
+                setForm((current) => ({ ...current, narration }))
+              }
+            />
+          </FormFieldGroup>
+        </CollapsibleSection>
+      </FormSection>
+
+      {selectedOrder && selectedOrderLines.length > 0 ? (
+        <FormSection title="Receiving" icon="list-outline">
+          <View className="gap-3">
+            {selectedOrderLines.map((line) => (
+              <CardRow
+                key={line.id}
+                title={line.description}
+                subtitle={`${line.quantity} ${line.unit} @ ${formatInr(line.rate)}`}
+                amount={formatInr(line.lineTotal)}
+                badge={`GST ${line.gstRate}%`}
+              />
+            ))}
+          </View>
+        </FormSection>
+      ) : null}
 
       <PickerModal
-        visible={poPickerOpen}
+        visible={pickers.isOpen('po')}
         title="Purchase order"
         options={openOrders.map((order) => ({
           key: order.id,
@@ -142,10 +175,10 @@ export function GrnCreateScreen() {
         onSelect={(purchaseOrderId) =>
           setForm((current) => ({ ...current, purchaseOrderId }))
         }
-        onClose={() => setPoPickerOpen(false)}
+        onClose={pickers.closeAll}
       />
       <PickerModal
-        visible={godownPickerOpen}
+        visible={pickers.isOpen('godown')}
         title="Godown"
         options={godowns.map((godown) => ({
           key: godown.id,
@@ -156,7 +189,7 @@ export function GrnCreateScreen() {
           if (!godown) return
           setForm((current) => ({ ...current, godownName: godown.name }))
         }}
-        onClose={() => setGodownPickerOpen(false)}
+        onClose={pickers.closeAll}
       />
     </Screen>
   )

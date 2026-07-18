@@ -1,7 +1,7 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs'
 import { DynamicColorIOS, Platform } from 'react-native'
 
-import { themeColors, themeSizes } from '@/lib/theme'
+import { fontFamilies, themeColors, themeSizes } from '@/lib/theme'
 
 const TAB_TINT =
   Platform.OS === 'ios'
@@ -11,13 +11,15 @@ const TAB_TINT =
 const TAB_LABEL_STYLE = {
   default: {
     color: themeColors.tabInactive,
+    fontFamily: fontFamilies.semibold,
     fontSize: themeSizes.tabLabel,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
   },
   selected: {
     color: themeColors.tabActive,
+    fontFamily: fontFamilies.semibold,
     fontSize: themeSizes.tabLabel,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
   },
 }
 

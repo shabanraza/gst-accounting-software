@@ -60,7 +60,7 @@ export default function SignupScreen() {
         value={password}
         onChangeText={setPassword}
       />
-      {error ? <Text className="text-icon-accent-red">{error}</Text> : null}
+      {error ? <Text className="text-destructive">{error}</Text> : null}
       <PrimaryButton label="Sign up" onPress={() => void handleSubmit()} />
       <Link href="/(auth)/login">
         <Text className="text-primary">Already have an account?</Text>

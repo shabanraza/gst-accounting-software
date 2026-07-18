@@ -28,6 +28,33 @@ export type OwnerSnapshot = {
     invoiceCount: number
     billCount: number
   }
+  monthCompare: {
+    currentLabel: string
+    previousLabel: string
+    current: {
+      salesTotal: string
+      purchaseTotal: string
+      expensesTotal: string
+    }
+    previous: {
+      salesTotal: string
+      purchaseTotal: string
+      expensesTotal: string
+    }
+    change: {
+      salesPercent: string
+      purchasePercent: string
+      expensesPercent: string
+    }
+  }
+  gstMtd: {
+    periodStart: string
+    periodEnd: string
+    outwardTaxableValue: string
+    outputGst: string
+    inputGst: string
+    netGstPayable: string
+  }
 }
 
 export type DashboardMetric = {

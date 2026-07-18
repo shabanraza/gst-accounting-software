@@ -2,25 +2,41 @@ import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 
-import { DetailCard } from '@/components/data/detail-card'
+import { CollapsibleSection } from '@/components/layout/collapsible-section'
+import { FormSection } from '@/components/layout/form-section'
 import { Screen } from '@/components/layout/screen'
 import { WizardFooter } from '@/components/layout/wizard-footer'
 import { PrimaryButton } from '@/components/ui/button'
 import { OptionChip } from '@/components/ui/chip'
+import { DateField } from '@/components/ui/date-field'
 import { FormField } from '@/components/ui/form-field'
+import { FormFieldGroup } from '@/components/ui/form-label'
 import { PickerField } from '@/components/ui/picker-field'
 import { PickerModal } from '@/components/ui/picker-modal'
+import { AddLineButton } from '@/components/voucher/add-line-button'
+import { DocumentLineEditor } from '@/components/voucher/document-line-editor'
+import { DocumentTotalsBar } from '@/components/voucher/voucher-totals-bar'
+import {
+  RecentPartyChips,
+  useRecentParties,
+} from '@/components/voucher/recent-party-chips'
 import { useSalesItems, useSalesParties } from '@/features/use-sales-masters'
 import {
   SALES_DOCUMENT_SERIES,
   applyItemToSalesDocumentLine,
   buildCreateSalesDocumentInput,
+  computeSalesDocumentFormTotal,
+  createEmptySalesDocumentLine,
   createInitialSalesDocumentForm,
   filterCustomerParties,
   validateSalesDocumentForm,
   type SalesDocumentFormDraft,
+  type SalesDocumentLineDraft,
   type SalesDocumentType,
 } from '@/lib/sales-document-form'
+import {
+  useFormPickerCoordination,
+} from '@/lib/form-picker-coordination'
 import { trpcClient } from '@/lib/trpc-client'
 import { Text, View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
@@ -35,19 +51,48 @@ export function SalesDocumentCreateScreen() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { companyId, activeFinancialYearId, company } = useWorkspace()
+  const { recentIds, rememberParty } = useRecentParties(companyId, 'customer')
   const partiesQuery = useSalesParties()
   const itemsQuery = useSalesItems()
   const [form, setForm] = React.useState<SalesDocumentFormDraft>(
     createInitialSalesDocumentForm,
   )
-  const [customerPickerOpen, setCustomerPickerOpen] = React.useState(false)
-  const [itemPickerOpen, setItemPickerOpen] = React.useState(false)
+  const pickers = useFormPickerCoordination(['customer'] as const)
   const [error, setError] = React.useState<string | null>(null)
 
   const customers = filterCustomerParties(partiesQuery.data ?? [])
   const items = itemsQuery.data ?? []
   const selectedCustomer = customers.find((party) => party.id === form.customerId)
-  const selectedItem = items.find((item) => item.id === form.line.itemId)
+  const estimatedTotal = computeSalesDocumentFormTotal(form)
+
+  const updateLine = React.useCallback(
+    (index: number, nextLine: SalesDocumentLineDraft) => {
+      setForm((current) => ({
+        ...current,
+        lines: current.lines.map((line, lineIndex) =>
+          lineIndex === index ? nextLine : line,
+        ),
+      }))
+    },
+    [],
+  )
+
+  const addLine = React.useCallback(() => {
+    setForm((current) => ({
+      ...current,
+      lines: [...current.lines, createEmptySalesDocumentLine()],
+    }))
+  }, [])
+
+  const removeLine = React.useCallback((index: number) => {
+    setForm((current) => ({
+      ...current,
+      lines:
+        current.lines.length > 1
+          ? current.lines.filter((_, lineIndex) => lineIndex !== index)
+          : current.lines,
+    }))
+  }, [])
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -94,23 +139,23 @@ export function SalesDocumentCreateScreen() {
   })
 
   return (
-    <Screen
-      title="New sales document"
-      subtitle="Quotation, sales order, or delivery challan"
-      keyboardAvoiding
-      footer={
-        <WizardFooter>
-          {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
-          <PrimaryButton
-            label={saveMutation.isPending ? 'Saving…' : 'Create document'}
-            loading={saveMutation.isPending}
-            disabled={saveMutation.isPending}
-            onPress={() => saveMutation.mutate()}
-          />
-        </WizardFooter>
-      }
-    >
-      <DetailCard title="Document type" icon="document-text-outline">
+      <Screen
+        title="New sales document"
+        subtitle="Quotation, sales order, or delivery challan"
+        keyboardAvoiding
+        footer={
+            <WizardFooter>
+              {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
+              <PrimaryButton
+                label="Create document"
+                loading={saveMutation.isPending}
+                disabled={saveMutation.isPending}
+                onPress={() => saveMutation.mutate()}
+              />
+            </WizardFooter>
+        }
+      >
+      <FormSection title="Document type" icon="document-text-outline">
         <View className="flex-row flex-wrap gap-2">
           {(Object.keys(documentTypeLabels) as Array<SalesDocumentType>).map(
             (documentType) => (
@@ -123,21 +168,14 @@ export function SalesDocumentCreateScreen() {
             ),
           )}
         </View>
-      </DetailCard>
+      </FormSection>
 
-      <DetailCard title="Header" icon="create-outline">
+      <FormSection title="Header" icon="create-outline">
         <View className="gap-3">
-          <FormField
-            placeholder="Document number (optional)"
-            value={form.documentNumber}
-            onChangeText={(documentNumber) =>
-              setForm((current) => ({ ...current, documentNumber }))
-            }
-          />
-          <FormField
-            placeholder="YYYY-MM-DD"
+          <DateField
+            label="Document date"
             value={form.documentDate}
-            onChangeText={(documentDate) =>
+            onChange={(documentDate) =>
               setForm((current) => ({ ...current, documentDate }))
             }
           />
@@ -145,54 +183,66 @@ export function SalesDocumentCreateScreen() {
             label="Customer"
             value={selectedCustomer?.name}
             placeholder="Select customer"
-            onPress={() => setCustomerPickerOpen(true)}
+            onPress={() => pickers.open('customer')}
           />
+          <RecentPartyChips
+            createHref="/(app)/parties/new"
+            createLabel="Add new customer"
+            parties={customers}
+            recentIds={recentIds}
+            selectedId={form.customerId}
+            onSelect={(customerId) => {
+              void rememberParty(customerId)
+              setForm((current) => ({ ...current, customerId }))
+            }}
+          />
+          <CollapsibleSection defaultOpen={false} title="References">
+            <FormFieldGroup label="Document number">
+              <FormField
+                placeholder="Auto if blank"
+                value={form.documentNumber}
+                onChangeText={(documentNumber) =>
+                  setForm((current) => ({ ...current, documentNumber }))
+                }
+              />
+            </FormFieldGroup>
+          </CollapsibleSection>
         </View>
-      </DetailCard>
+      </FormSection>
 
-      <DetailCard title="Line item" icon="cube-outline">
-        <View className="gap-3">
-          <PickerField
-            label="Item"
-            value={selectedItem?.name}
-            placeholder="Select item"
-            onPress={() => setItemPickerOpen(true)}
-          />
-          <View className="flex-row gap-3">
-            <View className="flex-1">
-              <Text className="mb-1 text-sm text-muted-foreground">Quantity</Text>
-              <FormField
-                keyboardType="decimal-pad"
-                placeholder="1"
-                value={form.line.quantity}
-                onChangeText={(quantity) =>
-                  setForm((current) => ({
-                    ...current,
-                    line: { ...current.line, quantity },
-                  }))
-                }
-              />
-            </View>
-            <View className="flex-1">
-              <Text className="mb-1 text-sm text-muted-foreground">Rate</Text>
-              <FormField
-                keyboardType="decimal-pad"
-                placeholder="0.00"
-                value={form.line.rate}
-                onChangeText={(rate) =>
-                  setForm((current) => ({
-                    ...current,
-                    line: { ...current.line, rate },
-                  }))
-                }
-              />
-            </View>
-          </View>
+      <FormSection title="Items" icon="cube-outline">
+        <View className="gap-section-header">
+          {form.lines.map((line, index) => (
+            <DocumentLineEditor
+              key={line.key}
+              line={line}
+              index={index}
+              items={items.map((item) => ({
+                id: item.id,
+                name: item.name,
+                baseUnit: item.baseUnit,
+                rate: item.saleRate,
+              }))}
+              canRemove={form.lines.length > 1}
+              onChange={(nextLine) => updateLine(index, nextLine)}
+              onRemove={() => removeLine(index)}
+              applyItem={(currentLine, item) =>
+                applyItemToSalesDocumentLine(currentLine, {
+                  id: item.id,
+                  name: item.name,
+                  baseUnit: item.baseUnit,
+                  saleRate: item.rate,
+                })
+              }
+            />
+          ))}
+          <AddLineButton onPress={addLine} />
+          <DocumentTotalsBar total={estimatedTotal} />
         </View>
-      </DetailCard>
+      </FormSection>
 
       <PickerModal
-        visible={customerPickerOpen}
+        visible={pickers.isOpen('customer')}
         title="Customer"
         options={customers.map((party) => ({
           key: party.id,
@@ -201,21 +251,7 @@ export function SalesDocumentCreateScreen() {
         onSelect={(customerId) =>
           setForm((current) => ({ ...current, customerId }))
         }
-        onClose={() => setCustomerPickerOpen(false)}
-      />
-      <PickerModal
-        visible={itemPickerOpen}
-        title="Item"
-        options={items.map((item) => ({ key: item.id, label: item.name }))}
-        onSelect={(itemId) => {
-          const item = items.find((entry) => entry.id === itemId)
-          if (!item) return
-          setForm((current) => ({
-            ...current,
-            line: applyItemToSalesDocumentLine(current.line, item),
-          }))
-        }}
-        onClose={() => setItemPickerOpen(false)}
+        onClose={pickers.closeAll}
       />
     </Screen>
   )

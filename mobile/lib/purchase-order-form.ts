@@ -1,4 +1,12 @@
+import {
+  computeLinesSubtotal,
+  filledDocumentLines,
+  validateDocumentLine,
+} from './document-lines'
+import { randomId } from './random-id'
+
 export type PurchaseOrderLineDraft = {
+  key: string
   itemId: string
   itemName: string
   unit: string
@@ -12,7 +20,7 @@ export type PurchaseOrderFormDraft = {
   orderNumber: string
   orderDate: string
   narration: string
-  line: PurchaseOrderLineDraft
+  lines: Array<PurchaseOrderLineDraft>
 }
 
 export type PurchaseOrderSupplierLike = {
@@ -29,20 +37,25 @@ export type PurchaseOrderItemLike = {
   gstRate: string
 }
 
+export function createEmptyPurchaseOrderLine(): PurchaseOrderLineDraft {
+  return {
+    key: randomId(),
+    itemId: '',
+    itemName: '',
+    unit: '',
+    quantity: '1',
+    rate: '',
+    gstRate: '0',
+  }
+}
+
 export function createInitialPurchaseOrderForm(): PurchaseOrderFormDraft {
   return {
     supplierId: '',
     orderNumber: '',
     orderDate: new Date().toISOString().slice(0, 10),
     narration: '',
-    line: {
-      itemId: '',
-      itemName: '',
-      unit: '',
-      quantity: '1',
-      rate: '',
-      gstRate: '0',
-    },
+    lines: [createEmptyPurchaseOrderLine()],
   }
 }
 
@@ -59,6 +72,7 @@ export function applyItemToPurchaseOrderLine(
   item: PurchaseOrderItemLike,
 ): PurchaseOrderLineDraft {
   return {
+    ...line,
     itemId: item.id,
     itemName: item.name,
     unit: item.baseUnit,
@@ -66,6 +80,10 @@ export function applyItemToPurchaseOrderLine(
     rate: line.rate || item.purchaseRate,
     gstRate: item.gstRate,
   }
+}
+
+export function computePurchaseOrderFormTotal(form: PurchaseOrderFormDraft) {
+  return computeLinesSubtotal(filledDocumentLines(form.lines))
 }
 
 export function validatePurchaseOrderForm(form: PurchaseOrderFormDraft) {
@@ -77,18 +95,16 @@ export function validatePurchaseOrderForm(form: PurchaseOrderFormDraft) {
     return 'Order date is required.'
   }
 
-  if (!form.line.itemId.trim()) {
-    return 'Select an item.'
+  const lines = filledDocumentLines(form.lines)
+  if (lines.length === 0) {
+    return 'Add at least one item.'
   }
 
-  const quantity = Number(form.line.quantity)
-  if (!Number.isFinite(quantity) || quantity <= 0) {
-    return 'Enter a positive quantity.'
-  }
-
-  const rate = Number(form.line.rate)
-  if (!Number.isFinite(rate) || rate < 0) {
-    return 'Enter a valid rate.'
+  for (let index = 0; index < lines.length; index += 1) {
+    const lineError = validateDocumentLine(lines[index], index + 1)
+    if (lineError) {
+      return lineError
+    }
   }
 
   return null
@@ -105,15 +121,13 @@ export function buildCreatePurchaseOrderInput(
     orderNumber,
     orderDate: form.orderDate,
     narration: form.narration.trim() || undefined,
-    lines: [
-      {
-        itemId: form.line.itemId,
-        description: form.line.itemName,
-        quantity: form.line.quantity,
-        unit: form.line.unit,
-        rate: form.line.rate,
-        gstRate: form.line.gstRate,
-      },
-    ],
+    lines: filledDocumentLines(form.lines).map((line) => ({
+      itemId: line.itemId,
+      description: line.itemName,
+      quantity: line.quantity,
+      unit: line.unit,
+      rate: line.rate,
+      gstRate: line.gstRate,
+    })),
   }
 }

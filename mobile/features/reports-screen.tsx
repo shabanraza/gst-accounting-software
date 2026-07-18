@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Ionicons } from '@expo/vector-icons'
 
 import { CardRow } from '@/components/data/card-row'
 import { EmptyState } from '@/components/data/empty-state'
@@ -20,7 +21,7 @@ function ReportSection({
   children,
 }: {
   title: string
-  icon: import('@expo/vector-icons').Ionicons['name']
+  icon: keyof typeof Ionicons.glyphMap
   children: React.ReactNode
 }) {
   return (

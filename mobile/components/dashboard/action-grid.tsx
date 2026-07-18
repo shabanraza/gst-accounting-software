@@ -6,9 +6,11 @@ import { Pressable, Text, View } from '@/tw'
 import { themeColors, themeSizes } from '@/lib/theme'
 
 const ACCENT_COLORS = {
-  blue: themeColors.iconAccentBlue,
-  red: themeColors.iconAccentRed,
-  orange: themeColors.iconAccentOrange,
+  sales: themeColors.iconAccentSales,
+  purchases: themeColors.iconAccentPurchases,
+  stock: themeColors.iconAccentStock,
+  reports: themeColors.iconAccentReports,
+  overdue: themeColors.iconAccentOverdue,
 } as const
 
 export type ActionAccent = keyof typeof ACCENT_COLORS

@@ -5,11 +5,15 @@ import { useLocalSearchParams } from 'expo-router'
 import { CardRow } from '@/components/data/card-row'
 import { EmptyState } from '@/components/data/empty-state'
 import { LoadingState } from '@/components/data/loading-state'
+import { CreateScreenFooter } from '@/components/layout/create-screen-footer'
+import { FormSection } from '@/components/layout/form-section'
 import { SectionHeader } from '@/components/layout/section-header'
 import { Screen } from '@/components/layout/screen'
 import { PrimaryButton } from '@/components/ui/button'
+import { DateField } from '@/components/ui/date-field'
 import { FormField } from '@/components/ui/form-field'
-import { formatInr, formatShortDate } from '@/lib/format-inr'
+import { FormFieldGroup } from '@/components/ui/form-label'
+import { formatShortDate } from '@/lib/format-inr'
 import { randomId } from '@/lib/random-id'
 import {
   buildRecordStockMovementInput,
@@ -17,7 +21,7 @@ import {
   validateStockAdjustmentForm,
 } from '@/lib/stock-adjustment-form'
 import { trpcClient } from '@/lib/trpc-client'
-import { Text, View } from '@/tw'
+import { View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
 
 export function StockLedgerDetailScreen() {
@@ -93,6 +97,12 @@ export function StockLedgerDetailScreen() {
   const item = itemsQuery.data
   const movements = ledgerQuery.data?.rows ?? []
 
+  function closeAdjustment() {
+    setAdjustmentOpen(false)
+    setAdjustmentForm(createInitialStockAdjustmentForm())
+    setAdjustmentError(null)
+  }
+
   if (ledgerQuery.isLoading || itemsQuery.isLoading) {
     return (
       <Screen title="Stock ledger">
@@ -110,63 +120,69 @@ export function StockLedgerDetailScreen() {
   }
 
   return (
-    <Screen title={item.name} subtitle="Stock movements">
-      <View className="gap-section-header">
-        <SectionHeader title="Movements" compact icon="layers-outline" />
-        {movements.length === 0 ? (
-          <EmptyState message="No stock movements yet." />
-        ) : (
-          movements.map((movement) => (
-            <CardRow
-              key={movement.movementId}
-              title={movement.movementType}
-              subtitle={`${formatShortDate(movement.occurredOn)} · ${movement.direction}`}
-              amount={`${movement.quantity} ${item.baseUnit}`}
-            />
-          ))
-        )}
-      </View>
-
+    <Screen
+      title={item.name}
+      subtitle={adjustmentOpen ? 'Stock adjustment' : 'Stock movements'}
+      keyboardAvoiding={adjustmentOpen}
+      footer={
+        adjustmentOpen ? (
+          <CreateScreenFooter
+            error={adjustmentError}
+            loading={adjustmentMutation.isPending}
+            onCancel={closeAdjustment}
+            onSubmit={() => adjustmentMutation.mutate()}
+            submitLabel="Record adjustment"
+          />
+        ) : undefined
+      }
+    >
       {!adjustmentOpen ? (
-        <PrimaryButton
-          label="Stock adjustment"
-          onPress={() => {
-            setAdjustmentForm((current) => ({
-              ...current,
-              itemId: item.id,
-              unit: item.baseUnit,
-            }))
-            setAdjustmentOpen(true)
-          }}
-        />
-      ) : (
         <View className="gap-section-header">
-          <SectionHeader title="Adjustment" compact icon="create-outline" />
-          <FormField
-            placeholder="YYYY-MM-DD"
+          <SectionHeader title="Movements" compact icon="layers-outline" />
+          {movements.length === 0 ? (
+            <EmptyState message="No stock movements yet." />
+          ) : (
+            movements.map((movement) => (
+              <CardRow
+                key={movement.movementId}
+                title={movement.movementType}
+                subtitle={`${formatShortDate(movement.occurredOn)} · ${movement.direction}`}
+                amount={`${movement.quantity} ${item.baseUnit}`}
+              />
+            ))
+          )}
+          <PrimaryButton
+            label="Stock adjustment"
+            onPress={() => {
+              setAdjustmentForm((current) => ({
+                ...current,
+                itemId: item.id,
+                unit: item.baseUnit,
+              }))
+              setAdjustmentOpen(true)
+            }}
+          />
+        </View>
+      ) : (
+        <FormSection title="Adjustment" icon="create-outline">
+          <DateField
+            label="Date"
             value={adjustmentForm.occurredOn}
-            onChangeText={(occurredOn) =>
+            onChange={(occurredOn) =>
               setAdjustmentForm((current) => ({ ...current, occurredOn }))
             }
           />
-          <FormField
-            keyboardType="decimal-pad"
-            placeholder="Quantity (+ in / - out)"
-            value={adjustmentForm.quantity}
-            onChangeText={(quantity) =>
-              setAdjustmentForm((current) => ({ ...current, quantity }))
-            }
-          />
-          {adjustmentError ? (
-            <Text className="text-sm text-destructive">{adjustmentError}</Text>
-          ) : null}
-          <PrimaryButton
-            label={adjustmentMutation.isPending ? 'Saving…' : 'Record adjustment'}
-            loading={adjustmentMutation.isPending}
-            disabled={adjustmentMutation.isPending}
-            onPress={() => adjustmentMutation.mutate()}
-          />
-        </View>
+          <FormFieldGroup label="Quantity">
+            <FormField
+              keyboardType="decimal-pad"
+              placeholder="+ in / − out"
+              value={adjustmentForm.quantity}
+              onChangeText={(quantity) =>
+                setAdjustmentForm((current) => ({ ...current, quantity }))
+              }
+            />
+          </FormFieldGroup>
+        </FormSection>
       )}
     </Screen>
   )

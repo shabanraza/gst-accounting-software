@@ -54,44 +54,49 @@ Press **`w`** to open **http://localhost:8081**. The app talks to **http://local
 Sign in with the same account you use on the web app. You should land on the dashboard when you already have a company.
 
 
-## Android emulator (Expo Go)
+## Android emulator (standalone build)
 
-The emulator cannot use Metro on your LAN IP (`192.168.x.x`). Use **localhost + adb reverse** instead of `bun run start` (`--lan`).
+Use the **standalone debug build** (`com.gstbooks.mobile`), not Expo Go. Expo Go on emulators often lags the project SDK and cannot load this app reliably.
+
+**One-time install (builds native APK):**
+
+```bash
+cd mobile
+bunx expo run:android
+```
 
 **Terminal 1 — API (repo root)**
 
 ```bash
-bun run dev
+bun run dev:lan
 ```
 
-`bun run dev` is enough — the emulator reaches your Mac via `10.0.2.2` (see `mobile/.env`).
+The emulator reaches your Mac API via `10.0.2.2` (see `mobile/.env`).
 
-**Terminal 2 — Expo (starts emulator app)**
+**Terminal 2 — Metro + launch standalone app**
 
 ```bash
 cd mobile
 bun run android:emulator
 ```
 
-This script runs `adb reverse` for ports **8081** (Metro) and **3000** (API), then `expo start --android --localhost`.
+This script runs `adb reverse` for port **3000** (API), starts Metro with `--lan` (packager host `10.0.2.2`), and opens the installed standalone app.
 
 Manual equivalent:
 
 ```bash
-adb reverse tcp:8081 tcp:8081
 adb reverse tcp:3000 tcp:3000
 cd mobile
-bunx expo start --android --localhost --clear --port 8081
+export REACT_NATIVE_PACKAGER_HOSTNAME=10.0.2.2
+bunx expo start --lan --clear --port 8081
+adb shell am start -n com.gstbooks.mobile/.MainActivity
 ```
 
-### Expo Go SDK patch versions
-
-If Expo Go shows a version mismatch (e.g. Go **57.0.2** vs project **57.0.6**), either update Expo Go from the Play Store on the AVD, or build a dev client:
+Rebuild native code after dependency or plugin changes:
 
 ```bash
 cd mobile
-bunx expo prebuild --platform android
-bunx expo run:android
+bun run android:build
 ```
 
 ## Develop on Expo Go (physical phone)
@@ -179,7 +184,7 @@ Uses `@better-auth/expo` with scheme `gstbooks://`. The web server trusts mobile
 | `Failed to fetch` on login | Same as above; confirm API is running |
 | Expo Go cannot connect to Metro | Same Wi‑Fi; use `bun run start` (includes `--lan`); allow port 8081 in firewall |
 | Phone login fails / 401 on companies | Set `EXPO_PUBLIC_API_URL` to `http://<LAN_IP>:3000`, not `localhost`; restart Expo after `.env` changes |
-| Android emulator won't open / Metro won't connect | Use `bun run android:emulator` (not `bun run start`); requires `adb reverse`; API with `bun run dev` and `EXPO_PUBLIC_API_URL=http://10.0.2.2:3000` |
+| Android emulator won't open / Metro won't connect | Install once with `bun run android:build`; daily dev with `bun run android:emulator`; API with `bun run dev:lan`; `EXPO_PUBLIC_API_URL=http://10.0.2.2:3000` |
 | Web login lands on onboarding incorrectly | Sign out, sign in again; tRPC waits for the bearer token before `companies.list` |
 
 ## Expo Go only (not available on Expo web yet)

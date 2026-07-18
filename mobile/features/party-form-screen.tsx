@@ -3,12 +3,15 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 
 import { EmptyState } from '@/components/data/empty-state'
+import {
+  CreateScreenFooter,
+  SaveScreenFooter,
+} from '@/components/layout/create-screen-footer'
 import { FormSection } from '@/components/layout/form-section'
 import { Screen } from '@/components/layout/screen'
-import { WizardFooter } from '@/components/layout/wizard-footer'
-import { PrimaryButton } from '@/components/ui/button'
 import { OptionChip } from '@/components/ui/chip'
 import { FormField } from '@/components/ui/form-field'
+import { FormFieldGroup } from '@/components/ui/form-label'
 import { PickerField } from '@/components/ui/picker-field'
 import { PickerModal } from '@/components/ui/picker-modal'
 import {
@@ -26,8 +29,11 @@ import {
   type PartyFormDraft,
   type PartyType,
 } from '@/lib/party-form'
+import {
+  useFormPickerCoordination,
+} from '@/lib/form-picker-coordination'
 import { trpcClient } from '@/lib/trpc-client'
-import { Text, View } from '@/tw'
+import { View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
 
 type PartyFormScreenProps = {
@@ -36,6 +42,8 @@ type PartyFormScreenProps = {
   initialForm?: PartyFormDraft
   defaultPartyType?: PartyType
 }
+
+const PARTY_PICKERS = ['state', 'terms'] as const
 
 export function PartyFormScreen({
   mode,
@@ -49,8 +57,7 @@ export function PartyFormScreen({
   const [form, setForm] = React.useState<PartyFormDraft>(
     () => initialForm ?? createInitialPartyForm(defaultPartyType),
   )
-  const [statePickerOpen, setStatePickerOpen] = React.useState(false)
-  const [termsPickerOpen, setTermsPickerOpen] = React.useState(false)
+  const pickers = useFormPickerCoordination(PARTY_PICKERS)
   const [error, setError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
@@ -112,37 +119,43 @@ export function PartyFormScreen({
     (term) => String(term.days) === form.paymentTermsDays,
   )
 
+  const footer =
+    mode === 'edit' ? (
+      <SaveScreenFooter
+        error={error}
+        loading={saveMutation.isPending}
+        onSubmit={() => saveMutation.mutate()}
+        submitLabel="Save changes"
+      />
+    ) : (
+      <CreateScreenFooter
+        error={error}
+        loading={saveMutation.isPending}
+        onCancel={() => router.back()}
+        onSubmit={() => saveMutation.mutate()}
+        submitLabel="Create party"
+      />
+    )
+
   return (
-    <Screen
-      title={mode === 'edit' ? 'Edit party' : 'New party'}
-      subtitle="Billing, GST, and contact details"
-      keyboardAvoiding
-      footer={
-        <WizardFooter>
-          {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
-          <PrimaryButton
-            label={saveMutation.isPending ? 'Saving…' : 'Save'}
-            loading={saveMutation.isPending}
-            disabled={saveMutation.isPending}
-            onPress={() => saveMutation.mutate()}
-          />
-        </WizardFooter>
-      }
-    >
+      <Screen
+        title={mode === 'edit' ? 'Edit party' : 'New party'}
+        subtitle="Billing, GST, and contact details"
+        keyboardAvoiding
+        footer={footer}
+      >
       {!isReady ? <EmptyState message="Loading workspace…" /> : null}
 
       <FormSection title="Basics" icon="person-outline">
         <View className="gap-3">
-          <View>
-            <Text className="mb-1 text-sm text-muted-foreground">Name</Text>
+          <FormFieldGroup label="Name">
             <FormField
               placeholder="Legal / trade name"
               value={form.name}
               onChangeText={(name) => setForm((current) => ({ ...current, name }))}
             />
-          </View>
-          <View className="gap-2">
-            <Text className="text-sm text-muted-foreground">Type</Text>
+          </FormFieldGroup>
+          <FormFieldGroup label="Type">
             <View className="flex-row flex-wrap gap-2">
               {(['customer', 'supplier', 'both'] as Array<PartyType>).map(
                 (type) => (
@@ -157,7 +170,7 @@ export function PartyFormScreen({
                 ),
               )}
             </View>
-          </View>
+          </FormFieldGroup>
           <PickerField
             label="State / POS"
             value={
@@ -165,28 +178,30 @@ export function PartyFormScreen({
                 ? `${selectedState.name} (${selectedState.code})`
                 : form.stateCode
             }
-            onPress={() => setStatePickerOpen(true)}
+            onPress={() => pickers.open('state')}
           />
           <View className="flex-row gap-3">
             <View className="flex-1">
-              <Text className="mb-1 text-sm text-muted-foreground">GSTIN</Text>
-              <FormField
-                placeholder="Optional"
-                autoCapitalize="characters"
-                value={form.gstin}
-                onChangeText={(gstin) =>
-                  setForm((current) => ({ ...current, gstin }))
-                }
-              />
+              <FormFieldGroup label="GSTIN">
+                <FormField
+                  placeholder="Optional"
+                  autoCapitalize="characters"
+                  value={form.gstin}
+                  onChangeText={(gstin) =>
+                    setForm((current) => ({ ...current, gstin }))
+                  }
+                />
+              </FormFieldGroup>
             </View>
             <View className="flex-1">
-              <Text className="mb-1 text-sm text-muted-foreground">PAN</Text>
-              <FormField
-                placeholder="ABCDE1234F"
-                autoCapitalize="characters"
-                value={form.pan}
-                onChangeText={(pan) => setForm((current) => ({ ...current, pan }))}
-              />
+              <FormFieldGroup label="PAN">
+                <FormField
+                  placeholder="ABCDE1234F"
+                  autoCapitalize="characters"
+                  value={form.pan}
+                  onChangeText={(pan) => setForm((current) => ({ ...current, pan }))}
+                />
+              </FormFieldGroup>
             </View>
           </View>
         </View>
@@ -194,37 +209,45 @@ export function PartyFormScreen({
 
       <FormSection title="Address" icon="location-outline">
         <View className="gap-3">
-          <FormField
-            placeholder="Address line 1"
-            value={form.addressLine1}
-            onChangeText={(addressLine1) =>
-              setForm((current) => ({ ...current, addressLine1 }))
-            }
-          />
-          <FormField
-            placeholder="Address line 2"
-            value={form.addressLine2}
-            onChangeText={(addressLine2) =>
-              setForm((current) => ({ ...current, addressLine2 }))
-            }
-          />
+          <FormFieldGroup label="Address line 1">
+            <FormField
+              placeholder="Street, building"
+              value={form.addressLine1}
+              onChangeText={(addressLine1) =>
+                setForm((current) => ({ ...current, addressLine1 }))
+              }
+            />
+          </FormFieldGroup>
+          <FormFieldGroup label="Address line 2">
+            <FormField
+              placeholder="Area, landmark"
+              value={form.addressLine2}
+              onChangeText={(addressLine2) =>
+                setForm((current) => ({ ...current, addressLine2 }))
+              }
+            />
+          </FormFieldGroup>
           <View className="flex-row gap-3">
             <View className="flex-1">
-              <FormField
-                placeholder="City"
-                value={form.city}
-                onChangeText={(city) => setForm((current) => ({ ...current, city }))}
-              />
+              <FormFieldGroup label="City">
+                <FormField
+                  placeholder="City"
+                  value={form.city}
+                  onChangeText={(city) => setForm((current) => ({ ...current, city }))}
+                />
+              </FormFieldGroup>
             </View>
             <View className="flex-1">
-              <FormField
-                placeholder="PIN code"
-                keyboardType="number-pad"
-                value={form.pincode}
-                onChangeText={(pincode) =>
-                  setForm((current) => ({ ...current, pincode }))
-                }
-              />
+              <FormFieldGroup label="PIN code">
+                <FormField
+                  placeholder="000000"
+                  keyboardType="number-pad"
+                  value={form.pincode}
+                  onChangeText={(pincode) =>
+                    setForm((current) => ({ ...current, pincode }))
+                  }
+                />
+              </FormFieldGroup>
             </View>
           </View>
         </View>
@@ -233,25 +256,29 @@ export function PartyFormScreen({
       <FormSection title="Contact" icon="call-outline">
         <View className="flex-row gap-3">
           <View className="flex-1">
-            <FormField
-              placeholder="Phone"
-              keyboardType="phone-pad"
-              value={form.contactPhone}
-              onChangeText={(contactPhone) =>
-                setForm((current) => ({ ...current, contactPhone }))
-              }
-            />
+            <FormFieldGroup label="Phone">
+              <FormField
+                placeholder="10-digit mobile"
+                keyboardType="phone-pad"
+                value={form.contactPhone}
+                onChangeText={(contactPhone) =>
+                  setForm((current) => ({ ...current, contactPhone }))
+                }
+              />
+            </FormFieldGroup>
           </View>
           <View className="flex-1">
-            <FormField
-              placeholder="Email"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={form.contactEmail}
-              onChangeText={(contactEmail) =>
-                setForm((current) => ({ ...current, contactEmail }))
-              }
-            />
+            <FormFieldGroup label="Email">
+              <FormField
+                placeholder="name@example.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={form.contactEmail}
+                onChangeText={(contactEmail) =>
+                  setForm((current) => ({ ...current, contactEmail }))
+                }
+              />
+            </FormFieldGroup>
           </View>
         </View>
       </FormSection>
@@ -261,10 +288,9 @@ export function PartyFormScreen({
           <PickerField
             label="Payment terms"
             value={selectedTerms?.label ?? `${form.paymentTermsDays} days`}
-            onPress={() => setTermsPickerOpen(true)}
+            onPress={() => pickers.open('terms')}
           />
-          <View>
-            <Text className="mb-1 text-sm text-muted-foreground">Credit limit</Text>
+          <FormFieldGroup label="Credit limit">
             <FormField
               placeholder="Optional"
               keyboardType="decimal-pad"
@@ -273,12 +299,12 @@ export function PartyFormScreen({
                 setForm((current) => ({ ...current, creditLimit }))
               }
             />
-          </View>
+          </FormFieldGroup>
         </View>
       </FormSection>
 
       <PickerModal
-        visible={statePickerOpen}
+        visible={pickers.isOpen('state')}
         title="Select state"
         options={indianStates.map((state) => ({
           key: state.code,
@@ -287,11 +313,11 @@ export function PartyFormScreen({
         onSelect={(stateCode) =>
           setForm((current) => ({ ...current, stateCode }))
         }
-        onClose={() => setStatePickerOpen(false)}
+        onClose={pickers.closeAll}
       />
 
       <PickerModal
-        visible={termsPickerOpen}
+        visible={pickers.isOpen('terms')}
         title="Payment terms"
         options={paymentTermsOptions.map((term) => ({
           key: String(term.days),
@@ -300,7 +326,7 @@ export function PartyFormScreen({
         onSelect={(paymentTermsDays) =>
           setForm((current) => ({ ...current, paymentTermsDays }))
         }
-        onClose={() => setTermsPickerOpen(false)}
+        onClose={pickers.closeAll}
       />
     </Screen>
   )

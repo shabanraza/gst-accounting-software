@@ -1,14 +1,16 @@
 import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pressable } from 'react-native'
+import { FlatList, StyleSheet } from 'react-native'
 
 import { CardRow } from '@/components/data/card-row'
 import { EmptyState } from '@/components/data/empty-state'
 import { LoadingState } from '@/components/data/loading-state'
 import { SectionHeader } from '@/components/layout/section-header'
-import { Screen } from '@/components/layout/screen'
+import { ListScreen } from '@/components/layout/screen'
 import type { ScreenVariant } from '@/lib/navigation'
-import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
+import { PrimaryButton } from '@/components/ui/button'
+import { OptionChip } from '@/components/ui/chip'
+import { DateField } from '@/components/ui/date-field'
 import { BottomSheet } from '@/components/ui/dialog'
 import { FormField } from '@/components/ui/form-field'
 import { formatInr } from '@/lib/format-inr'
@@ -38,16 +40,12 @@ function TabChip({
   onPress: () => void
 }) {
   return (
-    <Pressable
-      className={`rounded-full px-4 py-2 ${active ? 'bg-primary' : 'bg-muted'}`}
+    <OptionChip
+      active={active}
+      label={label}
       onPress={onPress}
-    >
-      <Text
-        className={`text-sm font-medium ${active ? 'text-primary-foreground' : 'text-muted-foreground'}`}
-      >
-        {label}
-      </Text>
-    </Pressable>
+      variant="filled"
+    />
   )
 }
 
@@ -101,10 +99,13 @@ function AllocationModal({
         <View style={{ gap: pageLayout.sectionGap }}>
           <View style={{ gap: pageLayout.sectionHeaderGap }}>
             <SectionHeader title="Document" compact icon="document-text-outline" />
-            <View style={{ gap: pageLayout.sectionHeaderGap }}>
-              {documents.map((document) => (
+            <FlatList
+              data={documents}
+              contentContainerStyle={styles.documentList}
+              keyExtractor={(document) => document.id}
+              nestedScrollEnabled
+              renderItem={({ item: document }) => (
                 <CardRow
-                  key={document.id}
                   title={document.label}
                   subtitle={`${partyName(document.id)} · due ${formatInr(document.outstandingAmount)}`}
                   badge={draft.documentId === document.id ? 'Selected' : undefined}
@@ -116,8 +117,9 @@ function AllocationModal({
                     })
                   }
                 />
-              ))}
-            </View>
+              )}
+              showsVerticalScrollIndicator={false}
+            />
           </View>
 
           <View style={{ gap: pageLayout.sectionHeaderGap }}>
@@ -133,16 +135,11 @@ function AllocationModal({
             </Text>
           </View>
 
-          <View style={{ gap: pageLayout.sectionHeaderGap }}>
-            <SectionHeader title="Date" compact icon="calendar-outline" />
-            <FormField
-              placeholder="YYYY-MM-DD"
-              value={draft.paymentDate}
-              onChangeText={(paymentDate) =>
-                onChange({ ...draft, paymentDate })
-              }
-            />
-          </View>
+          <DateField
+            label="Date"
+            value={draft.paymentDate}
+            onChange={(paymentDate) => onChange({ ...draft, paymentDate })}
+          />
 
           {error ? (
             <Text className="text-sm text-destructive">{error}</Text>
@@ -159,6 +156,12 @@ function AllocationModal({
     </BottomSheet>
   )
 }
+
+const styles = StyleSheet.create({
+  documentList: {
+    gap: pageLayout.sectionHeaderGap,
+  },
+})
 
 function createInitialDraft(): PaymentAllocationDraft {
   return {
@@ -316,50 +319,55 @@ export function PaymentsScreen({ variant = 'stack' }: { variant?: ScreenVariant 
     salesQuery.isLoading || purchasesQuery.isLoading || partiesQuery.isLoading
 
   return (
-    <Screen
-      title="Payments"
-      subtitle="Customer receipts and supplier payments against open documents"
-      variant={variant}
-    >
-      <View className="flex-row gap-2">
-        <TabChip
-          label="Receipts"
-          active={mode === 'receipts'}
-          onPress={() => setMode('receipts')}
-        />
-        <TabChip
-          label="Payments"
-          active={mode === 'payments'}
-          onPress={() => setMode('payments')}
-        />
-      </View>
+    <>
+      <ListScreen
+        title="Payments"
+        subtitle="Customer receipts and supplier payments against open documents"
+        variant={variant}
+        data={list}
+        keyExtractor={(document) => document.id}
+        ListHeaderComponent={
+          <View style={{ gap: pageLayout.sectionGap }}>
+            <View className="flex-row gap-2">
+              <TabChip
+                label="Receipts"
+                active={mode === 'receipts'}
+                onPress={() => setMode('receipts')}
+              />
+              <TabChip
+                label="Payments"
+                active={mode === 'payments'}
+                onPress={() => setMode('payments')}
+              />
+            </View>
 
-      <PrimaryButton
-        label={mode === 'receipts' ? 'Receive payment' : 'Make payment'}
-        onPress={() => {
-          setError(null)
-          setDraft(createInitialDraft())
-          setModalOpen(true)
-        }}
-      />
+            <PrimaryButton
+              label={mode === 'receipts' ? 'Receive payment' : 'Make payment'}
+              onPress={() => {
+                setError(null)
+                setDraft(createInitialDraft())
+                setModalOpen(true)
+              }}
+            />
 
-      <View className="gap-section-header">
-        <SectionHeader title="Open balances" compact icon="wallet-outline" />
-        {loading ? <LoadingState /> : null}
-        {!loading && list.length === 0 ? (
-          <EmptyState message="No open documents." />
-        ) : null}
-        {list.map((document) => (
+            <View className="gap-section-header">
+              <SectionHeader title="Open balances" compact icon="wallet-outline" />
+              {loading ? <LoadingState /> : null}
+            </View>
+          </View>
+        }
+        ListEmptyComponent={
+          !loading ? <EmptyState message="No open documents." /> : null
+        }
+        renderItem={({ item: document }) => (
           <CardRow
-            key={document.id}
             title={document.label}
             subtitle={partyNameById(document.partyId)}
             amount={formatInr(document.outstandingAmount)}
             badge={document.paymentStatus}
           />
-        ))}
-      </View>
-
+        )}
+      />
       <AllocationModal
         visible={modalOpen}
         mode={mode}
@@ -375,6 +383,6 @@ export function PaymentsScreen({ variant = 'stack' }: { variant?: ScreenVariant 
         submitting={allocationMutation.isPending}
         error={error}
       />
-    </Screen>
+    </>
   )
 }

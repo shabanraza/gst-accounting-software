@@ -58,5 +58,5 @@ export function ApiHealthGate({ children }: { children: React.ReactNode }) {
     )
   }
 
-  return children
+  return <View className="flex-1">{children}</View>
 }

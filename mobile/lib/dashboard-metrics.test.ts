@@ -37,6 +37,33 @@ const snapshot = {
       '90+': '200.00',
     },
   },
+  monthCompare: {
+    currentLabel: '1 Jul – 15 Jul',
+    previousLabel: '1 Jun – 15 Jun',
+    current: {
+      salesTotal: '3000.00',
+      purchaseTotal: '1500.00',
+      expensesTotal: '300.00',
+    },
+    previous: {
+      salesTotal: '2000.00',
+      purchaseTotal: '1000.00',
+      expensesTotal: '250.00',
+    },
+    change: {
+      salesPercent: '50.0',
+      purchasePercent: '50.0',
+      expensesPercent: '20.0',
+    },
+  },
+  gstMtd: {
+    periodStart: '2026-07-01',
+    periodEnd: '2026-07-15',
+    outwardTaxableValue: '3000.00',
+    outputGst: '540.00',
+    inputGst: '270.00',
+    netGstPayable: '270.00',
+  },
 }
 
 describe('mapOwnerSnapshotCards', () => {

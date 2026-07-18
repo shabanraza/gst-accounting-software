@@ -1,14 +1,17 @@
 import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
-import { Pressable } from 'react-native'
 
-import { SectionHeader } from '@/components/layout/section-header'
+import { CreateScreenFooter } from '@/components/layout/create-screen-footer'
+import { FormSection } from '@/components/layout/form-section'
+import { LineCard } from '@/components/layout/line-card'
 import { Screen } from '@/components/layout/screen'
-import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
+import { DateField } from '@/components/ui/date-field'
 import { FormField } from '@/components/ui/form-field'
+import { FormFieldGroup } from '@/components/ui/form-label'
 import { PickerField } from '@/components/ui/picker-field'
 import { PickerModal } from '@/components/ui/picker-modal'
+import { AddLineButton } from '@/components/voucher/add-line-button'
 import { useLedgerAccounts } from '@/features/use-ledger-accounts'
 import {
   buildPostLedgerEntryInput,
@@ -19,7 +22,7 @@ import {
   type JournalLineDraft,
 } from '@/lib/journal-form'
 import { trpcClient } from '@/lib/trpc-client'
-import { Text, View } from '@/tw'
+import { View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
 
 function JournalLineEditor({
@@ -41,15 +44,11 @@ function JournalLineEditor({
   const selected = accounts.find((account) => account.id === line.ledgerAccountId)
 
   return (
-    <View className="gap-3 rounded-xl border border-border bg-card p-card-padding">
-      <View className="flex-row items-center justify-between">
-        <Text className="font-semibold text-foreground">Line {index + 1}</Text>
-        {canRemove ? (
-          <Pressable onPress={onRemove}>
-            <Text className="text-sm font-medium text-destructive">Remove</Text>
-          </Pressable>
-        ) : null}
-      </View>
+    <LineCard
+      canRemove={canRemove}
+      onRemove={onRemove}
+      title={`Line ${index + 1}`}
+    >
       <PickerField
         label="Ledger"
         value={selected?.name}
@@ -58,22 +57,24 @@ function JournalLineEditor({
       />
       <View className="flex-row gap-3">
         <View className="flex-1">
-          <Text className="mb-1 text-sm text-muted-foreground">Debit</Text>
-          <FormField
-            keyboardType="decimal-pad"
-            placeholder="0.00"
-            value={line.debit}
-            onChangeText={(debit) => onChange({ ...line, debit })}
-          />
+          <FormFieldGroup label="Debit">
+            <FormField
+              keyboardType="decimal-pad"
+              placeholder="0.00"
+              value={line.debit}
+              onChangeText={(debit) => onChange({ ...line, debit })}
+            />
+          </FormFieldGroup>
         </View>
         <View className="flex-1">
-          <Text className="mb-1 text-sm text-muted-foreground">Credit</Text>
-          <FormField
-            keyboardType="decimal-pad"
-            placeholder="0.00"
-            value={line.credit}
-            onChangeText={(credit) => onChange({ ...line, credit })}
-          />
+          <FormFieldGroup label="Credit">
+            <FormField
+              keyboardType="decimal-pad"
+              placeholder="0.00"
+              value={line.credit}
+              onChangeText={(credit) => onChange({ ...line, credit })}
+            />
+          </FormFieldGroup>
         </View>
       </View>
       <PickerModal
@@ -86,7 +87,7 @@ function JournalLineEditor({
         onSelect={(ledgerAccountId) => onChange({ ...line, ledgerAccountId })}
         onClose={() => setPickerOpen(false)}
       />
-    </View>
+    </LineCard>
   )
 }
 
@@ -138,69 +139,67 @@ export function JournalEntryScreen() {
   }
 
   return (
-    <Screen title="Journal entry" subtitle="Manual double-entry voucher" keyboardAvoiding>
-      <View className="gap-section-header">
-        <SectionHeader title="Header" compact icon="create-outline" />
-        <FormField
-          placeholder="YYYY-MM-DD"
+    <Screen
+      title="Journal entry"
+      subtitle="Manual double-entry voucher"
+      keyboardAvoiding
+      footer={
+        <CreateScreenFooter
+          error={error}
+          loading={saveMutation.isPending}
+          onCancel={() => router.back()}
+          onSubmit={() => saveMutation.mutate()}
+          submitLabel="Post entry"
+        />
+      }
+    >
+      <FormSection title="Header" icon="create-outline">
+        <DateField
+          label="Date"
           value={form.entryDate}
-          onChangeText={(entryDate) =>
+          onChange={(entryDate) =>
             setForm((current) => ({ ...current, entryDate }))
           }
         />
-        <FormField
-          placeholder="Narration"
-          value={form.narration}
-          onChangeText={(narration) =>
-            setForm((current) => ({ ...current, narration }))
-          }
-        />
-      </View>
+        <FormFieldGroup label="Narration">
+          <FormField
+            placeholder="Optional notes"
+            value={form.narration}
+            onChangeText={(narration) =>
+              setForm((current) => ({ ...current, narration }))
+            }
+          />
+        </FormFieldGroup>
+      </FormSection>
 
-      <View className="gap-section-header">
-        <SectionHeader title="Lines" compact icon="list-outline" />
-        {form.lines.map((line, index) => (
-          <JournalLineEditor
-            key={line.key}
-            line={line}
-            index={index}
-            accounts={accounts}
-            onChange={(nextLine) => updateLine(index, nextLine)}
-            onRemove={() =>
+      <FormSection title="Lines" icon="list-outline">
+        <View className="gap-3">
+          {form.lines.map((line, index) => (
+            <JournalLineEditor
+              key={line.key}
+              line={line}
+              index={index}
+              accounts={accounts}
+              onChange={(nextLine) => updateLine(index, nextLine)}
+              onRemove={() =>
+                setForm((current) => ({
+                  ...current,
+                  lines: current.lines.filter((entry) => entry.key !== line.key),
+                }))
+              }
+              canRemove={form.lines.length > 2}
+            />
+          ))}
+          <AddLineButton
+            onPress={() =>
               setForm((current) => ({
                 ...current,
-                lines: current.lines.filter((entry) => entry.key !== line.key),
+                lines: [...current.lines, createEmptyJournalLine()],
               }))
             }
-            canRemove={form.lines.length > 2}
-          />
-        ))}
-        <SecondaryButton
-          label="Add line"
-          onPress={() =>
-            setForm((current) => ({
-              ...current,
-              lines: [...current.lines, createEmptyJournalLine()],
-            }))
-          }
-        />
-      </View>
-
-      {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
-
-      <View className="flex-row gap-3">
-        <View className="flex-1">
-          <SecondaryButton label="Cancel" onPress={() => router.back()} />
-        </View>
-        <View className="flex-1">
-          <PrimaryButton
-            label={saveMutation.isPending ? 'Posting…' : 'Post entry'}
-            loading={saveMutation.isPending}
-            disabled={saveMutation.isPending}
-            onPress={() => saveMutation.mutate()}
           />
         </View>
-      </View>
+      </FormSection>
     </Screen>
   )
 }

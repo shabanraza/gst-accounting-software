@@ -9,7 +9,7 @@ export function DetailRow({ label, value }: { label: string; value: string }) {
       style={{ gap: spacing.md, paddingVertical: spacing.sm }}
     >
       <Text className="text-sm text-muted-foreground">{label}</Text>
-      <Text className="shrink text-right text-sm font-medium text-foreground">
+      <Text className="shrink text-right text-base font-medium text-foreground">
         {value}
       </Text>
     </View>

@@ -1,21 +1,19 @@
 import '../src/global.css'
 
+import { useEffect, useState } from 'react'
+import { ActivityIndicator } from 'react-native'
 import { IBMPlexSans_400Regular, IBMPlexSans_600SemiBold, useFonts } from '@expo-google-fonts/ibm-plex-sans'
 import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
-import { useEffect, useState } from 'react'
 import 'react-native-gesture-handler'
 import 'react-native-reanimated'
 
 import { ApiHealthGate } from '@/components/api-health-gate'
 import { AppProviders } from '@/lib/providers'
+import { themeColors } from '@/lib/theme'
+import { View } from '@/tw'
 
-const FONT_LOAD_TIMEOUT_MS = 8_000
-const SPLASH_HIDE_TIMEOUT_MS = 10_000
-
-SplashScreen.preventAutoHideAsync().catch(() => {
-  /* splash may already be hidden in dev reloads */
-})
+const FONT_LOAD_TIMEOUT_MS = 2_000
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -32,33 +30,30 @@ export default function RootLayout() {
   }, [])
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      void SplashScreen.hideAsync().catch(() => {
-        /* force-hide splash if font loading stalls on Android */
-      })
-    }, SPLASH_HIDE_TIMEOUT_MS)
-    return () => clearTimeout(timer)
+    void SplashScreen.hideAsync().catch(() => {
+      /* hide splash as soon as root layout mounts */
+    })
   }, [])
 
-  useEffect(() => {
-    if (fontsReady) {
-      void SplashScreen.hideAsync().catch(() => {
-        /* ignore if splash is already hidden */
-      })
-    }
-  }, [fontsReady])
-
-  if (!fontsReady) return null
+  if (!fontsReady) {
+    return (
+      <View className="flex-1 items-center justify-center bg-background">
+        <ActivityIndicator size="large" color={themeColors.primary} />
+      </View>
+    )
+  }
 
   return (
     <AppProviders>
       <ApiHealthGate>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="onboarding" />
-          <Stack.Screen name="(app)" />
-        </Stack>
+        <View className="flex-1">
+          <Stack screenOptions={{ headerShown: false, contentStyle: { flex: 1 } }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="onboarding" />
+            <Stack.Screen name="(app)" />
+          </Stack>
+        </View>
       </ApiHealthGate>
     </AppProviders>
   )

@@ -4,6 +4,8 @@ import {
   SALES_DOCUMENT_SERIES,
   applyItemToSalesDocumentLine,
   buildCreateSalesDocumentInput,
+  computeSalesDocumentFormTotal,
+  createEmptySalesDocumentLine,
   createInitialSalesDocumentForm,
   filterCustomerParties,
   validateSalesDocumentForm,
@@ -28,15 +30,12 @@ describe('sales-document-form', () => {
 
   it('applies item defaults to line', () => {
     expect(
-      applyItemToSalesDocumentLine(
-        { itemId: '', itemName: '', unit: '', quantity: '2', rate: '' },
-        {
-          id: 'item-1',
-          name: 'Fabric',
-          baseUnit: 'Meter',
-          saleRate: '120.00',
-        },
-      ),
+      applyItemToSalesDocumentLine(createEmptySalesDocumentLine(), {
+        id: 'item-1',
+        name: 'Fabric',
+        baseUnit: 'Meter',
+        saleRate: '120.00',
+      }),
     ).toMatchObject({
       itemId: 'item-1',
       unit: 'Meter',
@@ -49,26 +48,60 @@ describe('sales-document-form', () => {
     expect(validateSalesDocumentForm(form)).toBe('Select a customer.')
 
     form.customerId = 'cust-1'
-    expect(validateSalesDocumentForm(form)).toBe('Select an item.')
+    expect(validateSalesDocumentForm(form)).toBe('Add at least one item.')
 
-    form.line.itemId = 'item-1'
-    form.line.itemName = 'Fabric'
-    form.line.unit = 'Meter'
-    form.line.rate = '100'
-    expect(validateSalesDocumentForm(form)).toBeNull()
-  })
-
-  it('builds create payload with allocated document number', () => {
-    const form = createInitialSalesDocumentForm()
-    form.customerId = 'cust-1'
-    form.documentNumber = 'QT-1'
-    form.line = {
+    form.lines[0] = {
+      ...form.lines[0],
       itemId: 'item-1',
       itemName: 'Fabric',
       unit: 'Meter',
-      quantity: '2',
-      rate: '100.00',
+      rate: '100',
     }
+    expect(validateSalesDocumentForm(form)).toBeNull()
+  })
+
+  it('computes estimated total across lines', () => {
+    const form = createInitialSalesDocumentForm()
+    form.lines = [
+      {
+        ...createEmptySalesDocumentLine(),
+        itemId: 'item-1',
+        quantity: '2',
+        rate: '100',
+      },
+      {
+        ...createEmptySalesDocumentLine(),
+        itemId: 'item-2',
+        quantity: '1',
+        rate: '50',
+      },
+    ]
+
+    expect(computeSalesDocumentFormTotal(form)).toBe('250.00')
+  })
+
+  it('builds create payload with multiple lines', () => {
+    const form = createInitialSalesDocumentForm()
+    form.customerId = 'cust-1'
+    form.documentNumber = 'QT-1'
+    form.lines = [
+      {
+        ...createEmptySalesDocumentLine(),
+        itemId: 'item-1',
+        itemName: 'Fabric',
+        unit: 'Meter',
+        quantity: '2',
+        rate: '100.00',
+      },
+      {
+        ...createEmptySalesDocumentLine(),
+        itemId: 'item-2',
+        itemName: 'Thread',
+        unit: 'Box',
+        quantity: '1',
+        rate: '25.00',
+      },
+    ]
 
     expect(
       buildCreateSalesDocumentInput(form, 'company-1', 'QT-0001'),
@@ -78,11 +111,8 @@ describe('sales-document-form', () => {
       documentNumber: 'QT-0001',
       customerId: 'cust-1',
       lines: [
-        {
-          itemId: 'item-1',
-          quantity: '2',
-          rate: '100.00',
-        },
+        { itemId: 'item-1', quantity: '2' },
+        { itemId: 'item-2', quantity: '1' },
       ],
     })
   })

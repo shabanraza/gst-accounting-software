@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import {
   applyItemToPurchaseOrderLine,
   buildCreatePurchaseOrderInput,
+  computePurchaseOrderFormTotal,
+  createEmptyPurchaseOrderLine,
   createInitialPurchaseOrderForm,
   filterSupplierParties,
   validatePurchaseOrderForm,
@@ -20,23 +22,13 @@ describe('purchase-order-form', () => {
 
   it('applies item defaults to line', () => {
     expect(
-      applyItemToPurchaseOrderLine(
-        {
-          itemId: '',
-          itemName: '',
-          unit: '',
-          quantity: '2',
-          rate: '',
-          gstRate: '0',
-        },
-        {
-          id: 'item-1',
-          name: 'Fabric',
-          baseUnit: 'Meter',
-          purchaseRate: '80.00',
-          gstRate: '12',
-        },
-      ),
+      applyItemToPurchaseOrderLine(createEmptyPurchaseOrderLine(), {
+        id: 'item-1',
+        name: 'Fabric',
+        baseUnit: 'Meter',
+        purchaseRate: '80.00',
+        gstRate: '12',
+      }),
     ).toMatchObject({
       itemId: 'item-1',
       rate: '80.00',
@@ -49,26 +41,61 @@ describe('purchase-order-form', () => {
     expect(validatePurchaseOrderForm(form)).toBe('Select a supplier.')
 
     form.supplierId = 'sup-1'
-    expect(validatePurchaseOrderForm(form)).toBe('Select an item.')
+    expect(validatePurchaseOrderForm(form)).toBe('Add at least one item.')
 
-    form.line.itemId = 'item-1'
-    form.line.itemName = 'Fabric'
-    form.line.unit = 'Meter'
-    form.line.rate = '100'
-    expect(validatePurchaseOrderForm(form)).toBeNull()
-  })
-
-  it('builds create payload', () => {
-    const form = createInitialPurchaseOrderForm()
-    form.supplierId = 'sup-1'
-    form.line = {
+    form.lines[0] = {
+      ...form.lines[0],
       itemId: 'item-1',
       itemName: 'Fabric',
       unit: 'Meter',
-      quantity: '2',
-      rate: '100.00',
-      gstRate: '12',
+      rate: '100',
     }
+    expect(validatePurchaseOrderForm(form)).toBeNull()
+  })
+
+  it('computes estimated total across lines', () => {
+    const form = createInitialPurchaseOrderForm()
+    form.lines = [
+      {
+        ...createEmptyPurchaseOrderLine(),
+        itemId: 'item-1',
+        quantity: '2',
+        rate: '100',
+      },
+      {
+        ...createEmptyPurchaseOrderLine(),
+        itemId: 'item-2',
+        quantity: '1',
+        rate: '50',
+      },
+    ]
+
+    expect(computePurchaseOrderFormTotal(form)).toBe('250.00')
+  })
+
+  it('builds create payload with multiple lines', () => {
+    const form = createInitialPurchaseOrderForm()
+    form.supplierId = 'sup-1'
+    form.lines = [
+      {
+        ...createEmptyPurchaseOrderLine(),
+        itemId: 'item-1',
+        itemName: 'Fabric',
+        unit: 'Meter',
+        quantity: '2',
+        rate: '100.00',
+        gstRate: '12',
+      },
+      {
+        ...createEmptyPurchaseOrderLine(),
+        itemId: 'item-2',
+        itemName: 'Thread',
+        unit: 'Box',
+        quantity: '1',
+        rate: '25.00',
+        gstRate: '5',
+      },
+    ]
 
     expect(
       buildCreatePurchaseOrderInput(form, 'company-1', 'PO-0001'),
@@ -76,6 +103,10 @@ describe('purchase-order-form', () => {
       companyId: 'company-1',
       orderNumber: 'PO-0001',
       supplierId: 'sup-1',
+      lines: [
+        { itemId: 'item-1', quantity: '2' },
+        { itemId: 'item-2', quantity: '1' },
+      ],
     })
   })
 })

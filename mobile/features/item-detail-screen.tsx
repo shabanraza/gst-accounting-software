@@ -2,15 +2,15 @@ import * as React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
+import { DetailCard } from '@/components/data/detail-card'
 import { DetailRow } from '@/components/data/detail-row'
 import { EmptyState } from '@/components/data/empty-state'
 import { LoadingState } from '@/components/data/loading-state'
-import { SectionHeader } from '@/components/layout/section-header'
 import { Screen } from '@/components/layout/screen'
 import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
 import { formatInr } from '@/lib/format-inr'
 import { trpcClient } from '@/lib/trpc-client'
-import { Text, View } from '@/tw'
+import { View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
 
 export function ItemDetailScreen() {
@@ -54,31 +54,24 @@ export function ItemDetailScreen() {
   return (
     <Screen title={item.name} subtitle={item.itemGroup || 'Item master'}>
       <View className="gap-section-header">
-        <SectionHeader title="Basics" compact icon="cube-outline" />
-        <View className="rounded-xl border border-border bg-card p-card-padding">
+        <DetailCard title="Basics" icon="cube-outline">
           <DetailRow label="Alias" value={item.alias?.trim() || '—'} />
           <DetailRow label="HSN" value={item.hsnCode} />
           <DetailRow label="GST rate" value={`${item.gstRate}%`} />
           <DetailRow label="Base unit" value={item.baseUnit} />
-        </View>
-      </View>
+        </DetailCard>
 
-      <View className="gap-section-header">
-        <SectionHeader title="Rates" compact icon="pricetag-outline" />
-        <View className="rounded-xl border border-border bg-card p-card-padding">
+        <DetailCard title="Rates" icon="pricetag-outline">
           <DetailRow label="Purchase" value={formatInr(item.purchaseRate)} />
           <DetailRow label="Sale" value={formatInr(item.saleRate)} />
-        </View>
-      </View>
+        </DetailCard>
 
-      <View className="gap-section-header">
-        <SectionHeader title="Inventory" compact icon="layers-outline" />
-        <View className="rounded-xl border border-border bg-card p-card-padding">
+        <DetailCard title="Inventory" icon="layers-outline">
           <DetailRow
             label="Tracks inventory"
             value={item.tracksInventory ? 'Yes' : 'No'}
           />
-        </View>
+        </DetailCard>
       </View>
 
       <PrimaryButton

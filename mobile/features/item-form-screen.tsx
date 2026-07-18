@@ -2,12 +2,15 @@ import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 
+import {
+  CreateScreenFooter,
+  SaveScreenFooter,
+} from '@/components/layout/create-screen-footer'
 import { FormSection } from '@/components/layout/form-section'
 import { Screen } from '@/components/layout/screen'
-import { WizardFooter } from '@/components/layout/wizard-footer'
-import { PrimaryButton } from '@/components/ui/button'
 import { OptionChip } from '@/components/ui/chip'
 import { FormField } from '@/components/ui/form-field'
+import { FormFieldGroup } from '@/components/ui/form-label'
 import { PickerField } from '@/components/ui/picker-field'
 import { PickerModal } from '@/components/ui/picker-modal'
 import {
@@ -23,7 +26,7 @@ import {
   type ItemFormDraft,
 } from '@/lib/item-form'
 import { trpcClient } from '@/lib/trpc-client'
-import { Text, View } from '@/tw'
+import { View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
 
 type ItemFormScreenProps = {
@@ -89,7 +92,8 @@ export function ItemFormScreen({
         router.back()
         return
       }
-      router.replace(`/(app)/items/${item.id}` as never)
+      const createdItemId = 'item' in item ? item.item.id : item.id
+      router.replace(`/(app)/items/${createdItemId}` as never)
     },
     onError: (mutationError) => {
       setError(
@@ -112,41 +116,54 @@ export function ItemFormScreen({
       }
       keyboardAvoiding
       footer={
-        <WizardFooter>
-          {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
-          <PrimaryButton
-            label={saveMutation.isPending ? 'Saving…' : 'Save item'}
+        mode === 'edit' ? (
+          <SaveScreenFooter
+            error={error}
             loading={saveMutation.isPending}
-            disabled={saveMutation.isPending}
-            onPress={() => saveMutation.mutate()}
+            onSubmit={() => saveMutation.mutate()}
+            submitLabel="Save changes"
           />
-        </WizardFooter>
+        ) : (
+          <CreateScreenFooter
+            error={error}
+            loading={saveMutation.isPending}
+            onCancel={() => router.back()}
+            onSubmit={() => saveMutation.mutate()}
+            submitLabel="Create item"
+          />
+        )
       }
     >
       <FormSection title="Basic details" icon="cube-outline">
         <View className="gap-3">
-          <FormField
-            placeholder="Item name"
-            value={form.name}
-            onChangeText={(name) => setForm((current) => ({ ...current, name }))}
-          />
-          <FormField
-            placeholder="Alias (optional)"
-            value={form.alias}
-            onChangeText={(alias) => setForm((current) => ({ ...current, alias }))}
-          />
+          <FormFieldGroup label="Item name">
+            <FormField
+              placeholder="Item name"
+              value={form.name}
+              onChangeText={(name) => setForm((current) => ({ ...current, name }))}
+            />
+          </FormFieldGroup>
+          <FormFieldGroup label="Alias">
+            <FormField
+              placeholder="Optional"
+              value={form.alias}
+              onChangeText={(alias) => setForm((current) => ({ ...current, alias }))}
+            />
+          </FormFieldGroup>
           <PickerField
             label="Group"
             value={form.itemGroup}
             onPress={() => setGroupPickerOpen(true)}
           />
-          <FormField
-            placeholder="HSN code"
-            value={form.hsnCode}
-            onChangeText={(hsnCode) =>
-              setForm((current) => ({ ...current, hsnCode }))
-            }
-          />
+          <FormFieldGroup label="HSN code">
+            <FormField
+              placeholder="HSN code"
+              value={form.hsnCode}
+              onChangeText={(hsnCode) =>
+                setForm((current) => ({ ...current, hsnCode }))
+              }
+            />
+          </FormFieldGroup>
           <PickerField
             label="GST rate"
             value={`${form.gstRate}%`}
@@ -163,53 +180,54 @@ export function ItemFormScreen({
       <FormSection title="Pricing" icon="pricetag-outline">
         <View className="flex-row gap-3">
           <View className="flex-1">
-            <Text className="mb-1 text-sm text-muted-foreground">Purchase</Text>
-            <FormField
-              keyboardType="decimal-pad"
-              placeholder="0.00"
-              value={form.purchaseRate}
-              onChangeText={(purchaseRate) =>
-                setForm((current) => ({ ...current, purchaseRate }))
-              }
-            />
+            <FormFieldGroup label="Purchase rate">
+              <FormField
+                keyboardType="decimal-pad"
+                placeholder="0.00"
+                value={form.purchaseRate}
+                onChangeText={(purchaseRate) =>
+                  setForm((current) => ({ ...current, purchaseRate }))
+                }
+              />
+            </FormFieldGroup>
           </View>
           <View className="flex-1">
-            <Text className="mb-1 text-sm text-muted-foreground">Sale</Text>
-            <FormField
-              keyboardType="decimal-pad"
-              placeholder="0.00"
-              value={form.saleRate}
-              onChangeText={(saleRate) =>
-                setForm((current) => ({ ...current, saleRate }))
-              }
-            />
+            <FormFieldGroup label="Sale rate">
+              <FormField
+                keyboardType="decimal-pad"
+                placeholder="0.00"
+                value={form.saleRate}
+                onChangeText={(saleRate) =>
+                  setForm((current) => ({ ...current, saleRate }))
+                }
+              />
+            </FormFieldGroup>
           </View>
         </View>
       </FormSection>
 
       <FormSection title="Inventory" icon="layers-outline">
         <View className="gap-3">
-          <View className="flex-row flex-wrap gap-2">
-            <OptionChip
-              label="Track inventory"
-              active={form.tracksInventory}
-              onPress={() =>
-                setForm((current) => ({ ...current, tracksInventory: true }))
-              }
-            />
-            <OptionChip
-              label="Non-inventory"
-              active={!form.tracksInventory}
-              onPress={() =>
-                setForm((current) => ({ ...current, tracksInventory: false }))
-              }
-            />
-          </View>
+          <FormFieldGroup label="Tracking">
+            <View className="flex-row flex-wrap gap-2">
+              <OptionChip
+                label="Track inventory"
+                active={form.tracksInventory}
+                onPress={() =>
+                  setForm((current) => ({ ...current, tracksInventory: true }))
+                }
+              />
+              <OptionChip
+                label="Non-inventory"
+                active={!form.tracksInventory}
+                onPress={() =>
+                  setForm((current) => ({ ...current, tracksInventory: false }))
+                }
+              />
+            </View>
+          </FormFieldGroup>
           {mode === 'create' && form.tracksInventory ? (
-            <View>
-              <Text className="mb-1 text-sm text-muted-foreground">
-                Opening quantity
-              </Text>
+            <FormFieldGroup label="Opening quantity">
               <FormField
                 keyboardType="decimal-pad"
                 placeholder="Optional"
@@ -218,7 +236,7 @@ export function ItemFormScreen({
                   setForm((current) => ({ ...current, openingQuantity }))
                 }
               />
-            </View>
+            </FormFieldGroup>
           ) : null}
         </View>
       </FormSection>

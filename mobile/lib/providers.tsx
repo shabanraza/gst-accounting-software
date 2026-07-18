@@ -26,7 +26,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   )
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
           {children}

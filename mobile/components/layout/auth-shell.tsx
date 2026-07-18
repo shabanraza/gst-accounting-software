@@ -1,15 +1,10 @@
 import * as React from 'react'
-import {
-  KeyboardAvoidingView,
-  Platform,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native'
+import { Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { pagePaddingHorizontal } from '@/lib/theme'
 
-import { Text, ScrollView } from '@/tw'
+import { KeyboardAvoidingView, ScrollView, Text } from '@/tw'
 
 export function AuthShell({
   title,
@@ -22,26 +17,34 @@ export function AuthShell({
 }) {
   const insets = useSafeAreaInsets()
 
+  const content = (
+    <ScrollView
+      className="flex-1 bg-background"
+      contentContainerClassName="flex-grow justify-center gap-4"
+      contentContainerStyle={pagePaddingHorizontal}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+      style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+    >
+      <Text className="text-3xl font-bold text-foreground">{title}</Text>
+      {subtitle ? (
+        <Text className="text-muted-foreground">{subtitle}</Text>
+      ) : null}
+      {children}
+    </ScrollView>
+  )
+
+  if (Platform.OS !== 'ios') {
+    return <KeyboardAvoidingView className="flex-1 bg-background">{content}</KeyboardAvoidingView>
+  }
+
   return (
     <KeyboardAvoidingView
       className="flex-1 bg-background"
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior="padding"
       keyboardVerticalOffset={insets.top}
-      style={{ paddingTop: insets.top, paddingBottom: insets.bottom } as StyleProp<ViewStyle>}
     >
-      <ScrollView
-        className="flex-1"
-        contentContainerClassName="flex-grow justify-center gap-4"
-        contentContainerStyle={pagePaddingHorizontal}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <Text className="text-3xl font-bold text-foreground">{title}</Text>
-        {subtitle ? (
-          <Text className="text-muted-foreground">{subtitle}</Text>
-        ) : null}
-        {children}
-      </ScrollView>
+      {content}
     </KeyboardAvoidingView>
   )
 }

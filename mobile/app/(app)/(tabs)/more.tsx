@@ -16,20 +16,21 @@ const MORE_QUICK_ACTIONS: Array<ActionGridItem> = [
     label: 'Parties',
     icon: 'people-outline',
     href: '/(app)/module/parties',
-    accent: 'blue',
+    accent: 'sales',
   },
   {
     id: 'reports',
     label: 'GST\nReports',
     icon: 'bar-chart-outline',
     href: '/(app)/module/reports',
+    accent: 'reports',
   },
   {
     id: 'banking',
     label: 'Banking',
     icon: 'card-outline',
     href: '/(app)/module/bank-reconciliation',
-    accent: 'orange',
+    accent: 'purchases',
   },
   {
     id: 'settings',
@@ -67,7 +68,7 @@ export default function MoreScreen() {
         style={{ padding: pageLayout.cardPadding }}
         onPress={() => void handleSignOut()}
       >
-        <Text className="flex-1 font-semibold text-icon-accent-red">Sign out</Text>
+        <Text className="flex-1 font-semibold text-destructive">Sign out</Text>
       </Pressable>
     </Screen>
   )

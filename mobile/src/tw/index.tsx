@@ -10,45 +10,69 @@ import {
   Pressable as RNPressable,
   ScrollView as RNScrollView,
   TextInput as RNTextInput,
+  KeyboardAvoidingView as RNKeyboardAvoidingView,
 } from 'react-native'
+
+import { withPostCssLayoutFallback } from './layout-fallback'
 
 export const Link = (
   props: React.ComponentProps<typeof RouterLink> & { className?: string },
-) => {
-  // @ts-expect-error react-native-css typing
-  return useCssElement(RouterLink, props, { className: 'style' })
-}
+) => useCssElement(RouterLink, props, { className: 'style' })
 
 export const useCSSVariable =
   process.env.EXPO_OS !== 'web'
     ? useFunctionalVariable
     : (variable: string) => `var(${variable})`
 
-export const View = (
+export function View(
   props: React.ComponentProps<typeof RNView> & { className?: string },
-) => useCssElement(RNView, props, { className: 'style' })
+) {
+  const { className } = props
+  const element = useCssElement(RNView, props, { className: 'style' })
+  return withPostCssLayoutFallback(element, className)
+}
 
-export const Text = (
+export function Text(
   props: React.ComponentProps<typeof RNText> & { className?: string },
-) => useCssElement(RNText, props, { className: 'style' })
+) {
+  const { className } = props
+  const element = useCssElement(RNText, props, { className: 'style' })
+  return withPostCssLayoutFallback(element, className)
+}
 
-export const ScrollView = (
+export function ScrollView(
   props: React.ComponentProps<typeof RNScrollView> & {
     className?: string
     contentContainerClassName?: string
   },
-) => {
+) {
+  const { className, contentContainerClassName } = props
   // @ts-expect-error react-native-css typing
-  return useCssElement(RNScrollView, props, {
+  const element = useCssElement(RNScrollView, props, {
     className: 'style',
     contentContainerClassName: 'contentContainerStyle',
   })
+  return withPostCssLayoutFallback(element, className, contentContainerClassName)
 }
 
-export const Pressable = (
+export function Pressable(
   props: React.ComponentProps<typeof RNPressable> & { className?: string },
-) => useCssElement(RNPressable, props, { className: 'style' })
+) {
+  const { className } = props
+  const element = useCssElement(RNPressable, props, { className: 'style' })
+  return withPostCssLayoutFallback(element, className)
+}
 
-export const TextInput = (
+export function TextInput(
   props: React.ComponentProps<typeof RNTextInput> & { className?: string },
-) => useCssElement(RNTextInput, props, { className: 'style' })
+) {
+  return useCssElement(RNTextInput, props, { className: 'style' })
+}
+
+export function KeyboardAvoidingView(
+  props: React.ComponentProps<typeof RNKeyboardAvoidingView> & { className?: string },
+) {
+  const { className } = props
+  const element = useCssElement(RNKeyboardAvoidingView, props, { className: 'style' })
+  return withPostCssLayoutFallback(element, className)
+}

@@ -1,5 +1,6 @@
 import { Redirect, Stack } from 'expo-router'
 import { useEffect, useState } from 'react'
+import { ActivityIndicator } from 'react-native'
 
 import { WorkspaceGate } from '@/components/workspace-gate'
 import { authClient } from '@/lib/auth-client'
@@ -11,7 +12,9 @@ import {
   resetSessionExpiredState,
   subscribeSessionExpired,
 } from '@/lib/session-expired'
+import { themeColors } from '@/lib/theme'
 import { WorkspaceProvider } from '@/lib/workspace'
+import { View } from '@/tw'
 
 export default function AppLayout() {
   const { data: session, isPending } = authClient.useSession()
@@ -31,7 +34,13 @@ export default function AppLayout() {
     }
   }, [session])
 
-  if (isPending && !hasStoredToken) return null
+  if (isPending && !hasStoredToken) {
+    return (
+      <View className="flex-1 items-center justify-center bg-background">
+        <ActivityIndicator size="large" color={themeColors.primary} />
+      </View>
+    )
+  }
   if (expired || (!session && !hasStoredToken)) {
     return <Redirect href="/(auth)/login" />
   }
@@ -39,7 +48,7 @@ export default function AppLayout() {
   return (
     <WorkspaceProvider>
       <WorkspaceGate>
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { flex: 1 } }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="module/[id]" />
           <Stack.Screen name="sales/[id]" />

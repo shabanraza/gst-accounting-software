@@ -1,4 +1,5 @@
 import type { ActionGridItem } from '@/components/dashboard/action-grid'
+import { Ionicons } from '@expo/vector-icons'
 
 export const SALES_TAB_ACTIONS: Array<ActionGridItem> = [
   {
@@ -6,7 +7,7 @@ export const SALES_TAB_ACTIONS: Array<ActionGridItem> = [
     label: 'New\nInvoice',
     icon: 'document-text-outline',
     href: '/(app)/sales/new',
-    accent: 'blue',
+    accent: 'sales',
   },
   {
     id: 'quotations',
@@ -25,7 +26,7 @@ export const SALES_TAB_ACTIONS: Array<ActionGridItem> = [
     label: 'Parties',
     icon: 'people-outline',
     href: '/(app)/module/parties',
-    accent: 'blue',
+    accent: 'sales',
   },
 ]
 
@@ -35,14 +36,14 @@ export const PURCHASES_TAB_ACTIONS: Array<ActionGridItem> = [
     label: 'New\nBill',
     icon: 'cart-outline',
     href: '/(app)/purchases/new',
-    accent: 'orange',
+    accent: 'purchases',
   },
   {
     id: 'ocr',
     label: 'OCR\nCapture',
     icon: 'camera-outline',
     href: '/(app)/purchases/ocr',
-    accent: 'blue',
+    accent: 'reports',
   },
   {
     id: 'purchase-orders',
@@ -55,7 +56,7 @@ export const PURCHASES_TAB_ACTIONS: Array<ActionGridItem> = [
     label: 'Goods\nreceipt',
     icon: 'cube-outline',
     href: '/(app)/module/purchase-grns',
-    accent: 'orange',
+    accent: 'purchases',
   },
 ]
 
@@ -65,7 +66,7 @@ export const STOCK_TAB_ACTIONS: Array<ActionGridItem> = [
     label: 'Items',
     icon: 'cube-outline',
     href: '/(app)/module/items',
-    accent: 'orange',
+    accent: 'stock',
   },
   {
     id: 'godowns',
@@ -78,14 +79,14 @@ export const STOCK_TAB_ACTIONS: Array<ActionGridItem> = [
     label: 'Stock\nledger',
     icon: 'layers-outline',
     href: '/(app)/(tabs)/stock',
-    accent: 'blue',
+    accent: 'stock',
   },
   {
     id: 'parties',
     label: 'Parties',
     icon: 'people-outline',
     href: '/(app)/module/parties',
-    accent: 'blue',
+    accent: 'sales',
   },
 ]
 
@@ -94,7 +95,7 @@ export const TAB_HUB_CONFIG: Record<
   {
     actions: Array<ActionGridItem>
     listTitle: string
-    listIcon: import('@expo/vector-icons').Ionicons['name']
+    listIcon: keyof typeof Ionicons.glyphMap
   }
 > = {
   sales: {

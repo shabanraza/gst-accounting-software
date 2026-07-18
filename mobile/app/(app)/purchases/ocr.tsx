@@ -14,6 +14,19 @@ import { useModuleList } from '@/features/use-module-list'
 import { createOcrDraftFromCapture } from '@/lib/ocr-upload'
 import { useWorkspace } from '@/lib/workspace'
 
+function ocrFieldValue(
+  fields: unknown,
+  key: 'supplierName' | 'billNumber',
+  fallback: string,
+) {
+  if (!fields || typeof fields !== 'object') {
+    return fallback
+  }
+
+  const value = (fields as Record<string, { value?: unknown }>)[key]?.value
+  return typeof value === 'string' && value.trim() ? value : fallback
+}
+
 export default function OcrReviewScreen() {
   const router = useRouter()
   const { companyId } = useWorkspace()
@@ -80,8 +93,8 @@ export default function OcrReviewScreen() {
         {draftsQuery.data?.map((draft, index) => (
           <CardRow
             key={String(draft.id ?? index)}
-            title={String(draft.fields?.supplierName?.value ?? 'OCR draft')}
-            subtitle={String(draft.fields?.billNumber?.value ?? 'Needs review')}
+            title={ocrFieldValue(draft.fields, 'supplierName', 'OCR draft')}
+            subtitle={ocrFieldValue(draft.fields, 'billNumber', 'Needs review')}
             badge={String(draft.status ?? 'draft')}
             onPress={
               draft.id

@@ -1,16 +1,16 @@
 import * as React from 'react'
 import { useMutation } from '@tanstack/react-query'
 
-import { SectionHeader } from '@/components/layout/section-header'
+import { SaveScreenFooter } from '@/components/layout/create-screen-footer'
+import { FormSection } from '@/components/layout/form-section'
 import { Screen } from '@/components/layout/screen'
-import { PrimaryButton } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
+import { FormFieldGroup } from '@/components/ui/form-label'
 import {
   buildUpdateCompanyProfileInput,
   createInitialCompanyProfileForm,
 } from '@/lib/company-profile-form'
 import { trpcClient } from '@/lib/trpc-client'
-import { Text, View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
 
 const PROFILE_FIELDS = [
@@ -69,12 +69,19 @@ export function CompanyProfileScreen() {
       title="Company profile"
       subtitle={company?.tradeName ?? undefined}
       keyboardAvoiding
+      footer={
+        <SaveScreenFooter
+          error={error}
+          loading={saveMutation.isPending}
+          message={message}
+          onSubmit={() => saveMutation.mutate()}
+          submitLabel="Save profile"
+        />
+      }
     >
-      <View className="gap-section-header">
-        <SectionHeader title="Business details" compact icon="business-outline" />
+      <FormSection title="Business details" icon="business-outline">
         {PROFILE_FIELDS.map((field) => (
-          <View key={field.key}>
-            <Text className="mb-1 text-sm text-muted-foreground">{field.label}</Text>
+          <FormFieldGroup key={field.key} label={field.label}>
             <FormField
               placeholder={field.label}
               value={form[field.key]}
@@ -82,19 +89,9 @@ export function CompanyProfileScreen() {
                 setForm((current) => ({ ...current, [field.key]: value }))
               }
             />
-          </View>
+          </FormFieldGroup>
         ))}
-      </View>
-
-      {message ? <Text className="text-sm text-primary">{message}</Text> : null}
-      {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
-
-      <PrimaryButton
-        label={saveMutation.isPending ? 'Saving…' : 'Save profile'}
-        loading={saveMutation.isPending}
-        disabled={saveMutation.isPending}
-        onPress={() => saveMutation.mutate()}
-      />
+      </FormSection>
     </Screen>
   )
 }

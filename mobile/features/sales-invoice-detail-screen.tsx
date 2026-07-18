@@ -126,7 +126,7 @@ export function SalesInvoiceDetailScreen() {
                 key={`${line.description}-${index}`}
                 title={line.description}
                 subtitle={`${line.quantity} ${line.unit} × ${formatInr(line.rate)}`}
-                amount={formatInr(line.lineAmount)}
+                amount={formatInr(line.lineTotal)}
                 badge={`GST ${line.gstRate}%`}
               />
             ))}

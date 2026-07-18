@@ -18,9 +18,19 @@ export type PartyFormDraft = {
   paymentTermsDays: string
 }
 
-export type PartyRecordLike = PartyFormDraft & {
+export type PartyRecordLike = {
   id: string
+  name: string
+  partyType: PartyType
   gstin: string | null
+  pan?: string | null
+  stateCode: string
+  addressLine1?: string | null
+  addressLine2?: string | null
+  city?: string | null
+  pincode?: string | null
+  contactPhone?: string | null
+  contactEmail?: string | null
   creditLimit: string | null
   paymentTermsDays: number
 }

@@ -48,7 +48,7 @@ export default function OnboardingScreen() {
         value={stateCode}
         onChangeText={setStateCode}
       />
-      {error ? <Text className="text-icon-accent-red">{error}</Text> : null}
+      {error ? <Text className="text-destructive">{error}</Text> : null}
       <PrimaryButton label="Create company" onPress={() => void handleCreate()} />
     </AuthShell>
   )

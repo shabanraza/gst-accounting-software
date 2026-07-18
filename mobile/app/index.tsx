@@ -4,6 +4,7 @@ import { ActivityIndicator } from 'react-native'
 
 import { View } from '@/tw'
 import { authClient } from '@/lib/auth-client'
+import { themeColors } from '@/lib/theme'
 import { resolvePostAuthHref } from '@/lib/post-auth-route'
 import {
   ensureTrpcAuthReady,
@@ -49,7 +50,7 @@ export default function IndexScreen() {
   if ((isPending && !hasStoredAuthSession()) || !href) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={themeColors.secondary} />
       </View>
     )
   }

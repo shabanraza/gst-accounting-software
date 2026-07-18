@@ -10,6 +10,15 @@ export type OpenPurchaseOrderLike = {
   id: string
   orderNumber: string
   status: string
+  lines?: Array<{
+    id: string
+    description: string
+    quantity: string
+    unit: string
+    rate: string
+    gstRate: string
+    lineTotal: string
+  }>
 }
 
 export function createInitialGrnForm(godownName = ''): GrnFormDraft {
