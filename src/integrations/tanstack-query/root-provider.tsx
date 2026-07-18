@@ -8,8 +8,20 @@ import { createAppTrpcClient } from '@accounting/api-client'
 import { TRPCProvider } from '#/integrations/trpc/react'
 import { getTrpcUrl } from '#/lib/server-base-url.ts'
 
+function getInitialTrpcUrl() {
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/api/trpc`
+  }
+
+  try {
+    return getTrpcUrl()
+  } catch {
+    return '/api/trpc'
+  }
+}
+
 export const trpcClient = createAppTrpcClient({
-  url: getTrpcUrl(),
+  url: getInitialTrpcUrl(),
 })
 
 const QUERY_STALE_TIME_MS = 60_000
