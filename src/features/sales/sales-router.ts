@@ -169,7 +169,7 @@ export const createSalesRouter = (
       .input(cancelSalesInvoiceInputSchema)
       .mutation(({ input }) => {
         return cancelSalesInvoice(
-          { invoices, posting, stock, items, dashboard },
+          { invoices, posting, stock, items, dashboard, parties },
           { companyId: input.companyId, invoiceId: input.id },
         )
       }),

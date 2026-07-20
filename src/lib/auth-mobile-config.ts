@@ -1,4 +1,4 @@
-export const MOBILE_AUTH_SCHEME = 'gstbooks'
+export const MOBILE_AUTH_SCHEME = 'hisaabkro'
 
 export function getMobileAuthScheme() {
   return MOBILE_AUTH_SCHEME

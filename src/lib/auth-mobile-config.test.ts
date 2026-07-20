@@ -9,17 +9,17 @@ import {
 describe('auth mobile config', () => {
   it('includes the Expo app scheme in trusted origins', () => {
     expect(getMobileTrustedOrigins()).toEqual(
-      expect.arrayContaining(['gstbooks://', 'exp://']),
+      expect.arrayContaining(['hisaabkro://', 'exp://']),
     )
   })
 
-  it('uses the gstbooks deep-link scheme', () => {
-    expect(getMobileAuthScheme()).toBe('gstbooks')
+  it('uses the hisaabkro deep-link scheme', () => {
+    expect(getMobileAuthScheme()).toBe('hisaabkro')
   })
 
   it('merges mobile and web trusted origins without duplicates', () => {
     expect(
-      mergeTrustedOrigins(['https://app.example.com'], ['gstbooks://']),
-    ).toEqual(['https://app.example.com', 'gstbooks://'])
+      mergeTrustedOrigins(['https://app.example.com'], ['hisaabkro://']),
+    ).toEqual(['https://app.example.com', 'hisaabkro://'])
   })
 })

@@ -11,14 +11,18 @@ import {
 } from '#/features/documents/voucher-print-mappers.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
+import type { VoucherPrintDocument } from '#/features/documents/voucher-print-types.ts'
+
 type InvoicePrintViewProps = {
   invoiceId: string
   autoprint?: boolean
+  initialDocument?: VoucherPrintDocument | null
 }
 
 export function InvoicePrintView({
   invoiceId,
   autoprint,
+  initialDocument,
 }: InvoicePrintViewProps) {
   const trpc = useTRPC()
   const { companyId, company, isReady } = useWorkspace()
@@ -28,19 +32,20 @@ export function InvoicePrintView({
       companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
       id: invoiceId,
     }),
-    enabled: Boolean(invoiceId) && Boolean(companyId) && isReady,
+    enabled:
+      !initialDocument && Boolean(invoiceId) && Boolean(companyId) && isReady,
   })
   const partiesQuery = useQuery({
     ...trpc.parties.list.queryOptions({
       companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
     }),
-    enabled: Boolean(companyId) && isReady,
+    enabled: !initialDocument && Boolean(companyId) && isReady,
   })
   const itemsQuery = useQuery({
     ...trpc.inventory.listItems.queryOptions({
       companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
     }),
-    enabled: Boolean(companyId) && isReady,
+    enabled: !initialDocument && Boolean(companyId) && isReady,
   })
 
   const invoice = invoiceQuery.data
@@ -53,6 +58,7 @@ export function InvoicePrintView({
   )
 
   const printDoc = React.useMemo(() => {
+    if (initialDocument) return initialDocument
     if (!invoice || !company || !customer) return null
     return buildInvoicePrintDocument({
       invoice,
@@ -60,7 +66,7 @@ export function InvoicePrintView({
       customer: toPrintParty(customer),
       itemById,
     })
-  }, [company, customer, invoice, itemById])
+  }, [company, customer, initialDocument, invoice, itemById])
 
   React.useEffect(() => {
     if (autoprint && printDoc) {

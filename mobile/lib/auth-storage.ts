@@ -1,7 +1,7 @@
 import * as SecureStore from 'expo-secure-store'
 import { Platform } from 'react-native'
 
-export const AUTH_STORAGE_PREFIX = 'gstbooks'
+export const AUTH_STORAGE_PREFIX = 'hisaabkro'
 export const AUTH_SESSION_TOKEN_KEY = `${AUTH_STORAGE_PREFIX}_session_token`
 export const SESSION_COOKIE_NAME = 'better-auth.session_token'
 

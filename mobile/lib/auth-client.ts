@@ -51,7 +51,7 @@ export const authClient = createAuthClient({
   },
   plugins: [
     expoClient({
-      scheme: 'gstbooks',
+      scheme: 'hisaabkro',
       storagePrefix: AUTH_STORAGE_PREFIX,
       storage: authRawStorage,
     }),

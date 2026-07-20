@@ -1,6 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { DownloadIcon } from 'lucide-react'
+import { DownloadIcon, ExternalLinkIcon } from 'lucide-react'
 
 import { Button } from '#/components/ui/button.tsx'
 import {
@@ -96,6 +96,29 @@ function SettingsRoute() {
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
             Metadata is company-scoped; files stay outside the database.
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Privacy and data</CardTitle>
+            <CardDescription>
+              Public policy and account deletion request links for store
+              compliance.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button asChild type="button" variant="outline">
+              <Link to="/privacy">
+                Privacy policy
+                <ExternalLinkIcon data-icon="inline-end" />
+              </Link>
+            </Button>
+            <Button asChild type="button" variant="outline">
+              <Link to="/data-deletion">
+                Data deletion
+                <ExternalLinkIcon data-icon="inline-end" />
+              </Link>
+            </Button>
           </CardContent>
         </Card>
       </div>

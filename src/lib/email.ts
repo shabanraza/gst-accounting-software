@@ -11,7 +11,7 @@ type SendEmailInput = {
  */
 export async function sendEmail(input: SendEmailInput): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY
-  const from = process.env.EMAIL_FROM ?? 'GST Books <onboarding@resend.dev>'
+  const from = process.env.EMAIL_FROM ?? 'HisaabKro <onboarding@resend.dev>'
 
   if (!apiKey) {
     console.info(`[email:stub] To: ${input.to} · Subject: ${input.subject}`)
@@ -64,10 +64,10 @@ export async function sendVerificationEmail(input: {
 }) {
   await sendEmail({
     to: input.to,
-    subject: 'Verify your GST Books email',
+    subject: 'Verify your HisaabKro email',
     html: emailShell(
       'Confirm your email',
-      'Confirm your email address to secure your GST Books account.',
+      'Confirm your email address to secure your HisaabKro account.',
       { label: 'Verify email', url: input.url },
     ),
   })
@@ -79,7 +79,7 @@ export async function sendPasswordResetEmail(input: {
 }) {
   await sendEmail({
     to: input.to,
-    subject: 'Reset your GST Books password',
+    subject: 'Reset your HisaabKro password',
     html: emailShell(
       'Reset your password',
       'We received a request to reset your password. This link expires in 1 hour. If you did not request this, ignore this email.',
@@ -115,7 +115,7 @@ export async function sendInvitationEmail(input: {
 }) {
   await sendEmail({
     to: input.to,
-    subject: `You're invited to ${input.companyName} on GST Books`,
+    subject: `You're invited to ${input.companyName} on HisaabKro`,
     html: emailShell(
       `Join ${input.companyName}`,
       `You have been invited as <strong>${input.role}</strong>. Accept the invite to access the company books.`,

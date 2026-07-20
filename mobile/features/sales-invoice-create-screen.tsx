@@ -1,7 +1,6 @@
 import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { CardRow } from '@/components/data/card-row'
 import { EmptyState } from '@/components/data/empty-state'
 import { LoadingState } from '@/components/data/loading-state'
 import { CollapsibleSection } from '@/components/layout/collapsible-section'
@@ -27,6 +26,7 @@ import {
 } from '@/components/voucher/recent-party-chips'
 import { VoucherLineEditor } from '@/components/voucher/voucher-line-editor'
 import { VoucherTotalsBar } from '@/components/voucher/voucher-totals-bar'
+import { VoucherReviewPreview } from '@/components/voucher/voucher-review-preview'
 import { useSalesItems, useSalesParties } from '@/features/use-sales-masters'
 import { formatInr } from '@/lib/format-inr'
 import {
@@ -409,13 +409,19 @@ export function SalesInvoiceCreateScreen({
     step === 'review' ? (
       <WizardFooter>
         {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
-        <SecondaryButton label="Back to items" onPress={() => setStep('lines')} />
-        <PrimaryButton
-          label="Post invoice"
-          loading={postMutation.isPending}
-          disabled={postMutation.isPending}
-          onPress={() => postMutation.mutate()}
-        />
+        <View className="flex-row gap-3">
+          <View className="flex-1">
+            <SecondaryButton label="Back" onPress={() => setStep('lines')} />
+          </View>
+          <View className="flex-1">
+            <PrimaryButton
+              label="Post invoice"
+              loading={postMutation.isPending}
+              disabled={postMutation.isPending}
+              onPress={() => postMutation.mutate()}
+            />
+          </View>
+        </View>
       </WizardFooter>
     ) : (
       <WizardFooter>
@@ -452,10 +458,10 @@ export function SalesInvoiceCreateScreen({
           sourceDocumentId ? 'Convert sales document to invoice' : 'Create sales invoice'
         }
         keyboardAvoiding
+        headerTone="brand"
+        headerContent={<StepPills step={step} steps={INVOICE_STEPS} tone="brand" />}
         footer={wizardFooter}
       >
-      <StepPills step={step} steps={INVOICE_STEPS} />
-
       {prefillError ? <EmptyState message={prefillError} /> : null}
       {!isReady || mastersLoading ? <LoadingState /> : null}
       {workspaceError ? <EmptyState message={workspaceError} /> : null}
@@ -746,40 +752,26 @@ export function SalesInvoiceCreateScreen({
           ) : null}
 
           {step === 'review' ? (
-            <View className="gap-3">
-              <CardRow
-                title={selectedCustomer?.name ?? 'Customer'}
-                subtitle={`${form.invoiceDate}${form.dueDate ? ` · Due ${form.dueDate}` : ''}`}
-                badge={form.paymentMode === 'credit' ? 'Credit' : 'Cash'}
-              />
-              <CardRow
-                title="Place of supply"
-                subtitle={stateLabel(form.placeOfSupply)}
-              />
-              {form.lines
+            <VoucherReviewPreview
+              title="Tax invoice"
+              partyName={selectedCustomer?.name ?? 'Customer'}
+              documentDate={form.invoiceDate}
+              documentMeta={form.dueDate ? `Due ${form.dueDate}` : undefined}
+              paymentLabel={form.paymentMode === 'credit' ? 'Credit' : 'Cash'}
+              placeOfSupply={stateLabel(form.placeOfSupply)}
+              lines={form.lines
                 .filter((line) => line.itemId)
-                .map((line) => (
-                  <CardRow
-                    key={line.key}
-                    title={line.itemName}
-                    subtitle={`${line.quantity} ${line.unit} × ${formatInr(line.rate)}${Number(line.discountPercent) > 0 ? ` · Disc ${line.discountPercent}%` : ''}`}
-                    badge={`GST ${line.gstRate}%`}
-                  />
-                ))}
-              {totals ? (
-                <>
-                  <CardRow
-                    title="Taxable amount"
-                    amount={formatInr(totals.taxableAmount)}
-                  />
-                  <CardRow title="GST" amount={formatInr(totals.totalGstAmount)} />
-                  <CardRow
-                    title="Grand total"
-                    amount={formatInr(totals.grandTotal)}
-                  />
-                </>
-              ) : null}
-            </View>
+                .map((line) => ({
+                  key: line.key,
+                  name: line.itemName,
+                  detail: `${line.quantity} ${line.unit} × ${formatInr(line.rate)}${Number(line.discountPercent) > 0 ? ` · Disc ${line.discountPercent}%` : ''}`,
+                  badge: `GST ${line.gstRate}%`,
+                  amount: formatInr(Number(line.quantity) * Number(line.rate)),
+                }))}
+              taxableAmount={totals?.taxableAmount}
+              gstAmount={totals?.totalGstAmount}
+              grandTotal={totals?.grandTotal}
+            />
           ) : null}
         </View>
       ) : null}

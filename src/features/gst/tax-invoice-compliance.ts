@@ -6,7 +6,6 @@ import {
   resolvePartyShippingAddress,
 } from '#/features/parties/party-address.ts'
 
-import type { CompanyRecord } from '#/features/companies/company-service.ts'
 import type { PartyRecord } from '#/features/parties/party-service.ts'
 
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP })
@@ -30,12 +29,19 @@ export class TaxInvoiceAddressRequiredError extends Error {
 }
 
 function hasStructuredAddress(fields: {
-  addressLine1?: string
-  addressLine2?: string
-  city?: string
-  pincode?: string
+  addressLine1?: string | null
+  addressLine2?: string | null
+  city?: string | null
+  pincode?: string | null
 }) {
-  return Boolean(formatPartyStructuredAddress(fields).trim())
+  return Boolean(
+    formatPartyStructuredAddress({
+      addressLine1: fields.addressLine1 ?? undefined,
+      addressLine2: fields.addressLine2 ?? undefined,
+      city: fields.city ?? undefined,
+      pincode: fields.pincode ?? undefined,
+    }).trim(),
+  )
 }
 
 export function resolveCompanyPrintAddress(company: {
@@ -48,10 +54,13 @@ export function resolveCompanyPrintAddress(company: {
 }
 
 export function assertTaxInvoiceCompanyAddress(
-  company: Pick<
-    CompanyRecord,
-    'gstin' | 'addressLine1' | 'addressLine2' | 'city' | 'pincode'
-  >,
+  company: {
+    gstin?: string | null
+    addressLine1?: string | null
+    addressLine2?: string | null
+    city?: string | null
+    pincode?: string | null
+  },
 ) {
   if (!company.gstin?.trim()) return
 

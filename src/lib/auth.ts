@@ -7,7 +7,6 @@ import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { getDb } from '#/db/client.ts'
 import * as schema from '#/db/schema.ts'
 import {
-  getMobileAuthScheme,
   getMobileTrustedOrigins,
   mergeTrustedOrigins,
 } from '#/lib/auth-mobile-config.ts'
@@ -62,11 +61,5 @@ export const auth = betterAuth({
           },
         }
       : {},
-  plugins: [
-    expo({
-      scheme: getMobileAuthScheme(),
-    }),
-    bearer(),
-    tanstackStartCookies(),
-  ],
+  plugins: [expo(), bearer(), tanstackStartCookies()],
 })

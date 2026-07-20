@@ -12,4 +12,6 @@ dist-ssr
 __unconfig*
 todos.json
 .playwright-cli/
+.playwright-mcp/
+e2e-reports/
 e2e-*.png

@@ -1,6 +1,6 @@
-# GST Accounting Software (India) — Free & Open Source
+# HisaabKro — GST Billing & Khata App
 
-Free, open-source **GST accounting software** for Indian businesses — sales invoicing, purchase bills, inventory, party ledger, payments, and **GST compliance** in one modern web app.
+HisaabKro is a modern **GST billing, khata ledger, and accounting app** for Indian businesses — sales invoicing, purchase bills, inventory, party ledger, payments, and **GST compliance** in one web and mobile workspace.
 
 Looking for a **Busy accounting alternative**, **Zoho Books alternative**, or **Tally-style GST software** without license fees? This project is built for that.
 

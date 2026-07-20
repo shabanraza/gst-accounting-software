@@ -1,5 +1,13 @@
 const LOCALHOST_PATTERN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i
 
+declare global {
+  interface ImportMeta {
+    readonly env: {
+      readonly DEV: boolean
+    }
+  }
+}
+
 function normalizeOrigin(url: string) {
   return url.trim().replace(/\/$/, '')
 }
@@ -23,13 +31,13 @@ function productionBaseUrl() {
 
   if (!configured) {
     throw new Error(
-      'BETTER_AUTH_URL must be set in production (e.g. https://your-app.workers.dev)',
+      'BETTER_AUTH_URL must be set in production (e.g. https://hisaabkro.in)',
     )
   }
 
   if (isLocalhostUrl(configured)) {
     throw new Error(
-      'BETTER_AUTH_URL cannot be localhost in production. Set your Workers URL in Cloudflare secrets.',
+      'BETTER_AUTH_URL cannot be localhost in production. Set your production app URL in Cloudflare secrets.',
     )
   }
 

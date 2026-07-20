@@ -2,7 +2,7 @@ import * as React from 'react'
 
 export type ThemePreference = 'light' | 'dark' | 'system'
 
-const STORAGE_KEY = 'gst-books-theme'
+const STORAGE_KEY = 'hisaabkro-theme'
 const LEGACY_STORAGE_KEY = 'clothbooks-theme'
 
 function readStoredPreference(): ThemePreference {

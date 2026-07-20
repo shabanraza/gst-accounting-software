@@ -17,18 +17,18 @@
   --color-card-foreground: #111827;
 
   /* Primary brand & icon system */
-  --color-primary: #4f46e5;
+  --color-primary: #0066f5;
   --color-primary-foreground: #ffffff;
-  --color-primary-muted: #eef2ff;
+  --color-primary-muted: #eaf2ff;
   --color-secondary: #2563eb;
   --color-secondary-muted: #eff6ff;
-  --color-accent-indigo: #7c3aed;
+  --color-accent-indigo: #5145f5;
   --color-accent-amber: #d97706;
   --color-icon: #374151;
   --color-icon-bg: #eef2ff;
   --color-metric-card-bg: #ffffff;
   --color-icon-foreground: #111827;
-  --color-icon-accent-sales: #4f46e5;
+  --color-icon-accent-sales: #0066f5;
   --color-icon-accent-purchases: #0284c7;
   --color-icon-accent-stock: #7c3aed;
   --color-icon-accent-reports: #d97706;
@@ -41,7 +41,7 @@
 
   /* Borders & focus */
   --color-border: #d8e1ec;
-  --color-ring: #4f46e5;
+  --color-ring: #0066f5;
 
   /* Semantic status (overdue alerts only) */
   --color-warning: #d97706;
@@ -58,7 +58,7 @@
   --color-overdue-bill-bg: #fff7ed;
 
   /* Tab bar (Zoho-style flat white bar) */
-  --color-tab-active: #4f46e5;
+  --color-tab-active: #0066f5;
   --color-tab-inactive: #64748b;
   --color-tab-bar: #ffffff;
   --color-tab-border: #d8e1ec;

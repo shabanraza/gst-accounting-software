@@ -1,4 +1,4 @@
-# GST Books Mobile
+# HisaabKro Mobile
 
 Expo SDK 57 app sharing the web API via `@accounting/api-client`.
 
@@ -56,7 +56,7 @@ Sign in with the same account you use on the web app. You should land on the das
 
 ## Android emulator (standalone build)
 
-Use the **standalone debug build** (`com.gstbooks.mobile`), not Expo Go. Expo Go on emulators often lags the project SDK and cannot load this app reliably.
+Use the **standalone debug build** (`com.hisaabkro.mobile`), not Expo Go. Expo Go on emulators often lags the project SDK and cannot load this app reliably.
 
 **One-time install (builds native APK):**
 
@@ -89,7 +89,7 @@ adb reverse tcp:3000 tcp:3000
 cd mobile
 export REACT_NATIVE_PACKAGER_HOSTNAME=10.0.2.2
 bunx expo start --lan --clear --port 8081
-adb shell am start -n com.gstbooks.mobile/.MainActivity
+adb shell am start -n com.hisaabkro.mobile/.MainActivity
 ```
 
 Rebuild native code after dependency or plugin changes:
@@ -160,17 +160,41 @@ bun run test:mobile
 bun run test:api-client
 ```
 
-## Build
+## Android builds
 
 ```bash
-bunx expo export --platform web
-bunx expo export --platform android
-eas build --profile preview
+# Direct-install APK built on this machine. Does not use EAS cloud quota.
+bun run android:apk:local
+
+# Direct-install APK built in EAS cloud. Uses Android build quota.
+bun run android:apk:cloud
+
+# Play Store AAB built on this machine.
+bun run android:aab:local
+
+# Play Store AAB built in EAS cloud. Uses Android build quota.
+bun run android:aab:cloud
+
+# Submit the latest production Android build to Google Play.
+bun run android:submit
+
+# Build production AAB and auto-submit to Google Play.
+bun run android:release
 ```
+
+From the repo root, use the same commands with the `mobile:` prefix, for example `bun run mobile:android:apk:local`.
+
+The `preview` and `production` EAS profiles point at the production API:
+
+```text
+EXPO_PUBLIC_API_URL=https://hisaabkro.in
+```
+
+Use `preview` for APK sharing and `production` for Play Store AAB releases.
 
 ## Auth
 
-Uses `@better-auth/expo` with scheme `gstbooks://`. The web server trusts mobile origins (see `src/lib/auth-mobile-config.ts`).
+Uses `@better-auth/expo` with scheme `hisaabkro://`. The web server trusts mobile origins (see `src/lib/auth-mobile-config.ts`).
 
 - **Expo web** uses `credentials: 'omit'` for cross-origin auth to `localhost:3000`; the session token is stored in localStorage and sent to tRPC as `Authorization: Bearer <token>`.
 - **Expo Go** stores the session token in SecureStore and sends the same bearer header on tRPC requests.
@@ -191,5 +215,5 @@ Uses `@better-auth/expo` with scheme `gstbooks://`. The web server trusts mobile
 
 - Native camera capture for purchase OCR (`expo-image-picker` camera)
 - SecureStore-backed session persistence (web uses localStorage instead)
-- Deep links via `gstbooks://` scheme
+- Deep links via `hisaabkro://` scheme
 - EAS preview / native builds

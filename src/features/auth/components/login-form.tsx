@@ -43,7 +43,7 @@ export function LoginForm() {
 
   return (
     <AuthPage
-      description="Access your GST Books workspace and company ledgers."
+      description="Access your HisaabKro workspace and company ledgers."
       title="Sign in"
     >
       <AuthForm onSubmit={(event) => void handleSubmit(event)}>
@@ -100,6 +100,21 @@ export function LoginForm() {
             to="/signup"
           >
             Create one
+          </Link>
+        </AuthFooterText>
+        <AuthFooterText>
+          <Link
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+            to="/privacy"
+          >
+            Privacy
+          </Link>
+          {' · '}
+          <Link
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+            to="/data-deletion"
+          >
+            Data deletion
           </Link>
         </AuthFooterText>
       </AuthForm>

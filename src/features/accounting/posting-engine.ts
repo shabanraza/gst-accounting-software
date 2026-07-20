@@ -38,6 +38,9 @@ export type LedgerEntryRecord = {
 export interface LedgerPostingRepository {
   createEntry: (entry: LedgerEntryRecord) => Promise<LedgerEntryRecord>
   listByCompanyId: (companyId: string) => Promise<Array<LedgerEntryRecord>>
+  sumByAccount?: (
+    companyId: string,
+  ) => Promise<Map<string, { debit: string; credit: string }>>
 }
 
 export class UnbalancedLedgerEntryError extends Error {

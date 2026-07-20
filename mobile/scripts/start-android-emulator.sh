@@ -2,7 +2,7 @@
 set -euo pipefail
 
 MOBILE="$(cd "$(dirname "$0")/.." && pwd)"
-PACKAGE="com.gstbooks.mobile"
+PACKAGE="com.hisaabkro.mobile"
 
 echo "Waiting for Android device/emulator..."
 adb wait-for-device

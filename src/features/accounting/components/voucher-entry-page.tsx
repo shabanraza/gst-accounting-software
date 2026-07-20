@@ -66,6 +66,11 @@ import { VoucherPreviewSheet } from '#/features/documents/components/voucher-pre
 import type { VoucherPreviewTarget } from '#/features/documents/components/voucher-preview-sheet.tsx'
 import { CreateItemDialog } from '#/features/inventory/components/create-item-dialog.tsx'
 import { CreatePartyDialog } from '#/features/parties/components/create-party-dialog.tsx'
+import {
+  RecentPartyChips,
+  SupplyRegionBadge,
+  useRecentParties,
+} from '#/features/parties/components/recent-party-chips.tsx'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 import type { ItemRecord } from '#/features/inventory/item-service.ts'
 import type { PartyRecord } from '#/features/parties/party-service.ts'
@@ -226,6 +231,10 @@ export function VoucherEntryPage({
     COMPANY_STATE_CODE,
   )
   const party = parties.find((item) => item.id === partyId)
+  const { recentIds, rememberParty } = useRecentParties(
+    companyId,
+    isSales ? 'customer' : 'supplier',
+  )
 
   function syncPlaceOfSupplyForParty(
     partyStateCode: string,
@@ -512,6 +521,7 @@ export function VoucherEntryPage({
   }
 
   function selectParty(nextPartyId: string) {
+    rememberParty(nextPartyId)
     const nextParty = parties.find((entry) => entry.id === nextPartyId)
     setPartyId(nextPartyId)
     if (nextParty) {
@@ -519,7 +529,7 @@ export function VoucherEntryPage({
         nextParty.stateCode === companyState ? 'local' : 'central'
       setRegion(nextRegion)
       syncPlaceOfSupplyForParty(nextParty.stateCode, nextRegion)
-      if (!isSales && nextParty.paymentTermsDays > 0) {
+      if (nextParty.paymentTermsDays > 0) {
         const due = new Date()
         due.setDate(due.getDate() + nextParty.paymentTermsDays)
         setDueDate(due.toISOString().slice(0, 10))
@@ -875,7 +885,6 @@ export function VoucherEntryPage({
     transportMode,
     vehicleNo,
     lrNumber,
-    isSales ? dueDate : undefined,
   )
   const chargesFilledCount = countFilled(
     narration,
@@ -922,19 +931,30 @@ export function VoucherEntryPage({
                     title="Customer lookup"
                     value={partyId}
                   />
+                  <RecentPartyChips
+                    createLabel="Add new customer…"
+                    onCreateNew={() => setPartyCreateOpen(true)}
+                    onSelect={selectParty}
+                    parties={parties}
+                    recentIds={recentIds}
+                    selectedId={partyId}
+                  />
                   {party ? (
-                    <p className="truncate text-xs text-muted-foreground">
-                      {party.gstin ? (
-                        <span className="font-mono">{party.gstin}</span>
-                      ) : (
-                        <span>Unregistered</span>
-                      )}
-                      <span aria-hidden="true"> · </span>
-                      <span>{stateLabel(placeOfSupply)}</span>
-                    </p>
+                    <div className="flex flex-col gap-1">
+                      <p className="truncate text-xs text-muted-foreground">
+                        {party.gstin ? (
+                          <span className="font-mono">{party.gstin}</span>
+                        ) : (
+                          <span>Unregistered</span>
+                        )}
+                        <span aria-hidden="true"> · </span>
+                        <span>{stateLabel(placeOfSupply)}</span>
+                      </p>
+                      <SupplyRegionBadge region={region} />
+                    </div>
                   ) : null}
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <label
                       className="text-xs text-muted-foreground"
@@ -949,6 +969,125 @@ export function VoucherEntryPage({
                       value={voucherDate}
                     />
                   </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-xs text-muted-foreground">
+                      Payment
+                    </span>
+                    <Select
+                      onValueChange={(value) => {
+                        const nextMode = value as 'credit' | 'cash'
+                        setPaymentMode(nextMode)
+                        if (nextMode === 'cash') setDueDate('')
+                      }}
+                      value={paymentMode}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectItem value="credit">Credit</SelectItem>
+                          <SelectItem value="cash">Cash</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {paymentMode === 'credit' ? (
+                    <div className="flex flex-col gap-1.5 sm:col-span-2">
+                      <label
+                        className="text-xs text-muted-foreground"
+                        htmlFor="sales-due-date"
+                      >
+                        Due date
+                      </label>
+                      <DatePicker
+                        id="sales-due-date"
+                        onChange={setDueDate}
+                        value={dueDate}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : (
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,12rem)_1fr] lg:items-start">
+                <div className="flex min-w-0 flex-col gap-1.5 self-start">
+                  <span className="text-xs text-muted-foreground">
+                    Supplier
+                  </span>
+                  <MasterLookup
+                    createAction={{
+                      label: 'Add new supplier…',
+                      onSelect: () => setPartyCreateOpen(true),
+                    }}
+                    emptyText="No contacts yet."
+                    onValueChange={selectParty}
+                    options={partyOptions}
+                    placeholder="Select supplier"
+                    searchPlaceholder="Search name / GSTIN"
+                    title="Supplier lookup"
+                    value={partyId}
+                  />
+                  <RecentPartyChips
+                    createLabel="Add new supplier…"
+                    onCreateNew={() => setPartyCreateOpen(true)}
+                    onSelect={selectParty}
+                    parties={parties}
+                    recentIds={recentIds}
+                    selectedId={partyId}
+                  />
+                  {party ? (
+                    <div className="flex flex-col gap-1">
+                      <p className="truncate text-xs text-muted-foreground">
+                        {party.gstin ? (
+                          <span className="font-mono">{party.gstin}</span>
+                        ) : (
+                          <span>Unregistered</span>
+                        )}
+                        <span aria-hidden="true"> · </span>
+                        <span>{stateLabel(placeOfSupply)}</span>
+                      </p>
+                      <SupplyRegionBadge region={region} />
+                    </div>
+                  ) : null}
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <label
+                      className="text-xs text-muted-foreground"
+                      htmlFor="vch-date"
+                    >
+                      Date
+                    </label>
+                    <DatePicker
+                      id="vch-date"
+                      onChange={setVoucherDate}
+                      required
+                      value={voucherDate}
+                    />
+                  </div>
+                  <div className="flex flex-col justify-end gap-1.5">
+                    <span className="text-xs text-muted-foreground">
+                      Voucher no.
+                    </span>
+                    <Badge className="w-fit font-mono" variant="outline">
+                      {voucherNoPreview === 'Auto'
+                        ? `${series} · auto`
+                        : voucherNoPreview}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {isSales ? (
+            <Collapsible className="group/collapsible" defaultOpen={false}>
+              <CollapsibleTrigger asChild>
+                <CollapsibleSectionTrigger title="Tax & billing" />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <section className="grid gap-3 pt-2 sm:grid-cols-2 lg:grid-cols-3">
                   <div className="flex flex-col gap-1.5">
                     <span className="text-xs text-muted-foreground">
                       Series
@@ -987,27 +1126,6 @@ export function VoucherEntryPage({
                             Local (CGST + SGST)
                           </SelectItem>
                           <SelectItem value="central">IGST</SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <span className="text-xs text-muted-foreground">
-                      Payment
-                    </span>
-                    <Select
-                      onValueChange={(value) =>
-                        setPaymentMode(value as 'credit' | 'cash')
-                      }
-                      value={paymentMode}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectItem value="credit">Credit</SelectItem>
-                          <SelectItem value="cash">Cash</SelectItem>
                         </SelectGroup>
                       </SelectContent>
                     </Select>
@@ -1085,71 +1203,13 @@ export function VoucherEntryPage({
                         : voucherNoPreview}
                     </Badge>
                   </div>
-                </div>
-              </div>
-            ) : (
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,12rem)_1fr] lg:items-start">
-                <div className="flex min-w-0 flex-col gap-1.5 self-start">
-                  <span className="text-xs text-muted-foreground">
-                    Supplier
-                  </span>
-                  <MasterLookup
-                    createAction={{
-                      label: 'Add new supplier…',
-                      onSelect: () => setPartyCreateOpen(true),
-                    }}
-                    emptyText="No contacts yet."
-                    onValueChange={selectParty}
-                    options={partyOptions}
-                    placeholder="Select supplier"
-                    searchPlaceholder="Search name / GSTIN"
-                    title="Supplier lookup"
-                    value={partyId}
-                  />
-                  {party ? (
-                    <p className="truncate text-xs text-muted-foreground">
-                      {party.gstin ? (
-                        <span className="font-mono">{party.gstin}</span>
-                      ) : (
-                        <span>Unregistered</span>
-                      )}
-                      <span aria-hidden="true"> · </span>
-                      <span>{stateLabel(placeOfSupply)}</span>
-                    </p>
-                  ) : null}
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs text-muted-foreground"
-                      htmlFor="vch-date"
-                    >
-                      Date
-                    </label>
-                    <DatePicker
-                      id="vch-date"
-                      onChange={setVoucherDate}
-                      required
-                      value={voucherDate}
-                    />
-                  </div>
-                  <div className="flex flex-col justify-end gap-1.5">
-                    <span className="text-xs text-muted-foreground">
-                      Voucher no.
-                    </span>
-                    <Badge className="w-fit font-mono" variant="outline">
-                      {voucherNoPreview === 'Auto'
-                        ? `${series} · auto`
-                        : voucherNoPreview}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            )}
-          </section>
+                </section>
+              </CollapsibleContent>
+            </Collapsible>
+          ) : null}
 
           {!isSales ? (
-            <Collapsible className="group/collapsible" defaultOpen>
+            <Collapsible className="group/collapsible" defaultOpen={false}>
               <CollapsibleTrigger asChild>
                 <CollapsibleSectionTrigger title="Bill options" />
               </CollapsibleTrigger>
@@ -1311,21 +1371,6 @@ export function VoucherEntryPage({
             </CollapsibleTrigger>
             <CollapsibleContent>
               <section className="grid gap-3 pt-2 sm:grid-cols-2 lg:grid-cols-3">
-                {isSales ? (
-                  <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs text-muted-foreground"
-                      htmlFor="sales-due-date"
-                    >
-                      Due date
-                    </label>
-                    <DatePicker
-                      id="sales-due-date"
-                      onChange={setDueDate}
-                      value={dueDate}
-                    />
-                  </div>
-                ) : null}
                 <div className="flex flex-col gap-1.5">
                   <label
                     className="text-xs text-muted-foreground"
@@ -1721,7 +1766,31 @@ export function VoucherEntryPage({
           className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] backdrop-blur supports-[backdrop-filter]:bg-background/80 print:hidden md:left-[var(--sidebar-width)] md:transition-[left] md:duration-200 md:ease-linear group-has-data-[state=collapsed]/sidebar-wrapper:md:left-[var(--sidebar-width-icon)]"
           data-ui="chrome"
         >
-          <div className="mx-auto flex w-full max-w-6xl flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-4">
+          <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-4">
+            <div className="flex items-center justify-between gap-4 rounded-lg bg-muted/50 px-3 py-2 sm:hidden">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs text-muted-foreground">Taxable</span>
+                <span className="text-sm font-medium tabular-nums">
+                  {formatInr(totals.taxableAmount)}
+                </span>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs text-muted-foreground">GST</span>
+                <span className="text-sm font-medium tabular-nums">
+                  {formatInr(
+                    region === 'local'
+                      ? Number(totals.cgstAmount) + Number(totals.sgstAmount)
+                      : Number(totals.igstAmount),
+                  )}
+                </span>
+              </div>
+              <div className="flex flex-col items-end gap-0.5">
+                <span className="text-xs text-muted-foreground">Total</span>
+                <span className="text-sm font-semibold tabular-nums">
+                  {formatInr(totals.grandTotal)}
+                </span>
+              </div>
+            </div>
             <div className="hidden flex-col items-end gap-0.5 sm:flex">
               <span className="text-xs text-muted-foreground">Grand total</span>
               <span className="text-lg font-semibold tabular-nums">

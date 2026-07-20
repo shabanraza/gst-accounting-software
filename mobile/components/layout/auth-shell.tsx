@@ -2,9 +2,10 @@ import * as React from 'react'
 import { Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { HisaabKroMascot } from '@/components/brand/hisaabkro-mascot'
 import { pagePaddingHorizontal } from '@/lib/theme'
 
-import { KeyboardAvoidingView, ScrollView, Text } from '@/tw'
+import { KeyboardAvoidingView, ScrollView, Text, View } from '@/tw'
 
 export function AuthShell({
   title,
@@ -26,9 +27,14 @@ export function AuthShell({
       showsVerticalScrollIndicator={false}
       style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
     >
-      <Text className="text-3xl font-bold text-foreground">{title}</Text>
+      <View className="items-center gap-2">
+        <HisaabKroMascot />
+        <Text className="text-center text-3xl font-bold text-foreground">
+          {title}
+        </Text>
+      </View>
       {subtitle ? (
-        <Text className="text-muted-foreground">{subtitle}</Text>
+        <Text className="text-center text-muted-foreground">{subtitle}</Text>
       ) : null}
       {children}
     </ScrollView>

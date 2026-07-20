@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import * as Linking from 'expo-linking'
 
 import { CardRow } from '@/components/data/card-row'
 import { EmptyState } from '@/components/data/empty-state'
@@ -9,6 +10,9 @@ import { useLedgerAccounts } from '@/features/use-ledger-accounts'
 import { trpcClient } from '@/lib/trpc-client'
 import { View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
+
+const PRIVACY_POLICY_URL = 'https://hisaabkro.in/privacy'
+const DATA_DELETION_URL = 'https://hisaabkro.in/data-deletion'
 
 export function ChartOfAccountsScreen() {
   const { companyId } = useWorkspace()
@@ -78,6 +82,23 @@ export function SettingsScreen() {
         {teamQuery.isError ? (
           <EmptyState message="Team list requires manage access." />
         ) : null}
+      </View>
+      <View className="gap-section-header">
+        <SectionHeader
+          title="Privacy and data"
+          compact
+          icon="shield-checkmark-outline"
+        />
+        <CardRow
+          title="Privacy policy"
+          subtitle="How HisaabKro handles account and business data"
+          onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
+        />
+        <CardRow
+          title="Request data deletion"
+          subtitle="Delete your account and associated workspace data"
+          onPress={() => void Linking.openURL(DATA_DELETION_URL)}
+        />
       </View>
     </Screen>
   )

@@ -16,6 +16,7 @@ import type {
   OcrDraftRepository,
 } from '#/features/ocr/ocr-draft-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
+import type { ItemRepository } from '#/features/inventory/item-service.ts'
 
 const ocrFieldSchema = z.object({
   value: z.string(),

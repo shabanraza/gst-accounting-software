@@ -32,7 +32,10 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <AuthShell title="Set up company">
+    <AuthShell
+      title="Welcome to HisaabKro"
+      subtitle="Create your company workspace and start GST-ready books."
+    >
       <FormField
         placeholder="Legal name"
         value={legalName}

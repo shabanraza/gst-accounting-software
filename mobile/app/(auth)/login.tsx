@@ -1,4 +1,5 @@
 import { Link, useRouter } from 'expo-router'
+import * as Linking from 'expo-linking'
 import { useState } from 'react'
 
 import { AuthShell } from '@/components/layout/auth-shell'
@@ -12,6 +13,9 @@ import {
   persistAuthTokenFromSignIn,
   requireTrpcAuthReady,
 } from '@/lib/trpc-auth'
+
+const PRIVACY_POLICY_URL = 'https://hisaabkro.in/privacy'
+const DATA_DELETION_URL = 'https://hisaabkro.in/data-deletion'
 
 export default function LoginScreen() {
   const router = useRouter()
@@ -48,7 +52,7 @@ export default function LoginScreen() {
   }
 
   return (
-    <AuthShell title="GST Books" subtitle="Sign in to your workspace">
+    <AuthShell title="HisaabKro" subtitle="Sign in to your workspace">
       <FormField
         autoCapitalize="none"
         keyboardType="email-address"
@@ -75,6 +79,21 @@ export default function LoginScreen() {
       <Link href="/(auth)/forgot-password">
         <Text className="text-muted-foreground">Forgot password?</Text>
       </Link>
+      <Text className="text-center text-xs text-muted-foreground">
+        <Text
+          className="text-xs text-muted-foreground"
+          onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
+        >
+          Privacy
+        </Text>
+        {' · '}
+        <Text
+          className="text-xs text-muted-foreground"
+          onPress={() => void Linking.openURL(DATA_DELETION_URL)}
+        >
+          Data deletion
+        </Text>
+      </Text>
     </AuthShell>
   )
 }

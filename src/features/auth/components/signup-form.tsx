@@ -57,7 +57,7 @@ export function SignupForm() {
 
   return (
     <AuthPage
-      description="Start a GST Books workspace for GST-ready books and inventory."
+      description="Start a HisaabKro workspace for GST-ready books and inventory."
       title="Create account"
     >
       <AuthForm onSubmit={(event) => void handleSubmit(event)}>
@@ -116,6 +116,24 @@ export function SignupForm() {
           >
             Sign in
           </Link>
+        </AuthFooterText>
+        <AuthFooterText>
+          By creating an account, you agree to HisaabKro handling your data as
+          described in the{' '}
+          <Link
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+            to="/privacy"
+          >
+            Privacy Policy
+          </Link>
+          . You can request deletion from the{' '}
+          <Link
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+            to="/data-deletion"
+          >
+            Data Deletion page
+          </Link>
+          .
         </AuthFooterText>
       </AuthForm>
     </AuthPage>

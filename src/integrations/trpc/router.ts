@@ -84,6 +84,7 @@ export const trpcRouter = createTRPCRouter({
     stockStore,
     dashboardSummaryRepository,
     itemRepository,
+    partyRepository,
   ),
   purchaseOrders: createPurchaseOrdersRouter(purchaseOrderRepository),
   purchaseGrns: createGrnRouter(

@@ -1,4 +1,5 @@
 import { Link, useRouter } from 'expo-router'
+import * as Linking from 'expo-linking'
 import { useState } from 'react'
 
 import { AuthShell } from '@/components/layout/auth-shell'
@@ -12,6 +13,9 @@ import {
   persistAuthTokenFromSignIn,
   requireTrpcAuthReady,
 } from '@/lib/trpc-auth'
+
+const PRIVACY_POLICY_URL = 'https://hisaabkro.in/privacy'
+const DATA_DELETION_URL = 'https://hisaabkro.in/data-deletion'
 
 export default function SignupScreen() {
   const router = useRouter()
@@ -65,6 +69,23 @@ export default function SignupScreen() {
       <Link href="/(auth)/login">
         <Text className="text-primary">Already have an account?</Text>
       </Link>
+      <Text className="text-center text-xs text-muted-foreground">
+        By continuing, you agree to our{' '}
+        <Text
+          className="text-xs text-muted-foreground"
+          onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
+        >
+          Privacy Policy
+        </Text>
+        . Request removal from{' '}
+        <Text
+          className="text-xs text-muted-foreground"
+          onPress={() => void Linking.openURL(DATA_DELETION_URL)}
+        >
+          Data Deletion
+        </Text>
+        .
+      </Text>
     </AuthShell>
   )
 }

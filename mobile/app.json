@@ -1,18 +1,23 @@
 {
   "expo": {
-    "name": "GST Books",
-    "slug": "gst-books",
+    "name": "HisaabKro",
+    "slug": "hisaabkro",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "gstbooks",
+    "scheme": "hisaabkro",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/images/icon.png",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.gstbooks.mobile"
+      "bundleIdentifier": "com.hisaabkro.mobile"
     },
     "android": {
-      "package": "com.gstbooks.mobile",
+      "package": "com.hisaabkro.mobile",
       "softwareKeyboardLayoutMode": "resize",
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -41,10 +46,11 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow GST Books to attach bill photos for OCR review.",
-          "cameraPermission": "Allow GST Books to capture purchase bills."
+          "photosPermission": "Allow HisaabKro to attach bill photos for OCR review.",
+          "cameraPermission": "Allow HisaabKro to capture purchase bills."
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true

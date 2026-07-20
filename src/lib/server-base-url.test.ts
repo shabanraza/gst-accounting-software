@@ -28,15 +28,11 @@ describe('server base url', () => {
     vi.stubEnv('PROD', true)
     vi.stubEnv(
       'BETTER_AUTH_URL',
-      'https://gst-accounting-software.shaban-razaa.workers.dev/',
+      'https://hisaabkro.in/',
     )
 
-    expect(getServerBaseUrl()).toBe(
-      'https://gst-accounting-software.shaban-razaa.workers.dev',
-    )
-    expect(getTrpcUrl()).toBe(
-      'https://gst-accounting-software.shaban-razaa.workers.dev/api/trpc',
-    )
+    expect(getServerBaseUrl()).toBe('https://hisaabkro.in')
+    expect(getTrpcUrl()).toBe('https://hisaabkro.in/api/trpc')
   })
 
   test('rejects localhost BETTER_AUTH_URL in production', () => {

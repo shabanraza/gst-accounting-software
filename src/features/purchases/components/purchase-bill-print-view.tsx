@@ -11,14 +11,18 @@ import {
 } from '#/features/documents/voucher-print-mappers.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
+import type { VoucherPrintDocument } from '#/features/documents/voucher-print-types.ts'
+
 type PurchaseBillPrintViewProps = {
   billId: string
   autoprint?: boolean
+  initialDocument?: VoucherPrintDocument | null
 }
 
 export function PurchaseBillPrintView({
   billId,
   autoprint,
+  initialDocument,
 }: PurchaseBillPrintViewProps) {
   const trpc = useTRPC()
   const { companyId, company, isReady } = useWorkspace()
@@ -28,19 +32,19 @@ export function PurchaseBillPrintView({
       companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
       id: billId,
     }),
-    enabled: Boolean(billId) && Boolean(companyId) && isReady,
+    enabled: !initialDocument && Boolean(billId) && Boolean(companyId) && isReady,
   })
   const partiesQuery = useQuery({
     ...trpc.parties.list.queryOptions({
       companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
     }),
-    enabled: Boolean(companyId) && isReady,
+    enabled: !initialDocument && Boolean(companyId) && isReady,
   })
   const itemsQuery = useQuery({
     ...trpc.inventory.listItems.queryOptions({
       companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
     }),
-    enabled: Boolean(companyId) && isReady,
+    enabled: !initialDocument && Boolean(companyId) && isReady,
   })
 
   const bill = billQuery.data
@@ -53,6 +57,7 @@ export function PurchaseBillPrintView({
   )
 
   const printDoc = React.useMemo(() => {
+    if (initialDocument) return initialDocument
     if (!bill || !company || !supplier) return null
     return buildPurchaseBillPrintDocument({
       bill,
@@ -60,7 +65,7 @@ export function PurchaseBillPrintView({
       supplier: toPrintParty(supplier),
       itemById,
     })
-  }, [bill, company, itemById, supplier])
+  }, [bill, company, initialDocument, itemById, supplier])
 
   React.useEffect(() => {
     if (autoprint && printDoc) {

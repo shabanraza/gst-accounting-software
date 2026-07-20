@@ -59,6 +59,8 @@ function ScreenBody({
   showBack,
   onBack,
   headerRight,
+  headerTone = 'plain',
+  headerContent,
   footer,
 }: {
   title: string
@@ -71,6 +73,8 @@ function ScreenBody({
   showBack?: boolean
   onBack?: () => void
   headerRight?: React.ReactNode
+  headerTone?: 'plain' | 'brand'
+  headerContent?: React.ReactNode
   footer?: React.ReactNode
 }) {
   const pickerContext = useFormPickerContext()
@@ -86,7 +90,10 @@ function ScreenBody({
           subtitle={subtitle}
           onBack={onBack}
           rightAction={headerRight}
-        />
+          tone={headerTone}
+        >
+          {headerContent}
+        </StackHeader>
       ) : (
         <TabHeader title={title} subtitle={subtitle} topInset={top} />
       )}

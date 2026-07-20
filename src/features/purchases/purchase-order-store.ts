@@ -1,4 +1,5 @@
 import { and, eq } from 'drizzle-orm'
+import Decimal from 'decimal.js'
 
 import { getDb } from '#/db/client.ts'
 import * as schema from '#/db/schema.ts'
@@ -124,6 +125,7 @@ export class DrizzlePurchaseOrderRepository implements PurchaseOrderRepository {
             unit: line.unit,
             rate: line.rate,
             gstRate: line.gstRate,
+            lineTotal: new Decimal(line.quantity).mul(line.rate).toFixed(2),
           })),
         ),
       )
@@ -163,6 +165,7 @@ export class DrizzlePurchaseOrderRepository implements PurchaseOrderRepository {
         unit: line.unit,
         rate: line.rate,
         gstRate: line.gstRate,
+        lineTotal: new Decimal(line.quantity).mul(line.rate).toFixed(2),
       })),
     )
   }
@@ -204,6 +207,7 @@ export class DrizzlePurchaseOrderRepository implements PurchaseOrderRepository {
         unit: line.unit,
         rate: line.rate,
         gstRate: line.gstRate,
+        lineTotal: new Decimal(line.quantity).mul(line.rate).toFixed(2),
       })),
     )
   }
