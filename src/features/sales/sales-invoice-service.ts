@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
@@ -149,7 +150,7 @@ export type CancelSalesInvoiceInput = {
   invoiceId: string
 }
 
-export class CreditLimitExceededError extends Error {
+export class CreditLimitExceededError extends DomainError {
   constructor(customerName: string, limit: string, projected: string) {
     super(
       `Credit limit exceeded for ${customerName}: limit ${limit}, projected outstanding ${projected}`,
@@ -403,21 +404,21 @@ export async function postSalesInvoice(
   return deps.invoices.create(invoice)
 }
 
-export class InvoiceNotFoundError extends Error {
+export class InvoiceNotFoundError extends DomainError {
   constructor(invoiceId: string) {
     super(`Sales invoice not found: ${invoiceId}`)
     this.name = 'InvoiceNotFoundError'
   }
 }
 
-export class InvoiceCompanyMismatchError extends Error {
+export class InvoiceCompanyMismatchError extends DomainError {
   constructor(invoiceId: string, companyId: string) {
     super(`Sales invoice ${invoiceId} does not belong to company ${companyId}`)
     this.name = 'InvoiceCompanyMismatchError'
   }
 }
 
-export class InvoiceAlreadyCancelledError extends Error {
+export class InvoiceAlreadyCancelledError extends DomainError {
   constructor(invoiceNumber: string) {
     super(`Sales invoice ${invoiceNumber} is already cancelled`)
     this.name = 'InvoiceAlreadyCancelledError'

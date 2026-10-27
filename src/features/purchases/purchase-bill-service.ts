@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
@@ -133,7 +134,7 @@ export type PurchaseBillDependencies = {
   parties?: PartyRepository
 }
 
-export class DuplicateSupplierBillError extends Error {
+export class DuplicateSupplierBillError extends DomainError {
   constructor(supplierBillNumber: string) {
     super(
       `Supplier bill number already exists for this financial year: ${supplierBillNumber}`,

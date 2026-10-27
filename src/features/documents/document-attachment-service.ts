@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 export type DocumentAttachmentRecord = {
   id: string
   companyId: string
@@ -22,7 +23,7 @@ export interface DocumentAttachmentRepository {
   findById: (id: string) => Promise<DocumentAttachmentRecord | null>
 }
 
-export class CrossCompanyAttachmentError extends Error {
+export class CrossCompanyAttachmentError extends DomainError {
   constructor() {
     super('Attachment storage key must belong to the same company')
     this.name = 'CrossCompanyAttachmentError'

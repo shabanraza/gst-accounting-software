@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 export type BusinessType =
   | 'trading'
   | 'wholesale'
@@ -69,7 +70,7 @@ export interface CompanyRepository {
   ) => Promise<CompanyRecord | null>
 }
 
-export class DuplicateCompanyGstinError extends Error {
+export class DuplicateCompanyGstinError extends DomainError {
   constructor(gstin: string) {
     super(`Company GSTIN already exists for this account: ${gstin}`)
     this.name = 'DuplicateCompanyGstinError'

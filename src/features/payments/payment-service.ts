@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
@@ -52,7 +53,7 @@ export type SupplierPaymentDependencies = {
   posting: LedgerPostingRepository
 }
 
-export class PaymentAllocationError extends Error {
+export class PaymentAllocationError extends DomainError {
   constructor(message: string) {
     super(message)
     this.name = 'PaymentAllocationError'

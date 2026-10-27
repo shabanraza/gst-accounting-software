@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 export type VoucherType =
@@ -43,7 +44,7 @@ export interface LedgerPostingRepository {
   ) => Promise<Map<string, { debit: string; credit: string }>>
 }
 
-export class UnbalancedLedgerEntryError extends Error {
+export class UnbalancedLedgerEntryError extends DomainError {
   constructor(totalDebit: string, totalCredit: string) {
     super(
       `Ledger entry is unbalanced: debit ${totalDebit} != credit ${totalCredit}`,
@@ -52,7 +53,7 @@ export class UnbalancedLedgerEntryError extends Error {
   }
 }
 
-export class InvalidLedgerLineError extends Error {
+export class InvalidLedgerLineError extends DomainError {
   constructor(message: string) {
     super(message)
     this.name = 'InvalidLedgerLineError'

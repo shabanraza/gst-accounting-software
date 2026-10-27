@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 export type CreateItemInput = {
   companyId: string
   name: string
@@ -37,14 +38,14 @@ export interface ItemRepository {
   listByCompanyId: (companyId: string) => Promise<Array<ItemRecord>>
 }
 
-export class ItemNotFoundError extends Error {
+export class ItemNotFoundError extends DomainError {
   constructor(id: string) {
     super(`Item not found: ${id}`)
     this.name = 'ItemNotFoundError'
   }
 }
 
-export class InvalidItemError extends Error {
+export class InvalidItemError extends DomainError {
   constructor(message: string) {
     super(message)
     this.name = 'InvalidItemError'

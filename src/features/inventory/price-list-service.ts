@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 export type PriceListRecord = {
@@ -38,14 +39,14 @@ export interface PriceListItemRepository {
   ) => Promise<PriceListItemRecord | null>
 }
 
-export class DuplicatePriceListNameError extends Error {
+export class DuplicatePriceListNameError extends DomainError {
   constructor(name: string) {
     super(`Price list already exists for this company: ${name}`)
     this.name = 'DuplicatePriceListNameError'
   }
 }
 
-export class InvalidPriceListError extends Error {
+export class InvalidPriceListError extends DomainError {
   constructor(message: string) {
     super(message)
     this.name = 'InvalidPriceListError'

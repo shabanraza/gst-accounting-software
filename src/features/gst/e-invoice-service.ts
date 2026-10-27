@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 export type EInvoiceRecord = {
   id: string
   companyId: string
@@ -17,7 +18,7 @@ export interface EInvoiceRepository {
   create: (record: EInvoiceRecord) => Promise<EInvoiceRecord>
 }
 
-export class EInvoiceAlreadyGeneratedError extends Error {
+export class EInvoiceAlreadyGeneratedError extends DomainError {
   constructor(salesInvoiceId: string) {
     super(`An e-invoice already exists for sales invoice: ${salesInvoiceId}`)
     this.name = 'EInvoiceAlreadyGeneratedError'
@@ -84,7 +85,7 @@ export interface EWayBillRepository {
   create: (record: EWayBillRecord) => Promise<EWayBillRecord>
 }
 
-export class EWayBillAlreadyGeneratedError extends Error {
+export class EWayBillAlreadyGeneratedError extends DomainError {
   constructor(salesInvoiceId: string) {
     super(`An e-way bill already exists for sales invoice: ${salesInvoiceId}`)
     this.name = 'EWayBillAlreadyGeneratedError'

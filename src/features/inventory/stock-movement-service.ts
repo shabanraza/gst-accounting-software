@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 export type StockMovementType =
@@ -48,7 +49,7 @@ export interface StockBalanceRepository {
   ) => Promise<Array<{ companyId: string; itemId: string; quantity: string }>>
 }
 
-export class InsufficientStockError extends Error {
+export class InsufficientStockError extends DomainError {
   constructor(itemId: string, requested: string, available: string) {
     super(
       `Insufficient stock for item ${itemId}: requested ${requested}, available ${available}`,
@@ -57,7 +58,7 @@ export class InsufficientStockError extends Error {
   }
 }
 
-export class InvalidStockMovementError extends Error {
+export class InvalidStockMovementError extends DomainError {
   constructor(message: string) {
     super(message)
     this.name = 'InvalidStockMovementError'
