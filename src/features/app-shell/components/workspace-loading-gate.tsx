@@ -27,10 +27,10 @@ export function WorkspaceLoadingGate({
   const { accountId, isLoading, error, company } = useWorkspace()
 
   React.useEffect(() => {
-    if (!isSessionPending && !session?.user?.id) {
+    if (!isSessionPending && !session?.user.id) {
       void navigate({ to: '/login' })
     }
-  }, [isSessionPending, navigate, session?.user?.id])
+  }, [isSessionPending, navigate, session?.user.id])
 
   if (isSessionPending || !accountId) {
     return <WorkspacePageSkeleton />

@@ -13,8 +13,8 @@ import { buildInvoicePrintDocument } from '#/features/sales/invoice-print-servic
 import type { VoucherPrintDocument } from '#/features/documents/voucher-print-types.ts'
 
 async function getCompany(companyId: string) {
-  const [company] = await companyRepository.listByIds([companyId])
-  return company ?? null
+  const companies = await companyRepository.listByIds([companyId])
+  return companies.at(0) ?? null
 }
 
 async function getItemMap(companyId: string) {

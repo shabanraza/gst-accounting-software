@@ -32,6 +32,8 @@ import type { PartyRepository } from '#/features/parties/party-service.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
 import type { SalesInvoiceRepository } from '#/features/sales/sales-invoice-service.ts'
 
+import { localCalendarDate } from '#/lib/calendar-date.ts'
+
 export type DueTodayItem = {
   id: string
   partyName: string
@@ -139,8 +141,6 @@ export type OwnerDashboardDeps = {
 
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP })
 
-import { localCalendarDate } from '#/lib/calendar-date.ts'
-
 export { localCalendarDate }
 
 export function addCalendarDays(date: string, delta: number) {
@@ -220,8 +220,7 @@ function sumExpensesInRange(
 ) {
   return expenses
     .filter(
-      (expense) =>
-        expense.expenseDate >= start && expense.expenseDate <= end,
+      (expense) => expense.expenseDate >= start && expense.expenseDate <= end,
     )
     .reduce((total, expense) => total.plus(expense.amount), new Decimal(0))
     .toFixed(2)
@@ -323,10 +322,7 @@ async function computeCashBankBalance(
 
 function sumOutstanding(rows: Array<{ outstandingAmount: string }>) {
   return rows
-    .reduce(
-      (total, row) => total.plus(row.outstandingAmount),
-      new Decimal(0),
-    )
+    .reduce((total, row) => total.plus(row.outstandingAmount), new Decimal(0))
     .toFixed(2)
 }
 
@@ -561,9 +557,7 @@ export async function getOwnerDashboardSnapshot(
   ])
 
   const partyNameById = new Map(parties.map((party) => [party.id, party.name]))
-  const trendByDate = new Map(
-    trendRows.map((row) => [row.summaryDate, row]),
-  )
+  const trendByDate = new Map(trendRows.map((row) => [row.summaryDate, row]))
   const todayExpenses = expenseRows
     .filter((expense) => expense.expenseDate === asOfDate)
     .map((expense) => ({
@@ -687,7 +681,8 @@ export async function getOwnerDashboardSnapshot(
     overdue: {
       invoiceCount: receivablesAgeing.rows.filter((row) => row.daysPastDue > 0)
         .length,
-      billCount: payablesAgeing.rows.filter((row) => row.daysPastDue > 0).length,
+      billCount: payablesAgeing.rows.filter((row) => row.daysPastDue > 0)
+        .length,
     },
     monthCompare: {
       currentLabel,
