@@ -28,7 +28,7 @@ import {
   paymentTermsOptions,
   stateLabel,
 } from '#/features/app-shell/data/india-masters.ts'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { usePartiesList } from '#/features/masters/use-master-data.ts'
 import { CreatePartyDialog } from '#/features/parties/components/create-party-dialog.tsx'
 import { useTRPC } from '#/integrations/trpc/react.ts'

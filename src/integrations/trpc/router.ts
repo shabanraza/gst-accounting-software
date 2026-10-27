@@ -73,9 +73,6 @@ export const trpcRouter = createTRPCRouter({
     memberships: membershipRepository,
     audit: auditLogRepository,
     godowns: godownRepository,
-    parties: partyRepository,
-    items: itemRepository,
-    stock: stockStore,
   }),
   accounting: createAccountingRouter(
     ledgerAccountRepository,

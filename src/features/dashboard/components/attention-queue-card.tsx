@@ -19,7 +19,7 @@ import {
   CardTitle,
 } from '#/components/ui/card.tsx'
 import { Skeleton } from '#/components/ui/skeleton.tsx'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { cn } from '#/lib/utils.ts'
 import type {
   AttentionItem,

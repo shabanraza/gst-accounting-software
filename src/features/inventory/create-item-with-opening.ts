@@ -1,5 +1,4 @@
 import { createItem } from '#/features/inventory/item-service.ts'
-import { DEFAULT_OPENING_STOCK_QUANTITY } from '#/features/inventory/opening-stock.ts'
 import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
 
 import type {
@@ -35,11 +34,10 @@ export async function createItemWithOpening(
     return { item, openingMovement: null }
   }
 
-  const trimmedQty = openingQuantity?.trim()
-  const qty =
-    trimmedQty && trimmedQty !== '0' && trimmedQty !== '0.00'
-      ? trimmedQty
-      : DEFAULT_OPENING_STOCK_QUANTITY
+  const qty = openingQuantity?.trim()
+  if (!qty || Number(qty) === 0) {
+    return { item, openingMovement: null }
+  }
 
   const openingMovement = await recordStockMovement(stockStore, stockStore, {
     companyId: item.companyId,

@@ -30,16 +30,12 @@ import {
   TableRow,
 } from '#/components/ui/table.tsx'
 import { ScrollableTabsList } from '#/components/ui/scrollable-tabs-list.tsx'
-import {
-  Tabs,
-  TabsContent,
-  TabsTrigger,
-} from '#/components/ui/tabs.tsx'
+import { Tabs, TabsContent, TabsTrigger } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { requireTrimmed, requireWorkspace } from '#/lib/form-validation.ts'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { Label } from '#/components/ui/label.tsx'
 import { currentGstMonthPeriod } from '#/lib/gst-period.ts'
 import { parseGstr1PortalJson } from '#/features/gst/gstr1-portal-parser.ts'
@@ -68,9 +64,9 @@ export function ReportsPanel() {
     defaultReconPeriod.periodEnd,
   )
   const [gstr2bText, setGstr2bText] = React.useState('')
-  const [gstr2bPortalRows, setGstr2bPortalRows] = React.useState<Array<Gstr2bRow>>(
-    [],
-  )
+  const [gstr2bPortalRows, setGstr2bPortalRows] = React.useState<
+    Array<Gstr2bRow>
+  >([])
   const [gstr2bReport, setGstr2bReport] =
     React.useState<Gstr2bReconciliationReport | null>(null)
   const [gstr3bWorking, setGstr3bWorking] =
@@ -410,7 +406,9 @@ export function ReportsPanel() {
                       </p>
                     </div>
                     <div className="rounded-lg bg-muted/40 p-3">
-                      <p className="text-xs text-muted-foreground">Mismatched</p>
+                      <p className="text-xs text-muted-foreground">
+                        Mismatched
+                      </p>
                       <p className="text-lg font-semibold">
                         {gstr1ReconReport.summary.mismatchedCount}
                       </p>
@@ -763,7 +761,9 @@ export function ReportsPanel() {
                           <TableCell>{row.documentNumber}</TableCell>
                           <TableCell>{row.daysPastDue}</TableCell>
                           <TableCell>
-                            <Badge variant={ageingBucketBadgeIntent(row.bucket)}>
+                            <Badge
+                              variant={ageingBucketBadgeIntent(row.bucket)}
+                            >
                               {AGEING_BUCKET_DISPLAY_LABEL[row.bucket]}
                             </Badge>
                           </TableCell>
@@ -810,7 +810,9 @@ export function ReportsPanel() {
                           <TableCell>{row.documentNumber}</TableCell>
                           <TableCell>{row.daysPastDue}</TableCell>
                           <TableCell>
-                            <Badge variant={ageingBucketBadgeIntent(row.bucket)}>
+                            <Badge
+                              variant={ageingBucketBadgeIntent(row.bucket)}
+                            >
                               {AGEING_BUCKET_DISPLAY_LABEL[row.bucket]}
                             </Badge>
                           </TableCell>
@@ -1151,7 +1153,9 @@ export function ReportsPanel() {
                       </p>
                     </div>
                     <div className="rounded-lg bg-muted/40 p-3">
-                      <p className="text-xs text-muted-foreground">Mismatched</p>
+                      <p className="text-xs text-muted-foreground">
+                        Mismatched
+                      </p>
                       <p className="text-lg font-semibold">
                         {gstr2bReport.summary.mismatchedCount}
                       </p>
@@ -1285,8 +1289,10 @@ export function ReportsPanel() {
                                 <Button
                                   onClick={() => {
                                     storeGstr2bPurchasePrefill({
-                                      supplierGstin: row.supplierGstin ?? undefined,
-                                      supplierBillNumber: row.supplierInvoiceNumber,
+                                      supplierGstin:
+                                        row.supplierGstin ?? undefined,
+                                      supplierBillNumber:
+                                        row.supplierInvoiceNumber,
                                       billDate: row.invoiceDate ?? undefined,
                                       taxableAmount:
                                         row.portalTaxableAmount ?? undefined,

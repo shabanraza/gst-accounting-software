@@ -7,7 +7,6 @@ import {
   assertTaxInvoicePartyAddress,
   buildInvoicePartySnapshot,
 } from '#/features/gst/tax-invoice-compliance.ts'
-import { ensureOpeningStockForItemIds } from '#/features/inventory/opening-stock.ts'
 import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
 
 import type { TaxMode } from '#/features/accounting/voucher-math.ts'
@@ -346,12 +345,6 @@ export async function postSalesInvoice(
       input.narration?.trim() || `Sales invoice ${input.invoiceNumber}`,
     voucherType: 'sales',
     lines: ledgerLines,
-  })
-
-  await ensureOpeningStockForItemIds(deps.items, deps.stock, {
-    companyId: input.companyId,
-    itemIds: lines.map((line) => line.itemId),
-    occurredOn: input.invoiceDate,
   })
 
   for (const line of lines) {

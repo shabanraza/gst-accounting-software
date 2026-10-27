@@ -43,9 +43,6 @@ const appRouter = () => {
       memberships,
       audit,
       godowns,
-      parties,
-      items,
-      stock,
     }),
   })
 }
@@ -68,8 +65,7 @@ describe('companies router', () => {
     expect(result.company.id).toBeTruthy()
     expect(result.membership.role).toBe('owner')
     expect(result.ledgerAccounts.length).toBeGreaterThan(0)
-    expect(result.starterData.parties.length).toBeGreaterThan(0)
-    expect(result.starterData.items.length).toBeGreaterThan(0)
+    expect(result).not.toHaveProperty('starterData')
   })
 
   test('lists only companies the signed-in user belongs to', async () => {

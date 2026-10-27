@@ -1,5 +1,5 @@
 import { cn } from '#/lib/utils.ts'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import {
   formatIndianDate,
   stateLabel,

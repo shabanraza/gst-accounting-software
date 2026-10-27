@@ -5,6 +5,7 @@ import { InMemoryLedgerAccountRepository } from '#/features/accounting/ledger-ac
 import { InMemoryLedgerPostingRepository } from '#/features/accounting/ledger-posting-store.ts'
 import { createItem } from '#/features/inventory/item-service.ts'
 import {
+  InsufficientStockError,
   getCurrentStock,
   recordStockMovement,
 } from '#/features/inventory/stock-movement-service.ts'
@@ -133,6 +134,60 @@ async function seedSalesContext() {
 }
 
 describe('postSalesInvoice', () => {
+  test('rejects selling an item with no stock instead of inventing opening stock', async () => {
+    const context = await seedSalesContext()
+    const unstocked = await createItem(context.items, {
+      companyId: context.companyId,
+      name: 'Silk Blend',
+      hsnCode: '5007',
+      gstRate: '5.00',
+      baseUnit: 'meter',
+      purchaseRate: '200.00',
+      saleRate: '260.00',
+      tracksInventory: true,
+    })
+
+    await expect(
+      postSalesInvoice(
+        {
+          invoices: context.invoices,
+          posting: context.ledgerPosting,
+          stock: context.stock,
+          items: context.items,
+          parties: context.parties,
+        },
+        {
+          companyId: context.companyId,
+          companyStateCode: '27',
+          customerId: context.customer.id,
+          customerStateCode: '27',
+          invoiceNumber: 'INV-2001',
+          invoiceDate: '2026-07-11',
+          paymentMode: 'cash',
+          salesAccountId: context.salesAccountId,
+          outputGstAccountId: context.outputGstAccountId,
+          receivableAccountId: context.receivableAccountId,
+          cashAccountId: context.cashAccountId,
+          lines: [
+            {
+              itemId: unstocked.id,
+              description: 'Silk Blend',
+              quantity: '5',
+              unit: 'meter',
+              rate: '260.00',
+              gstRate: '5.00',
+            },
+          ],
+        },
+      ),
+    ).rejects.toBeInstanceOf(InsufficientStockError)
+
+    const movements = await context.stock.listByCompanyId(context.companyId)
+    expect(
+      movements.filter((movement) => movement.itemId === unstocked.id),
+    ).toEqual([])
+  })
+
   test('posts credit sales invoice for 20 meters at Rs. 120 with 5% GST', async () => {
     const context = await seedSalesContext()
 

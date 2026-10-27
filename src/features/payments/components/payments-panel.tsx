@@ -43,7 +43,7 @@ import { ScrollableTabsList } from '#/components/ui/scrollable-tabs-list.tsx'
 import { Tabs, TabsTrigger } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import {
   requireAmountNotExceeding,
@@ -159,7 +159,11 @@ export function PaymentsPanel() {
           queryClient.setQueryData(queryKey, (rows) =>
             rows?.map((row) =>
               row.id === selectedDocumentId
-                ? { ...row, outstandingAmount: nextOutstanding, paymentStatus: nextStatus }
+                ? {
+                    ...row,
+                    outstandingAmount: nextOutstanding,
+                    paymentStatus: nextStatus,
+                  }
                 : row,
             ),
           )
@@ -188,7 +192,11 @@ export function PaymentsPanel() {
           queryClient.setQueryData(queryKey, (rows) =>
             rows?.map((row) =>
               row.id === selectedDocumentId
-                ? { ...row, outstandingAmount: nextOutstanding, paymentStatus: nextStatus }
+                ? {
+                    ...row,
+                    outstandingAmount: nextOutstanding,
+                    paymentStatus: nextStatus,
+                  }
                 : row,
             ),
           )

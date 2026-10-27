@@ -167,8 +167,17 @@ export async function postPurchaseBill(
     throw new DuplicateSupplierBillError(input.supplierBillNumber)
   }
 
+  if (!deps.parties) {
+    throw new Error('Party repository is required to post purchase bills')
+  }
+
+  const supplier = await deps.parties.findById(input.supplierId)
+  if (!supplier) {
+    throw new Error(`Supplier not found: ${input.supplierId}`)
+  }
+
   const taxMode = input.taxMode ?? 'exclusive'
-  const partyStateCode = input.supplierStateCode ?? '24'
+  const partyStateCode = input.supplierStateCode ?? supplier.stateCode
   let taxableTotal = new Decimal(0)
   let gstTotal = new Decimal(0)
 
@@ -221,15 +230,6 @@ export async function postPurchaseBill(
     city: input.companyCity,
     pincode: input.companyPincode,
   })
-
-  if (!deps.parties) {
-    throw new Error('Party repository is required to post purchase bills')
-  }
-
-  const supplier = await deps.parties.findById(input.supplierId)
-  if (!supplier) {
-    throw new Error(`Supplier not found: ${input.supplierId}`)
-  }
 
   const partySnapshot = buildInvoicePartySnapshot(supplier)
   assertTaxInvoicePartyAddress({

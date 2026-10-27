@@ -90,26 +90,31 @@ describe('createItemWithOpening', () => {
     expect(await getCurrentStock(stock, 'company-1', result.item.id)).toBe('50')
   })
 
-  test('defaults opening stock for inventory items without qty', async () => {
-    const items = new InMemoryItemRepository()
-    const stock = new InMemoryStockStore()
+  test.each([undefined, '', '0', '0.00'])(
+    'records no opening stock when opening qty is %j',
+    async (openingQuantity) => {
+      const items = new InMemoryItemRepository()
+      const stock = new InMemoryStockStore()
 
-    const result = await createItemWithOpening(items, stock, {
-      companyId: 'company-1',
-      name: 'Cotton Fabric',
-      hsnCode: '5208',
-      gstRate: '5.00',
-      baseUnit: 'Meter',
-      purchaseRate: '80.00',
-      saleRate: '120.00',
-      tracksInventory: true,
-    })
+      const result = await createItemWithOpening(items, stock, {
+        companyId: 'company-1',
+        name: 'Cotton Fabric',
+        hsnCode: '5208',
+        gstRate: '5.00',
+        baseUnit: 'Meter',
+        purchaseRate: '80.00',
+        saleRate: '120.00',
+        tracksInventory: true,
+        openingQuantity,
+      })
 
-    expect(result.openingMovement?.movementType).toBe('opening')
-    expect(await getCurrentStock(stock, 'company-1', result.item.id)).toBe(
-      '100',
-    )
-  })
+      expect(result.openingMovement).toBeNull()
+      expect(await stock.listByCompanyId('company-1')).toEqual([])
+      expect(await getCurrentStock(stock, 'company-1', result.item.id)).toBe(
+        '0',
+      )
+    },
+  )
 
   test('skips opening movement for service items', async () => {
     const items = new InMemoryItemRepository()

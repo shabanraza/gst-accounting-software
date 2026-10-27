@@ -33,7 +33,7 @@ import {
 } from '#/components/ui/table.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { requireSelection, requireWorkspace } from '#/lib/form-validation.ts'
 import { workflowStatusBadgeIntent } from '#/lib/badge-intent.ts'

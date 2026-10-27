@@ -1,7 +1,6 @@
 import { z } from 'zod'
 
 import { recordSalesSummary } from '#/features/dashboard/dashboard-summary-service.ts'
-import { ensureInventoryOpeningStock } from '#/features/inventory/opening-stock.ts'
 import {
   cancelSalesInvoice,
   postSalesInvoice,
@@ -132,11 +131,6 @@ export const createSalesRouter = (
       .input(postSalesInvoiceInputSchema)
       .mutation(({ input }) =>
         transaction(async (tx) => {
-          await ensureInventoryOpeningStock(tx.items, tx.stock, {
-            companyId: input.companyId,
-            occurredOn: input.invoiceDate,
-          })
-
           const invoice = await postSalesInvoice(tx, input)
           const stockOutQuantity = invoice.lines
             .reduce((sum, line) => sum + Number(line.quantity), 0)

@@ -33,7 +33,7 @@ import {
 } from '#/components/ui/table.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { requireWorkspace } from '#/lib/form-validation.ts'
 import { localCalendarDate } from '#/lib/calendar-date.ts'
@@ -87,8 +87,7 @@ export function BankReconciliationPanel() {
   }, [bankAccounts, ledgerAccountId])
 
   const resolvedCompanyId = companyId ?? ''
-  const queryEnabled =
-    Boolean(companyId) && isReady && Boolean(ledgerAccountId)
+  const queryEnabled = Boolean(companyId) && isReady && Boolean(ledgerAccountId)
 
   const reconciliationQuery = useQuery({
     ...trpc.banking.getReconciliation.queryOptions({
@@ -223,10 +222,7 @@ export function BankReconciliationPanel() {
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label>Period from</Label>
-                <DatePicker
-                  onChange={setPeriodStart}
-                  value={periodStart}
-                />
+                <DatePicker onChange={setPeriodStart} value={periodStart} />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label>Period to</Label>
@@ -344,9 +340,7 @@ export function BankReconciliationPanel() {
                           {row.bookNarration ?? '—'}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {statementAmount
-                            ? formatInr(statementAmount)
-                            : '—'}
+                          {statementAmount ? formatInr(statementAmount) : '—'}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {bookAmount ? formatInr(bookAmount) : '—'}

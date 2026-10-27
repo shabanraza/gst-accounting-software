@@ -40,11 +40,7 @@ import {
   stateLabel,
   uqcForUnit,
 } from '#/features/app-shell/data/india-masters.ts'
-import {
-  COMPANY_STATE_CODE,
-  formatInr,
-  godowns as demoGodowns,
-} from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import {
   computeVoucherLine,
   computeVoucherTotals,
@@ -152,8 +148,7 @@ export function VoucherEntryPage({
     godowns,
     isReady,
   } = useWorkspace()
-  const godownNames =
-    godowns.length > 0 ? godowns.map((entry) => entry.name) : demoGodowns
+  const godownNames = godowns.map((entry) => entry.name)
   const seriesOptions = isSales ? salesSeriesOptions : purchaseSeriesOptions
 
   const partiesQuery = usePartiesList()
@@ -190,9 +185,9 @@ export function VoucherEntryPage({
   const [taxMode, setTaxMode] = React.useState<TaxMode>('exclusive')
   const [partyId, setPartyId] = React.useState('')
   const [placeOfSupply, setPlaceOfSupply] = React.useState(
-    company?.stateCode ?? COMPANY_STATE_CODE,
+    company?.stateCode ?? '',
   )
-  const [godown, setGodown] = React.useState<string>(godownNames[0])
+  const [godown, setGodown] = React.useState<string>(godownNames[0] ?? '')
   const [paymentMode, setPaymentMode] = React.useState<'credit' | 'cash'>(
     'credit',
   )
@@ -209,7 +204,7 @@ export function VoucherEntryPage({
   const [roundOff, setRoundOff] = React.useState('0.00')
   const [billDiscount, setBillDiscount] = React.useState('0.00')
   const [lines, setLines] = React.useState<Array<VoucherLineDraft>>(() =>
-    createEmptyVoucherLines(1, godownNames[0]),
+    createEmptyVoucherLines(1, godownNames[0] ?? ''),
   )
   const [priceListRates, setPriceListRates] = React.useState<
     Record<string, string>
@@ -226,10 +221,7 @@ export function VoucherEntryPage({
   >(null)
   const formRef = React.useRef<HTMLFormElement>(null)
   const activeRowIndexRef = React.useRef(0)
-  const companyState = resolveStateCode(
-    company?.stateCode,
-    COMPANY_STATE_CODE,
-  )
+  const companyState = resolveStateCode(company?.stateCode)
   const party = parties.find((item) => item.id === partyId)
   const { recentIds, rememberParty } = useRecentParties(
     companyId,
@@ -247,7 +239,6 @@ export function VoucherEntryPage({
         selectedPlaceOfSupply: '',
         partyStateCode,
         companyStateCode: companyState,
-        fallbackStateCode: COMPANY_STATE_CODE,
       }),
     )
   }
@@ -634,10 +625,7 @@ export function VoucherEntryPage({
       return
     }
 
-    const companyStateCode = resolveStateCode(
-      company.stateCode,
-      COMPANY_STATE_CODE,
-    )
+    const companyStateCode = resolveStateCode(company.stateCode)
     if (!isValidStateCode(companyStateCode)) {
       reportSaveError(
         'Set a valid company state code in Company settings before posting.',
@@ -650,7 +638,6 @@ export function VoucherEntryPage({
       selectedPlaceOfSupply: placeOfSupply,
       partyStateCode: party.stateCode,
       companyStateCode,
-      fallbackStateCode: COMPANY_STATE_CODE,
     })
     if (!isValidStateCode(resolvedPlaceOfSupply)) {
       reportSaveError(
@@ -700,7 +687,9 @@ export function VoucherEntryPage({
         )
         if (!isValidStateCode(gstPartyState)) {
           reportSaveError(
-            'Customer state is missing. Update the customer master or place of supply.',
+            region === 'central'
+              ? 'Inter-state (IGST) sale needs a place of supply outside your company state.'
+              : 'Customer state is missing. Update the customer master or place of supply.',
           )
           return
         }
@@ -773,6 +762,14 @@ export function VoucherEntryPage({
           resolvedPlaceOfSupply,
           companyStateCode,
         )
+        if (!isValidStateCode(gstPartyState)) {
+          reportSaveError(
+            region === 'central'
+              ? 'Inter-state (IGST) purchase needs a supplier state outside your company state.'
+              : 'Supplier state is missing. Update the supplier master.',
+          )
+          return
+        }
         const bill = await postPurchase.mutateAsync({
           companyId,
           companyStateCode,
@@ -1813,7 +1810,11 @@ export function VoucherEntryPage({
                 {formatInr(totals.grandTotal)}
               </span>
             </div>
-            <Button className="w-full sm:w-auto" disabled={saving} type="submit">
+            <Button
+              className="w-full sm:w-auto"
+              disabled={saving}
+              type="submit"
+            >
               {saving ? 'Saving…' : 'Save bill'}
             </Button>
           </div>
