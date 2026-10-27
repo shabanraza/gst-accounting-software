@@ -49,30 +49,15 @@ function SettingsRoute() {
 
   return (
     <WorkspacePage
-      description="Company preferences, invoice series, roles, and audit controls."
+      description="Company profile, backup, team and audit log."
       title="Settings"
     >
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Invoice series</CardTitle>
-            <CardDescription>
-              Safe sequences by voucher type and financial year are ready in the
-              domain layer.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Sales/purchase vouchers allocate numbers on save (series + padded
-            sequence). Attachments store company-scoped metadata; R2 binary
-            storage comes next.
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
             <CardTitle className="text-base">Backup export</CardTitle>
             <CardDescription>
-              Download trial balance, sales, and purchases as JSON (Phase 7
-              stub).
+              Download trial balance, sales, and purchases as JSON.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -85,17 +70,6 @@ function SettingsRoute() {
               <DownloadIcon data-icon="inline-start" />
               Download company backup
             </Button>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Document storage</CardTitle>
-            <CardDescription>
-              Bill attachments use an object-storage adapter (R2 next).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Metadata is company-scoped; files stay outside the database.
           </CardContent>
         </Card>
         <Card>
