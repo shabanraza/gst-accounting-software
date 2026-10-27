@@ -98,6 +98,7 @@ async function seedPurchaseContext() {
     name: 'Textile Mills Ltd',
     partyType: 'supplier',
     gstin: '24AABCU9603R1ZM',
+    billingAddress: '12 Market Road, Surat',
     stateCode: '24',
     creditLimit: null,
     paymentTermsDays: 15,
@@ -128,6 +129,8 @@ async function seedPurchaseContext() {
     ledgerPosting,
     stock,
     bills,
+    items,
+    parties,
   }
 }
 
@@ -140,6 +143,8 @@ describe('postPurchaseBill', () => {
         bills: context.bills,
         posting: context.ledgerPosting,
         stock: context.stock,
+        items: context.items,
+        parties: context.parties,
       },
       {
         companyId: context.companyId,
@@ -222,6 +227,8 @@ describe('postPurchaseBill', () => {
         bills: context.bills,
         posting: context.ledgerPosting,
         stock: context.stock,
+        items: context.items,
+        parties: context.parties,
       },
       input,
     )
@@ -232,6 +239,8 @@ describe('postPurchaseBill', () => {
           bills: context.bills,
           posting: context.ledgerPosting,
           stock: context.stock,
+          items: context.items,
+          parties: context.parties,
         },
         input,
       ),

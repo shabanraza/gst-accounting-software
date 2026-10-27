@@ -86,6 +86,7 @@ async function seedSalesContext() {
     name: 'Noor Retailers',
     partyType: 'customer',
     gstin: '27AABCU9603R1ZM',
+    billingAddress: '12 Market Road, Surat',
     stateCode: '27',
     creditLimit: '100000.00',
     paymentTermsDays: 30,
