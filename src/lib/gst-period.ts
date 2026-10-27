@@ -13,6 +13,16 @@ export function currentGstMonthPeriod(from = new Date()) {
   return {
     periodStart: gstMonthStart(year, month),
     periodEnd: gstMonthEnd(year, month),
-    label: from.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }),
+    label: from.toLocaleDateString('en-IN', {
+      month: 'short',
+      year: 'numeric',
+    }),
   }
+}
+
+/** Indian financial year (April–March) containing the given date. */
+export function currentFinancialYearStart(from = new Date()) {
+  const year =
+    from.getMonth() >= 3 ? from.getFullYear() : from.getFullYear() - 1
+  return `${year}-04-01`
 }
