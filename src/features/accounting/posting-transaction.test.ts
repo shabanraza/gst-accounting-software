@@ -21,6 +21,11 @@ import {
   InMemorySalesInvoiceRepository,
 } from '#/features/sales/sales-invoice-store.ts'
 import { createSalesRouter } from '#/features/sales/sales-router.ts'
+import { setupDefaultChartOfAccounts } from '#/features/accounting/chart-of-accounts.ts'
+import { InMemoryLedgerAccountRepository } from '#/features/accounting/ledger-account-store.ts'
+import { createOcrDraft } from '#/features/ocr/ocr-draft-service.ts'
+import { InMemoryOcrDraftRepository } from '#/features/ocr/ocr-draft-store.ts'
+import { createOcrRouter } from '#/features/ocr/ocr-router.ts'
 import { createTRPCRouter } from '#/integrations/trpc/init.ts'
 
 import type { AppDatabase } from '#/db/client.ts'
@@ -28,6 +33,7 @@ import type {
   PostingRepositories,
   PostingTransaction,
 } from '#/features/accounting/posting-transaction.ts'
+import type { DocumentAttachmentRepository } from '#/features/documents/document-attachment-service.ts'
 import type { TRPCContext } from '#/integrations/trpc/init.ts'
 
 function inMemoryRepositories(): PostingRepositories {
@@ -51,6 +57,7 @@ function trippedRepositories(marker: string): PostingRepositories {
   repositories.bills.findById = trip
   repositories.bills.findBySupplierBillNumber = trip
   repositories.parties.findById = trip
+  repositories.parties.listByCompanyId = trip
   return repositories
 }
 
@@ -275,5 +282,49 @@ describe('posting routers', () => {
       }),
     ).rejects.toThrow('used transaction repositories')
     expect(transactionCalls).toBe(2)
+  })
+
+  test('ocr confirm posts inside one posting transaction', async () => {
+    const drafts = new InMemoryOcrDraftRepository()
+    const attachments = {
+      findById: async () => ({ companyId }),
+    } as unknown as DocumentAttachmentRepository
+    const ledgers = new InMemoryLedgerAccountRepository()
+    const accounts = await setupDefaultChartOfAccounts(ledgers, {
+      companyId,
+      businessType: 'wholesale',
+    })
+    const accountOf = (key: string) =>
+      accounts.find((account) => account.systemKey === key)!.id
+    const draft = await createOcrDraft(drafts, attachments, {
+      companyId,
+      attachmentId: crypto.randomUUID(),
+      fields: {
+        supplierName: { value: 'Textile Mills', confidence: 0.9 },
+        supplierGstin: { value: '24AABCU9603R1ZM', confidence: 0.9 },
+        billNumber: { value: 'SUP-1', confidence: 0.9 },
+        billDate: { value: '2026-07-11', confidence: 0.9 },
+        taxableAmount: { value: '100.00', confidence: 0.9 },
+        gstAmount: { value: '5.00', confidence: 0.9 },
+        totalAmount: { value: '105.00', confidence: 0.9 },
+      },
+    })
+    const ocr = createTRPCRouter({
+      ocr: createOcrRouter(drafts, attachments, ledgers, transaction),
+    }).createCaller(context)
+
+    await expect(
+      ocr.ocr.confirm({
+        companyId,
+        draftId: draft.id,
+        companyStateCode: '27',
+        financialYearStart: '2026-04-01',
+        purchaseAccountId: accountOf('purchase'),
+        inputGstAccountId: accountOf('input_gst'),
+        payableAccountId: accountOf('supplier_payable'),
+        stockAccountId: accountOf('stock_in_hand'),
+      }),
+    ).rejects.toThrow('used transaction repositories')
+    expect(transactionCalls).toBe(1)
   })
 })
