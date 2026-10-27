@@ -1,41 +1,9 @@
 import { describe, expect, test } from 'vitest'
 
 import { nextDocumentNumber } from '#/features/documents/document-sequence-service.ts'
-import type {
-  DocumentSequenceRecord,
-  DocumentSequenceRepository,
-} from '#/features/documents/document-sequence-service.ts'
+import { InMemoryDocumentSequenceRepository } from '#/features/documents/document-sequence-store.ts'
 
-class InMemoryDocumentSequenceRepository implements DocumentSequenceRepository {
-  private sequences: Array<DocumentSequenceRecord> = []
-
-  async findForUpdate(input: {
-    companyId: string
-    financialYearId: string
-    voucherType: string
-    series: string
-  }) {
-    return (
-      this.sequences.find(
-        (sequence) =>
-          sequence.companyId === input.companyId &&
-          sequence.financialYearId === input.financialYearId &&
-          sequence.voucherType === input.voucherType &&
-          sequence.series === input.series,
-      ) ?? null
-    )
-  }
-
-  async save(sequence: DocumentSequenceRecord) {
-    const index = this.sequences.findIndex((item) => item.id === sequence.id)
-    if (index >= 0) {
-      this.sequences[index] = sequence
-    } else {
-      this.sequences.push(sequence)
-    }
-    return sequence
-  }
-}
+import type { DocumentSequenceRepository } from '#/features/documents/document-sequence-service.ts'
 
 describe('nextDocumentNumber', () => {
   test('allocates safe sequential invoice numbers without COUNT(*)', async () => {
@@ -88,5 +56,34 @@ describe('nextDocumentNumber', () => {
     expect(sales).toBe('INV-1')
     expect(purchase).toBe('PUR-1')
     expect(otherCompany).toBe('INV-1')
+  })
+
+  test('reserves each number with one atomic allocation call', async () => {
+    const allocations: Array<string> = []
+    let next = 7
+    const repository: DocumentSequenceRepository = {
+      allocateNext: async (input) => {
+        allocations.push(input.series)
+        return next++
+      },
+    }
+
+    const [first, second] = await Promise.all([
+      nextDocumentNumber(repository, {
+        companyId: 'company-1',
+        financialYearId: 'fy-1',
+        voucherType: 'sales_invoice',
+        series: 'INV',
+      }),
+      nextDocumentNumber(repository, {
+        companyId: 'company-1',
+        financialYearId: 'fy-1',
+        voucherType: 'sales_invoice',
+        series: 'INV',
+      }),
+    ])
+
+    expect(allocations).toEqual(['INV', 'INV'])
+    expect([first, second]).toEqual(['INV-7', 'INV-8'])
   })
 })

@@ -5,6 +5,7 @@ import { auditLogRepository } from '#/features/audit/audit-store.ts'
 import { createAccountingRouter } from '#/features/accounting/accounting-router.ts'
 import { ledgerAccountRepository } from '#/features/accounting/ledger-account-store.ts'
 import { ledgerPostingRepository } from '#/features/accounting/ledger-posting-store.ts'
+import { createPostingTransaction } from '#/features/accounting/posting-transaction.ts'
 import { createCompaniesRouter } from '#/features/companies/company-router.ts'
 import { companyRepository } from '#/features/companies/company-store.ts'
 import { createFinancialYearRepository } from '#/features/companies/financial-year-store.ts'
@@ -50,6 +51,15 @@ import { createTRPCRouter, publicProcedure } from './init'
 
 const financialYearRepository = createFinancialYearRepository()
 const membershipRepository = createMembershipRepository()
+const postingTransaction = createPostingTransaction({
+  invoices: salesInvoiceRepository,
+  bills: purchaseBillRepository,
+  posting: ledgerPostingRepository,
+  stock: stockStore,
+  items: itemRepository,
+  parties: partyRepository,
+  dashboard: dashboardSummaryRepository,
+})
 
 export const trpcRouter = createTRPCRouter({
   health: {
@@ -78,14 +88,7 @@ export const trpcRouter = createTRPCRouter({
     godownRepository,
     priceListRepository,
   ),
-  purchases: createPurchasesRouter(
-    purchaseBillRepository,
-    ledgerPostingRepository,
-    stockStore,
-    dashboardSummaryRepository,
-    itemRepository,
-    partyRepository,
-  ),
+  purchases: createPurchasesRouter(purchaseBillRepository, postingTransaction),
   purchaseOrders: createPurchaseOrdersRouter(purchaseOrderRepository),
   purchaseGrns: createGrnRouter(
     grnRepository,
@@ -93,19 +96,8 @@ export const trpcRouter = createTRPCRouter({
     stockStore,
     itemRepository,
   ),
-  sales: createSalesRouter(
-    salesInvoiceRepository,
-    ledgerPostingRepository,
-    stockStore,
-    dashboardSummaryRepository,
-    partyRepository,
-    itemRepository,
-  ),
-  payments: createPaymentsRouter(
-    salesInvoiceRepository,
-    purchaseBillRepository,
-    ledgerPostingRepository,
-  ),
+  sales: createSalesRouter(salesInvoiceRepository, postingTransaction),
+  payments: createPaymentsRouter(postingTransaction),
   banking: createBankingRouter(
     bankReconciliationRepository,
     ledgerPostingRepository,

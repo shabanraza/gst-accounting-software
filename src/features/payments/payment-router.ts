@@ -7,9 +7,7 @@ import {
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
-import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
-import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
-import type { SalesInvoiceRepository } from '#/features/sales/sales-invoice-service.ts'
+import type { PostingTransaction } from '#/features/accounting/posting-transaction.ts'
 
 const customerReceiptInputSchema = z.object({
   companyId: z.string().uuid(),
@@ -29,20 +27,16 @@ const supplierPaymentInputSchema = z.object({
   payableAccountId: z.string().uuid(),
 })
 
-export const createPaymentsRouter = (
-  invoices: SalesInvoiceRepository,
-  bills: PurchaseBillRepository,
-  posting: LedgerPostingRepository,
-) =>
+export const createPaymentsRouter = (transaction: PostingTransaction) =>
   ({
     allocateCustomerReceipt: capabilityProcedure('post_payment')
       .input(customerReceiptInputSchema)
-      .mutation(({ input }) => {
-        return allocateCustomerReceipt({ invoices, posting }, input)
-      }),
+      .mutation(({ input }) =>
+        transaction((tx) => allocateCustomerReceipt(tx, input)),
+      ),
     allocateSupplierPayment: capabilityProcedure('post_payment')
       .input(supplierPaymentInputSchema)
-      .mutation(({ input }) => {
-        return allocateSupplierPayment({ bills, posting }, input)
-      }),
+      .mutation(({ input }) =>
+        transaction((tx) => allocateSupplierPayment(tx, input)),
+      ),
   }) satisfies TRPCRouterRecord
