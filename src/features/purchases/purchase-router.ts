@@ -6,15 +6,8 @@ import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 import { TRPCError } from '@trpc/server'
 
 import type { TRPCRouterRecord } from '@trpc/server'
-import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
-import type { DashboardSummaryRepository } from '#/features/dashboard/dashboard-summary-service.ts'
-import type {
-  StockBalanceRepository,
-  StockMovementRepository,
-} from '#/features/inventory/stock-movement-service.ts'
+import type { PostingTransaction } from '#/features/accounting/posting-transaction.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
-import type { ItemRepository } from '#/features/inventory/item-service.ts'
-import type { PartyRepository } from '#/features/parties/party-service.ts'
 
 const lineSchema = z.object({
   itemId: z.string().uuid(),
@@ -87,11 +80,7 @@ const getPurchaseBillInputSchema = z.object({
 
 export const createPurchasesRouter = (
   bills: PurchaseBillRepository,
-  posting: LedgerPostingRepository,
-  stock: StockMovementRepository & StockBalanceRepository,
-  dashboard: DashboardSummaryRepository,
-  items: ItemRepository,
-  parties: PartyRepository,
+  transaction: PostingTransaction,
 ) =>
   ({
     list: capabilityProcedure('view')
@@ -119,23 +108,22 @@ export const createPurchasesRouter = (
       }),
     postBill: capabilityProcedure('post_purchase')
       .input(postPurchaseBillInputSchema)
-      .mutation(async ({ input }) => {
-        const bill = await postPurchaseBill(
-          { bills, posting, stock, items, parties },
-          input,
-        )
-        const stockInQuantity = bill.lines
-          .reduce((sum, line) => sum + Number(line.quantity), 0)
-          .toFixed(0)
+      .mutation(({ input }) =>
+        transaction(async (tx) => {
+          const bill = await postPurchaseBill(tx, input)
+          const stockInQuantity = bill.lines
+            .reduce((sum, line) => sum + Number(line.quantity), 0)
+            .toFixed(0)
 
-        await recordPurchaseSummary(dashboard, {
-          companyId: bill.companyId,
-          summaryDate: bill.billDate,
-          purchaseAmount: bill.totalAmount,
-          payableAmount: bill.outstandingAmount,
-          stockInQuantity,
-        })
+          await recordPurchaseSummary(tx.dashboard, {
+            companyId: bill.companyId,
+            summaryDate: bill.billDate,
+            purchaseAmount: bill.totalAmount,
+            payableAmount: bill.outstandingAmount,
+            stockInQuantity,
+          })
 
-        return bill
-      }),
+          return bill
+        }),
+      ),
   }) satisfies TRPCRouterRecord

@@ -45,6 +45,7 @@ async function seedReturnsContext() {
     name: 'Noor Retailers',
     partyType: 'customer',
     gstin: '27AABCU9603R1ZM',
+    billingAddress: '12 Market Road, Surat',
     stateCode: '27',
     creditLimit: null,
     paymentTermsDays: 30,
@@ -57,6 +58,7 @@ async function seedReturnsContext() {
     name: 'Textile Mills Ltd',
     partyType: 'supplier',
     gstin: '24AABCU9603R1ZM',
+    billingAddress: '12 Market Road, Surat',
     stateCode: '24',
     creditLimit: null,
     paymentTermsDays: 15,
@@ -87,7 +89,7 @@ async function seedReturnsContext() {
   })
 
   const invoice = await postSalesInvoice(
-    { invoices, posting: ledgerPosting, stock, items },
+    { invoices, posting: ledgerPosting, stock, items, parties },
     {
       companyId,
       companyStateCode: '27',
@@ -114,7 +116,7 @@ async function seedReturnsContext() {
   )
 
   const bill = await postPurchaseBill(
-    { bills, posting: ledgerPosting, stock },
+    { bills, posting: ledgerPosting, stock, items, parties },
     {
       companyId,
       companyStateCode: '27',

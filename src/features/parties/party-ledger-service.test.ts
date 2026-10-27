@@ -27,7 +27,7 @@ class FakeInvoices implements SalesInvoiceRepository {
   }
   async listByCompanyId(_companyId: string, options?: { partyId?: string }) {
     return this.invoices.filter(
-      (invoice) => !options?.partyId || invoice.customerId === options.partyId,
+      (record) => !options?.partyId || record.customerId === options.partyId,
     )
   }
 }
@@ -48,7 +48,7 @@ class FakeBills implements PurchaseBillRepository {
   }
   async listByCompanyId(_companyId: string, options?: { partyId?: string }) {
     return this.bills.filter(
-      (bill) => !options?.partyId || bill.supplierId === options.partyId,
+      (record) => !options?.partyId || record.supplierId === options.partyId,
     )
   }
 }

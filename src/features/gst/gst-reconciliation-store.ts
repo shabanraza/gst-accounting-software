@@ -17,14 +17,14 @@ export type Gstr2bItcDecisionRecord = {
 }
 
 export type GstReconciliationRepository = {
-  listGstr2bItcDecisions(
+  listGstr2bItcDecisions: (
     companyId: string,
     periodStart: string,
     periodEnd: string,
-  ): Promise<Array<Gstr2bItcDecisionRecord>>
-  setGstr2bItcDecision(
+  ) => Promise<Array<Gstr2bItcDecisionRecord>>
+  setGstr2bItcDecision: (
     decision: Gstr2bItcDecisionRecord,
-  ): Promise<Gstr2bItcDecisionRecord>
+  ) => Promise<Gstr2bItcDecisionRecord>
 }
 
 class InMemoryGstReconciliationRepository implements GstReconciliationRepository {

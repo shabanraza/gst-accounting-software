@@ -1,7 +1,12 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ClipboardListIcon, PackageCheckIcon, PlusIcon, Trash2Icon } from 'lucide-react'
+import {
+  ClipboardListIcon,
+  PackageCheckIcon,
+  PlusIcon,
+  Trash2Icon,
+} from 'lucide-react'
 
 import { toast } from 'sonner'
 
@@ -119,18 +124,15 @@ export function PurchaseOrdersPanel() {
         index === 0
           ? {
               ...line,
-              itemId: items[0]!.id,
-              rate: items[0]!.purchaseRate,
+              itemId: items[0].id,
+              rate: items[0].purchaseRate,
             }
           : line,
       )
     })
   }, [items])
 
-  function updateLine(
-    index: number,
-    patch: Partial<PurchaseOrderLineDraft>,
-  ) {
+  function updateLine(index: number, patch: Partial<PurchaseOrderLineDraft>) {
     setLines((current) =>
       current.map((line, lineIndex) =>
         lineIndex === index ? { ...line, ...patch } : line,
@@ -139,7 +141,7 @@ export function PurchaseOrdersPanel() {
   }
 
   function addLine() {
-    const nextItem = items[0]
+    const nextItem = items.at(0)
     setLines((current) => [
       ...current,
       {
@@ -265,10 +267,7 @@ export function PurchaseOrdersPanel() {
                 />
               </FieldGroup>
               <FieldGroup label="Order date">
-                <DatePicker
-                  onChange={setOrderDate}
-                  value={orderDate}
-                />
+                <DatePicker onChange={setOrderDate} value={orderDate} />
               </FieldGroup>
               <FieldGroup label="Supplier">
                 <Select onValueChange={setSupplierId} value={supplierId}>

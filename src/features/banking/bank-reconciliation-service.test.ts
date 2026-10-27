@@ -9,8 +9,8 @@ import {
   DuplicateBankMatchError,
   importBankStatement,
   suggestBankMatches,
-  type BookBankLine,
 } from '#/features/banking/bank-reconciliation-service.ts'
+import type { BookBankLine } from '#/features/banking/bank-reconciliation-service.ts'
 import { InMemoryBankReconciliationRepository } from '#/features/banking/bank-reconciliation-store.ts'
 import { InMemoryLedgerAccountRepository } from '#/features/accounting/ledger-account-store.ts'
 import { InMemoryLedgerPostingRepository } from '#/features/accounting/ledger-posting-store.ts'
@@ -267,7 +267,7 @@ describe('bank reconciliation', () => {
     })
 
     const lines = await repository.listStatementLines(companyId, statement.id)
-    const statementLineId = lines[0]!.id
+    const statementLineId = lines[0].id
 
     await expect(
       confirmBankMatch(
@@ -350,7 +350,7 @@ describe('bank reconciliation', () => {
     })
 
     const lines = await repository.listStatementLines(companyId, statement.id)
-    const statementLineId = lines[0]!.id
+    const statementLineId = lines[0].id
     const deps = { repository, postings }
 
     await confirmBankMatch(deps, {
@@ -444,13 +444,13 @@ describe('bank reconciliation', () => {
       {
         companyId,
         ledgerAccountId: bankAccountId,
-        statementLineId: lines[0]!.id,
+        statementLineId: lines[0].id,
         ledgerEntryId: entryId,
         matchedByUserId: 'user-1',
       },
     )
 
-    expect(match.statementLineId).toBe(lines[0]!.id)
+    expect(match.statementLineId).toBe(lines[0].id)
     expect(match.ledgerEntryId).toBe(entryId)
   })
 })

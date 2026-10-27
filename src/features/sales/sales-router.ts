@@ -12,14 +12,7 @@ import { sendInvoiceEmail } from '#/lib/email.ts'
 import { TRPCError } from '@trpc/server'
 
 import type { TRPCRouterRecord } from '@trpc/server'
-import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
-import type { DashboardSummaryRepository } from '#/features/dashboard/dashboard-summary-service.ts'
-import type {
-  StockBalanceRepository,
-  StockMovementRepository,
-} from '#/features/inventory/stock-movement-service.ts'
-import type { ItemRepository } from '#/features/inventory/item-service.ts'
-import type { PartyRepository } from '#/features/parties/party-service.ts'
+import type { PostingTransaction } from '#/features/accounting/posting-transaction.ts'
 import type { SalesInvoiceRepository } from '#/features/sales/sales-invoice-service.ts'
 
 const lineSchema = z.object({
@@ -109,11 +102,7 @@ const emailInvoiceInputSchema = z.object({
 
 export const createSalesRouter = (
   invoices: SalesInvoiceRepository,
-  posting: LedgerPostingRepository,
-  stock: StockMovementRepository & StockBalanceRepository,
-  dashboard: DashboardSummaryRepository,
-  parties: PartyRepository,
-  items: ItemRepository,
+  transaction: PostingTransaction,
 ) =>
   ({
     list: capabilityProcedure('view')
@@ -141,38 +130,39 @@ export const createSalesRouter = (
       }),
     postInvoice: capabilityProcedure('post_sales')
       .input(postSalesInvoiceInputSchema)
-      .mutation(async ({ input }) => {
-        await ensureInventoryOpeningStock(items, stock, {
-          companyId: input.companyId,
-          occurredOn: input.invoiceDate,
-        })
+      .mutation(({ input }) =>
+        transaction(async (tx) => {
+          await ensureInventoryOpeningStock(tx.items, tx.stock, {
+            companyId: input.companyId,
+            occurredOn: input.invoiceDate,
+          })
 
-        const invoice = await postSalesInvoice(
-          { invoices, posting, stock, items, parties },
-          input,
-        )
-        const stockOutQuantity = invoice.lines
-          .reduce((sum, line) => sum + Number(line.quantity), 0)
-          .toFixed(0)
+          const invoice = await postSalesInvoice(tx, input)
+          const stockOutQuantity = invoice.lines
+            .reduce((sum, line) => sum + Number(line.quantity), 0)
+            .toFixed(0)
 
-        await recordSalesSummary(dashboard, {
-          companyId: invoice.companyId,
-          summaryDate: invoice.invoiceDate,
-          salesAmount: invoice.totalAmount,
-          receivableAmount: invoice.outstandingAmount,
-          stockOutQuantity,
-        })
+          await recordSalesSummary(tx.dashboard, {
+            companyId: invoice.companyId,
+            summaryDate: invoice.invoiceDate,
+            salesAmount: invoice.totalAmount,
+            receivableAmount: invoice.outstandingAmount,
+            stockOutQuantity,
+          })
 
-        return invoice
-      }),
+          return invoice
+        }),
+      ),
     cancelInvoice: capabilityProcedure('post_sales')
       .input(cancelSalesInvoiceInputSchema)
-      .mutation(({ input }) => {
-        return cancelSalesInvoice(
-          { invoices, posting, stock, items, dashboard, parties },
-          { companyId: input.companyId, invoiceId: input.id },
-        )
-      }),
+      .mutation(({ input }) =>
+        transaction((tx) =>
+          cancelSalesInvoice(tx, {
+            companyId: input.companyId,
+            invoiceId: input.id,
+          }),
+        ),
+      ),
     emailInvoice: capabilityProcedure('post_sales')
       .input(emailInvoiceInputSchema)
       .mutation(async ({ input }) => {

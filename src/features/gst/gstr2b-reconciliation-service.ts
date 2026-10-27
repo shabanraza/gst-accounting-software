@@ -19,11 +19,7 @@ export type Gstr2bRow = {
 }
 
 export type Gstr2bMatchStatus =
-  | 'matched'
-  | 'mismatched'
-  | 'missing_in_books'
-  | 'missing_in_2b'
-  | 'conflict'
+  'matched' | 'mismatched' | 'missing_in_books' | 'missing_in_2b' | 'conflict'
 
 export type Gstr2bReconciliationRow = {
   rowKey: string
@@ -126,9 +122,7 @@ function collectDuplicateKeys<T>(
   }
 
   return new Set(
-    [...counts.entries()]
-      .filter(([, count]) => count > 1)
-      .map(([key]) => key),
+    [...counts.entries()].filter(([, count]) => count > 1).map(([key]) => key),
   )
 }
 
@@ -170,7 +164,9 @@ function portalItcForRow(row: Gstr2bReconciliationRow) {
   return '0.00'
 }
 
-function buildSummary(rows: Array<Gstr2bReconciliationRow>): Gstr2bReconciliationSummary {
+function buildSummary(
+  rows: Array<Gstr2bReconciliationRow>,
+): Gstr2bReconciliationSummary {
   let booksItc = new Decimal(0)
   let portalItc = new Decimal(0)
   let acceptedItc = new Decimal(0)
@@ -246,7 +242,8 @@ function findMatchingPortalRows(
     }
 
     const sameInvoice =
-      normalizeInvoiceNumber(row.supplierInvoiceNumber) === normalizedBillInvoice
+      normalizeInvoiceNumber(row.supplierInvoiceNumber) ===
+      normalizedBillInvoice
     const portalGstin = normalizeGstin(row.supplierGstin)
     return sameInvoice && bookGstin === portalGstin
   })
@@ -314,7 +311,9 @@ export async function reconcileGstr2b(
       input.companyStateCode,
       party?.stateCode ?? input.companyStateCode,
     )
-    const normalizedBillInvoice = normalizeInvoiceNumber(bill.supplierBillNumber)
+    const normalizedBillInvoice = normalizeInvoiceNumber(
+      bill.supplierBillNumber,
+    )
     const billKey = buildGstr2bRowKey({
       supplierGstin,
       supplierInvoiceNumber: bill.supplierBillNumber,
@@ -394,7 +393,7 @@ export async function reconcileGstr2b(
       continue
     }
 
-    const portalRow = portalMatches[0]!
+    const portalRow = portalMatches[0]
     const portalKey = buildGstr2bRowKey({
       supplierGstin: portalRow.supplierGstin,
       supplierInvoiceNumber: portalRow.supplierInvoiceNumber,

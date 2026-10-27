@@ -125,8 +125,8 @@ export function SalesDocumentsPanel() {
         index === 0
           ? {
               ...line,
-              itemId: items[0]!.id,
-              rate: items[0]!.saleRate,
+              itemId: items[0].id,
+              rate: items[0].saleRate,
             }
           : line,
       )
@@ -142,7 +142,7 @@ export function SalesDocumentsPanel() {
   }
 
   function addLine() {
-    const nextItem = items[0]
+    const nextItem = items.at(0)
     setLines((current) => [
       ...current,
       {

@@ -27,27 +27,28 @@ const journal = JSON.parse(
 const pendingFromIdx = 3
 const toStamp = journal.entries.filter((entry) => entry.idx >= pendingFromIdx)
 
-const migrationChecks: Record<string, (client: pg.Client) => Promise<boolean>> =
-  {
-    '0007_party_invoice_fields': async (client) => {
-      const { rows } = await client.query(
-        `SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'companies' AND column_name = 'invoice_terms' LIMIT 1`,
-      )
-      return rows.length > 0
-    },
-    '0008_voucher_logistics': async (client) => {
-      const { rows } = await client.query(
-        `SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'sales_invoices' AND column_name = 'due_date' LIMIT 1`,
-      )
-      return rows.length > 0
-    },
-    '0009_e_invoice': async (client) => {
-      const { rows } = await client.query(
-        `SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'e_invoices' LIMIT 1`,
-      )
-      return rows.length > 0
-    },
-  }
+const migrationChecks: Partial<
+  Record<string, (client: pg.Client) => Promise<boolean>>
+> = {
+  '0007_party_invoice_fields': async (client) => {
+    const { rows } = await client.query(
+      `SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'companies' AND column_name = 'invoice_terms' LIMIT 1`,
+    )
+    return rows.length > 0
+  },
+  '0008_voucher_logistics': async (client) => {
+    const { rows } = await client.query(
+      `SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'sales_invoices' AND column_name = 'due_date' LIMIT 1`,
+    )
+    return rows.length > 0
+  },
+  '0009_e_invoice': async (client) => {
+    const { rows } = await client.query(
+      `SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'e_invoices' LIMIT 1`,
+    )
+    return rows.length > 0
+  },
+}
 
 const client = new pg.Client({ connectionString })
 

@@ -1,107 +1,68 @@
-import { and, eq } from 'drizzle-orm'
+import { sql } from 'drizzle-orm'
 
 import { getDb } from '#/db/client.ts'
 import * as schema from '#/db/schema.ts'
 
 import type { AppDatabase } from '#/db/client.ts'
 import type {
-  DocumentSequenceRecord,
   DocumentSequenceRepository,
+  DocumentSequenceScope,
 } from '#/features/documents/document-sequence-service.ts'
 
-export class InMemoryDocumentSequenceRepository implements DocumentSequenceRepository {
-  private sequences: Array<DocumentSequenceRecord> = []
-
-  async findForUpdate(input: {
-    companyId: string
-    financialYearId: string
-    voucherType: string
-    series: string
-  }) {
-    return (
-      this.sequences.find(
-        (sequence) =>
-          sequence.companyId === input.companyId &&
-          sequence.financialYearId === input.financialYearId &&
-          sequence.voucherType === input.voucherType &&
-          sequence.series === input.series,
-      ) ?? null
-    )
-  }
-
-  async save(sequence: DocumentSequenceRecord) {
-    const index = this.sequences.findIndex((item) => item.id === sequence.id)
-    if (index >= 0) {
-      this.sequences[index] = sequence
-    } else {
-      this.sequences.push(sequence)
-    }
-    return sequence
-  }
+function scopeKey(scope: DocumentSequenceScope) {
+  return [
+    scope.companyId,
+    scope.financialYearId,
+    scope.voucherType,
+    scope.series,
+  ].join('|')
 }
 
-type SequenceRow = typeof schema.documentSequences.$inferSelect
+export class InMemoryDocumentSequenceRepository implements DocumentSequenceRepository {
+  private nextNumbers = new Map<string, number>()
 
-function mapRowToRecord(row: SequenceRow): DocumentSequenceRecord {
-  return {
-    id: row.id,
-    companyId: row.companyId,
-    financialYearId: row.financialYearId,
-    voucherType: row.voucherType,
-    series: row.series,
-    nextNumber: row.nextNumber,
-    updatedAt: row.updatedAt,
+  async allocateNext(scope: DocumentSequenceScope) {
+    const key = scopeKey(scope)
+    const value = this.nextNumbers.get(key) ?? 1
+    this.nextNumbers.set(key, value + 1)
+    return value
   }
 }
 
 export class DrizzleDocumentSequenceRepository implements DocumentSequenceRepository {
   constructor(private readonly database: AppDatabase) {}
 
-  async findForUpdate(input: {
-    companyId: string
-    financialYearId: string
-    voucherType: string
-    series: string
-  }) {
-    const rows = await this.database
-      .select()
-      .from(schema.documentSequences)
-      .where(
-        and(
-          eq(schema.documentSequences.companyId, input.companyId),
-          eq(schema.documentSequences.financialYearId, input.financialYearId),
-          eq(schema.documentSequences.voucherType, input.voucherType),
-          eq(schema.documentSequences.series, input.series),
-        ),
-      )
-      .limit(1)
-
-    if (rows.length === 0) return null
-    return mapRowToRecord(rows[0])
-  }
-
-  async save(sequence: DocumentSequenceRecord) {
-    const [saved] = await this.database
+  /**
+   * One upsert statement: Postgres row-locks the scope row, so concurrent
+   * callers each get a distinct number (no SELECT-then-UPDATE race).
+   */
+  async allocateNext(scope: DocumentSequenceScope) {
+    const now = new Date()
+    const [row] = await this.database
       .insert(schema.documentSequences)
       .values({
-        id: sequence.id,
-        companyId: sequence.companyId,
-        financialYearId: sequence.financialYearId,
-        voucherType: sequence.voucherType,
-        series: sequence.series,
-        nextNumber: sequence.nextNumber,
-        updatedAt: sequence.updatedAt,
+        companyId: scope.companyId,
+        financialYearId: scope.financialYearId,
+        voucherType: scope.voucherType,
+        series: scope.series,
+        nextNumber: 2,
+        updatedAt: now,
       })
       .onConflictDoUpdate({
-        target: schema.documentSequences.id,
+        target: [
+          schema.documentSequences.companyId,
+          schema.documentSequences.financialYearId,
+          schema.documentSequences.voucherType,
+          schema.documentSequences.series,
+        ],
         set: {
-          nextNumber: sequence.nextNumber,
-          updatedAt: sequence.updatedAt,
+          nextNumber: sql.raw('"document_sequences"."next_number" + 1'),
+          updatedAt: now,
         },
       })
-      .returning()
+      .returning({ nextNumber: schema.documentSequences.nextNumber })
 
-    return mapRowToRecord(saved)
+    return row.nextNumber - 1
   }
 }
 

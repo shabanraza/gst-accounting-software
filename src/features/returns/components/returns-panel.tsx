@@ -25,7 +25,10 @@ import { ScrollableTabsList } from '#/components/ui/scrollable-tabs-list.tsx'
 import { Tabs, TabsTrigger } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import {
+  formatInr,
+  COMPANY_STATE_CODE,
+} from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import {
   requirePositiveQuantity,
@@ -34,7 +37,7 @@ import {
   requireWorkspace,
 } from '#/lib/form-validation.ts'
 import { resolveStateCode } from '#/features/accounting/voucher-math.ts'
-import { COMPANY_STATE_CODE } from '#/features/app-shell/data/voucher-demo-masters.ts'
+
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function ReturnsPanel() {
