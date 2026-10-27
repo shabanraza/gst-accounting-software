@@ -7,6 +7,7 @@ import {
   resetMembershipRepositoryForTests,
 } from '#/features/companies/membership-store.ts'
 import { InMemoryDashboardSummaryRepository } from '#/features/dashboard/dashboard-store.ts'
+import { InMemoryDocumentSequenceRepository } from '#/features/documents/document-sequence-store.ts'
 import {
   InMemoryItemRepository,
   InMemoryStockStore,
@@ -38,6 +39,7 @@ function inMemoryRepositories(): PostingRepositories {
     items: new InMemoryItemRepository(),
     parties: new InMemoryPartyRepository(),
     dashboard: new InMemoryDashboardSummaryRepository(),
+    sequences: new InMemoryDocumentSequenceRepository(),
   }
 }
 
@@ -65,19 +67,22 @@ describe('createPostingTransaction', () => {
   test('commits and closes the per-request database when work succeeds', async () => {
     const events: Array<string> = []
     const tx = {} as AppDatabase
-    const transaction = createPostingTransaction(inMemoryRepositories(), () => ({
-      database: {
-        transaction: async (work: (tx: AppDatabase) => Promise<unknown>) => {
-          events.push('begin')
-          const result = await work(tx)
-          events.push('commit')
-          return result
+    const transaction = createPostingTransaction(
+      inMemoryRepositories(),
+      () => ({
+        database: {
+          transaction: async (work: (tx: AppDatabase) => Promise<unknown>) => {
+            events.push('begin')
+            const result = await work(tx)
+            events.push('commit')
+            return result
+          },
+        } as unknown as AppDatabase,
+        close: async () => {
+          events.push('close')
         },
-      } as unknown as AppDatabase,
-      close: async () => {
-        events.push('close')
-      },
-    }))
+      }),
+    )
 
     const used = await transaction(async (repositories) => repositories)
 
@@ -87,22 +92,25 @@ describe('createPostingTransaction', () => {
 
   test('rolls back and still closes the database when work fails', async () => {
     const events: Array<string> = []
-    const transaction = createPostingTransaction(inMemoryRepositories(), () => ({
-      database: {
-        transaction: async (work: (tx: AppDatabase) => Promise<unknown>) => {
-          events.push('begin')
-          try {
-            return await work({} as AppDatabase)
-          } catch (error) {
-            events.push('rollback')
-            throw error
-          }
+    const transaction = createPostingTransaction(
+      inMemoryRepositories(),
+      () => ({
+        database: {
+          transaction: async (work: (tx: AppDatabase) => Promise<unknown>) => {
+            events.push('begin')
+            try {
+              return await work({} as AppDatabase)
+            } catch (error) {
+              events.push('rollback')
+              throw error
+            }
+          },
+        } as unknown as AppDatabase,
+        close: async () => {
+          events.push('close')
         },
-      } as unknown as AppDatabase,
-      close: async () => {
-        events.push('close')
-      },
-    }))
+      }),
+    )
 
     await expect(
       transaction(() => Promise.reject(new Error('stock write failed'))),
@@ -126,6 +134,7 @@ describe('posting routers', () => {
   let outer: PostingRepositories
   let transactionCalls: number
   let transaction: PostingTransaction
+  let scoped: PostingRepositories
 
   function caller() {
     const router = createTRPCRouter({
@@ -147,7 +156,7 @@ describe('posting routers', () => {
     })
     outer = trippedRepositories('used repositories outside the transaction')
     transactionCalls = 0
-    const scoped = trippedRepositories('used transaction repositories')
+    scoped = trippedRepositories('used transaction repositories')
     transaction = (work) => {
       transactionCalls += 1
       return work(scoped)
@@ -181,6 +190,39 @@ describe('posting routers', () => {
       }),
     ).rejects.toThrow('used transaction repositories')
     expect(transactionCalls).toBe(1)
+  })
+
+  test('sales postInvoice allocates the invoice number inside the transaction', async () => {
+    const financialYearId = crypto.randomUUID()
+    const scope = {
+      companyId,
+      financialYearId,
+      voucherType: 'sales',
+      series: 'INV',
+    }
+
+    await expect(
+      caller().sales.postInvoice({
+        companyId,
+        financialYearId,
+        series: 'INV',
+        companyStateCode: '27',
+        customerId: crypto.randomUUID(),
+        customerStateCode: '27',
+        invoiceDate: '2026-04-10',
+        paymentMode: 'credit',
+        salesAccountId: accountId,
+        outputGstAccountId: accountId,
+        receivableAccountId: accountId,
+        cashAccountId: accountId,
+        lines: [line],
+      }),
+    ).rejects.toThrow('used transaction repositories')
+
+    // The number came from the transaction's sequence store, so a database
+    // rollback of the failed post also returns the number: no gap.
+    expect(await scoped.sequences.allocateNext(scope)).toBe(2)
+    expect(await outer.sequences.allocateNext(scope)).toBe(1)
   })
 
   test('sales cancelInvoice writes inside one posting transaction', async () => {

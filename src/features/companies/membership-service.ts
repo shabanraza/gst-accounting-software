@@ -1,4 +1,5 @@
 import { DomainError } from '#/lib/domain-error.ts'
+
 export type CompanyRole =
   'owner' | 'admin' | 'accountant' | 'billing' | 'inventory' | 'readonly'
 

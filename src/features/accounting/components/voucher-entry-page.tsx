@@ -162,7 +162,6 @@ export function VoucherEntryPage({
   const markGrnConverted = useMutation(
     trpc.purchaseGrns.markConverted.mutationOptions(),
   )
-  const nextNumber = useMutation(trpc.documents.nextNumber.mutationOptions())
   const createAttachment = useMutation(
     trpc.documents.uploadAttachment.mutationOptions(),
   )
@@ -669,16 +668,12 @@ export function VoucherEntryPage({
     const stockAccountId = ledgerBySystemKey.stock_in_hand as string
     const cogsAccountId = ledgerBySystemKey.cogs
 
-    try {
-      const allocatedNumber = await nextNumber.mutateAsync({
-        companyId,
-        financialYearId: activeFinancialYearId ?? company.financialYearStart,
-        voucherType: isSales ? 'sales' : 'purchase',
-        series,
-        padLength: 4,
-      })
-      setVoucherNoPreview(allocatedNumber)
+    if (isSales && !activeFinancialYearId) {
+      reportSaveError('No active financial year. Set one in Company settings.')
+      return
+    }
 
+    try {
       if (isSales) {
         const gstPartyState = partyStateForRegion(
           region,
@@ -704,7 +699,8 @@ export function VoucherEntryPage({
           customerId: party.id,
           customerStateCode: gstPartyState,
           placeOfSupply: resolvedPlaceOfSupply,
-          invoiceNumber: allocatedNumber,
+          financialYearId: activeFinancialYearId ?? undefined,
+          series,
           invoiceDate: voucherDate,
           dueDate: dueDate || voucherDate,
           poReference,
@@ -747,6 +743,7 @@ export function VoucherEntryPage({
             queryKey: trpc.salesDocuments.list.queryKey({ companyId }),
           })
         }
+        setVoucherNoPreview(invoice.invoiceNumber)
         await queryClient.invalidateQueries({
           queryKey: trpc.sales.list.queryKey({ companyId }),
         })
@@ -873,8 +870,7 @@ export function VoucherEntryPage({
     description: `HSN ${entry.hsnCode} · ${entry.gstRate}% · ${entry.baseUnit}`,
   }))
 
-  const saving =
-    postSales.isPending || postPurchase.isPending || nextNumber.isPending
+  const saving = postSales.isPending || postPurchase.isPending
 
   const transportFilledCount = countFilled(
     poReference,

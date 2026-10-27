@@ -59,6 +59,7 @@ const postingTransaction = createPostingTransaction({
   items: itemRepository,
   parties: partyRepository,
   dashboard: dashboardSummaryRepository,
+  sequences: documentSequenceRepository,
 })
 
 export const trpcRouter = createTRPCRouter({

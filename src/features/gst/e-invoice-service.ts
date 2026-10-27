@@ -1,4 +1,5 @@
 import { DomainError } from '#/lib/domain-error.ts'
+
 export type EInvoiceRecord = {
   id: string
   companyId: string
