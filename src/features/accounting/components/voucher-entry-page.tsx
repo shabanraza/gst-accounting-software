@@ -453,8 +453,15 @@ export function VoucherEntryPage({
     salesDraftQuery.data,
   ])
 
+  const chargesGst = !isSales || !company || Boolean(company.gstin?.trim())
   const computedLines = lines.map((line) =>
-    computeVoucherLine(line, region, placeOfSupply, taxMode, companyState),
+    computeVoucherLine(
+      chargesGst ? line : { ...line, gstRate: '0.00' },
+      region,
+      placeOfSupply,
+      taxMode,
+      companyState,
+    ),
   )
   const totals = computeVoucherTotals(computedLines, {
     freight,

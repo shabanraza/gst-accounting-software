@@ -197,6 +197,62 @@ describe('postSalesInvoice', () => {
     expect(cashLine).toBeUndefined()
   })
 
+  test('charges no GST when the company is unregistered', async () => {
+    const context = await seedSalesContext()
+
+    const invoice = await postSalesInvoice(
+      {
+        invoices: context.invoices,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+        parties: context.parties,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        companyGstin: null,
+        customerId: context.customer.id,
+        customerStateCode: '27',
+        invoiceNumber: 'INV-1001',
+        invoiceDate: '2026-07-11',
+        paymentMode: 'credit',
+        taxMode: 'inclusive',
+        salesAccountId: context.salesAccountId,
+        outputGstAccountId: context.outputGstAccountId,
+        receivableAccountId: context.receivableAccountId,
+        cashAccountId: context.cashAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity: '20',
+            unit: 'meter',
+            rate: '120.00',
+            gstRate: '5.00',
+          },
+        ],
+      },
+    )
+
+    expect(invoice.taxableAmount).toBe('2400.00')
+    expect(invoice.totalGstAmount).toBe('0.00')
+    expect(invoice.totalAmount).toBe('2400.00')
+    expect(invoice.lines[0].gstRate).toBe('0.00')
+    expect(invoice.lines[0].gstAmount).toBe('0.00')
+
+    const entry = context.ledgerPosting.list()[0]
+    const salesLine = entry.lines.find(
+      (line) => line.ledgerAccountId === context.salesAccountId,
+    )
+    const gstLine = entry.lines.find(
+      (line) => line.ledgerAccountId === context.outputGstAccountId,
+    )
+
+    expect(salesLine?.credit).toBe('2400.00')
+    expect(gstLine?.credit ?? '0.00').toBe('0.00')
+  })
+
   test('posts cash sale without creating receivable', async () => {
     const context = await seedSalesContext()
 
