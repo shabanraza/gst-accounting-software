@@ -119,6 +119,8 @@ export interface PurchaseBillRepository {
   }) => Promise<PurchaseBillRecord | null>
   create: (bill: PurchaseBillRecord) => Promise<PurchaseBillRecord>
   findById: (id: string) => Promise<PurchaseBillRecord | null>
+  /** Row-locking read for read-modify-write inside a transaction. */
+  lockById?: (id: string) => Promise<PurchaseBillRecord | null>
   save: (bill: PurchaseBillRecord) => Promise<PurchaseBillRecord>
   listByCompanyId: (
     companyId: string,

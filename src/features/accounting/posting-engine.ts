@@ -39,6 +39,7 @@ export type LedgerEntryRecord = {
 export interface LedgerPostingRepository {
   createEntry: (entry: LedgerEntryRecord) => Promise<LedgerEntryRecord>
   listByCompanyId: (companyId: string) => Promise<Array<LedgerEntryRecord>>
+  findById?: (id: string) => Promise<LedgerEntryRecord | null>
   sumByAccount?: (
     companyId: string,
   ) => Promise<Map<string, { debit: string; credit: string }>>

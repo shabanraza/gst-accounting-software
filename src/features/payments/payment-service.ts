@@ -89,7 +89,9 @@ export async function allocateCustomerReceipt(
   deps: PaymentDependencies,
   input: CustomerReceiptInput,
 ): Promise<PaymentAllocationRecord> {
-  const invoice = await deps.invoices.findById(input.invoiceId)
+  const invoice = deps.invoices.lockById
+    ? await deps.invoices.lockById(input.invoiceId)
+    : await deps.invoices.findById(input.invoiceId)
 
   if (!invoice || invoice.companyId !== input.companyId) {
     throw new PaymentAllocationError('Sales invoice not found for company')
@@ -161,7 +163,9 @@ export async function allocateSupplierPayment(
   deps: SupplierPaymentDependencies,
   input: SupplierPaymentInput,
 ): Promise<PaymentAllocationRecord> {
-  const bill = await deps.bills.findById(input.purchaseBillId)
+  const bill = deps.bills.lockById
+    ? await deps.bills.lockById(input.purchaseBillId)
+    : await deps.bills.findById(input.purchaseBillId)
 
   if (!bill || bill.companyId !== input.companyId) {
     throw new PaymentAllocationError('Purchase bill not found for company')

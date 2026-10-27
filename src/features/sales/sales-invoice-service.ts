@@ -122,6 +122,8 @@ export type SalesInvoiceRecord = {
 export interface SalesInvoiceRepository {
   create: (invoice: SalesInvoiceRecord) => Promise<SalesInvoiceRecord>
   findById: (id: string) => Promise<SalesInvoiceRecord | null>
+  /** Row-locking read for read-modify-write inside a transaction. */
+  lockById?: (id: string) => Promise<SalesInvoiceRecord | null>
   save: (invoice: SalesInvoiceRecord) => Promise<SalesInvoiceRecord>
   listByCompanyId: (
     companyId: string,
@@ -429,7 +431,9 @@ export async function cancelSalesInvoice(
   deps: CancelSalesInvoiceDependencies,
   input: CancelSalesInvoiceInput,
 ): Promise<SalesInvoiceRecord> {
-  const invoice = await deps.invoices.findById(input.invoiceId)
+  const invoice = deps.invoices.lockById
+    ? await deps.invoices.lockById(input.invoiceId)
+    : await deps.invoices.findById(input.invoiceId)
 
   if (!invoice) {
     throw new InvoiceNotFoundError(input.invoiceId)
@@ -443,10 +447,11 @@ export async function cancelSalesInvoice(
     throw new InvoiceAlreadyCancelledError(invoice.invoiceNumber)
   }
 
-  const entries = await deps.posting.listByCompanyId(invoice.companyId)
-  const originalEntry = entries.find(
-    (entry) => entry.id === invoice.ledgerEntryId,
-  )
+  const originalEntry = deps.posting.findById
+    ? await deps.posting.findById(invoice.ledgerEntryId)
+    : (await deps.posting.listByCompanyId(invoice.companyId)).find(
+        (entry) => entry.id === invoice.ledgerEntryId,
+      )
 
   if (!originalEntry) {
     throw new Error(

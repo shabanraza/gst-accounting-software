@@ -227,6 +227,53 @@ async function seedPaymentContext() {
   }
 }
 
+describe('row locking', () => {
+  test('reads the invoice and bill with a row lock when the store supports it', async () => {
+    const context = await seedPaymentContext()
+    const locked: Array<string> = []
+    const invoices = Object.assign(context.invoices, {
+      lockById: async (id: string) => {
+        locked.push(`invoice:${id}`)
+        return context.invoices.findById(id)
+      },
+    })
+    const bills = Object.assign(context.bills, {
+      lockById: async (id: string) => {
+        locked.push(`bill:${id}`)
+        return context.bills.findById(id)
+      },
+    })
+
+    await allocateCustomerReceipt(
+      { invoices, posting: context.ledgerPosting },
+      {
+        companyId: context.companyId,
+        invoiceId: context.invoice.id,
+        amount: '10.00',
+        receiptDate: '2026-07-12',
+        cashAccountId: context.cashAccountId,
+        receivableAccountId: context.receivableAccountId,
+      },
+    )
+    await allocateSupplierPayment(
+      { bills, posting: context.ledgerPosting },
+      {
+        companyId: context.companyId,
+        purchaseBillId: context.bill.id,
+        amount: '10.00',
+        paymentDate: '2026-07-12',
+        cashAccountId: context.cashAccountId,
+        payableAccountId: context.payableAccountId,
+      },
+    )
+
+    expect(locked).toEqual([
+      `invoice:${context.invoice.id}`,
+      `bill:${context.bill.id}`,
+    ])
+  })
+})
+
 describe('allocateCustomerReceipt', () => {
   test('marks invoice Paid after full receipt allocation', async () => {
     const context = await seedPaymentContext()

@@ -7,10 +7,9 @@ import {
   documentSearchCondition,
   keysetBeforeCursorCondition,
   parseListCursor,
-  resolveListLimit
-  
+  resolveListLimit,
 } from '#/lib/list-query.ts'
-import type {ListQueryOptions} from '#/lib/list-query.ts';
+import type { ListQueryOptions } from '#/lib/list-query.ts'
 
 import type { AppDatabase } from '#/db/client.ts'
 import type { TaxMode } from '#/features/accounting/voucher-math.ts'
@@ -32,6 +31,10 @@ export class InMemorySalesInvoiceRepository implements SalesInvoiceRepository {
 
   async findById(id: string) {
     return this.invoices.find((invoice) => invoice.id === id) ?? null
+  }
+
+  async lockById(id: string) {
+    return this.findById(id)
   }
 
   async save(invoice: SalesInvoiceRecord) {
@@ -205,11 +208,21 @@ export class DrizzleSalesInvoiceRepository implements SalesInvoiceRepository {
   }
 
   async findById(id: string) {
-    const invoices = await this.database
+    return this.load(id, false)
+  }
+
+  /** Like findById, but row-locks the invoice until the transaction ends. */
+  async lockById(id: string) {
+    return this.load(id, true)
+  }
+
+  private async load(id: string, lock: boolean) {
+    const query = this.database
       .select()
       .from(schema.salesInvoices)
       .where(eq(schema.salesInvoices.id, id))
       .limit(1)
+    const invoices = await (lock ? query.for('update') : query)
 
     if (invoices.length === 0) {
       return null

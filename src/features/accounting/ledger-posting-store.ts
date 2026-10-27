@@ -18,6 +18,10 @@ export class InMemoryLedgerPostingRepository implements LedgerPostingRepository 
     return entry
   }
 
+  async findById(id: string) {
+    return this.entries.find((entry) => entry.id === id) ?? null
+  }
+
   async listByCompanyId(
     companyId: string,
     options?: { startDate?: string; endDate?: string },
@@ -118,6 +122,22 @@ export class DrizzleLedgerPostingRepository implements LedgerPostingRepository {
       .returning()
 
     return mapRowsToLedgerEntryRecord(createdEntry, createdLines)
+  }
+
+  async findById(id: string) {
+    const entries = await this.database
+      .select()
+      .from(schema.ledgerEntries)
+      .where(eq(schema.ledgerEntries.id, id))
+      .limit(1)
+    const entry = entries.at(0)
+    if (!entry) return null
+
+    const lines = await this.database
+      .select()
+      .from(schema.ledgerLines)
+      .where(eq(schema.ledgerLines.entryId, id))
+    return mapRowsToLedgerEntryRecord(entry, lines)
   }
 
   async listByCompanyId(
