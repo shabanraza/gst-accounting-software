@@ -19,6 +19,7 @@
     "dev:lan": "vite dev --port 3000 --host",
     "generate-routes": "tsr generate",
     "build": "vite build",
+    "check:bundle": "bun scripts/check-bundle-size.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "dev:mobile": "bun run --filter mobile web",
