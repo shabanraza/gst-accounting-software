@@ -23,6 +23,11 @@ export type PostPurchaseReturnInput = {
   purchaseAccountId: string
   inputGstAccountId: string
   payableAccountId: string
+  /**
+   * With it, returned stock leaves the books at moving-average cost and the
+   * gap to the return value goes to purchases.
+   */
+  stockAccountId?: string
   lines: Array<ReturnLineInput>
 }
 
@@ -77,34 +82,12 @@ export async function postPurchaseReturn(
   const totalAmount = taxableTotal.plus(gstTotal)
   const returnId = crypto.randomUUID()
 
-  const ledgerEntry = await postLedgerEntry(deps.posting, {
-    companyId: input.companyId,
-    entryDate: input.returnDate,
-    narration: `Purchase return for bill ${input.purchaseBillId}`,
-    voucherType: 'journal',
-    lines: [
-      {
-        ledgerAccountId: input.payableAccountId,
-        debit: formatMoney(totalAmount),
-        credit: '0.00',
-      },
-      {
-        ledgerAccountId: input.purchaseAccountId,
-        debit: '0.00',
-        credit: formatMoney(taxableTotal),
-      },
-      {
-        ledgerAccountId: input.inputGstAccountId,
-        debit: '0.00',
-        credit: formatMoney(gstTotal),
-      },
-    ],
-  })
-
+  let returnedCost = new Decimal(0)
   for (const line of input.lines) {
-    await recordStockMovement(deps.stock, deps.stock, {
+    const movement = await recordStockMovement(deps.stock, deps.stock, {
       companyId: input.companyId,
       itemId: line.itemId,
+      itemName: line.description,
       movementType: 'purchase_return_out',
       quantity: line.quantity,
       unit: line.unit,
@@ -112,7 +95,47 @@ export async function postPurchaseReturn(
       referenceId: returnId,
       occurredOn: input.returnDate,
     })
+    returnedCost = returnedCost.plus(money(movement.value))
   }
+
+  const stockCredit = input.stockAccountId ? returnedCost : new Decimal(0)
+  const purchaseCredit = taxableTotal.minus(stockCredit)
+  const ledgerLines = [
+    {
+      ledgerAccountId: input.payableAccountId,
+      debit: formatMoney(totalAmount),
+      credit: '0.00',
+    },
+    {
+      ledgerAccountId: input.stockAccountId ?? input.purchaseAccountId,
+      debit: '0.00',
+      credit: formatMoney(stockCredit),
+    },
+    {
+      ledgerAccountId: input.purchaseAccountId,
+      debit: purchaseCredit.isNegative()
+        ? formatMoney(purchaseCredit.negated())
+        : '0.00',
+      credit: purchaseCredit.isNegative()
+        ? '0.00'
+        : formatMoney(purchaseCredit),
+    },
+    {
+      ledgerAccountId: input.inputGstAccountId,
+      debit: '0.00',
+      credit: formatMoney(gstTotal),
+    },
+  ]
+
+  const ledgerEntry = await postLedgerEntry(deps.posting, {
+    companyId: input.companyId,
+    entryDate: input.returnDate,
+    narration: `Purchase return for bill ${input.purchaseBillId}`,
+    voucherType: 'journal',
+    lines: ledgerLines.filter(
+      (line) => !money(line.debit).isZero() || !money(line.credit).isZero(),
+    ),
+  })
 
   const note = await recordCreditDebitNote(deps.notes, {
     companyId: input.companyId,

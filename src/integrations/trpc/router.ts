@@ -85,6 +85,8 @@ export const trpcRouter = createTRPCRouter({
     stockStore,
     godownRepository,
     priceListRepository,
+    ledgerAccountRepository,
+    postingTransaction,
   ),
   purchases: createPurchasesRouter(purchaseBillRepository, postingTransaction),
   purchaseOrders: createPurchaseOrdersRouter(purchaseOrderRepository),
@@ -137,9 +139,9 @@ export const trpcRouter = createTRPCRouter({
   imports: createImportsRouter(
     partyRepository,
     itemRepository,
-    stockStore,
     ledgerAccountRepository,
     ledgerPostingRepository,
+    postingTransaction,
   ),
   salesDocuments: createSalesDocumentsRouter(
     salesDocumentRepository,

@@ -23,12 +23,19 @@ export type RecordStockMovementInput = {
   referenceId: string
   occurredOn: string
   godownName?: string | null
+  /**
+   * Cost of an inbound movement (2dp). Omitted, stock comes in at the item's
+   * current moving average. Ignored for outbound movements, which always leave
+   * at the moving average.
+   */
+  value?: string
 }
 
 export type StockMovementRecord = RecordStockMovementInput & {
   id: string
   direction: StockMovementDirection
   godownName: string | null
+  value: string
   createdAt: Date
 }
 
@@ -37,18 +44,32 @@ export interface StockMovementRepository {
     movement: StockMovementRecord,
   ) => Promise<StockMovementRecord>
   listByCompanyId: (companyId: string) => Promise<Array<StockMovementRecord>>
+  listByReference: (
+    companyId: string,
+    referenceType: string,
+    referenceId: string,
+  ) => Promise<Array<StockMovementRecord>>
+}
+
+export type StockBalanceRecord = {
+  companyId: string
+  itemId: string
+  quantity: string
+  value: string
 }
 
 export interface StockBalanceRepository {
   getBalance: (companyId: string, itemId: string) => Promise<string>
+  getValue: (companyId: string, itemId: string) => Promise<string>
   setBalance: (
     companyId: string,
     itemId: string,
     quantity: string,
+    value: string,
   ) => Promise<void>
   listBalancesByCompany: (
     companyId: string,
-  ) => Promise<Array<{ companyId: string; itemId: string; quantity: string }>>
+  ) => Promise<Array<StockBalanceRecord>>
 }
 
 export class InsufficientStockError extends DomainError {
@@ -106,6 +127,34 @@ function quantity(value: string): Decimal {
   return amount
 }
 
+function stockValue(value: string): Decimal {
+  if (!/^\d+(\.\d{1,2})?$/.test(value)) {
+    throw new InvalidStockMovementError(`Invalid stock value: ${value}`)
+  }
+
+  return new Decimal(value)
+}
+
+/** Value that `moved` units carry at the balance's moving average. */
+function valueAtAverage(
+  moved: Decimal,
+  balanceQuantity: Decimal,
+  balanceValue: Decimal,
+): Decimal {
+  if (balanceQuantity.lte(0)) {
+    return new Decimal(0)
+  }
+
+  if (moved.gte(balanceQuantity)) {
+    return balanceValue
+  }
+
+  return balanceValue
+    .times(moved)
+    .div(balanceQuantity)
+    .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+}
+
 function normalizeQuantity(value: Decimal): string {
   return value
     .toFixed(3)
@@ -123,6 +172,9 @@ export async function recordStockMovement(
   const currentBalance = new Decimal(
     await balanceRepository.getBalance(input.companyId, input.itemId),
   )
+  const currentValue = new Decimal(
+    await balanceRepository.getValue(input.companyId, input.itemId),
+  )
 
   const nextBalance =
     direction === 'in'
@@ -137,6 +189,15 @@ export async function recordStockMovement(
     )
   }
 
+  const movementValue =
+    direction === 'in' && input.value !== undefined
+      ? stockValue(input.value)
+      : valueAtAverage(movementQuantity, currentBalance, currentValue)
+  const nextValue =
+    direction === 'in'
+      ? currentValue.plus(movementValue)
+      : currentValue.minus(movementValue)
+
   const { itemName: _itemName, ...movementInput } = input
   const movement: StockMovementRecord = {
     ...movementInput,
@@ -144,6 +205,7 @@ export async function recordStockMovement(
     quantity: normalizeQuantity(movementQuantity),
     direction,
     godownName: input.godownName ?? null,
+    value: movementValue.toFixed(2),
     createdAt: new Date(),
   }
 
@@ -152,6 +214,7 @@ export async function recordStockMovement(
     input.companyId,
     input.itemId,
     normalizeQuantity(nextBalance),
+    nextValue.toFixed(2),
   )
 
   return created

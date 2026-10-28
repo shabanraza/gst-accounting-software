@@ -46,7 +46,10 @@ export class InMemoryStockStore
   implements StockMovementRepository, StockBalanceRepository
 {
   private readonly movements: Array<StockMovementRecord> = []
-  private readonly balances = new Map<string, string>()
+  private readonly balances = new Map<
+    string,
+    { quantity: string; value: string }
+  >()
 
   private key(companyId: string, itemId: string) {
     return `${companyId}:${itemId}`
@@ -61,21 +64,43 @@ export class InMemoryStockStore
     return this.movements.filter((movement) => movement.companyId === companyId)
   }
 
-  async getBalance(companyId: string, itemId: string) {
-    return this.balances.get(this.key(companyId, itemId)) ?? '0'
+  async listByReference(
+    companyId: string,
+    referenceType: string,
+    referenceId: string,
+  ) {
+    return this.movements.filter(
+      (movement) =>
+        movement.companyId === companyId &&
+        movement.referenceType === referenceType &&
+        movement.referenceId === referenceId,
+    )
   }
 
-  async setBalance(companyId: string, itemId: string, quantity: string) {
-    this.balances.set(this.key(companyId, itemId), quantity)
+  async getBalance(companyId: string, itemId: string) {
+    return this.balances.get(this.key(companyId, itemId))?.quantity ?? '0'
+  }
+
+  async getValue(companyId: string, itemId: string) {
+    return this.balances.get(this.key(companyId, itemId))?.value ?? '0.00'
+  }
+
+  async setBalance(
+    companyId: string,
+    itemId: string,
+    quantity: string,
+    value: string,
+  ) {
+    this.balances.set(this.key(companyId, itemId), { quantity, value })
   }
 
   async listBalancesByCompany(companyId: string) {
     return [...this.balances.entries()]
       .filter(([key]) => key.startsWith(`${companyId}:`))
-      .map(([key, quantity]) => ({
+      .map(([key, balance]) => ({
         companyId,
         itemId: key.slice(companyId.length + 1),
-        quantity,
+        ...balance,
       }))
   }
 }
@@ -119,6 +144,7 @@ function mapRowToStockMovementRecord(
     referenceId: row.referenceId,
     occurredOn: row.occurredOn,
     godownName: row.godownName ?? null,
+    value: row.value ?? '0.00',
     createdAt: row.createdAt,
   }
 }
@@ -225,6 +251,7 @@ export class DrizzleStockStore
         referenceType: movement.referenceType,
         referenceId: movement.referenceId,
         occurredOn: movement.occurredOn,
+        value: movement.value,
         createdAt: movement.createdAt,
       })
       .returning()
@@ -241,7 +268,28 @@ export class DrizzleStockStore
     return movements.map(mapRowToStockMovementRecord)
   }
 
-  async getBalance(companyId: string, itemId: string) {
+  async listByReference(
+    companyId: string,
+    referenceType: string,
+    referenceId: string,
+  ) {
+    const movements = await this.database
+      .select()
+      .from(schema.stockMovements)
+      .where(
+        and(
+          eq(schema.stockMovements.companyId, companyId),
+          eq(schema.stockMovements.referenceType, referenceType),
+          eq(schema.stockMovements.referenceId, referenceId),
+        ),
+      )
+      .orderBy(schema.stockMovements.createdAt)
+
+    return movements.map(mapRowToStockMovementRecord)
+  }
+
+  /** Locks the balance row so concurrent postings value stock in turn. */
+  private async findBalance(companyId: string, itemId: string) {
     const balances = await this.database
       .select()
       .from(schema.stockBalances)
@@ -252,11 +300,25 @@ export class DrizzleStockStore
         ),
       )
       .limit(1)
+      .for('update')
 
-    return balances[0]?.quantity ?? '0'
+    return balances.at(0)
   }
 
-  async setBalance(companyId: string, itemId: string, quantity: string) {
+  async getBalance(companyId: string, itemId: string) {
+    return (await this.findBalance(companyId, itemId))?.quantity ?? '0'
+  }
+
+  async getValue(companyId: string, itemId: string) {
+    return (await this.findBalance(companyId, itemId))?.value ?? '0.00'
+  }
+
+  async setBalance(
+    companyId: string,
+    itemId: string,
+    quantity: string,
+    value: string,
+  ) {
     const existing = await this.database
       .select()
       .from(schema.stockBalances)
@@ -273,6 +335,7 @@ export class DrizzleStockStore
         companyId,
         itemId,
         quantity,
+        value,
         updatedAt: new Date(),
       })
       return
@@ -280,7 +343,7 @@ export class DrizzleStockStore
 
     await this.database
       .update(schema.stockBalances)
-      .set({ quantity, updatedAt: new Date() })
+      .set({ quantity, value, updatedAt: new Date() })
       .where(eq(schema.stockBalances.id, existing[0].id))
   }
 
@@ -294,6 +357,7 @@ export class DrizzleStockStore
       companyId: balance.companyId,
       itemId: balance.itemId,
       quantity: balance.quantity,
+      value: balance.value ?? '0.00',
     }))
   }
 }

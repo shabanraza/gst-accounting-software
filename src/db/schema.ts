@@ -303,6 +303,8 @@ export const stockMovements = pgTable(
     referenceType: text('reference_type').notNull(),
     referenceId: text('reference_id').notNull(),
     occurredOn: text('occurred_on').notNull(),
+    /** Cost moved, at moving average for outbound. Null on legacy rows. */
+    value: text('value'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
@@ -325,6 +327,8 @@ export const stockBalances = pgTable(
       .notNull()
       .references(() => items.id),
     quantity: text('quantity').notNull(),
+    /** Moving-average stock value. Null until valued (legacy rows). */
+    value: text('value'),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (table) => [

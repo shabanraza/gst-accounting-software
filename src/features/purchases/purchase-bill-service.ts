@@ -155,6 +155,31 @@ function formatMoney(value: Decimal) {
   return value.toFixed(2)
 }
 
+/**
+ * Landed cost per line: its taxable value plus a taxable-weighted share of
+ * freight, packing, round-off and bill discount. The last line takes the
+ * rounding remainder so the costs add up to the bill exactly.
+ */
+function allocateLineCosts(
+  lines: Array<PurchaseBillLineRecord>,
+  taxableTotal: Decimal,
+  sundryNet: Decimal,
+): Array<Decimal> {
+  let allocated = new Decimal(0)
+
+  return lines.map((line, index) => {
+    const taxable = money(line.taxableAmount)
+    const share =
+      index === lines.length - 1
+        ? sundryNet.minus(allocated)
+        : taxableTotal.isZero()
+          ? new Decimal(0)
+          : sundryNet.mul(taxable).div(taxableTotal).toDecimalPlaces(2)
+    allocated = allocated.plus(share)
+    return taxable.plus(share)
+  })
+}
+
 export async function postPurchaseBill(
   deps: PurchaseBillDependencies,
   input: PostPurchaseBillInput,
@@ -243,13 +268,39 @@ export async function postPurchaseBill(
   })
 
   const inventoryDebit = taxableTotal.plus(sundryNet)
-  const inventoryAccountId = input.skipStockMovement
-    ? input.purchaseAccountId
-    : input.stockAccountId
+  const lineCosts = allocateLineCosts(lines, taxableTotal, sundryNet)
+  const stockedLines: Array<{
+    line: PurchaseBillLineRecord
+    itemName: string
+    value: Decimal
+  }> = []
+  if (!input.skipStockMovement) {
+    for (const [index, line] of lines.entries()) {
+      const item = deps.items ? await deps.items.findById(line.itemId) : null
+      if (item && !item.tracksInventory) {
+        continue
+      }
+      stockedLines.push({
+        line,
+        itemName: item?.name ?? line.description,
+        value: lineCosts[index],
+      })
+    }
+  }
+  const stockDebit = stockedLines.reduce(
+    (sum, entry) => sum.plus(entry.value),
+    new Decimal(0),
+  )
+
   const ledgerLines = [
     {
-      ledgerAccountId: inventoryAccountId,
-      debit: formatMoney(inventoryDebit),
+      ledgerAccountId: input.stockAccountId,
+      debit: formatMoney(stockDebit),
+      credit: '0.00',
+    },
+    {
+      ledgerAccountId: input.purchaseAccountId,
+      debit: formatMoney(inventoryDebit.minus(stockDebit)),
       credit: '0.00',
     },
     {
@@ -270,22 +321,17 @@ export async function postPurchaseBill(
     narration:
       input.narration?.trim() || `Purchase bill ${input.supplierBillNumber}`,
     voucherType: 'purchase',
-    lines: ledgerLines,
+    lines: ledgerLines.filter(
+      (line) => !money(line.debit).isZero() || !money(line.credit).isZero(),
+    ),
   })
 
-  for (const line of lines) {
-    if (input.skipStockMovement) {
-      continue
-    }
-
-    const item = deps.items ? await deps.items.findById(line.itemId) : null
-    if (item && !item.tracksInventory) {
-      continue
-    }
-
+  for (const { line, itemName, value } of stockedLines) {
     await recordStockMovement(deps.stock, deps.stock, {
       companyId: input.companyId,
       itemId: line.itemId,
+      itemName,
+      value: formatMoney(value),
       movementType: 'purchase_in',
       quantity: line.quantity,
       unit: line.unit,

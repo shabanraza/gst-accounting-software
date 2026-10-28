@@ -6,7 +6,10 @@ import {
 } from '#/features/imports/import-dry-run-service.ts'
 import { createParty } from '#/features/parties/party-service.ts'
 import { createItem } from '#/features/inventory/item-service.ts'
-import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
+import {
+  postOpeningStock,
+  resolveOpeningStockAccounts,
+} from '#/features/inventory/opening-stock-service.ts'
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
 import { listLedgerAccountsByCompany } from '#/features/accounting/chart-of-accounts.ts'
 
@@ -79,8 +82,12 @@ export async function commitImportParties(
 }
 
 export async function commitImportOpeningStock(
-  items: ItemRepository,
-  stock: StockMovementRepository & StockBalanceRepository,
+  deps: {
+    items: ItemRepository
+    stock: StockMovementRepository & StockBalanceRepository
+    posting: LedgerPostingRepository
+    ledgers: LedgerAccountRepository
+  },
   input: {
     companyId: string
     rows: Array<ImportStockRow>
@@ -97,9 +104,13 @@ export async function commitImportOpeningStock(
     }
   }
 
+  const accounts = await resolveOpeningStockAccounts(
+    deps.ledgers,
+    input.companyId,
+  )
   let createdCount = 0
   for (const row of input.rows) {
-    const item = await createItem(items, {
+    const item = await createItem(deps.items, {
       companyId: input.companyId,
       name: row.itemName,
       hsnCode: '0000',
@@ -109,15 +120,17 @@ export async function commitImportOpeningStock(
       saleRate: row.rate,
       tracksInventory: true,
     })
-    await recordStockMovement(stock, stock, {
+    await postOpeningStock(deps, {
+      ...accounts,
       companyId: input.companyId,
       itemId: item.id,
-      movementType: 'opening',
-      quantity: row.quantity,
+      itemName: item.name,
       unit: row.unit,
+      quantity: row.quantity,
+      rate: row.rate,
+      occurredOn: input.occurredOn,
       referenceType: 'import_opening',
       referenceId: item.id,
-      occurredOn: input.occurredOn,
     })
     createdCount += 1
   }

@@ -71,6 +71,13 @@
       "when": 1783878000000,
       "tag": "0010_gstr2b_itc_decisions",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1783879000000,
+      "tag": "0011_stock_value",
+      "breakpoints": true
     }
   ]
 }

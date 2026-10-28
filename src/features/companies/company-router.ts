@@ -2,8 +2,8 @@ import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 
 import {
+  ensureSystemLedgers,
   listLedgerAccountsByCompany,
-  setupDefaultChartOfAccounts,
 } from '#/features/accounting/chart-of-accounts.ts'
 import {
   listCompaniesByIds,
@@ -128,16 +128,14 @@ export const createCompaniesRouter = (deps: CompaniesRouterDependencies) =>
           })
         }
 
-        let ledgers = await listLedgerAccountsByCompany(
+        await ensureSystemLedgers(deps.ledgers, {
+          companyId: company.id,
+          businessType: company.businessType,
+        })
+        const ledgers = await listLedgerAccountsByCompany(
           deps.ledgers,
           company.id,
         )
-        if (ledgers.length === 0) {
-          ledgers = await setupDefaultChartOfAccounts(deps.ledgers, {
-            companyId: company.id,
-            businessType: company.businessType,
-          })
-        }
 
         const ledgerBySystemKey = Object.fromEntries(
           ledgers

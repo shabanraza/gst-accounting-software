@@ -10,11 +10,7 @@ import {
   getCurrentStock,
   recordStockMovement,
 } from '#/features/inventory/stock-movement-service.ts'
-import type {
-  StockMovementRecord,
-  StockMovementRepository,
-  StockBalanceRepository,
-} from '#/features/inventory/stock-movement-service.ts'
+import { InMemoryStockStore } from '#/features/inventory/inventory-store.ts'
 
 class InMemoryItemRepository implements ItemRepository {
   private items: Array<ItemRecord> = []
@@ -43,48 +39,6 @@ class InMemoryItemRepository implements ItemRepository {
 
   list() {
     return this.items
-  }
-}
-
-class InMemoryStockRepositories
-  implements StockMovementRepository, StockBalanceRepository
-{
-  private movements: Array<StockMovementRecord> = []
-  private balances = new Map<string, string>()
-
-  private key(companyId: string, itemId: string) {
-    return `${companyId}:${itemId}`
-  }
-
-  async createMovement(movement: StockMovementRecord) {
-    this.movements.push(movement)
-    return movement
-  }
-
-  async listByCompanyId(companyId: string) {
-    return this.movements.filter((movement) => movement.companyId === companyId)
-  }
-
-  async getBalance(companyId: string, itemId: string) {
-    return this.balances.get(this.key(companyId, itemId)) ?? '0'
-  }
-
-  async setBalance(companyId: string, itemId: string, quantity: string) {
-    this.balances.set(this.key(companyId, itemId), quantity)
-  }
-
-  async listBalancesByCompany(companyId: string) {
-    return [...this.balances.entries()]
-      .filter(([key]) => key.startsWith(`${companyId}:`))
-      .map(([key, quantity]) => ({
-        companyId,
-        itemId: key.slice(companyId.length + 1),
-        quantity,
-      }))
-  }
-
-  listMovements() {
-    return this.movements
   }
 }
 
@@ -214,7 +168,7 @@ describe('updateItem', () => {
 describe('stock movements', () => {
   test('stock can only change through stock movement records', async () => {
     const items = new InMemoryItemRepository()
-    const stock = new InMemoryStockRepositories()
+    const stock = new InMemoryStockStore()
 
     const item = await createItem(items, {
       companyId: 'company-1',
@@ -238,13 +192,13 @@ describe('stock movements', () => {
       occurredOn: '2026-07-11',
     })
 
-    expect(stock.listMovements()).toHaveLength(1)
+    expect(await stock.listByCompanyId('company-1')).toHaveLength(1)
     expect(await getCurrentStock(stock, 'company-1', item.id)).toBe('100')
   })
 
   test('records opening stock as a stock movement', async () => {
     const items = new InMemoryItemRepository()
-    const stock = new InMemoryStockRepositories()
+    const stock = new InMemoryStockStore()
 
     const item = await createItem(items, {
       companyId: 'company-1',
@@ -269,11 +223,13 @@ describe('stock movements', () => {
     })
 
     expect(await getCurrentStock(stock, 'company-1', item.id)).toBe('50')
-    expect(stock.listMovements()[0]?.movementType).toBe('opening')
+    expect((await stock.listByCompanyId('company-1'))[0]?.movementType).toBe(
+      'opening',
+    )
   })
 
   test('rejects stock-out that would make quantity negative', async () => {
-    const stock = new InMemoryStockRepositories()
+    const stock = new InMemoryStockStore()
 
     await expect(
       recordStockMovement(stock, stock, {
@@ -290,7 +246,7 @@ describe('stock movements', () => {
   })
 
   test('names the item in the insufficient stock message', async () => {
-    const stock = new InMemoryStockRepositories()
+    const stock = new InMemoryStockStore()
 
     await expect(
       recordStockMovement(stock, stock, {

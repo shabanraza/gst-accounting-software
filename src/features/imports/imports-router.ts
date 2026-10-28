@@ -16,13 +16,10 @@ import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 import { protectedProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
+import type { PostingTransaction } from '#/features/accounting/posting-transaction.ts'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
-import type {
-  StockBalanceRepository,
-  StockMovementRepository,
-} from '#/features/inventory/stock-movement-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
 
 const partyRowSchema = z.object({
@@ -55,9 +52,9 @@ const openingBalanceRowSchema = z.object({
 export const createImportsRouter = (
   parties: PartyRepository,
   items: ItemRepository,
-  stock: StockMovementRepository & StockBalanceRepository,
   ledgers: LedgerAccountRepository,
   postings: LedgerPostingRepository,
+  postingTransaction: PostingTransaction,
 ) =>
   ({
     dryRunParties: protectedProcedure
@@ -84,7 +81,14 @@ export const createImportsRouter = (
           occurredOn: z.string().min(1),
         }),
       )
-      .mutation(({ input }) => commitImportOpeningStock(items, stock, input)),
+      .mutation(({ input }) =>
+        postingTransaction((tx) =>
+          commitImportOpeningStock(
+            { items: tx.items, stock: tx.stock, posting: tx.posting, ledgers },
+            input,
+          ),
+        ),
+      ),
     dryRunItems: protectedProcedure
       .input(z.object({ rows: z.array(itemRowSchema) }))
       .mutation(({ input }) => dryRunImportItems(input.rows)),
