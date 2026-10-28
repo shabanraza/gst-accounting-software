@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 
 import { Skeleton } from '#/components/ui/skeleton.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
+import { sessionGateAction } from '#/features/app-shell/session-gate.ts'
 import { authClient } from '#/lib/auth-client.ts'
 
 function WorkspacePageSkeleton() {
@@ -23,16 +24,37 @@ export function WorkspaceLoadingGate({
   children: React.ReactNode
 }) {
   const navigate = useNavigate()
-  const { data: session, isPending: isSessionPending } = authClient.useSession()
+  const {
+    data: session,
+    isPending: isSessionPending,
+    error: sessionError,
+    refetch,
+  } = authClient.useSession()
   const { accountId, isLoading, error, company } = useWorkspace()
+  const [retries, setRetries] = React.useState(0)
+  const action = sessionGateAction({
+    isPending: isSessionPending,
+    hasUser: Boolean(session?.user.id),
+    error: sessionError,
+  })
 
   React.useEffect(() => {
-    if (!isSessionPending && !session?.user.id) {
+    if (action === 'login') {
       void navigate({ to: '/login' })
     }
-  }, [isSessionPending, navigate, session?.user.id])
+    if (action === 'ready') {
+      setRetries(0)
+    }
+    if (action !== 'retry') return
+    const delay = Math.min(2000 * 2 ** retries, 15_000)
+    const timer = window.setTimeout(() => {
+      setRetries((count) => count + 1)
+      void refetch()
+    }, delay)
+    return () => window.clearTimeout(timer)
+  }, [action, navigate, refetch, retries])
 
-  if (isSessionPending || !accountId) {
+  if (action !== 'ready' || !accountId) {
     return <WorkspacePageSkeleton />
   }
 

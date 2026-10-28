@@ -288,7 +288,8 @@ export class DrizzleStockStore
     return movements.map(mapRowToStockMovementRecord)
   }
 
-  /** Locks the balance row so concurrent postings value stock in turn. */
+  // Row-locked: inside a posting transaction a concurrent sale of the same
+  // item waits here instead of overwriting this one's quantity and value.
   private async findBalance(companyId: string, itemId: string) {
     const balances = await this.database
       .select()
@@ -319,32 +320,14 @@ export class DrizzleStockStore
     quantity: string,
     value: string,
   ) {
-    const existing = await this.database
-      .select()
-      .from(schema.stockBalances)
-      .where(
-        and(
-          eq(schema.stockBalances.companyId, companyId),
-          eq(schema.stockBalances.itemId, itemId),
-        ),
-      )
-      .limit(1)
-
-    if (existing.length === 0) {
-      await this.database.insert(schema.stockBalances).values({
-        companyId,
-        itemId,
-        quantity,
-        value,
-        updatedAt: new Date(),
-      })
-      return
-    }
-
+    const now = new Date()
     await this.database
-      .update(schema.stockBalances)
-      .set({ quantity, value, updatedAt: new Date() })
-      .where(eq(schema.stockBalances.id, existing[0].id))
+      .insert(schema.stockBalances)
+      .values({ companyId, itemId, quantity, value, updatedAt: now })
+      .onConflictDoUpdate({
+        target: [schema.stockBalances.companyId, schema.stockBalances.itemId],
+        set: { quantity, value, updatedAt: now },
+      })
   }
 
   async listBalancesByCompany(companyId: string) {

@@ -17,6 +17,11 @@
  * company gets no reconciliation, so its books keep differing from the stock
  * valuation until the phantom stock is removed.
  *
+ * Run scripts/cleanup-legacy-demo-data.ts first. It removes phantom openings
+ * and rewrites those items' quantities but not their values; this script then
+ * values them (still NULL) at the corrected quantity. If cleanup runs later,
+ * rerun this script afterwards.
+ *
  * Every write runs in one transaction per company. Without --apply the
  * transaction is rolled back, so the default run is a report. Rerunning after
  * --apply finds nothing left to do.

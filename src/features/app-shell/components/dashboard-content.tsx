@@ -7,9 +7,8 @@ import {
   ReceiptIcon,
   TrendingUpIcon,
 } from 'lucide-react'
-import { useState } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts'
 
 import { Button } from '#/components/ui/button.tsx'
 import { cn } from '#/lib/utils.ts'
@@ -20,13 +19,6 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '#/components/ui/chart.tsx'
 import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Skeleton } from '#/components/ui/skeleton.tsx'
 import { Badge } from '#/components/ui/badge.tsx'
@@ -51,30 +43,23 @@ import { computeNetPosition } from '#/features/dashboard/net-position.ts'
 import { formatShortDate, localCalendarDate } from '#/lib/calendar-date.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
-import { ageingBucketChartColor } from '#/lib/badge-intent.ts'
 import type { BadgeIntent } from '#/lib/badge-intent.ts'
 import type {
   MonthFigure,
   MonthFigureKey,
 } from '#/features/dashboard/dashboard-view.ts'
 
-const trendChartConfig = {
-  sales: {
-    label: 'Sales',
-    color: 'var(--chart-1)',
-  },
-  purchases: {
-    label: 'Purchases',
-    color: 'var(--chart-2)',
-  },
-}
-
-const ageingChartConfig = {
-  amount: {
-    label: 'Outstanding',
-    color: 'var(--warning)',
-  },
-}
+// Recharts loads after the dashboard figures, not before them.
+const TrendChart = lazy(() =>
+  import('#/features/dashboard/components/dashboard-charts.tsx').then(
+    (module) => ({ default: module.TrendChart }),
+  ),
+)
+const AgeingChart = lazy(() =>
+  import('#/features/dashboard/components/dashboard-charts.tsx').then(
+    (module) => ({ default: module.AgeingChart }),
+  ),
+)
 
 const MONTH_FIGURE_TONE: Record<MonthFigureKey, string> = {
   sales: 'text-money-in',
@@ -576,42 +561,9 @@ export function DashboardContent() {
               {!snapshot ? (
                 <Skeleton className="h-56 w-full" />
               ) : hasTrendActivity(snapshot.trend) ? (
-                <ChartContainer
-                  className="aspect-auto h-56 w-full"
-                  config={trendChartConfig}
-                >
-                  <BarChart data={snapshot.trend}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis
-                      axisLine={false}
-                      dataKey="date"
-                      tickFormatter={formatShortDate}
-                      tickLine={false}
-                      tickMargin={8}
-                    />
-                    <ChartTooltip
-                      content={
-                        <ChartTooltipContent
-                          formatter={(value, name) => (
-                            <span className="tabular-nums">
-                              {name}: {formatInr(String(value))}
-                            </span>
-                          )}
-                          labelFormatter={(value) =>
-                            formatShortDate(String(value))
-                          }
-                        />
-                      }
-                    />
-                    <ChartLegend content={<ChartLegendContent />} />
-                    <Bar dataKey="sales" fill="var(--color-sales)" radius={4} />
-                    <Bar
-                      dataKey="purchases"
-                      fill="var(--color-purchases)"
-                      radius={4}
-                    />
-                  </BarChart>
-                </ChartContainer>
+                <Suspense fallback={<Skeleton className="h-56 w-full" />}>
+                  <TrendChart data={snapshot.trend} />
+                </Suspense>
               ) : (
                 <EmptyBlock
                   action={newInvoiceAction}
@@ -644,41 +596,9 @@ export function DashboardContent() {
                       tone="var(--money-in)"
                     />
                   ) : (
-                    <ChartContainer
-                      className="aspect-auto h-48 w-full"
-                      config={ageingChartConfig}
-                    >
-                      <BarChart
-                        data={receivableAgeingData}
-                        layout="vertical"
-                        margin={{ left: 8 }}
-                      >
-                        <CartesianGrid horizontal={false} />
-                        <XAxis hide type="number" />
-                        <YAxis
-                          axisLine={false}
-                          dataKey="bucket"
-                          tickLine={false}
-                          type="category"
-                          width={72}
-                        />
-                        <ChartTooltip
-                          content={
-                            <ChartTooltipContent
-                              formatter={(value) => formatInr(String(value))}
-                            />
-                          }
-                        />
-                        <Bar dataKey="amount" radius={4}>
-                          {receivableAgeingData.map((row) => (
-                            <Cell
-                              fill={ageingBucketChartColor(row.bucketKey)}
-                              key={row.bucketKey}
-                            />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ChartContainer>
+                    <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+                      <AgeingChart data={receivableAgeingData} />
+                    </Suspense>
                   )}
                 </CardContent>
               </Card>
@@ -699,41 +619,9 @@ export function DashboardContent() {
                       tone="var(--money-in)"
                     />
                   ) : (
-                    <ChartContainer
-                      className="aspect-auto h-48 w-full"
-                      config={ageingChartConfig}
-                    >
-                      <BarChart
-                        data={payableAgeingData}
-                        layout="vertical"
-                        margin={{ left: 8 }}
-                      >
-                        <CartesianGrid horizontal={false} />
-                        <XAxis hide type="number" />
-                        <YAxis
-                          axisLine={false}
-                          dataKey="bucket"
-                          tickLine={false}
-                          type="category"
-                          width={72}
-                        />
-                        <ChartTooltip
-                          content={
-                            <ChartTooltipContent
-                              formatter={(value) => formatInr(String(value))}
-                            />
-                          }
-                        />
-                        <Bar dataKey="amount" radius={4}>
-                          {payableAgeingData.map((row) => (
-                            <Cell
-                              fill={ageingBucketChartColor(row.bucketKey)}
-                              key={row.bucketKey}
-                            />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ChartContainer>
+                    <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+                      <AgeingChart data={payableAgeingData} />
+                    </Suspense>
                   )}
                 </CardContent>
               </Card>

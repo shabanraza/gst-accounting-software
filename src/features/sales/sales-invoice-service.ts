@@ -207,6 +207,10 @@ export async function postSalesInvoice(
   input: PostSalesInvoiceInput,
 ): Promise<SalesInvoiceRecord> {
   const taxMode = input.taxMode ?? 'exclusive'
+  // An explicitly blank GSTIN means the company is unregistered and must not
+  // collect GST; undefined keeps legacy callers on the registered path.
+  const chargesGst =
+    input.companyGstin === undefined || Boolean(input.companyGstin?.trim())
   let taxableTotal = new Decimal(0)
   let gstTotal = new Decimal(0)
   let cogsTotal = new Decimal(0)
@@ -216,7 +220,8 @@ export async function postSalesInvoice(
     const gross = money(line.quantity).mul(money(line.rate))
     const discountAmount = gross.mul(discountPercent).div(100)
     const net = Decimal.max(gross.minus(discountAmount), new Decimal(0))
-    const gstRate = money(line.gstRate)
+    const lineGstRate = chargesGst ? line.gstRate : '0.00'
+    const gstRate = money(lineGstRate)
 
     let taxableAmount = net
     if (taxMode === 'inclusive' && gstRate.gt(0)) {
@@ -225,7 +230,7 @@ export async function postSalesInvoice(
 
     const gst = calculateGst({
       taxableAmount: formatMoney(taxableAmount),
-      gstRate: line.gstRate,
+      gstRate: lineGstRate,
       companyStateCode: input.companyStateCode,
       partyStateCode: input.customerStateCode,
     })
@@ -235,6 +240,7 @@ export async function postSalesInvoice(
 
     return {
       ...line,
+      gstRate: lineGstRate,
       id: crypto.randomUUID(),
       discountPercent: formatMoney(discountPercent),
       discountAmount: formatMoney(discountAmount),
@@ -311,15 +317,26 @@ export async function postSalesInvoice(
       debit: '0.00',
       credit: formatMoney(taxableTotal.plus(sundryNet)),
     },
-    {
+  ]
+
+  if (gstTotal.gt(0)) {
+    ledgerLines.push({
       ledgerAccountId: input.outputGstAccountId,
       debit: '0.00',
       credit: formatMoney(gstTotal),
-    },
-  ]
+    })
+  }
+
+  // Each item is read once per invoice; on Neon every read is a round trip.
+  const itemLookups = new Map<string, ReturnType<ItemRepository['findById']>>()
+  const findItem = (itemId: string) => {
+    const lookup = itemLookups.get(itemId) ?? deps.items.findById(itemId)
+    itemLookups.set(itemId, lookup)
+    return lookup
+  }
 
   for (const line of lines) {
-    const item = await deps.items.findById(line.itemId)
+    const item = await findItem(line.itemId)
     if (item && !item.tracksInventory) {
       continue
     }

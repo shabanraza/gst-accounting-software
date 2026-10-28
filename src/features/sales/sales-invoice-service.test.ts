@@ -134,6 +134,52 @@ async function seedSalesContext() {
 }
 
 describe('postSalesInvoice', () => {
+  test('loads each item once per invoice, even when it is costed and moved', async () => {
+    const context = await seedSalesContext()
+    const lookups: Array<string> = []
+    const findById = context.items.findById.bind(context.items)
+    context.items.findById = (id: string) => {
+      lookups.push(id)
+      return findById(id)
+    }
+    const line = {
+      itemId: context.item.id,
+      description: 'Cotton Fabric',
+      quantity: '2',
+      unit: 'meter',
+      rate: '120.00',
+      gstRate: '5.00',
+    }
+
+    await postSalesInvoice(
+      {
+        invoices: context.invoices,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+        parties: context.parties,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        customerId: context.customer.id,
+        customerStateCode: '27',
+        invoiceNumber: 'INV-3001',
+        invoiceDate: '2026-07-11',
+        paymentMode: 'cash',
+        salesAccountId: context.salesAccountId,
+        outputGstAccountId: context.outputGstAccountId,
+        receivableAccountId: context.receivableAccountId,
+        cashAccountId: context.cashAccountId,
+        cogsAccountId: context.salesAccountId,
+        stockAccountId: context.cashAccountId,
+        lines: [line, { ...line, quantity: '3' }],
+      },
+    )
+
+    expect(lookups).toEqual([context.item.id])
+  })
+
   test('rejects selling an item with no stock instead of inventing opening stock', async () => {
     const context = await seedSalesContext()
     const unstocked = await createItem(context.items, {
@@ -250,6 +296,62 @@ describe('postSalesInvoice', () => {
     expect(gstLine?.credit).toBe('120.00')
     expect(receivableLine?.debit).toBe('2520.00')
     expect(cashLine).toBeUndefined()
+  })
+
+  test('charges no GST when the company is unregistered', async () => {
+    const context = await seedSalesContext()
+
+    const invoice = await postSalesInvoice(
+      {
+        invoices: context.invoices,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+        parties: context.parties,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        companyGstin: null,
+        customerId: context.customer.id,
+        customerStateCode: '27',
+        invoiceNumber: 'INV-1001',
+        invoiceDate: '2026-07-11',
+        paymentMode: 'credit',
+        taxMode: 'inclusive',
+        salesAccountId: context.salesAccountId,
+        outputGstAccountId: context.outputGstAccountId,
+        receivableAccountId: context.receivableAccountId,
+        cashAccountId: context.cashAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity: '20',
+            unit: 'meter',
+            rate: '120.00',
+            gstRate: '5.00',
+          },
+        ],
+      },
+    )
+
+    expect(invoice.taxableAmount).toBe('2400.00')
+    expect(invoice.totalGstAmount).toBe('0.00')
+    expect(invoice.totalAmount).toBe('2400.00')
+    expect(invoice.lines[0].gstRate).toBe('0.00')
+    expect(invoice.lines[0].gstAmount).toBe('0.00')
+
+    const entry = context.ledgerPosting.list()[0]
+    const salesLine = entry.lines.find(
+      (line) => line.ledgerAccountId === context.salesAccountId,
+    )
+    const gstLine = entry.lines.find(
+      (line) => line.ledgerAccountId === context.outputGstAccountId,
+    )
+
+    expect(salesLine?.credit).toBe('2400.00')
+    expect(gstLine?.credit ?? '0.00').toBe('0.00')
   })
 
   test('posts cash sale without creating receivable', async () => {

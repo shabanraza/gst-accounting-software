@@ -131,12 +131,26 @@ const CollapsibleSectionTrigger = React.forwardRef<
   )
 })
 
-export function VoucherEntryPage({
+export function VoucherEntryPage(props: SalesVoucherProps) {
+  // "Create another" links back to this same route, so React would keep the
+  // saved voucher in state; a new key mounts a blank form instead.
+  const [formKey, setFormKey] = React.useState(0)
+  return (
+    <VoucherEntryForm
+      key={formKey}
+      {...props}
+      onCreateAnother={() => setFormKey((key) => key + 1)}
+    />
+  )
+}
+
+function VoucherEntryForm({
   mode,
   sourceDocumentId,
   sourceGrnId,
   gstr2bPrefill,
-}: SalesVoucherProps) {
+  onCreateAnother,
+}: SalesVoucherProps & { onCreateAnother: () => void }) {
   const isSales = mode === 'sales'
   const trpc = useTRPC()
   const queryClient = useQueryClient()
@@ -443,8 +457,15 @@ export function VoucherEntryPage({
     salesDraftQuery.data,
   ])
 
+  const chargesGst = !isSales || !company || Boolean(company.gstin?.trim())
   const computedLines = lines.map((line) =>
-    computeVoucherLine(line, region, placeOfSupply, taxMode, companyState),
+    computeVoucherLine(
+      chargesGst ? line : { ...line, gstRate: '0.00' },
+      region,
+      placeOfSupply,
+      taxMode,
+      companyState,
+    ),
   )
   const totals = computeVoucherTotals(computedLines, {
     freight,
@@ -1075,6 +1096,22 @@ export function VoucherEntryPage({
                         : voucherNoPreview}
                     </Badge>
                   </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label
+                      className="text-xs text-muted-foreground"
+                      htmlFor="sup-bill"
+                    >
+                      Supplier bill no.
+                    </label>
+                    <Input
+                      id="sup-bill"
+                      onChange={(event) =>
+                        setSupplierBillNo(event.target.value)
+                      }
+                      required
+                      value={supplierBillNo}
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -1306,22 +1343,6 @@ export function VoucherEntryPage({
                       </p>
                     </div>
                   ) : null}
-                  <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs text-muted-foreground"
-                      htmlFor="sup-bill"
-                    >
-                      Supplier bill no.
-                    </label>
-                    <Input
-                      id="sup-bill"
-                      onChange={(event) =>
-                        setSupplierBillNo(event.target.value)
-                      }
-                      required
-                      value={supplierBillNo}
-                    />
-                  </div>
                   <div className="flex flex-col gap-1.5">
                     <label
                       className="text-xs text-muted-foreground"
@@ -1818,6 +1839,7 @@ export function VoucherEntryPage({
       </form>
 
       <VoucherPreviewSheet
+        onCreateAnother={onCreateAnother}
         onOpenChange={setPreviewOpen}
         open={previewOpen}
         target={previewTarget}

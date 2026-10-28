@@ -429,6 +429,8 @@ body {
 [data-voucher-grid] table {
   border-collapse: collapse;
   table-layout: fixed;
+  /* Keeps the item column usable; narrow screens scroll the grid instead. */
+  min-width: 54rem;
 }
 
 [data-voucher-grid] [data-slot='table-head'] {
@@ -446,7 +448,7 @@ body {
 
 [data-voucher-grid] th[data-voucher-col='qty'],
 [data-voucher-grid] td[data-voucher-col='qty'] {
-  width: 2.75rem;
+  width: 4.5rem;
   @apply px-1;
 }
 
@@ -477,7 +479,10 @@ body {
 [data-voucher-grid] td[data-voucher-col='total'],
 [data-voucher-grid] th[data-voucher-col='gst'],
 [data-voucher-grid] td[data-voucher-col='gst'] {
-  width: 5.75rem;
+  /* Fits ₹99,99,99,999.99 without spilling into the next column. */
+  width: 8.5rem;
+  overflow: hidden;
+  white-space: nowrap;
   @apply px-2 text-right;
 }
 
