@@ -6,6 +6,10 @@ import { openingStockValue } from '#/features/inventory/opening-stock-service.ts
  * One-time repair for companies whose stock predates value tracking: opening
  * stock that never reached the ledger, balances with no value, and the gap
  * left by COGS booked at the item master rate. See scripts/repair-stock-value.ts.
+ *
+ * Old versions seeded starter stock and gave new items an invented opening
+ * quantity of 100. Those openings are never booked: they are listed for the
+ * owner to review or remove, and their company's books are not plugged.
  */
 export type StockValueRepairInput = {
   items: Array<{ id: string; name: string; purchaseRate: string }>
@@ -16,6 +20,8 @@ export type StockValueRepairInput = {
     quantity: string
     occurredOn: string
     referenceType: string
+    /** Date (YYYY-MM-DD) the movement row was created. */
+    createdOn: string
   }>
   /** Stock balances whose value is NULL. */
   unvaluedBalances: Array<{ itemId: string; quantity: string }>
@@ -23,6 +29,8 @@ export type StockValueRepairInput = {
   bookStockBalance: string
   /** Sum of stock balance values that are already set. */
   valuedStockTotal: string
+  /** Openings of exactly 100 created before this date may be invented. */
+  legacyBefore: string
 }
 
 export type StockValueRepairPlan = {
@@ -33,8 +41,13 @@ export type StockValueRepairPlan = {
     quantity: string
     occurredOn: string
     value: string
-    /** Created by an old version that seeded starter stock, not by a user. */
-    seeded: boolean
+  }>
+  /** Seeded or possibly invented openings, left unposted for the owner. */
+  needsReview: Array<{
+    movementId: string
+    itemName: string
+    quantity: string
+    referenceType: string
   }>
   unpricedOpenings: Array<{
     movementId: string
@@ -43,8 +56,22 @@ export type StockValueRepairPlan = {
   }>
   /** Legacy balances valued at quantity × item purchase rate. */
   balanceValues: Array<{ itemId: string; value: string }>
-  /** Amount to debit (+) or credit (−) Stock In Hand against COGS. */
-  reconciliation: string
+  /**
+   * Amount to debit (+) or credit (−) Stock In Hand against COGS; null while
+   * any opening awaits review, since its stock is not real value to match.
+   */
+  reconciliation: string | null
+}
+
+function isSuspectOpening(
+  opening: StockValueRepairInput['unvaluedOpenings'][number],
+  legacyBefore: string,
+): boolean {
+  return (
+    opening.referenceType === 'starter_opening' ||
+    (new Decimal(opening.quantity).equals(100) &&
+      opening.createdOn < legacyBefore)
+  )
 }
 
 export function planStockValueRepair(
@@ -55,8 +82,21 @@ export function planStockValueRepair(
   const nameOf = (itemId: string) => itemById.get(itemId)?.name ?? itemId
 
   const openingEntries: StockValueRepairPlan['openingEntries'] = []
+  const needsReview: StockValueRepairPlan['needsReview'] = []
   const unpricedOpenings: StockValueRepairPlan['unpricedOpenings'] = []
+  const suspectItemIds = new Set<string>()
   for (const opening of input.unvaluedOpenings) {
+    if (isSuspectOpening(opening, input.legacyBefore)) {
+      suspectItemIds.add(opening.itemId)
+      needsReview.push({
+        movementId: opening.movementId,
+        itemName: nameOf(opening.itemId),
+        quantity: opening.quantity,
+        referenceType: opening.referenceType,
+      })
+      continue
+    }
+
     const value = openingStockValue(opening.quantity, rateOf(opening.itemId))
     if (new Decimal(value).isZero()) {
       unpricedOpenings.push({
@@ -73,14 +113,25 @@ export function planStockValueRepair(
       quantity: opening.quantity,
       occurredOn: opening.occurredOn,
       value,
-      seeded: opening.referenceType === 'starter_opening',
     })
   }
 
-  const balanceValues = input.unvaluedBalances.map((balance) => ({
-    itemId: balance.itemId,
-    value: openingStockValue(balance.quantity, rateOf(balance.itemId)),
-  }))
+  const balanceValues = input.unvaluedBalances
+    .filter((balance) => !suspectItemIds.has(balance.itemId))
+    .map((balance) => ({
+      itemId: balance.itemId,
+      value: openingStockValue(balance.quantity, rateOf(balance.itemId)),
+    }))
+
+  if (needsReview.length > 0) {
+    return {
+      openingEntries,
+      needsReview,
+      unpricedOpenings,
+      balanceValues,
+      reconciliation: null,
+    }
+  }
 
   const sum = (values: Array<string>) =>
     values.reduce((total, value) => total.plus(value), new Decimal(0))
@@ -93,6 +144,7 @@ export function planStockValueRepair(
 
   return {
     openingEntries,
+    needsReview,
     unpricedOpenings,
     balanceValues,
     reconciliation: valuation.minus(bookAfter).toFixed(2),

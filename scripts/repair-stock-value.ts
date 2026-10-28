@@ -4,12 +4,18 @@
  *
  * For each company it:
  *   1. adds missing system ledgers (Opening Balance),
- *   2. posts Dr Stock In Hand / Cr Opening Balance for opening stock that never
- *      reached the ledger, at the item purchase rate (unpriced items are only
- *      reported — no rate is invented),
+ *   2. posts Dr Stock In Hand / Cr Opening Balance for user-entered opening
+ *      stock that never reached the ledger, at the item purchase rate
+ *      (unpriced items are only reported — no rate is invented),
  *   3. values legacy stock balances at quantity × item purchase rate,
  *   4. reports, and posts, a Stock In Hand ↔ COGS reconciliation so the balance
  *      sheet equals the stock valuation.
+ *
+ * Seeded starter stock, and openings of exactly 100 created before
+ * --legacy-before (the old invented default), are never posted. They are
+ * listed for owner review or removal; their items stay unvalued and that
+ * company gets no reconciliation, so its books keep differing from the stock
+ * valuation until the phantom stock is removed.
  *
  * Every write runs in one transaction per company. Without --apply the
  * transaction is rolled back, so the default run is a report. Rerunning after
@@ -18,7 +24,8 @@
  * Reads REPAIR_DATABASE_URL (never DATABASE_URL) so it cannot hit the app's
  * configured database by accident. Point it at a Neon branch, never production.
  *
- *   REPAIR_DATABASE_URL=... bun scripts/repair-stock-value.ts [--company <id>] [--apply]
+ *   REPAIR_DATABASE_URL=... bun scripts/repair-stock-value.ts --legacy-before <YYYY-MM-DD>
+ *     [--company <id>] [--apply]
  */
 import { Pool } from '@neondatabase/serverless'
 import { and, eq, isNull, sql } from 'drizzle-orm'
@@ -44,6 +51,14 @@ const args = process.argv.slice(2)
 const apply = args.includes('--apply')
 const companyFlag = args.indexOf('--company')
 const onlyCompanyId = companyFlag === -1 ? null : args[companyFlag + 1]
+const legacyFlag = args.indexOf('--legacy-before')
+const legacyBefore = legacyFlag === -1 ? '' : (args[legacyFlag + 1] ?? '')
+if (!/^\d{4}-\d{2}-\d{2}$/.test(legacyBefore)) {
+  console.error(
+    '--legacy-before YYYY-MM-DD is required: the day the build that stopped inventing opening stock went live.',
+  )
+  process.exit(1)
+}
 
 class DryRunRollback extends Error {}
 
@@ -81,6 +96,7 @@ async function repairCompany(
       quantity: schema.stockMovements.quantity,
       occurredOn: schema.stockMovements.occurredOn,
       referenceType: schema.stockMovements.referenceType,
+      createdOn: sql<string>`to_char(${schema.stockMovements.createdAt}, 'YYYY-MM-DD')`,
     })
     .from(schema.stockMovements)
     .where(
@@ -121,6 +137,7 @@ async function repairCompany(
     unvaluedBalances,
     bookStockBalance: book.balance,
     valuedStockTotal: valued.total,
+    legacyBefore,
   })
 
   console.log(`  books Stock In Hand before: ${book.balance}`)
@@ -128,8 +145,7 @@ async function repairCompany(
   const openingBalanceAccountId = accountId('opening_balance')!
   for (const entry of plan.openingEntries) {
     console.log(
-      `  opening stock ${entry.itemName}: ${entry.quantity} → ${entry.value}` +
-        (entry.seeded ? '  [seeded by an old version — check it is real]' : ''),
+      `  opening stock ${entry.itemName}: ${entry.quantity} → ${entry.value}`,
     )
     await postLedgerEntry(posting, {
       companyId: company.id,
@@ -150,6 +166,11 @@ async function repairCompany(
       .set({ value: entry.value })
       .where(eq(schema.stockMovements.id, entry.movementId))
   }
+  for (const review of plan.needsReview) {
+    console.log(
+      `  NEEDS OWNER REVIEW / REMOVAL: opening ${review.itemName} (${review.quantity}, ${review.referenceType}) looks seeded or invented — not posted`,
+    )
+  }
   for (const unpriced of plan.unpricedOpenings) {
     console.log(
       `  NOT POSTED: opening stock ${unpriced.itemName} (${unpriced.quantity}) has no purchase rate`,
@@ -169,6 +190,12 @@ async function repairCompany(
   }
   console.log(`  legacy balances valued: ${plan.balanceValues.length}`)
 
+  if (plan.reconciliation === null) {
+    console.log(
+      '  no reconciliation: books will differ from stock valuation until the phantom stock above is removed',
+    )
+    return
+  }
   const reconciliation = Number(plan.reconciliation)
   const cogsAccountId = accountId('cogs')
   if (reconciliation !== 0 && cogsAccountId) {
