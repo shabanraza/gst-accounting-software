@@ -33,6 +33,8 @@ type VoucherPreviewSheetProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onDone?: () => void
+  /** Called when the user picks "Create another" after saving. */
+  onCreateAnother?: () => void
 }
 
 export function VoucherPreviewSheet({
@@ -40,6 +42,7 @@ export function VoucherPreviewSheet({
   open,
   onOpenChange,
   onDone,
+  onCreateAnother,
 }: VoucherPreviewSheetProps) {
   const trpc = useTRPC()
   const { companyId, company, isReady } = useWorkspace()
@@ -222,6 +225,7 @@ export function VoucherPreviewSheet({
               onClick={() => {
                 onOpenChange(false)
                 onDone?.()
+                onCreateAnother?.()
               }}
               to={createAnotherHref}
             >
