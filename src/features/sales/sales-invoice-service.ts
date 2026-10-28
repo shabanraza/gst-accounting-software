@@ -327,9 +327,17 @@ export async function postSalesInvoice(
     })
   }
 
+  // Each item is read once per invoice; on Neon every read is a round trip.
+  const itemLookups = new Map<string, ReturnType<ItemRepository['findById']>>()
+  const findItem = (itemId: string) => {
+    const lookup = itemLookups.get(itemId) ?? deps.items.findById(itemId)
+    itemLookups.set(itemId, lookup)
+    return lookup
+  }
+
   if (input.cogsAccountId && input.stockAccountId) {
     for (const line of lines) {
-      const item = await deps.items.findById(line.itemId)
+      const item = await findItem(line.itemId)
       if (item && !item.tracksInventory) {
         continue
       }
@@ -360,7 +368,7 @@ export async function postSalesInvoice(
   })
 
   for (const line of lines) {
-    const item = await deps.items.findById(line.itemId)
+    const item = await findItem(line.itemId)
     if (item && !item.tracksInventory) {
       continue
     }
