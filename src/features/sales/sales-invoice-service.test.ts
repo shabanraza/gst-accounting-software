@@ -134,6 +134,52 @@ async function seedSalesContext() {
 }
 
 describe('postSalesInvoice', () => {
+  test('loads each item once per invoice, even when it is costed and moved', async () => {
+    const context = await seedSalesContext()
+    const lookups: Array<string> = []
+    const findById = context.items.findById.bind(context.items)
+    context.items.findById = (id: string) => {
+      lookups.push(id)
+      return findById(id)
+    }
+    const line = {
+      itemId: context.item.id,
+      description: 'Cotton Fabric',
+      quantity: '2',
+      unit: 'meter',
+      rate: '120.00',
+      gstRate: '5.00',
+    }
+
+    await postSalesInvoice(
+      {
+        invoices: context.invoices,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+        parties: context.parties,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        customerId: context.customer.id,
+        customerStateCode: '27',
+        invoiceNumber: 'INV-3001',
+        invoiceDate: '2026-07-11',
+        paymentMode: 'cash',
+        salesAccountId: context.salesAccountId,
+        outputGstAccountId: context.outputGstAccountId,
+        receivableAccountId: context.receivableAccountId,
+        cashAccountId: context.cashAccountId,
+        cogsAccountId: context.salesAccountId,
+        stockAccountId: context.cashAccountId,
+        lines: [line, { ...line, quantity: '3' }],
+      },
+    )
+
+    expect(lookups).toEqual([context.item.id])
+  })
+
   test('rejects selling an item with no stock instead of inventing opening stock', async () => {
     const context = await seedSalesContext()
     const unstocked = await createItem(context.items, {
