@@ -480,7 +480,7 @@ body {
 [data-voucher-grid] th[data-voucher-col='gst'],
 [data-voucher-grid] td[data-voucher-col='gst'] {
   /* Fits ₹99,99,99,999.99 without spilling into the next column. */
-  width: 7.5rem;
+  width: 8.5rem;
   overflow: hidden;
   white-space: nowrap;
   @apply px-2 text-right;
