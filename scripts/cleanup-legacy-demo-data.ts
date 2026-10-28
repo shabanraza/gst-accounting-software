@@ -205,7 +205,7 @@ async function applyPlan(
   )
   await client.query(
     `insert into audit_events (company_id, actor_user_id, action, entity_type, entity_id, metadata)
-     values ($1, 'system:cleanup-legacy-demo-data', 'legacy_demo_data.removed', 'company', $1, $2)`,
+     values ($1::uuid, 'system:cleanup-legacy-demo-data', 'legacy_demo_data.removed', 'company', $1::text, $2)`,
     [
       companyId,
       JSON.stringify({
