@@ -8,12 +8,13 @@ import {
   assertTaxInvoicePartyAddress,
   buildInvoicePartySnapshot,
 } from '#/features/gst/tax-invoice-compliance.ts'
-import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
+import { recordStockMovements } from '#/features/inventory/stock-movement-service.ts'
 
 import type { TaxMode } from '#/features/accounting/voucher-math.ts'
 import type { InvoicePartySnapshot } from '#/features/gst/tax-invoice-compliance.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
 import type {
+  RecordStockMovementInput,
   StockBalanceRepository,
   StockMovementRepository,
 } from '#/features/inventory/stock-movement-service.ts'
@@ -273,6 +274,7 @@ export async function postPurchaseBill(
     lines: ledgerLines,
   })
 
+  const stockLines: Array<RecordStockMovementInput> = []
   for (const line of lines) {
     if (input.skipStockMovement) {
       continue
@@ -283,7 +285,7 @@ export async function postPurchaseBill(
       continue
     }
 
-    await recordStockMovement(deps.stock, deps.stock, {
+    stockLines.push({
       companyId: input.companyId,
       itemId: line.itemId,
       movementType: 'purchase_in',
@@ -295,6 +297,7 @@ export async function postPurchaseBill(
       godownName: line.godownName,
     })
   }
+  await recordStockMovements(deps.stock, deps.stock, stockLines)
 
   const bill: PurchaseBillRecord = {
     id: billId,

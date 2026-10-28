@@ -35,4 +35,55 @@ describe('DrizzleStockStore', () => {
       'on conflict ("company_id","item_id") do update',
     )
   })
+
+  test('locks every balance of a document in one query', async () => {
+    const { store, queries } = recordingStore()
+    await store.getBalances(crypto.randomUUID(), [
+      crypto.randomUUID(),
+      crypto.randomUUID(),
+    ])
+
+    expect(queries).toHaveLength(1)
+    expect(queries[0]).toMatch(/"item_id" in \(\$2, \$3\).* for update$/)
+  })
+
+  test('inserts all movements of a document in one statement', async () => {
+    const { store, queries } = recordingStore()
+    const movement = {
+      id: crypto.randomUUID(),
+      companyId: crypto.randomUUID(),
+      itemId: crypto.randomUUID(),
+      movementType: 'sale_out' as const,
+      direction: 'out' as const,
+      quantity: '1',
+      unit: 'meter',
+      referenceType: 'sales_invoice',
+      referenceId: crypto.randomUUID(),
+      occurredOn: '2026-07-11',
+      godownName: null,
+      createdAt: new Date(),
+    }
+    await store.createMovements([
+      movement,
+      { ...movement, id: crypto.randomUUID() },
+    ])
+
+    expect(queries).toHaveLength(1)
+    expect(queries[0]).toMatch(
+      /^insert into "stock_movements" .* values \(.*\), \(.*\)/,
+    )
+  })
+
+  test('writes all balances of a document with one upsert', async () => {
+    const { store, queries } = recordingStore()
+    await store.setBalances(crypto.randomUUID(), [
+      { itemId: crypto.randomUUID(), quantity: '3' },
+      { itemId: crypto.randomUUID(), quantity: '4' },
+    ])
+
+    expect(queries).toHaveLength(1)
+    expect(queries[0]).toContain(
+      'on conflict ("company_id","item_id") do update set "quantity" = excluded.quantity',
+    )
+  })
 })
