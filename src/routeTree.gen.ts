@@ -16,6 +16,7 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DataDeletionRouteImport } from './routes/data-deletion'
+import { Route as ChangelogRouteImport } from './routes/changelog'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as IndexRouteImport } from './routes/index'
@@ -86,6 +87,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
 const DataDeletionRoute = DataDeletionRouteImport.update({
   id: '/data-deletion',
   path: '/data-deletion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChangelogRoute = ChangelogRouteImport.update({
+  id: '/changelog',
+  path: '/changelog',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -275,6 +281,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accept-invite': typeof AcceptInviteRoute
   '/app': typeof AppRouteWithChildren
+  '/changelog': typeof ChangelogRoute
   '/data-deletion': typeof DataDeletionRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
@@ -320,6 +327,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accept-invite': typeof AcceptInviteRoute
   '/app': typeof AppRouteWithChildren
+  '/changelog': typeof ChangelogRoute
   '/data-deletion': typeof DataDeletionRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
@@ -364,6 +372,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/accept-invite': typeof AcceptInviteRoute
   '/app': typeof AppRouteWithChildren
+  '/changelog': typeof ChangelogRoute
   '/data-deletion': typeof DataDeletionRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
@@ -411,6 +420,7 @@ export interface FileRouteTypes {
     | '/'
     | '/accept-invite'
     | '/app'
+    | '/changelog'
     | '/data-deletion'
     | '/forgot-password'
     | '/login'
@@ -456,6 +466,7 @@ export interface FileRouteTypes {
     | '/'
     | '/accept-invite'
     | '/app'
+    | '/changelog'
     | '/data-deletion'
     | '/forgot-password'
     | '/login'
@@ -499,6 +510,7 @@ export interface FileRouteTypes {
     | '/'
     | '/accept-invite'
     | '/app'
+    | '/changelog'
     | '/data-deletion'
     | '/forgot-password'
     | '/login'
@@ -545,6 +557,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AcceptInviteRoute: typeof AcceptInviteRoute
   AppRoute: typeof AppRouteWithChildren
+  ChangelogRoute: typeof ChangelogRoute
   DataDeletionRoute: typeof DataDeletionRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
@@ -607,6 +620,13 @@ declare module '@tanstack/react-router' {
       path: '/data-deletion'
       fullPath: '/data-deletion'
       preLoaderRoute: typeof DataDeletionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/changelog': {
+      id: '/changelog'
+      path: '/changelog'
+      fullPath: '/changelog'
+      preLoaderRoute: typeof ChangelogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -963,6 +983,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AcceptInviteRoute: AcceptInviteRoute,
   AppRoute: AppRouteWithChildren,
+  ChangelogRoute: ChangelogRoute,
   DataDeletionRoute: DataDeletionRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,

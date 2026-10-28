@@ -23,6 +23,9 @@ export function LandingFooter() {
           ))}
         </nav>
         <nav aria-label="Legal" className="flex flex-wrap gap-4">
+          <Link className="hover:text-foreground" to="/changelog">
+            Changelog
+          </Link>
           <Link className="hover:text-foreground" to="/privacy">
             Privacy
           </Link>

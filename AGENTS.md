@@ -57,6 +57,12 @@
 - Use test-driven development for accounting/domain behavior: write the failing test first, verify it fails, implement the minimum code, then verify it passes.
 - For documentation generation or roadmap work, keep docs in the `docs/` folder unless the user requests another location.
 
+## Release Notes
+
+- Every user-facing change adds a line under `## [Unreleased]` in `CHANGELOG.md` in the same PR, written for business users, with no customer names, amounts or other real data.
+- If behaviour changes, update the affected docs (and the keyboard shortcuts list, if shortcuts change) in the same PR.
+- Releases follow `docs/release-process.md`. Do not create tags or GitHub Releases without the owner's OK.
+
 ## Engineering Quality Rules
 
 - Follow the Karpathy-style rule: make the smallest code change that correctly solves the problem.

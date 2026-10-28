@@ -46,6 +46,8 @@ import { userDirectory } from '#/features/team/user-directory.ts'
 import { createSalesDocumentsRouter } from '#/features/sales-documents/sales-documents-router.ts'
 import { salesDocumentRepository } from '#/features/sales-documents/sales-document-store.ts'
 import { salesInvoiceRepository } from '#/features/sales/sales-invoice-store.ts'
+import { createSupportRouter } from '#/features/support/support-router.ts'
+import { sendEmail } from '#/lib/email.ts'
 
 import { createTRPCRouter, publicProcedure } from './init'
 
@@ -159,5 +161,6 @@ export const trpcRouter = createTRPCRouter({
     companies: companyRepository,
     users: userDirectory,
   }),
+  support: createSupportRouter({ send: sendEmail }),
 })
 export type TRPCRouter = typeof trpcRouter
