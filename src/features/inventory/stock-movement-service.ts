@@ -14,6 +14,8 @@ export type StockMovementDirection = 'in' | 'out'
 export type RecordStockMovementInput = {
   companyId: string
   itemId: string
+  /** Shown in user-facing errors; not stored. */
+  itemName?: string
   movementType: StockMovementType
   quantity: string
   unit: string
@@ -50,9 +52,9 @@ export interface StockBalanceRepository {
 }
 
 export class InsufficientStockError extends DomainError {
-  constructor(itemId: string, requested: string, available: string) {
+  constructor(item: string, requested: string, available: string) {
     super(
-      `Insufficient stock for item ${itemId}: requested ${requested}, available ${available}`,
+      `Insufficient stock for ${item}: requested ${requested}, available ${available}`,
     )
     this.name = 'InsufficientStockError'
   }
@@ -129,14 +131,15 @@ export async function recordStockMovement(
 
   if (nextBalance.isNegative()) {
     throw new InsufficientStockError(
-      input.itemId,
+      input.itemName ?? `item ${input.itemId}`,
       normalizeQuantity(movementQuantity),
       normalizeQuantity(currentBalance),
     )
   }
 
+  const { itemName: _itemName, ...movementInput } = input
   const movement: StockMovementRecord = {
-    ...input,
+    ...movementInput,
     id: crypto.randomUUID(),
     quantity: normalizeQuantity(movementQuantity),
     direction,

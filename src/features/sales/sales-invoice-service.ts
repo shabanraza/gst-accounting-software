@@ -359,6 +359,7 @@ export async function postSalesInvoice(
     await recordStockMovement(deps.stock, deps.stock, {
       companyId: input.companyId,
       itemId: line.itemId,
+      itemName: item?.name ?? line.description,
       movementType: 'sale_out',
       quantity: line.quantity,
       unit: line.unit,

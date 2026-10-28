@@ -22,7 +22,7 @@ const MESSAGE_RULES: Array<{ test: RegExp; message: string }> = [
     message: 'This invoice is already cancelled.',
   },
   {
-    test: /InsufficientStock|insufficient stock/i,
+    test: /InsufficientStock|insufficient stock for item/i,
     message: 'Insufficient stock for one or more items.',
   },
   {
@@ -76,7 +76,8 @@ const MESSAGE_RULES: Array<{ test: RegExp; message: string }> = [
   },
   {
     test: /UnbalancedLedgerEntry|debits must equal credits/i,
-    message: 'Journal entry is not balanced. Total debits must equal total credits.',
+    message:
+      'Journal entry is not balanced. Total debits must equal total credits.',
   },
   {
     test: /UNAUTHORIZED|unauthorized/i,
@@ -244,5 +245,6 @@ export function toastActionError(
   error: unknown,
   fallback = 'Something went wrong. Please try again.',
 ) {
-  toast.error(getFormErrorMessage(error, fallback))
+  // Errors stay up long enough to read; the toast has a close button.
+  toast.error(getFormErrorMessage(error, fallback), { duration: 10_000 })
 }

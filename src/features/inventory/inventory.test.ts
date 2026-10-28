@@ -288,4 +288,24 @@ describe('stock movements', () => {
       }),
     ).rejects.toBeInstanceOf(InsufficientStockError)
   })
+
+  test('names the item in the insufficient stock message', async () => {
+    const stock = new InMemoryStockRepositories()
+
+    await expect(
+      recordStockMovement(stock, stock, {
+        companyId: 'company-1',
+        itemId: 'item-1',
+        itemName: 'Cotton Fabric',
+        movementType: 'sale_out',
+        quantity: '10',
+        unit: 'meter',
+        referenceType: 'sales_invoice',
+        referenceId: 'inv-1',
+        occurredOn: '2026-07-11',
+      }),
+    ).rejects.toThrow(
+      'Insufficient stock for Cotton Fabric: requested 10, available 0',
+    )
+  })
 })
