@@ -21,10 +21,11 @@ export function buildSocialImageMeta(imageUrl: string = SITE.ogImage) {
 }
 
 export const NAV_LINKS = [
-  { href: '#features', label: 'Features' },
-  { href: '#how-it-works', label: 'How it works' },
-  { href: '#compare', label: 'Compare' },
-  { href: '#faq', label: 'FAQ' },
+  { href: '/#features', label: 'Features' },
+  { href: '/#how-it-works', label: 'How it works' },
+  { href: '/#compare', label: 'Compare' },
+  { href: '/#faq', label: 'FAQ' },
+  { href: '/changelog', label: 'Changelog' },
 ] as const
 
 export const HERO = {

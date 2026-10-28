@@ -60,6 +60,7 @@ import { CommandPalette } from '#/features/app-shell/components/command-palette.
 import { useTheme } from '#/features/app-shell/use-theme.ts'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { clearAppAccess } from '#/features/app-shell/app-access.ts'
+import { HelpMenu } from '#/features/support/components/help-menu.tsx'
 import { authClient } from '#/lib/auth-client.ts'
 
 function NavItemButton({
@@ -366,6 +367,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {themeMounted ? (isDark ? 'Light' : 'Dark') : 'Theme'}
               </span>
             </Button>
+            <HelpMenu />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button aria-label="New bill" variant="default">
