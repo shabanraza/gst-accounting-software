@@ -4,6 +4,8 @@ import superjson from 'superjson'
 
 import { assertCompanyMembership } from '#/features/companies/membership-service.ts'
 import { membershipRepository } from '#/features/companies/membership-store.ts'
+
+import type { MembershipRecord } from '#/features/companies/membership-service.ts'
 import { auth } from '#/lib/auth.ts'
 
 export type AuthSession = {
@@ -127,8 +129,9 @@ export const companyProcedure = baseProcedure.use(
     }
 
     const memberships = membershipRepository
+    let membership: MembershipRecord
     try {
-      await assertCompanyMembership(memberships, {
+      membership = await assertCompanyMembership(memberships, {
         companyId,
         userId: ctx.session.user.id,
       })
@@ -142,6 +145,7 @@ export const companyProcedure = baseProcedure.use(
         session: ctx.session,
         userId: ctx.session.user.id,
         companyId,
+        membership,
       },
     })
   },

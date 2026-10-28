@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import * as React from 'react'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import {
@@ -58,6 +59,7 @@ import type {
 import { CommandPalette } from '#/features/app-shell/components/command-palette.tsx'
 import { useTheme } from '#/features/app-shell/use-theme.ts'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
+import { clearAppAccess } from '#/features/app-shell/app-access.ts'
 import { authClient } from '#/lib/auth-client.ts'
 
 function NavItemButton({
@@ -148,6 +150,7 @@ function CollapsibleNavGroup({
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   })
@@ -186,6 +189,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   async function handleSignOut() {
     await authClient.signOut()
+    clearAppAccess(queryClient)
     void navigate({ to: '/login' })
   }
 
