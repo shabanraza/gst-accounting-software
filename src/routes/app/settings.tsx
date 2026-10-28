@@ -14,6 +14,7 @@ import { WorkspacePage } from '#/features/app-shell/components/workspace-page.ts
 import { AuditLogViewer } from '#/features/audit/components/audit-log-viewer.tsx'
 import { CompanyProfilePanel } from '#/features/companies/components/company-profile-panel.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
+import { ProductUpdatesCard } from '#/features/product-updates/components/product-updates-card.tsx'
 import { TeamMembersPanel } from '#/features/team/components/team-members-panel.tsx'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
@@ -95,6 +96,7 @@ function SettingsRoute() {
             </Button>
           </CardContent>
         </Card>
+        <ProductUpdatesCard />
       </div>
       <CompanyProfilePanel />
       <TeamMembersPanel />

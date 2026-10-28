@@ -17,6 +17,7 @@ built. Never include customer names, balances or other real data.
 
 - A public changelog at hisaabkro.in/changelog, and a "What's new" panel inside the app.
 - A Help menu in the app with the help center, keyboard shortcuts, contact support and a "Report a problem" form.
+- Product update emails you can turn on in Settings. They're off unless you choose them, and every email has an unsubscribe link.
 
 ## [0.2.0] - 2026-10-28
 

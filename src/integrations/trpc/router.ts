@@ -47,6 +47,10 @@ import { createSalesDocumentsRouter } from '#/features/sales-documents/sales-doc
 import { salesDocumentRepository } from '#/features/sales-documents/sales-document-store.ts'
 import { salesInvoiceRepository } from '#/features/sales/sales-invoice-store.ts'
 import { createSupportRouter } from '#/features/support/support-router.ts'
+import { preferenceStore } from '#/features/product-updates/preference-store.ts'
+import { createPreferencesRouter } from '#/features/product-updates/preferences-router.ts'
+import { createProductUpdatesService } from '#/features/product-updates/product-updates-service.ts'
+import { createResendAudience } from '#/features/product-updates/resend-audience.ts'
 import { sendEmail } from '#/lib/email.ts'
 
 import { createTRPCRouter, publicProcedure } from './init'
@@ -162,5 +166,14 @@ export const trpcRouter = createTRPCRouter({
     users: userDirectory,
   }),
   support: createSupportRouter({ send: sendEmail }),
+  preferences: createPreferencesRouter(
+    createProductUpdatesService({
+      store: preferenceStore,
+      audience: createResendAudience({
+        apiKey: process.env.RESEND_API_KEY,
+        audienceId: process.env.RESEND_AUDIENCE_ID,
+      }),
+    }),
+  ),
 })
 export type TRPCRouter = typeof trpcRouter
