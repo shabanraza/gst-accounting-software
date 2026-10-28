@@ -610,3 +610,175 @@ describe('cancelSalesInvoice', () => {
     ).rejects.toBeInstanceOf(InvoiceAlreadyCancelledError)
   })
 })
+
+describe('sales cost of goods sold', () => {
+  async function valuedContext() {
+    const context = await seedSalesContext()
+    const ledgerAccounts = new InMemoryLedgerAccountRepository()
+    const chart = await setupDefaultChartOfAccounts(ledgerAccounts, {
+      companyId: context.companyId,
+      businessType: 'wholesale',
+    })
+    const cogsAccountId = chart.find((a) => a.systemKey === 'cogs')!.id
+    const stockAccountId = chart.find(
+      (a) => a.systemKey === 'stock_in_hand',
+    )!.id
+
+    // Bought at Rs. 60 and Rs. 90 while the item master still says Rs. 80.
+    const item = await createItem(context.items, {
+      companyId: context.companyId,
+      name: 'Linen',
+      hsnCode: '5309',
+      gstRate: '5.00',
+      baseUnit: 'meter',
+      purchaseRate: '80.00',
+      saleRate: '150.00',
+      tracksInventory: true,
+    })
+    for (const [referenceId, value] of [
+      ['bill-1', '600.00'],
+      ['bill-2', '900.00'],
+    ]) {
+      await recordStockMovement(context.stock, context.stock, {
+        companyId: context.companyId,
+        itemId: item.id,
+        movementType: 'purchase_in',
+        quantity: '10',
+        unit: 'meter',
+        referenceType: 'purchase_bill',
+        referenceId,
+        occurredOn: '2026-07-01',
+        value,
+      })
+    }
+
+    const deps = {
+      invoices: context.invoices,
+      posting: context.ledgerPosting,
+      stock: context.stock,
+      items: context.items,
+      parties: context.parties,
+    }
+    const input = {
+      companyId: context.companyId,
+      companyStateCode: '27',
+      customerId: context.customer.id,
+      customerStateCode: '27',
+      invoiceNumber: 'INV-3001',
+      invoiceDate: '2026-07-11',
+      paymentMode: 'cash' as const,
+      salesAccountId: context.salesAccountId,
+      outputGstAccountId: context.outputGstAccountId,
+      receivableAccountId: context.receivableAccountId,
+      cashAccountId: context.cashAccountId,
+      cogsAccountId,
+      stockAccountId,
+      lines: [
+        {
+          itemId: item.id,
+          description: 'Linen',
+          quantity: '5',
+          unit: 'meter',
+          rate: '150.00',
+          gstRate: '5.00',
+        },
+      ],
+    }
+
+    return { context, deps, input, item, cogsAccountId, stockAccountId }
+  }
+
+  test('books COGS at the moving average cost, not the item purchase rate', async () => {
+    const { context, deps, input, item, cogsAccountId, stockAccountId } =
+      await valuedContext()
+
+    await postSalesInvoice(deps, input)
+
+    const entry = context.ledgerPosting.list()[0]
+    const cogs = entry.lines.find((l) => l.ledgerAccountId === cogsAccountId)
+    const stock = entry.lines.find((l) => l.ledgerAccountId === stockAccountId)
+    expect(cogs?.debit).toBe('375.00')
+    expect(stock?.credit).toBe('375.00')
+    expect(await context.stock.getValue(context.companyId, item.id)).toBe(
+      '1125.00',
+    )
+  })
+
+  test('omits COGS lines when the stock sold has no recorded cost', async () => {
+    const context = await seedSalesContext()
+    const chart = await setupDefaultChartOfAccounts(
+      new InMemoryLedgerAccountRepository(),
+      { companyId: context.companyId, businessType: 'wholesale' },
+    )
+    const cogsAccountId = chart.find((a) => a.systemKey === 'cogs')!.id
+    const stockAccountId = chart.find(
+      (a) => a.systemKey === 'stock_in_hand',
+    )!.id
+
+    await postSalesInvoice(
+      {
+        invoices: context.invoices,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+        parties: context.parties,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        customerId: context.customer.id,
+        customerStateCode: '27',
+        invoiceNumber: 'INV-3002',
+        invoiceDate: '2026-07-11',
+        paymentMode: 'cash',
+        salesAccountId: context.salesAccountId,
+        outputGstAccountId: context.outputGstAccountId,
+        receivableAccountId: context.receivableAccountId,
+        cashAccountId: context.cashAccountId,
+        cogsAccountId,
+        stockAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity: '5',
+            unit: 'meter',
+            rate: '120.00',
+            gstRate: '5.00',
+          },
+        ],
+      },
+    )
+
+    const entry = context.ledgerPosting.list()[0]
+    expect(entry.lines.some((l) => l.ledgerAccountId === cogsAccountId)).toBe(
+      false,
+    )
+  })
+
+  test('cancelling returns stock at the cost the invoice removed', async () => {
+    const { context, deps, input, item } = await valuedContext()
+    const invoice = await postSalesInvoice(deps, input)
+    // A later purchase moves the average; the cancel must not use it.
+    await recordStockMovement(context.stock, context.stock, {
+      companyId: context.companyId,
+      itemId: item.id,
+      movementType: 'purchase_in',
+      quantity: '5',
+      unit: 'meter',
+      referenceType: 'purchase_bill',
+      referenceId: 'bill-3',
+      occurredOn: '2026-07-12',
+      value: '1000.00',
+    })
+
+    await cancelSalesInvoice(deps, {
+      companyId: context.companyId,
+      invoiceId: invoice.id,
+    })
+
+    expect(await context.stock.getValue(context.companyId, item.id)).toBe(
+      '2500.00',
+    )
+  })
+})

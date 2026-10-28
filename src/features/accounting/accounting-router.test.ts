@@ -62,8 +62,8 @@ describe('accountingRouter', () => {
 
     const listed = await caller.accounting.listLedgerAccounts({ companyId })
 
-    expect(created).toHaveLength(11)
-    expect(listed).toHaveLength(11)
+    expect(created).toHaveLength(12)
+    expect(listed).toHaveLength(12)
     expect(listed.map((account) => account.name)).toContain('Stock In Hand')
   })
 

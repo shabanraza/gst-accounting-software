@@ -135,6 +135,8 @@ export function ReturnsPanel() {
           salesAccountId: ledgerBySystemKey.sales,
           outputGstAccountId: ledgerBySystemKey.output_gst,
           receivableAccountId: ledgerBySystemKey.customer_receivable,
+          stockAccountId: ledgerBySystemKey.stock_in_hand,
+          cogsAccountId: ledgerBySystemKey.cogs,
           lines: [
             {
               itemId: line.itemId,
@@ -189,6 +191,7 @@ export function ReturnsPanel() {
           purchaseAccountId: ledgerBySystemKey.purchase,
           inputGstAccountId: ledgerBySystemKey.input_gst,
           payableAccountId: ledgerBySystemKey.supplier_payable,
+          stockAccountId: ledgerBySystemKey.stock_in_hand,
           lines: [
             {
               itemId: line.itemId,

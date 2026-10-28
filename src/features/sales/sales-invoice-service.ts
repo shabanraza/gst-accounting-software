@@ -335,15 +335,28 @@ export async function postSalesInvoice(
     return lookup
   }
 
-  if (input.cogsAccountId && input.stockAccountId) {
-    for (const line of lines) {
-      const item = await findItem(line.itemId)
-      if (item && !item.tracksInventory) {
-        continue
-      }
-      const rate = item?.purchaseRate ?? line.rate
-      cogsTotal = cogsTotal.plus(money(line.quantity).mul(money(rate)))
+  for (const line of lines) {
+    const item = await findItem(line.itemId)
+    if (item && !item.tracksInventory) {
+      continue
     }
+
+    const movement = await recordStockMovement(deps.stock, deps.stock, {
+      companyId: input.companyId,
+      itemId: line.itemId,
+      itemName: item?.name ?? line.description,
+      movementType: 'sale_out',
+      quantity: line.quantity,
+      unit: line.unit,
+      referenceType: 'sales_invoice',
+      referenceId: invoiceId,
+      occurredOn: input.invoiceDate,
+      godownName: line.godownName,
+    })
+    cogsTotal = cogsTotal.plus(money(movement.value))
+  }
+
+  if (input.cogsAccountId && input.stockAccountId && cogsTotal.gt(0)) {
     ledgerLines.push(
       {
         ledgerAccountId: input.cogsAccountId,
@@ -366,26 +379,6 @@ export async function postSalesInvoice(
     voucherType: 'sales',
     lines: ledgerLines,
   })
-
-  for (const line of lines) {
-    const item = await findItem(line.itemId)
-    if (item && !item.tracksInventory) {
-      continue
-    }
-
-    await recordStockMovement(deps.stock, deps.stock, {
-      companyId: input.companyId,
-      itemId: line.itemId,
-      itemName: item?.name ?? line.description,
-      movementType: 'sale_out',
-      quantity: line.quantity,
-      unit: line.unit,
-      referenceType: 'sales_invoice',
-      referenceId: invoiceId,
-      occurredOn: input.invoiceDate,
-      godownName: line.godownName,
-    })
-  }
 
   const invoice: SalesInvoiceRecord = {
     id: invoiceId,
@@ -489,11 +482,26 @@ export async function cancelSalesInvoice(
     })),
   })
 
+  // The reversal above restores COGS at the cost the sale removed, so stock
+  // must come back at that same cost, not at today's average. A sale with no
+  // recorded cost (before values were tracked) comes back at the average.
+  const saleMovements = await deps.stock.listByReference(
+    invoice.companyId,
+    'sales_invoice',
+    invoice.id,
+  )
+
   for (const line of invoice.lines) {
     const item = await deps.items.findById(line.itemId)
     if (item && !item.tracksInventory) {
       continue
     }
+
+    const saleIndex = saleMovements.findIndex(
+      (movement) => movement.itemId === line.itemId,
+    )
+    const saleMovement =
+      saleIndex === -1 ? null : saleMovements.splice(saleIndex, 1)[0]
 
     await recordStockMovement(deps.stock, deps.stock, {
       companyId: invoice.companyId,
@@ -505,6 +513,10 @@ export async function cancelSalesInvoice(
       referenceId: invoice.id,
       occurredOn: invoice.invoiceDate,
       godownName: line.godownName,
+      value:
+        saleMovement && money(saleMovement.value).gt(0)
+          ? saleMovement.value
+          : undefined,
     })
   }
 

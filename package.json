@@ -41,6 +41,7 @@
     "db:apply-0008": "bun scripts/apply-migration-0008.ts",
     "db:apply-0009": "bun scripts/apply-migration-0009.ts",
     "db:reconcile": "bun scripts/reconcile-drizzle-migrations.ts",
+    "db:repair-stock-value": "bun scripts/repair-stock-value.ts",
     "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
     "db:studio": "drizzle-kit studio",

@@ -31,6 +31,9 @@ export type PostSalesReturnInput = {
   salesAccountId: string
   outputGstAccountId: string
   receivableAccountId: string
+  /** With both, returned stock is booked back: Dr stock, Cr COGS. */
+  stockAccountId?: string
+  cogsAccountId?: string
   lines: Array<ReturnLineInput>
 }
 
@@ -85,12 +88,59 @@ export async function postSalesReturn(
   const totalAmount = taxableTotal.plus(gstTotal)
   const returnId = crypto.randomUUID()
 
+  // Returned goods come back at the unit cost the invoice took them out at;
+  // a sale with no recorded cost (before values were tracked) uses the average.
+  const saleMovements = await deps.stock.listByReference(
+    input.companyId,
+    'sales_invoice',
+    input.salesInvoiceId,
+  )
+  let returnedCost = new Decimal(0)
+  for (const line of input.lines) {
+    const sold = saleMovements.find(
+      (movement) => movement.itemId === line.itemId,
+    )
+    const movement = await recordStockMovement(deps.stock, deps.stock, {
+      companyId: input.companyId,
+      itemId: line.itemId,
+      itemName: line.description,
+      movementType: 'sales_return_in',
+      quantity: line.quantity,
+      unit: line.unit,
+      referenceType: 'sales_return',
+      referenceId: returnId,
+      occurredOn: input.returnDate,
+      value:
+        sold && money(sold.value).gt(0)
+          ? formatMoney(money(sold.value).mul(line.quantity).div(sold.quantity))
+          : undefined,
+    })
+    returnedCost = returnedCost.plus(money(movement.value))
+  }
+
+  const costLines =
+    input.stockAccountId && input.cogsAccountId && returnedCost.gt(0)
+      ? [
+          {
+            ledgerAccountId: input.stockAccountId,
+            debit: formatMoney(returnedCost),
+            credit: '0.00',
+          },
+          {
+            ledgerAccountId: input.cogsAccountId,
+            debit: '0.00',
+            credit: formatMoney(returnedCost),
+          },
+        ]
+      : []
+
   const ledgerEntry = await postLedgerEntry(deps.posting, {
     companyId: input.companyId,
     entryDate: input.returnDate,
     narration: `Sales return for invoice ${input.salesInvoiceId}`,
     voucherType: 'journal',
     lines: [
+      ...costLines,
       {
         ledgerAccountId: input.salesAccountId,
         debit: formatMoney(taxableTotal),
@@ -108,19 +158,6 @@ export async function postSalesReturn(
       },
     ],
   })
-
-  for (const line of input.lines) {
-    await recordStockMovement(deps.stock, deps.stock, {
-      companyId: input.companyId,
-      itemId: line.itemId,
-      movementType: 'sales_return_in',
-      quantity: line.quantity,
-      unit: line.unit,
-      referenceType: 'sales_return',
-      referenceId: returnId,
-      occurredOn: input.returnDate,
-    })
-  }
 
   const note = await recordCreditDebitNote(deps.notes, {
     companyId: input.companyId,

@@ -27,12 +27,18 @@ describe('DrizzleStockStore', () => {
 
   test('writes the balance with a single upsert', async () => {
     const { store, queries } = recordingStore()
-    await store.setBalance(crypto.randomUUID(), crypto.randomUUID(), '7')
+    await store.setBalance(
+      crypto.randomUUID(),
+      crypto.randomUUID(),
+      '7',
+      '700.00',
+    )
 
     expect(queries).toHaveLength(1)
     expect(queries[0]).toMatch(/^insert into "stock_balances"/)
     expect(queries[0]).toContain(
       'on conflict ("company_id","item_id") do update',
     )
+    expect(queries[0]).toMatch(/do update set .*"value" = /)
   })
 })
