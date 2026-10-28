@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
@@ -62,14 +63,14 @@ export interface SalesDocumentRepository {
   ) => Promise<SalesDocumentRecord>
 }
 
-export class InvalidSalesDocumentError extends Error {
+export class InvalidSalesDocumentError extends DomainError {
   constructor(message: string) {
     super(message)
     this.name = 'InvalidSalesDocumentError'
   }
 }
 
-export class SalesDocumentNotFoundError extends Error {
+export class SalesDocumentNotFoundError extends DomainError {
   constructor(documentId: string) {
     super(`Sales document not found: ${documentId}`)
     this.name = 'SalesDocumentNotFoundError'

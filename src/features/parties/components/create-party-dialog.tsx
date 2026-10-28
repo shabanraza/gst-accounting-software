@@ -201,6 +201,16 @@ export function CreatePartyDialog({
       return
     }
 
+    if (
+      gstin.trim() &&
+      !(addressLine1.trim() && city.trim() && pincode.trim())
+    ) {
+      setFormError(
+        'Billing address, city and PIN code are required for a GST-registered party',
+      )
+      return
+    }
+
     const contactPayload = {
       pan: pan.trim(),
       addressLine1: addressLine1.trim(),

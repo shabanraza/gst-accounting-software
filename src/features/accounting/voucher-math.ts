@@ -79,10 +79,8 @@ export function resolvePlaceOfSupply(input: {
   selectedPlaceOfSupply: string
   partyStateCode: string
   companyStateCode: string
-  fallbackStateCode?: string
 }): string {
-  const fallback = input.fallbackStateCode ?? '27'
-  const companyState = resolveStateCode(input.companyStateCode, fallback)
+  const companyState = resolveStateCode(input.companyStateCode)
   const partyState = resolveStateCode(input.partyStateCode, companyState)
   const selected = resolveStateCode(input.selectedPlaceOfSupply)
 
@@ -102,7 +100,7 @@ export function partyStateForRegion(
     return companyStateCode
   }
 
-  return partyStateCode === companyStateCode ? '24' : partyStateCode
+  return partyStateCode === companyStateCode ? '' : partyStateCode
 }
 
 export function computeVoucherLine(

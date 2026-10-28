@@ -59,6 +59,7 @@ const postingTransaction = createPostingTransaction({
   items: itemRepository,
   parties: partyRepository,
   dashboard: dashboardSummaryRepository,
+  sequences: documentSequenceRepository,
 })
 
 export const trpcRouter = createTRPCRouter({
@@ -73,9 +74,6 @@ export const trpcRouter = createTRPCRouter({
     memberships: membershipRepository,
     audit: auditLogRepository,
     godowns: godownRepository,
-    parties: partyRepository,
-    items: itemRepository,
-    stock: stockStore,
   }),
   accounting: createAccountingRouter(
     ledgerAccountRepository,
@@ -147,14 +145,12 @@ export const trpcRouter = createTRPCRouter({
     salesDocumentRepository,
     itemRepository,
   ),
-  ocr: createOcrRouter(ocrDraftRepository, documentAttachmentRepository, {
-    parties: partyRepository,
-    items: itemRepository,
-    bills: purchaseBillRepository,
-    posting: ledgerPostingRepository,
-    stock: stockStore,
-    ledgers: ledgerAccountRepository,
-  }),
+  ocr: createOcrRouter(
+    ocrDraftRepository,
+    documentAttachmentRepository,
+    ledgerAccountRepository,
+    postingTransaction,
+  ),
   team: createTeamRouter({
     memberships: membershipRepository,
     invitations: invitationRepository,

@@ -356,7 +356,9 @@ body {
   @apply border-b border-border/70 shadow-xs;
 }
 
-.cn-toast {
+/* Plain toasts only: success/error keep sonner's solid rich colours so the
+   message stays readable over busy pages. */
+.cn-toast:not([data-rich-colors='true']) {
   background: color-mix(in oklch, var(--popover) 90%, transparent) !important;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);

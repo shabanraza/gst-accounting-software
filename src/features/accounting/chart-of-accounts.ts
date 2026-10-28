@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import type { BusinessType } from '#/features/companies/company-service.ts'
 
 export type LedgerAccountType =
@@ -39,7 +40,7 @@ export interface LedgerAccountRepository {
   ) => Promise<Array<LedgerAccountRecord>>
 }
 
-export class ChartAlreadySetupError extends Error {
+export class ChartAlreadySetupError extends DomainError {
   constructor(companyId: string) {
     super(`Chart of accounts already exists for company: ${companyId}`)
     this.name = 'ChartAlreadySetupError'

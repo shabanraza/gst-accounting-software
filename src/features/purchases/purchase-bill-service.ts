@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
@@ -118,6 +119,8 @@ export interface PurchaseBillRepository {
   }) => Promise<PurchaseBillRecord | null>
   create: (bill: PurchaseBillRecord) => Promise<PurchaseBillRecord>
   findById: (id: string) => Promise<PurchaseBillRecord | null>
+  /** Row-locking read for read-modify-write inside a transaction. */
+  lockById?: (id: string) => Promise<PurchaseBillRecord | null>
   save: (bill: PurchaseBillRecord) => Promise<PurchaseBillRecord>
   listByCompanyId: (
     companyId: string,
@@ -133,7 +136,7 @@ export type PurchaseBillDependencies = {
   parties?: PartyRepository
 }
 
-export class DuplicateSupplierBillError extends Error {
+export class DuplicateSupplierBillError extends DomainError {
   constructor(supplierBillNumber: string) {
     super(
       `Supplier bill number already exists for this financial year: ${supplierBillNumber}`,
@@ -167,8 +170,17 @@ export async function postPurchaseBill(
     throw new DuplicateSupplierBillError(input.supplierBillNumber)
   }
 
+  if (!deps.parties) {
+    throw new Error('Party repository is required to post purchase bills')
+  }
+
+  const supplier = await deps.parties.findById(input.supplierId)
+  if (!supplier) {
+    throw new Error(`Supplier not found: ${input.supplierId}`)
+  }
+
   const taxMode = input.taxMode ?? 'exclusive'
-  const partyStateCode = input.supplierStateCode ?? '24'
+  const partyStateCode = input.supplierStateCode ?? supplier.stateCode
   let taxableTotal = new Decimal(0)
   let gstTotal = new Decimal(0)
 
@@ -221,15 +233,6 @@ export async function postPurchaseBill(
     city: input.companyCity,
     pincode: input.companyPincode,
   })
-
-  if (!deps.parties) {
-    throw new Error('Party repository is required to post purchase bills')
-  }
-
-  const supplier = await deps.parties.findById(input.supplierId)
-  if (!supplier) {
-    throw new Error(`Supplier not found: ${input.supplierId}`)
-  }
 
   const partySnapshot = buildInvoicePartySnapshot(supplier)
   assertTaxInvoicePartyAddress({

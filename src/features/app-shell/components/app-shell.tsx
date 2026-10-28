@@ -329,6 +329,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <SidebarTrigger className="-ml-1" />
             <div className="flex-1" />
             <Button
+              aria-label="Search"
               className="gap-2"
               onClick={() => setPaletteOpen(true)}
               size="sm"
@@ -340,7 +341,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 ⌘K
               </kbd>
             </Button>
-            <Button onClick={toggle} size="sm" variant="outline">
+            <Button
+              aria-label={
+                isDark ? 'Switch to light theme' : 'Switch to dark theme'
+              }
+              onClick={toggle}
+              size="sm"
+              variant="outline"
+            >
               {themeMounted ? (
                 isDark ? (
                   <SunMediumIcon data-icon="inline-start" />

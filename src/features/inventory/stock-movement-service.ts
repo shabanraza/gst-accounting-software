@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 export type StockMovementType =
@@ -13,6 +14,8 @@ export type StockMovementDirection = 'in' | 'out'
 export type RecordStockMovementInput = {
   companyId: string
   itemId: string
+  /** Shown in user-facing errors; not stored. */
+  itemName?: string
   movementType: StockMovementType
   quantity: string
   unit: string
@@ -48,16 +51,16 @@ export interface StockBalanceRepository {
   ) => Promise<Array<{ companyId: string; itemId: string; quantity: string }>>
 }
 
-export class InsufficientStockError extends Error {
-  constructor(itemId: string, requested: string, available: string) {
+export class InsufficientStockError extends DomainError {
+  constructor(item: string, requested: string, available: string) {
     super(
-      `Insufficient stock for item ${itemId}: requested ${requested}, available ${available}`,
+      `Insufficient stock for ${item}: requested ${requested}, available ${available}`,
     )
     this.name = 'InsufficientStockError'
   }
 }
 
-export class InvalidStockMovementError extends Error {
+export class InvalidStockMovementError extends DomainError {
   constructor(message: string) {
     super(message)
     this.name = 'InvalidStockMovementError'
@@ -128,14 +131,15 @@ export async function recordStockMovement(
 
   if (nextBalance.isNegative()) {
     throw new InsufficientStockError(
-      input.itemId,
+      input.itemName ?? `item ${input.itemId}`,
       normalizeQuantity(movementQuantity),
       normalizeQuantity(currentBalance),
     )
   }
 
+  const { itemName: _itemName, ...movementInput } = input
   const movement: StockMovementRecord = {
-    ...input,
+    ...movementInput,
     id: crypto.randomUUID(),
     quantity: normalizeQuantity(movementQuantity),
     direction,

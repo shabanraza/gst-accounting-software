@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 import type { PartyRepository } from '#/features/parties/party-service.ts'
@@ -62,7 +63,7 @@ export type Gstr2bReconciliationReport = {
   rows: Array<Gstr2bReconciliationRow>
 }
 
-export class Gstr2bItcDecisionError extends Error {
+export class Gstr2bItcDecisionError extends DomainError {
   constructor(message: string) {
     super(message)
     this.name = 'Gstr2bItcDecisionError'

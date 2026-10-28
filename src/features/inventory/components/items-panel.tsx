@@ -22,7 +22,7 @@ import {
 } from '#/components/ui/table.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { CreateItemDialog } from '#/features/inventory/components/create-item-dialog.tsx'
 import { useItemsList } from '#/features/masters/use-master-data.ts'
 

@@ -10,7 +10,7 @@ import {
 } from '#/components/ui/card.tsx'
 import { CountUpNumber } from '#/components/ui/count-up.tsx'
 import { Skeleton } from '#/components/ui/skeleton.tsx'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { moneyTone } from '#/features/dashboard/money-tone.ts'
 import { cn } from '#/lib/utils.ts'
 

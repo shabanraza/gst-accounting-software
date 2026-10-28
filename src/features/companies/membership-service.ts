@@ -1,3 +1,5 @@
+import { DomainError } from '#/lib/domain-error.ts'
+
 export type CompanyRole =
   'owner' | 'admin' | 'accountant' | 'billing' | 'inventory' | 'readonly'
 
@@ -25,7 +27,7 @@ export interface MembershipRepository {
   remove: (companyId: string, userId: string) => Promise<void>
 }
 
-export class InsufficientRoleError extends Error {
+export class InsufficientRoleError extends DomainError {
   constructor(role: CompanyRole | null, allowedRoles: Array<CompanyRole>) {
     super(
       role

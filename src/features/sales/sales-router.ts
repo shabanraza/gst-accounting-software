@@ -1,18 +1,21 @@
 import { z } from 'zod'
 
 import { recordSalesSummary } from '#/features/dashboard/dashboard-summary-service.ts'
-import { ensureInventoryOpeningStock } from '#/features/inventory/opening-stock.ts'
 import {
   cancelSalesInvoice,
   postSalesInvoice,
 } from '#/features/sales/sales-invoice-service.ts'
+import { nextDocumentNumber } from '#/features/documents/document-sequence-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 import { sendInvoiceEmail } from '#/lib/email.ts'
 
 import { TRPCError } from '@trpc/server'
 
 import type { TRPCRouterRecord } from '@trpc/server'
-import type { PostingTransaction } from '#/features/accounting/posting-transaction.ts'
+import type {
+  PostingRepositories,
+  PostingTransaction,
+} from '#/features/accounting/posting-transaction.ts'
 import type { SalesInvoiceRepository } from '#/features/sales/sales-invoice-service.ts'
 
 const lineSchema = z.object({
@@ -44,7 +47,9 @@ const postSalesInvoiceInputSchema = z.object({
   customerStateCode: z.string().trim().length(2),
   placeOfSupply: optionalStateCodeSchema,
   reverseCharge: z.boolean().optional(),
-  invoiceNumber: z.string().min(1),
+  invoiceNumber: z.string().min(1).optional(),
+  financialYearId: z.string().uuid().optional(),
+  series: z.string().min(1).optional(),
   invoiceDate: z.string().min(1),
   paymentMode: z.enum(['credit', 'cash']),
   taxMode: z.enum(['exclusive', 'inclusive']).optional(),
@@ -100,6 +105,25 @@ const emailInvoiceInputSchema = z.object({
   url: z.string().optional(),
 })
 
+function allocateInvoiceNumber(
+  tx: PostingRepositories,
+  input: { companyId: string; financialYearId?: string; series?: string },
+) {
+  if (!input.financialYearId || !input.series) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'invoiceNumber or financialYearId and series is required',
+    })
+  }
+  return nextDocumentNumber(tx.sequences, {
+    companyId: input.companyId,
+    financialYearId: input.financialYearId,
+    voucherType: 'sales',
+    series: input.series,
+    padLength: 4,
+  })
+}
+
 export const createSalesRouter = (
   invoices: SalesInvoiceRepository,
   transaction: PostingTransaction,
@@ -132,12 +156,12 @@ export const createSalesRouter = (
       .input(postSalesInvoiceInputSchema)
       .mutation(({ input }) =>
         transaction(async (tx) => {
-          await ensureInventoryOpeningStock(tx.items, tx.stock, {
-            companyId: input.companyId,
-            occurredOn: input.invoiceDate,
+          const invoiceNumber =
+            input.invoiceNumber ?? (await allocateInvoiceNumber(tx, input))
+          const invoice = await postSalesInvoice(tx, {
+            ...input,
+            invoiceNumber,
           })
-
-          const invoice = await postSalesInvoice(tx, input)
           const stockOutQuantity = invoice.lines
             .reduce((sum, line) => sum + Number(line.quantity), 0)
             .toFixed(0)

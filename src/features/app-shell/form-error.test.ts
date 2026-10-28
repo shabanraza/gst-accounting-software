@@ -36,6 +36,19 @@ describe('getFormErrorMessage', () => {
     expect(message).toContain('Credit limit exceeded for City Brokers')
   })
 
+  it('shows which item is short of stock', () => {
+    const message = getFormErrorMessage(
+      new Error(
+        'Insufficient stock for Cotton Fabric: requested 10, available 2',
+      ),
+      'Save failed',
+    )
+
+    expect(message).toBe(
+      'Insufficient stock for Cotton Fabric: requested 10, available 2',
+    )
+  })
+
   it('falls back when the error looks internal', () => {
     const message = getFormErrorMessage(
       new Error('InvoiceNotFoundError: missing record'),

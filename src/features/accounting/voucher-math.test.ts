@@ -6,6 +6,7 @@ import {
   emptyVoucherLine,
   createEmptyVoucherLines,
   isValidStateCode,
+  partyStateForRegion,
   resolvePlaceOfSupply,
   resolveStateCode,
 } from '#/features/accounting/voucher-math.ts'
@@ -105,6 +106,23 @@ describe('voucher math', () => {
         companyStateCode: '27',
       }),
     ).toBe('24')
+  })
+
+  test('does not invent a state when the company state is missing', () => {
+    expect(
+      resolvePlaceOfSupply({
+        region: 'local',
+        selectedPlaceOfSupply: '',
+        partyStateCode: '',
+        companyStateCode: '',
+      }),
+    ).toBe('')
+  })
+
+  test('does not substitute a fake state for inter-state supply to the home state', () => {
+    expect(partyStateForRegion('central', '27', '27')).toBe('')
+    expect(partyStateForRegion('central', '24', '27')).toBe('24')
+    expect(partyStateForRegion('local', '24', '27')).toBe('27')
   })
 
   test('resolveStateCode picks the first valid two-digit code', () => {

@@ -6,12 +6,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import {
-  BanIcon,
-  EyeIcon,
-  PlusIcon,
-  PrinterIcon,
-} from 'lucide-react'
+import { BanIcon, EyeIcon, PlusIcon, PrinterIcon } from 'lucide-react'
 
 import {
   AlertDialog,
@@ -52,7 +47,7 @@ import { WorkspacePage } from '#/features/app-shell/components/workspace-page.ts
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { resolveListFilter } from '#/features/app-shell/list-filter.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { invoiceStatusBadgeIntent } from '#/lib/badge-intent.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 

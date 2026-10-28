@@ -26,7 +26,7 @@ import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { requireWorkspace } from '#/lib/form-validation.ts'
 import { ocrDraftBadgeIntent } from '#/lib/badge-intent.ts'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function OcrReviewPanel() {

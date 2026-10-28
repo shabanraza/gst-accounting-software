@@ -36,7 +36,7 @@ import {
 } from '#/features/accounting/ageing-service.ts'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { AttentionQueueCard } from '#/features/dashboard/components/attention-queue-card.tsx'
 import { MoneyPosition } from '#/features/dashboard/components/money-position.tsx'
 import {

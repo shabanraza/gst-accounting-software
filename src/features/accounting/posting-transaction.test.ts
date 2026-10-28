@@ -7,6 +7,7 @@ import {
   resetMembershipRepositoryForTests,
 } from '#/features/companies/membership-store.ts'
 import { InMemoryDashboardSummaryRepository } from '#/features/dashboard/dashboard-store.ts'
+import { InMemoryDocumentSequenceRepository } from '#/features/documents/document-sequence-store.ts'
 import {
   InMemoryItemRepository,
   InMemoryStockStore,
@@ -20,6 +21,11 @@ import {
   InMemorySalesInvoiceRepository,
 } from '#/features/sales/sales-invoice-store.ts'
 import { createSalesRouter } from '#/features/sales/sales-router.ts'
+import { setupDefaultChartOfAccounts } from '#/features/accounting/chart-of-accounts.ts'
+import { InMemoryLedgerAccountRepository } from '#/features/accounting/ledger-account-store.ts'
+import { createOcrDraft } from '#/features/ocr/ocr-draft-service.ts'
+import { InMemoryOcrDraftRepository } from '#/features/ocr/ocr-draft-store.ts'
+import { createOcrRouter } from '#/features/ocr/ocr-router.ts'
 import { createTRPCRouter } from '#/integrations/trpc/init.ts'
 
 import type { AppDatabase } from '#/db/client.ts'
@@ -27,6 +33,7 @@ import type {
   PostingRepositories,
   PostingTransaction,
 } from '#/features/accounting/posting-transaction.ts'
+import type { DocumentAttachmentRepository } from '#/features/documents/document-attachment-service.ts'
 import type { TRPCContext } from '#/integrations/trpc/init.ts'
 
 function inMemoryRepositories(): PostingRepositories {
@@ -38,6 +45,7 @@ function inMemoryRepositories(): PostingRepositories {
     items: new InMemoryItemRepository(),
     parties: new InMemoryPartyRepository(),
     dashboard: new InMemoryDashboardSummaryRepository(),
+    sequences: new InMemoryDocumentSequenceRepository(),
   }
 }
 
@@ -49,6 +57,7 @@ function trippedRepositories(marker: string): PostingRepositories {
   repositories.bills.findById = trip
   repositories.bills.findBySupplierBillNumber = trip
   repositories.parties.findById = trip
+  repositories.parties.listByCompanyId = trip
   return repositories
 }
 
@@ -65,19 +74,22 @@ describe('createPostingTransaction', () => {
   test('commits and closes the per-request database when work succeeds', async () => {
     const events: Array<string> = []
     const tx = {} as AppDatabase
-    const transaction = createPostingTransaction(inMemoryRepositories(), () => ({
-      database: {
-        transaction: async (work: (tx: AppDatabase) => Promise<unknown>) => {
-          events.push('begin')
-          const result = await work(tx)
-          events.push('commit')
-          return result
+    const transaction = createPostingTransaction(
+      inMemoryRepositories(),
+      () => ({
+        database: {
+          transaction: async (work: (tx: AppDatabase) => Promise<unknown>) => {
+            events.push('begin')
+            const result = await work(tx)
+            events.push('commit')
+            return result
+          },
+        } as unknown as AppDatabase,
+        close: async () => {
+          events.push('close')
         },
-      } as unknown as AppDatabase,
-      close: async () => {
-        events.push('close')
-      },
-    }))
+      }),
+    )
 
     const used = await transaction(async (repositories) => repositories)
 
@@ -87,22 +99,25 @@ describe('createPostingTransaction', () => {
 
   test('rolls back and still closes the database when work fails', async () => {
     const events: Array<string> = []
-    const transaction = createPostingTransaction(inMemoryRepositories(), () => ({
-      database: {
-        transaction: async (work: (tx: AppDatabase) => Promise<unknown>) => {
-          events.push('begin')
-          try {
-            return await work({} as AppDatabase)
-          } catch (error) {
-            events.push('rollback')
-            throw error
-          }
+    const transaction = createPostingTransaction(
+      inMemoryRepositories(),
+      () => ({
+        database: {
+          transaction: async (work: (tx: AppDatabase) => Promise<unknown>) => {
+            events.push('begin')
+            try {
+              return await work({} as AppDatabase)
+            } catch (error) {
+              events.push('rollback')
+              throw error
+            }
+          },
+        } as unknown as AppDatabase,
+        close: async () => {
+          events.push('close')
         },
-      } as unknown as AppDatabase,
-      close: async () => {
-        events.push('close')
-      },
-    }))
+      }),
+    )
 
     await expect(
       transaction(() => Promise.reject(new Error('stock write failed'))),
@@ -126,6 +141,7 @@ describe('posting routers', () => {
   let outer: PostingRepositories
   let transactionCalls: number
   let transaction: PostingTransaction
+  let scoped: PostingRepositories
 
   function caller() {
     const router = createTRPCRouter({
@@ -147,7 +163,7 @@ describe('posting routers', () => {
     })
     outer = trippedRepositories('used repositories outside the transaction')
     transactionCalls = 0
-    const scoped = trippedRepositories('used transaction repositories')
+    scoped = trippedRepositories('used transaction repositories')
     transaction = (work) => {
       transactionCalls += 1
       return work(scoped)
@@ -181,6 +197,39 @@ describe('posting routers', () => {
       }),
     ).rejects.toThrow('used transaction repositories')
     expect(transactionCalls).toBe(1)
+  })
+
+  test('sales postInvoice allocates the invoice number inside the transaction', async () => {
+    const financialYearId = crypto.randomUUID()
+    const scope = {
+      companyId,
+      financialYearId,
+      voucherType: 'sales',
+      series: 'INV',
+    }
+
+    await expect(
+      caller().sales.postInvoice({
+        companyId,
+        financialYearId,
+        series: 'INV',
+        companyStateCode: '27',
+        customerId: crypto.randomUUID(),
+        customerStateCode: '27',
+        invoiceDate: '2026-04-10',
+        paymentMode: 'credit',
+        salesAccountId: accountId,
+        outputGstAccountId: accountId,
+        receivableAccountId: accountId,
+        cashAccountId: accountId,
+        lines: [line],
+      }),
+    ).rejects.toThrow('used transaction repositories')
+
+    // The number came from the transaction's sequence store, so a database
+    // rollback of the failed post also returns the number: no gap.
+    expect(await scoped.sequences.allocateNext(scope)).toBe(2)
+    expect(await outer.sequences.allocateNext(scope)).toBe(1)
   })
 
   test('sales cancelInvoice writes inside one posting transaction', async () => {
@@ -233,5 +282,49 @@ describe('posting routers', () => {
       }),
     ).rejects.toThrow('used transaction repositories')
     expect(transactionCalls).toBe(2)
+  })
+
+  test('ocr confirm posts inside one posting transaction', async () => {
+    const drafts = new InMemoryOcrDraftRepository()
+    const attachments = {
+      findById: async () => ({ companyId }),
+    } as unknown as DocumentAttachmentRepository
+    const ledgers = new InMemoryLedgerAccountRepository()
+    const accounts = await setupDefaultChartOfAccounts(ledgers, {
+      companyId,
+      businessType: 'wholesale',
+    })
+    const accountOf = (key: string) =>
+      accounts.find((account) => account.systemKey === key)!.id
+    const draft = await createOcrDraft(drafts, attachments, {
+      companyId,
+      attachmentId: crypto.randomUUID(),
+      fields: {
+        supplierName: { value: 'Textile Mills', confidence: 0.9 },
+        supplierGstin: { value: '24AABCU9603R1ZM', confidence: 0.9 },
+        billNumber: { value: 'SUP-1', confidence: 0.9 },
+        billDate: { value: '2026-07-11', confidence: 0.9 },
+        taxableAmount: { value: '100.00', confidence: 0.9 },
+        gstAmount: { value: '5.00', confidence: 0.9 },
+        totalAmount: { value: '105.00', confidence: 0.9 },
+      },
+    })
+    const ocr = createTRPCRouter({
+      ocr: createOcrRouter(drafts, attachments, ledgers, transaction),
+    }).createCaller(context)
+
+    await expect(
+      ocr.ocr.confirm({
+        companyId,
+        draftId: draft.id,
+        companyStateCode: '27',
+        financialYearStart: '2026-04-01',
+        purchaseAccountId: accountOf('purchase'),
+        inputGstAccountId: accountOf('input_gst'),
+        payableAccountId: accountOf('supplier_payable'),
+        stockAccountId: accountOf('stock_in_hand'),
+      }),
+    ).rejects.toThrow('used transaction repositories')
+    expect(transactionCalls).toBe(1)
   })
 })

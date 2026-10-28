@@ -25,10 +25,7 @@ import { ScrollableTabsList } from '#/components/ui/scrollable-tabs-list.tsx'
 import { Tabs, TabsTrigger } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import {
-  formatInr,
-  COMPANY_STATE_CODE,
-} from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import {
   requirePositiveQuantity,
@@ -98,10 +95,7 @@ export function ReturnsPanel() {
     const returnQuantity = requirePositiveQuantity(quantity, 'Return quantity')
     if (!returnQuantity) return
 
-    const companyStateCode = resolveStateCode(
-      company.stateCode,
-      COMPANY_STATE_CODE,
-    )
+    const companyStateCode = resolveStateCode(company.stateCode)
     if (!requireStateCode(companyStateCode, 'Company state')) return
 
     setMessage(null)

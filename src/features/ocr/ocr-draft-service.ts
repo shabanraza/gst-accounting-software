@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 import { createItem } from '#/features/inventory/item-service.ts'
@@ -91,15 +92,20 @@ function dueDateFromBillDate(billDate: string): string {
   return date.toISOString().slice(0, 10)
 }
 
-function stateCodeFromGstin(gstin: string): string {
-  const code = gstin.slice(0, 2)
-  return /^\d{2}$/.test(code) ? code : '27'
+export class OcrSupplierNotInMastersError extends DomainError {
+  constructor(supplierName: string, gstin: string) {
+    super(
+      `Supplier ${supplierName} (GSTIN ${gstin}) is not in your parties yet. Add them with their billing address, then confirm again.`,
+    )
+    this.name = 'OcrSupplierNotInMastersError'
+  }
 }
 
 async function resolveOcrSupplier(
   parties: PartyRepository,
   input: {
     companyId: string
+    companyStateCode: string
     supplierName: string
     supplierGstin: string
     payableAccountId: string
@@ -120,12 +126,18 @@ async function resolveOcrSupplier(
   )
   if (byName) return byName
 
+  // A GST-registered supplier needs a billing address on the bill, which OCR
+  // does not capture, so the user adds them to the masters first.
+  if (gstin) {
+    throw new OcrSupplierNotInMastersError(input.supplierName.trim(), gstin)
+  }
+
   return createParty(parties, {
     companyId: input.companyId,
     name: input.supplierName.trim(),
     partyType: 'supplier',
-    gstin: gstin || null,
-    stateCode: gstin ? stateCodeFromGstin(gstin) : '27',
+    gstin: null,
+    stateCode: input.companyStateCode,
     creditLimit: null,
     paymentTermsDays: 30,
     payableAccountId: input.payableAccountId,
@@ -212,6 +224,7 @@ export async function confirmOcrDraft(
   const { fields } = draft
   const supplier = await resolveOcrSupplier(deps.parties, {
     companyId: input.companyId,
+    companyStateCode: input.companyStateCode,
     supplierName: fields.supplierName.value,
     supplierGstin: fields.supplierGstin.value,
     payableAccountId: input.payableAccountId,

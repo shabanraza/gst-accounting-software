@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import { assignCompanyMembership } from '#/features/companies/membership-service.ts'
 
 import type {
@@ -31,7 +32,7 @@ export interface InvitationRepository {
   update: (invitation: InvitationRecord) => Promise<InvitationRecord>
 }
 
-export class InvitationError extends Error {
+export class InvitationError extends DomainError {
   constructor(message: string) {
     super(message)
     this.name = 'InvitationError'

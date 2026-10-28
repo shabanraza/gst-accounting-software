@@ -1,4 +1,6 @@
-export class InvalidCsvError extends Error {
+import { DomainError } from '#/lib/domain-error.ts'
+
+export class InvalidCsvError extends DomainError {
   constructor(message: string) {
     super(message)
     this.name = 'InvalidCsvError'
