@@ -356,14 +356,6 @@ body {
   @apply border-b border-border/70 shadow-xs;
 }
 
-/* Plain toasts only: success/error keep sonner's solid rich colours so the
-   message stays readable over busy pages. */
-.cn-toast:not([data-rich-colors='true']) {
-  background: color-mix(in oklch, var(--popover) 90%, transparent) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
-
 /* Hero surfaces: dashboard priority cards and empty/onboarding states get the
    larger radius + duotone icon language. Dense data surfaces intentionally
    stay flat and tight — see [data-ui='data'] rules below. */
