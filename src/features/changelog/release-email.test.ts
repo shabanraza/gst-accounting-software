@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
 import {
+  buildBroadcastRequest,
   buildReleaseEmail,
   findRelease,
   releasesInMonth,
@@ -142,5 +143,40 @@ describe('buildReleaseEmail', () => {
     expect(html).toContain('0.3.0')
     expect(html).toContain('0.2.1')
     expect(html).toContain('GSTR-1 export opens in Excel.')
+  })
+})
+
+describe('buildBroadcastRequest', () => {
+  const base = {
+    segmentId: 'seg_1',
+    from: 'HisaabKro <updates@hisaabkro.in>',
+    name: 'Release 0.3.0',
+    email: { subject: 'What’s new', html: '<p>x</p>' },
+  }
+
+  test('is a draft when no send time is given', () => {
+    const body = buildBroadcastRequest(base)
+
+    expect(body).toMatchObject({
+      segment_id: 'seg_1',
+      from: 'HisaabKro <updates@hisaabkro.in>',
+      reply_to: 'support@hisaabkro.in',
+      subject: 'What’s new',
+      html: '<p>x</p>',
+      name: 'Release 0.3.0',
+    })
+    expect(body).not.toHaveProperty('send')
+    expect(body).not.toHaveProperty('scheduled_at')
+  })
+
+  test('schedules the send when a send time is given', () => {
+    expect(buildBroadcastRequest({ ...base, sendAt: 'in 1 hour' })).toMatchObject(
+      { send: true, scheduled_at: 'in 1 hour' },
+    )
+  })
+
+  test('treats "draft" or an empty send time as a draft', () => {
+    expect(buildBroadcastRequest({ ...base, sendAt: 'draft' })).not.toHaveProperty('send')
+    expect(buildBroadcastRequest({ ...base, sendAt: ' ' })).not.toHaveProperty('send')
   })
 })

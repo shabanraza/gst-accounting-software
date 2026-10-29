@@ -1,9 +1,11 @@
 #!/usr/bin/env bun
 /**
- * Creates a DRAFT Resend Broadcast of release notes for the product-updates
- * audience. It never sends: the owner reviews and sends it in Resend.
+ * Creates a Resend Broadcast of release notes for the product-updates
+ * audience. It is a draft unless --send-at is given, in which case Resend
+ * sends it at that time (it can be cancelled in Resend until then).
  *
  *   bun scripts/create-release-broadcast.ts --version v0.3.0
+ *   bun scripts/create-release-broadcast.ts --version v0.3.0 --send-at "in 1 hour"
  *   bun scripts/create-release-broadcast.ts --month 2026-11
  *   bun scripts/create-release-broadcast.ts --month previous
  *   bun scripts/create-release-broadcast.ts --version v0.3.0 --dry-run > email.html
@@ -18,6 +20,7 @@ import { appendFileSync, readFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 
 import {
+  buildBroadcastRequest,
   buildReleaseEmail,
   findRelease,
   releasesInMonth,
@@ -29,6 +32,7 @@ const { values } = parseArgs({
   options: {
     version: { type: 'string' },
     month: { type: 'string' },
+    'send-at': { type: 'string' },
     'dry-run': { type: 'boolean', default: false },
   },
 })
@@ -84,21 +88,21 @@ if (!apiKey || !audienceId) {
   process.exit(0)
 }
 
+const request = buildBroadcastRequest({
+  segmentId: audienceId,
+  from: process.env.PRODUCT_UPDATES_FROM || 'HisaabKro <updates@hisaabkro.in>',
+  name: month ? `Monthly digest ${month}` : `Release ${releases[0].version}`,
+  email,
+  sendAt: values['send-at'],
+})
+
 const response = await fetch('https://api.resend.com/broadcasts', {
   method: 'POST',
   headers: {
     Authorization: `Bearer ${apiKey}`,
     'Content-Type': 'application/json',
   },
-  // No `send` field: Resend keeps the broadcast as a draft.
-  body: JSON.stringify({
-    segment_id: audienceId,
-    from: process.env.PRODUCT_UPDATES_FROM || 'HisaabKro <updates@hisaabkro.in>',
-    reply_to: 'support@hisaabkro.in',
-    subject: email.subject,
-    html: email.html,
-    name: month ? `Monthly digest ${month}` : `Release ${releases[0].version}`,
-  }),
+  body: JSON.stringify(request),
 })
 
 if (!response.ok) {
@@ -106,5 +110,10 @@ if (!response.ok) {
 }
 
 const { id } = (await response.json()) as { id: string }
-summary(`Draft broadcast created: "${email.subject}"`)
-summary(`Review and send: https://resend.com/broadcasts/${id}`)
+if ('send' in request) {
+  summary(`Broadcast scheduled (${request.scheduled_at}): "${email.subject}"`)
+  summary(`Cancel or edit before then: https://resend.com/broadcasts/${id}`)
+} else {
+  summary(`Draft broadcast created: "${email.subject}"`)
+  summary(`Review and send: https://resend.com/broadcasts/${id}`)
+}
