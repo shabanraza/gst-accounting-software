@@ -1,4 +1,5 @@
 import { parseDelimitedRows } from '#/features/imports/csv-parser.ts'
+import { resolveImportStateCode } from '#/features/imports/import-state-code.ts'
 
 export type BusyImportKind = 'parties' | 'items'
 
@@ -33,38 +34,6 @@ function pickField(
   return ''
 }
 
-function stateCodeFromGstin(gstin: string): string | null {
-  if (gstin.length < 2) return null
-  const code = gstin.slice(0, 2)
-  return /^\d{2}$/.test(code) ? code : null
-}
-
-const STATE_NAME_TO_CODE: Record<string, string> = {
-  maharashtra: '27',
-  gujarat: '24',
-  karnataka: '29',
-  'tamil nadu': '33',
-  delhi: '07',
-  rajasthan: '08',
-  'uttar pradesh': '09',
-  'west bengal': '19',
-  telangana: '36',
-  'andhra pradesh': '37',
-}
-
-function resolveStateCode(rawState: string, gstin: string): string {
-  const fromGstin = stateCodeFromGstin(gstin)
-  if (fromGstin) return fromGstin
-
-  const trimmed = rawState.trim()
-  if (/^\d{2}$/.test(trimmed)) return trimmed
-
-  const mapped = STATE_NAME_TO_CODE[trimmed.toLowerCase()]
-  if (mapped) return mapped
-
-  return '27'
-}
-
 function mapPartyType(rawType: string): 'customer' | 'supplier' {
   const value = rawType.toLowerCase()
   if (
@@ -84,10 +53,17 @@ function mapPartyType(rawType: string): 'customer' | 'supplier' {
   return 'customer'
 }
 
-export function mapBusyPartyRow(row: Record<string, string>) {
+export function mapBusyPartyRow(
+  row: Record<string, string>,
+  defaultStateCode = '27',
+) {
   const name = pickField(row, PARTY_NAME_KEYS)
   const gstin = pickField(row, GSTIN_KEYS) || null
-  const stateCode = resolveStateCode(pickField(row, STATE_KEYS), gstin ?? '')
+  const stateCode = resolveImportStateCode(
+    pickField(row, STATE_KEYS),
+    gstin ?? '',
+    defaultStateCode,
+  )
 
   return {
     name,
@@ -114,11 +90,15 @@ export function mapBusyItemRow(row: Record<string, string>) {
 export function parseBusyExport(
   text: string,
   kind: BusyImportKind,
-): Array<Record<string, string>> {
+  defaultStateCode = '27',
+): Array<Record<string, string | null>> {
   const rows = parseDelimitedRows(text)
-  const mapper = kind === 'parties' ? mapBusyPartyRow : mapBusyItemRow
 
   return rows
-    .map((row) => mapper(row))
+    .map((row) =>
+      kind === 'parties'
+        ? mapBusyPartyRow(row, defaultStateCode)
+        : mapBusyItemRow(row),
+    )
     .filter((row) => row.name.trim().length > 0)
 }

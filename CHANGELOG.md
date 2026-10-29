@@ -18,6 +18,15 @@ built. Never include customer names, balances or other real data.
 - A public changelog at hisaabkro.in/changelog, and a "What's new" panel inside the app.
 - A Help menu in the app with the help center, keyboard shortcuts, contact support and a "Report a problem" form.
 - Product update emails you can turn on in Settings. They're off unless you choose them, and every email has an unsubscribe link.
+- Move from Tally: import your parties, stock items and opening stock straight from a Tally masters export (XML). Excel (.xlsx) files can be imported too.
+- Goa, Puducherry, Ladakh, Lakshadweep, Andaman and Nicobar Islands, and Dadra and Nagar Haveli and Daman and Diu are now in the state list.
+
+### Fixed
+
+- Imported items keep their GST rate, and 6- and 8-digit HSN codes are accepted.
+- Importing opening stock for an item you already have adds the stock to it instead of creating a duplicate item.
+- Imported parties with an unrecognised state now get your company's state instead of Maharashtra.
+- The import screen starts empty instead of pre-filled with sample rows.
 
 ## [0.2.0] - 2026-10-28
 

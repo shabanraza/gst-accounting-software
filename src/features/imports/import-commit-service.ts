@@ -28,6 +28,15 @@ import type {
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
 
+function formatGstRate(rate: string | undefined): string {
+  return Number(rate?.trim() || '0').toFixed(2)
+}
+
+/** Opening stock matches existing items by name, ignoring case and spacing. */
+function itemNameKey(name: string): string {
+  return name.trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
 export type CommitImportResult = {
   createdCount: number
   skippedCount: number
@@ -108,18 +117,27 @@ export async function commitImportOpeningStock(
     deps.ledgers,
     input.companyId,
   )
+  const existingByName = new Map(
+    (await deps.items.listByCompanyId(input.companyId)).map((item) => [
+      itemNameKey(item.name),
+      item,
+    ]),
+  )
   let createdCount = 0
   for (const row of input.rows) {
-    const item = await createItem(deps.items, {
-      companyId: input.companyId,
-      name: row.itemName,
-      hsnCode: '0000',
-      gstRate: '0.00',
-      baseUnit: row.unit,
-      purchaseRate: row.rate,
-      saleRate: row.rate,
-      tracksInventory: true,
-    })
+    const item =
+      existingByName.get(itemNameKey(row.itemName)) ??
+      (await createItem(deps.items, {
+        companyId: input.companyId,
+        name: row.itemName,
+        hsnCode: row.hsn?.trim() || '0000',
+        gstRate: formatGstRate(row.gstRate),
+        baseUnit: row.unit,
+        purchaseRate: row.rate,
+        saleRate: row.rate,
+        tracksInventory: true,
+      }))
+    existingByName.set(itemNameKey(item.name), item)
     await postOpeningStock(deps, {
       ...accounts,
       companyId: input.companyId,
@@ -166,7 +184,7 @@ export async function commitImportItems(
       companyId: input.companyId,
       name: row.name,
       hsnCode: row.hsn,
-      gstRate: '0.00',
+      gstRate: formatGstRate(row.gstRate),
       baseUnit: row.unit,
       purchaseRate: row.rate,
       saleRate: row.rate,

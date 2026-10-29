@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
 import {
+  dryRunImportItems,
   dryRunImportOpeningStock,
   dryRunImportParties,
 } from '#/features/imports/import-dry-run-service.ts'
@@ -58,5 +59,29 @@ describe('dryRunImportOpeningStock', () => {
     expect(result.errors).toHaveLength(1)
     expect(result.errors[0]?.messages.length).toBeGreaterThan(0)
     expect(result.wroteData).toBe(false)
+  })
+})
+
+describe('dryRunImportItems', () => {
+  test('accepts 4, 6 and 8 digit HSN codes and a GST rate', () => {
+    const result = dryRunImportItems([
+      { name: 'Yarn', hsn: '5205', rate: '120.00', unit: 'Kg' },
+      { name: 'Fabric', hsn: '520812', rate: '80.00', unit: 'Mtr', gstRate: '5' },
+      { name: 'Thread', hsn: '52041100', rate: '10.00', unit: 'Box', gstRate: '18.00' },
+    ])
+
+    expect(result.errors).toEqual([])
+    expect(result.validCount).toBe(3)
+  })
+
+  test('rejects a 5 digit HSN and a GST rate that is not a percentage', () => {
+    const result = dryRunImportItems([
+      { name: 'Yarn', hsn: '52051', rate: '120.00', unit: 'Kg', gstRate: 'abc' },
+    ])
+
+    expect(result.errors[0]?.messages).toEqual([
+      'HSN must be 4, 6 or 8 digits',
+      'GST rate must be a percentage between 0 and 40',
+    ])
   })
 })

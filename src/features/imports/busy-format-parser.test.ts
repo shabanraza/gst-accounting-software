@@ -67,3 +67,14 @@ Mill Supplies\t24BBBBB0000B1Z5\tGujarat\tSupplier`
     expect(rows[1]?.partyType).toBe('supplier')
   })
 })
+
+describe('BUSY party state', () => {
+  test('knows every state name, not just a few', () => {
+    expect(mapBusyPartyRow({ 'Account Name': 'A', State: 'Kerala' }).stateCode).toBe('32')
+    expect(mapBusyPartyRow({ 'Account Name': 'A', State: 'goa' }).stateCode).toBe('30')
+  })
+
+  test("falls back to the company's state, not Maharashtra", () => {
+    expect(mapBusyPartyRow({ 'Account Name': 'A' }, '09').stateCode).toBe('09')
+  })
+})

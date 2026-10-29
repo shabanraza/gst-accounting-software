@@ -10,6 +10,9 @@ export type ImportStockRow = {
   quantity: string
   unit: string
   rate: string
+  /** Used only when the item does not exist yet. */
+  hsn?: string
+  gstRate?: string
 }
 
 export type ImportItemRow = {
@@ -17,6 +20,8 @@ export type ImportItemRow = {
   hsn: string
   rate: string
   unit: string
+  /** Percentage; 0 when omitted. */
+  gstRate?: string
 }
 
 export type ImportOpeningBalanceRow = {
@@ -34,6 +39,10 @@ export type ImportDryRunResult = {
   validCount: number
   errors: Array<ImportRowError>
   wroteData: false
+}
+
+export function isGstRate(value: string): boolean {
+  return /^\d{1,2}(\.\d{1,2})?$/.test(value.trim()) && Number(value) <= 40
 }
 
 export function dryRunImportParties(
@@ -88,6 +97,10 @@ export function dryRunImportOpeningStock(
       messages.push('Quantity must be a positive number')
     }
 
+    if (row.gstRate !== undefined && !isGstRate(row.gstRate)) {
+      messages.push('GST rate must be a percentage between 0 and 40')
+    }
+
     if (!row.unit.trim()) {
       messages.push('Unit is required')
     }
@@ -115,8 +128,12 @@ export function dryRunImportItems(
       messages.push('Item name is required')
     }
 
-    if (!/^\d{4}$/.test(row.hsn)) {
-      messages.push('HSN must be 4 digits')
+    if (!/^(\d{4}|\d{6}|\d{8})$/.test(row.hsn)) {
+      messages.push('HSN must be 4, 6 or 8 digits')
+    }
+
+    if (row.gstRate !== undefined && !isGstRate(row.gstRate)) {
+      messages.push('GST rate must be a percentage between 0 and 40')
     }
 
     if (!/^\d+(\.\d{1,2})?$/.test(row.rate)) {
