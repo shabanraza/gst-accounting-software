@@ -44,7 +44,7 @@ export function AuthForm({
 }) {
   return (
     <form className="contents" onSubmit={onSubmit}>
-      <CardContent className="flex flex-col gap-3 [&_[data-slot=input]]:h-11 [&_[data-slot=input]]:text-base sm:[&_[data-slot=input]]:text-sm [&_button]:min-h-11">
+      <CardContent className="flex flex-col gap-3 [&_[data-slot=input]]:h-11 [&_[data-slot=input]]:text-base sm:[&_[data-slot=input]]:text-sm [&_button:not([role=checkbox])]:min-h-11">
         {children}
       </CardContent>
     </form>

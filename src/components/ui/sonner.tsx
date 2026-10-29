@@ -25,9 +25,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       style={
         {
-          '--normal-bg': 'var(--popover)',
-          '--normal-text': 'var(--popover-foreground)',
-          '--normal-border': 'var(--border)',
+          // Inverted surface: dark toasts in the light theme, light in dark.
+          '--normal-bg': 'var(--foreground)',
+          '--normal-text': 'var(--background)',
+          '--normal-border': 'var(--foreground)',
           '--border-radius': 'var(--radius)',
         } as React.CSSProperties
       }

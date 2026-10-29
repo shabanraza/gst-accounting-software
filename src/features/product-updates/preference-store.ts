@@ -30,6 +30,7 @@ class DrizzlePreferenceStore implements PreferenceStore {
         productUpdates: schema.userPreferences.productUpdates,
         consentedAt: schema.userPreferences.productUpdatesConsentedAt,
         withdrawnAt: schema.userPreferences.productUpdatesWithdrawnAt,
+        promptedAt: schema.userPreferences.productUpdatesPromptedAt,
       })
       .from(schema.userPreferences)
       .where(eq(schema.userPreferences.userId, userId))
@@ -41,6 +42,7 @@ class DrizzlePreferenceStore implements PreferenceStore {
       productUpdates: preference.productUpdates,
       productUpdatesConsentedAt: preference.consentedAt,
       productUpdatesWithdrawnAt: preference.withdrawnAt,
+      productUpdatesPromptedAt: preference.promptedAt ?? null,
       updatedAt: new Date(),
     }
     await this.database

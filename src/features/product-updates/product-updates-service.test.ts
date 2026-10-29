@@ -191,3 +191,73 @@ describe('product updates preference', () => {
     expect(memory.store.save).not.toHaveBeenCalled()
   })
 })
+
+describe('product updates prompt', () => {
+  const service = (initial: StoredPreference | null) => {
+    const memory = memoryStore(initial)
+    const audience = fakeAudience()
+    return {
+      memory,
+      audience,
+      service: createProductUpdatesService({
+        store: memory.store,
+        audience,
+        now: () => now,
+      }),
+    }
+  }
+
+  test('asks a user who has never chosen', async () => {
+    await expect(service(null).service.shouldAsk(user)).resolves.toBe(true)
+  })
+
+  test('never asks again after any answer', async () => {
+    const answered: Array<StoredPreference> = [
+      { productUpdates: true, consentedAt: earlier, withdrawnAt: null },
+      { productUpdates: false, consentedAt: earlier, withdrawnAt: earlier },
+      {
+        productUpdates: false,
+        consentedAt: null,
+        withdrawnAt: null,
+        promptedAt: earlier,
+      },
+    ]
+    for (const row of answered) {
+      await expect(service(row).service.shouldAsk(user)).resolves.toBe(false)
+    }
+  })
+
+  test('"No thanks" records the answer without subscribing', async () => {
+    const { memory, audience, service: s } = service(null)
+
+    await s.declinePrompt(user)
+
+    expect(memory.row).toEqual({
+      productUpdates: false,
+      consentedAt: null,
+      withdrawnAt: null,
+      promptedAt: now,
+    })
+    expect(audience.subscribe).not.toHaveBeenCalled()
+    expect(audience.unsubscribe).not.toHaveBeenCalled()
+    await expect(s.shouldAsk(user)).resolves.toBe(false)
+  })
+
+  test('turning the switch on later keeps the "No thanks" record', async () => {
+    const { memory, service: s } = service({
+      productUpdates: false,
+      consentedAt: null,
+      withdrawnAt: null,
+      promptedAt: earlier,
+    })
+
+    await s.setPreference(user, true)
+
+    expect(memory.row).toEqual({
+      productUpdates: true,
+      consentedAt: now,
+      withdrawnAt: null,
+      promptedAt: earlier,
+    })
+  })
+})

@@ -59,6 +59,7 @@ import {
   usePartiesList,
 } from '#/features/masters/use-master-data.ts'
 import { VoucherPreviewSheet } from '#/features/documents/components/voucher-preview-sheet.tsx'
+import { useProductUpdatesPrompt } from '#/features/product-updates/use-product-updates-prompt.ts'
 import type { VoucherPreviewTarget } from '#/features/documents/components/voucher-preview-sheet.tsx'
 import { CreateItemDialog } from '#/features/inventory/components/create-item-dialog.tsx'
 import { CreatePartyDialog } from '#/features/parties/components/create-party-dialog.tsx'
@@ -180,6 +181,7 @@ function VoucherEntryForm({
   const itemsQuery = useItemsList()
 
   const postSales = useMutation(trpc.sales.postInvoice.mutationOptions())
+  const askForProductUpdates = useProductUpdatesPrompt()
   const postPurchase = useMutation(trpc.purchases.postBill.mutationOptions())
   const markDocumentConverted = useMutation(
     trpc.salesDocuments.markConverted.mutationOptions(),
@@ -783,6 +785,7 @@ function VoucherEntryForm({
           number: invoice.invoiceNumber,
         })
         setPreviewOpen(true)
+        void askForProductUpdates()
       } else {
         const gstPartyState = partyStateForRegion(
           region,

@@ -73,15 +73,24 @@ Write for a shop owner or accountant, not a developer:
 
 ## Product update emails
 
-Users who turn on **Settings → Email → Email me product updates** get release
-notes by email. It is off by default.
+Users who say yes get release notes by email. It is off by default, and is
+asked in three places, all saving the same consent:
+
+- **Signup:** an unchecked "Email me product updates" box.
+- **After a saved sales invoice:** a one-time "Get product updates by email?"
+  toast with Yes / No thanks. Either answer is remembered and it is never
+  shown again; closing it without answering asks again after a later invoice.
+  Users who already chose (or opted out in Resend) are never asked.
+- **Settings → Email → Email me product updates**, any time.
 
 ### How it works
 
 - **Consent** is stored per user in `user_preferences` (migration
   `drizzle/0012_user_preferences.sql`): `product_updates`, the time consent
   was given (`product_updates_consented_at`) and withdrawn
-  (`product_updates_withdrawn_at`).
+  (`product_updates_withdrawn_at`), and when the user answered "No thanks" to
+  the prompt (`product_updates_prompted_at`, migration
+  `drizzle/0013_product_updates_prompt.sql`).
 - **Audience sync.** Turning the switch on creates or resubscribes the user as
   a Resend contact in the `RESEND_AUDIENCE_ID` segment. Turning it off marks
   the contact `unsubscribed` (the contact is kept, so the opt-out stays on
