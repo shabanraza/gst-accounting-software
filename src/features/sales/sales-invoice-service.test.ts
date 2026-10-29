@@ -134,13 +134,19 @@ async function seedSalesContext() {
 }
 
 describe('postSalesInvoice', () => {
-  test('loads each item once per invoice, even when it is costed and moved', async () => {
+  test('loads each item once and writes all stock lines in one batch', async () => {
     const context = await seedSalesContext()
     const lookups: Array<string> = []
     const findById = context.items.findById.bind(context.items)
     context.items.findById = (id: string) => {
       lookups.push(id)
       return findById(id)
+    }
+    const batches: Array<number> = []
+    const createMovements = context.stock.createMovements.bind(context.stock)
+    context.stock.createMovements = (movements) => {
+      batches.push(movements.length)
+      return createMovements(movements)
     }
     const line = {
       itemId: context.item.id,
@@ -178,6 +184,10 @@ describe('postSalesInvoice', () => {
     )
 
     expect(lookups).toEqual([context.item.id])
+    expect(batches).toEqual([2])
+    expect(
+      await getCurrentStock(context.stock, context.companyId, context.item.id),
+    ).toBe('95')
   })
 
   test('rejects selling an item with no stock instead of inventing opening stock', async () => {

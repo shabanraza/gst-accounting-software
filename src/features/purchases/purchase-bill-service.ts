@@ -8,7 +8,7 @@ import {
   assertTaxInvoicePartyAddress,
   buildInvoicePartySnapshot,
 } from '#/features/gst/tax-invoice-compliance.ts'
-import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
+import { recordStockMovements } from '#/features/inventory/stock-movement-service.ts'
 
 import type { TaxMode } from '#/features/accounting/voucher-math.ts'
 import type { InvoicePartySnapshot } from '#/features/gst/tax-invoice-compliance.ts'
@@ -326,8 +326,10 @@ export async function postPurchaseBill(
     ),
   })
 
-  for (const { line, itemName, value } of stockedLines) {
-    await recordStockMovement(deps.stock, deps.stock, {
+  await recordStockMovements(
+    deps.stock,
+    deps.stock,
+    stockedLines.map(({ line, itemName, value }) => ({
       companyId: input.companyId,
       itemId: line.itemId,
       itemName,
@@ -339,8 +341,8 @@ export async function postPurchaseBill(
       referenceId: billId,
       occurredOn: input.billDate,
       godownName: line.godownName,
-    })
-  }
+    })),
+  )
 
   const bill: PurchaseBillRecord = {
     id: billId,
