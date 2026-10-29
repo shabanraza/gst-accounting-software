@@ -30,7 +30,10 @@
  * configured database by accident. Point it at a Neon branch, never production.
  *
  *   REPAIR_DATABASE_URL=... bun scripts/repair-stock-value.ts --legacy-before <YYYY-MM-DD>
- *     [--company <id>] [--apply]
+ *     [--company <id>] [--no-reconciliation] [--apply]
+ *
+ * --no-reconciliation posts steps 1-3 only and reports the step-4 gap instead
+ * of plugging it into COGS, so no company's profit changes.
  */
 import { Pool } from '@neondatabase/serverless'
 import { and, eq, isNull, sql } from 'drizzle-orm'
@@ -54,6 +57,7 @@ if (!connectionString) {
 
 const args = process.argv.slice(2)
 const apply = args.includes('--apply')
+const reconcile = !args.includes('--no-reconciliation')
 const companyFlag = args.indexOf('--company')
 const onlyCompanyId = companyFlag === -1 ? null : args[companyFlag + 1]
 const legacyFlag = args.indexOf('--legacy-before')
@@ -143,6 +147,7 @@ async function repairCompany(
     bookStockBalance: book.balance,
     valuedStockTotal: valued.total,
     legacyBefore,
+    reconcile,
   })
 
   console.log(`  books Stock In Hand before: ${book.balance}`)
@@ -197,7 +202,9 @@ async function repairCompany(
 
   if (plan.reconciliation === null) {
     console.log(
-      '  no reconciliation: books will differ from stock valuation until the phantom stock above is removed',
+      plan.difference === null
+        ? '  no reconciliation: books will differ from stock valuation until the phantom stock above is removed'
+        : `  reconciliation skipped (--no-reconciliation): stock valuation minus books = ${plan.difference}`,
     )
     return
   }
