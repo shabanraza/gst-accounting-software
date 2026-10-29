@@ -17,5 +17,11 @@ export function createPreferencesRouter(service: ProductUpdatesService) {
       .mutation(({ ctx, input }) =>
         service.setPreference(ctx.session.user, input.enabled),
       ),
+    shouldAskProductUpdates: protectedProcedure.query(({ ctx }) =>
+      service.shouldAsk(ctx.session.user),
+    ),
+    declineProductUpdates: protectedProcedure.mutation(({ ctx }) =>
+      service.declinePrompt(ctx.session.user),
+    ),
   })
 }

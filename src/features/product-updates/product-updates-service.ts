@@ -2,6 +2,8 @@ export type StoredPreference = {
   productUpdates: boolean
   consentedAt: Date | null
   withdrawnAt: Date | null
+  /** When the user answered "No thanks" to the in-app prompt. */
+  promptedAt?: Date | null
 }
 
 export type ProductUpdatesPreference = {
@@ -78,11 +80,13 @@ export function createProductUpdatesService(deps: {
     const alreadyOn = row?.productUpdates === true
     const next: StoredPreference = enabled
       ? {
+          ...row,
           productUpdates: true,
           consentedAt: alreadyOn ? row.consentedAt : now(),
           withdrawnAt: null,
         }
       : {
+          ...row,
           productUpdates: false,
           consentedAt: row?.consentedAt ?? null,
           withdrawnAt: now(),
@@ -91,7 +95,23 @@ export function createProductUpdatesService(deps: {
     return toPreference(next)
   }
 
-  return { getPreference, setPreference }
+  /** True until the user has said yes, no, or opted out in any way. */
+  async function shouldAsk(user: PreferenceUser): Promise<boolean> {
+    const row = await deps.store.get(user.id)
+    return !row || (!row.consentedAt && !row.withdrawnAt && !row.promptedAt)
+  }
+
+  async function declinePrompt(user: PreferenceUser): Promise<void> {
+    const row = await deps.store.get(user.id)
+    await deps.store.save(user.id, {
+      productUpdates: row?.productUpdates ?? false,
+      consentedAt: row?.consentedAt ?? null,
+      withdrawnAt: row?.withdrawnAt ?? null,
+      promptedAt: now(),
+    })
+  }
+
+  return { getPreference, setPreference, shouldAsk, declinePrompt }
 }
 
 export type ProductUpdatesService = ReturnType<

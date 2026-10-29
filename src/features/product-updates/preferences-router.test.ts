@@ -41,6 +41,20 @@ describe('preferencesRouter', () => {
     })
   })
 
+  test('asks once, and not again after "No thanks"', async () => {
+    const api = caller({
+      user: { id: 'u1', email: 'asha@example.com', name: 'Asha' },
+      session: { id: 's1', userId: 'u1' },
+    })
+
+    await expect(api.preferences.shouldAskProductUpdates()).resolves.toBe(true)
+    await api.preferences.declineProductUpdates()
+    await expect(api.preferences.shouldAskProductUpdates()).resolves.toBe(false)
+    await expect(api.preferences.productUpdates()).resolves.toMatchObject({
+      enabled: false,
+    })
+  })
+
   test('requires a signed-in user', async () => {
     const api = caller(null)
 
@@ -48,5 +62,11 @@ describe('preferencesRouter', () => {
     await expect(
       api.preferences.setProductUpdates({ enabled: true }),
     ).rejects.toThrow('UNAUTHORIZED')
+    await expect(api.preferences.shouldAskProductUpdates()).rejects.toThrow(
+      'UNAUTHORIZED',
+    )
+    await expect(api.preferences.declineProductUpdates()).rejects.toThrow(
+      'UNAUTHORIZED',
+    )
   })
 })

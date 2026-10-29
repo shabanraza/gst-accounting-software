@@ -78,6 +78,7 @@ export const userPreferences = pgTable('user_preferences', {
   productUpdates: boolean('product_updates').notNull().default(false),
   productUpdatesConsentedAt: timestamp('product_updates_consented_at'),
   productUpdatesWithdrawnAt: timestamp('product_updates_withdrawn_at'),
+  productUpdatesPromptedAt: timestamp('product_updates_prompted_at'),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
 

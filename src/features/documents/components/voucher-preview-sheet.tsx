@@ -154,6 +154,12 @@ export function VoucherPreviewSheet({
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent
         className="flex w-full max-w-none flex-col gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:w-[60vw] data-[side=right]:sm:max-w-[60vw]"
+        onInteractOutside={(event) => {
+          // Answering a toast (e.g. the product-updates prompt) must not close the preview.
+          if ((event.target as Element | null)?.closest('[data-sonner-toast]')) {
+            event.preventDefault()
+          }
+        }}
         showCloseButton
       >
         <SheetHeader className="shrink-0 border-b px-6 py-4">
