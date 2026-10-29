@@ -8,13 +8,14 @@ import {
   assertTaxInvoicePartyAddress,
   buildInvoicePartySnapshot,
 } from '#/features/gst/tax-invoice-compliance.ts'
-import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
+import { recordStockMovements } from '#/features/inventory/stock-movement-service.ts'
 
 import type { TaxMode } from '#/features/accounting/voucher-math.ts'
 import type { DashboardSummaryRepository } from '#/features/dashboard/dashboard-summary-service.ts'
 import { reverseSalesSummary } from '#/features/dashboard/dashboard-summary-service.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
 import type {
+  RecordStockMovementInput,
   StockBalanceRepository,
   StockMovementRepository,
 } from '#/features/inventory/stock-movement-service.ts'
@@ -335,13 +336,14 @@ export async function postSalesInvoice(
     return lookup
   }
 
+  const stockLines: Array<RecordStockMovementInput> = []
   for (const line of lines) {
     const item = await findItem(line.itemId)
     if (item && !item.tracksInventory) {
       continue
     }
 
-    const movement = await recordStockMovement(deps.stock, deps.stock, {
+    stockLines.push({
       companyId: input.companyId,
       itemId: line.itemId,
       itemName: item?.name ?? line.description,
@@ -353,6 +355,12 @@ export async function postSalesInvoice(
       occurredOn: input.invoiceDate,
       godownName: line.godownName,
     })
+  }
+  for (const movement of await recordStockMovements(
+    deps.stock,
+    deps.stock,
+    stockLines,
+  )) {
     cogsTotal = cogsTotal.plus(money(movement.value))
   }
 
@@ -491,6 +499,7 @@ export async function cancelSalesInvoice(
     invoice.id,
   )
 
+  const returnLines: Array<RecordStockMovementInput> = []
   for (const line of invoice.lines) {
     const item = await deps.items.findById(line.itemId)
     if (item && !item.tracksInventory) {
@@ -503,7 +512,7 @@ export async function cancelSalesInvoice(
     const saleMovement =
       saleIndex === -1 ? null : saleMovements.splice(saleIndex, 1)[0]
 
-    await recordStockMovement(deps.stock, deps.stock, {
+    returnLines.push({
       companyId: invoice.companyId,
       itemId: line.itemId,
       movementType: 'sales_return_in',
@@ -519,6 +528,7 @@ export async function cancelSalesInvoice(
           : undefined,
     })
   }
+  await recordStockMovements(deps.stock, deps.stock, returnLines)
 
   if (deps.dashboard) {
     const stockOutQuantity = invoice.lines

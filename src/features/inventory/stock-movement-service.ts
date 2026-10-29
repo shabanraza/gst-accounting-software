@@ -43,6 +43,10 @@ export interface StockMovementRepository {
   createMovement: (
     movement: StockMovementRecord,
   ) => Promise<StockMovementRecord>
+  /** Optional multi-row insert: one round trip for a whole document. */
+  createMovements?: (
+    movements: Array<StockMovementRecord>,
+  ) => Promise<Array<StockMovementRecord>>
   listByCompanyId: (companyId: string) => Promise<Array<StockMovementRecord>>
   listByReference: (
     companyId: string,
@@ -61,6 +65,16 @@ export type StockBalanceRecord = {
 export interface StockBalanceRepository {
   getBalance: (companyId: string, itemId: string) => Promise<string>
   getValue: (companyId: string, itemId: string) => Promise<string>
+  /** Optional: read (in a transaction, row-lock) several balances at once. */
+  getBalances?: (
+    companyId: string,
+    itemIds: Array<string>,
+  ) => Promise<Map<string, { quantity: string; value: string }>>
+  /** Optional: write several balances in one statement. */
+  setBalances?: (
+    companyId: string,
+    balances: Array<{ itemId: string; quantity: string; value: string }>,
+  ) => Promise<void>
   setBalance: (
     companyId: string,
     itemId: string,
@@ -162,19 +176,21 @@ function normalizeQuantity(value: Decimal): string {
     .replace(/\.$/, '')
 }
 
-export async function recordStockMovement(
-  movementRepository: StockMovementRepository,
-  balanceRepository: StockBalanceRepository,
+type StoredBalance = { quantity: string; value: string }
+
+/**
+ * One movement applied to a stored balance: validates stock, prices the
+ * movement (purchase value, or moving average on the way out) and returns the
+ * new balance in the same rounded form the store keeps.
+ */
+function applyMovement(
   input: RecordStockMovementInput,
-): Promise<StockMovementRecord> {
+  current: StoredBalance,
+): { movement: StockMovementRecord; next: StoredBalance } {
   const direction = directionFor(input.movementType)
   const movementQuantity = quantity(input.quantity)
-  const currentBalance = new Decimal(
-    await balanceRepository.getBalance(input.companyId, input.itemId),
-  )
-  const currentValue = new Decimal(
-    await balanceRepository.getValue(input.companyId, input.itemId),
-  )
+  const currentBalance = new Decimal(current.quantity)
+  const currentValue = new Decimal(current.value)
 
   const nextBalance =
     direction === 'in'
@@ -209,14 +225,94 @@ export async function recordStockMovement(
     createdAt: new Date(),
   }
 
+  return {
+    movement,
+    next: {
+      quantity: normalizeQuantity(nextBalance),
+      value: nextValue.toFixed(2),
+    },
+  }
+}
+
+export async function recordStockMovement(
+  movementRepository: StockMovementRepository,
+  balanceRepository: StockBalanceRepository,
+  input: RecordStockMovementInput,
+): Promise<StockMovementRecord> {
+  const { movement, next } = applyMovement(input, {
+    quantity: await balanceRepository.getBalance(input.companyId, input.itemId),
+    value: await balanceRepository.getValue(input.companyId, input.itemId),
+  })
+
   const created = await movementRepository.createMovement(movement)
   await balanceRepository.setBalance(
     input.companyId,
     input.itemId,
-    normalizeQuantity(nextBalance),
-    nextValue.toFixed(2),
+    next.quantity,
+    next.value,
   )
 
+  return created
+}
+
+/**
+ * Records all stock lines of one document. With batch-capable repositories
+ * this is one locked read, one insert and one balance write however many
+ * lines there are; otherwise it falls back to one line at a time. Lines for
+ * the same item are applied in order with the same maths as
+ * recordStockMovement, and nothing is written if any line runs short.
+ */
+export async function recordStockMovements(
+  movementRepository: StockMovementRepository,
+  balanceRepository: StockBalanceRepository,
+  inputs: Array<RecordStockMovementInput>,
+): Promise<Array<StockMovementRecord>> {
+  if (inputs.length === 0) return []
+  if (
+    !movementRepository.createMovements ||
+    !balanceRepository.getBalances ||
+    !balanceRepository.setBalances
+  ) {
+    const created: Array<StockMovementRecord> = []
+    for (const input of inputs) {
+      created.push(
+        await recordStockMovement(movementRepository, balanceRepository, input),
+      )
+    }
+    return created
+  }
+
+  const companyId = inputs[0].companyId
+  if (inputs.some((input) => input.companyId !== companyId)) {
+    throw new InvalidStockMovementError(
+      'All stock lines of a document must belong to one company',
+    )
+  }
+
+  const itemIds = [...new Set(inputs.map((input) => input.itemId))]
+  const stored = await balanceRepository.getBalances(companyId, itemIds)
+  const running = new Map<string, StoredBalance>(
+    itemIds.map((itemId) => [
+      itemId,
+      stored.get(itemId) ?? { quantity: '0', value: '0.00' },
+    ]),
+  )
+
+  const movements = inputs.map((input) => {
+    const current = running.get(input.itemId) ?? {
+      quantity: '0',
+      value: '0.00',
+    }
+    const { movement, next } = applyMovement(input, current)
+    running.set(input.itemId, next)
+    return movement
+  })
+
+  const created = await movementRepository.createMovements(movements)
+  await balanceRepository.setBalances(
+    companyId,
+    [...running].map(([itemId, balance]) => ({ itemId, ...balance })),
+  )
   return created
 }
 
