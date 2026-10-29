@@ -13,6 +13,8 @@ built. Never include customer names, balances or other real data.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-29
+
 ### Added
 
 - A public changelog at hisaabkro.in/changelog, and a "What's new" panel inside the app.
