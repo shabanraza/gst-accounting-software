@@ -34,6 +34,8 @@ const stockRowSchema = z.object({
   quantity: z.string(),
   unit: z.string(),
   rate: z.string(),
+  hsn: z.string().optional(),
+  gstRate: z.string().optional(),
 })
 
 const itemRowSchema = z.object({
@@ -41,6 +43,7 @@ const itemRowSchema = z.object({
   hsn: z.string(),
   rate: z.string(),
   unit: z.string(),
+  gstRate: z.string().optional(),
 })
 
 const openingBalanceRowSchema = z.object({
