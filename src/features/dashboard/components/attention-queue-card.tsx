@@ -6,6 +6,7 @@ import {
   CircleCheckBigIcon,
   FileStackIcon,
   LandmarkIcon,
+  MessageCircleIcon,
   PackageIcon,
   ReceiptIndianRupeeIcon,
   ScanTextIcon,
@@ -18,7 +19,9 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
+import { Button } from '#/components/ui/button.tsx'
 import { Skeleton } from '#/components/ui/skeleton.tsx'
+import { paymentReminderLink } from '#/features/dashboard/payment-reminder.ts'
 import { formatInr } from '#/lib/format-inr.ts'
 import { cn } from '#/lib/utils.ts'
 import type {
@@ -57,7 +60,7 @@ const KIND_ICON: Record<AttentionItemKind, typeof ReceiptIndianRupeeIcon> = {
 
 /** Dense row rhythm, shared by real rows and skeletons so nothing jumps. */
 const rowClassName =
-  'flex items-center gap-3 border-t border-border/60 px-(--card-spacing) py-3'
+  'flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border/60 px-(--card-spacing) py-3'
 
 function ToneIcon({
   kind,
@@ -113,26 +116,103 @@ function RowBody({ item }: { item: AttentionItem }) {
   )
 }
 
-function AttentionRow({ item }: { item: AttentionItem }) {
-  if (!item.actionable) {
-    return (
-      <div className={rowClassName}>
-        <RowBody item={item} />
-      </div>
-    )
+type RowAction =
+  | { label: string; href: string; icon: typeof MessageCircleIcon }
+  | {
+      label: string
+      to: string
+      search?: { mode: 'receipts' | 'payments' } | { tab: 'gstr3b' }
+    }
+
+/** The one-tap next step for each kind of row. */
+function rowActions(item: AttentionItem, companyName: string): Array<RowAction> {
+  if (!item.actionable) return []
+
+  switch (item.kind) {
+    case 'overdue-receivable': {
+      const reminder = paymentReminderLink({
+        phone: item.contactPhone,
+        partyName: item.title.replace(/^Collect from /, ''),
+        amount: item.amount ?? '0',
+        companyName,
+      })
+      return [
+        ...(reminder
+          ? [{ label: 'Remind', href: reminder, icon: MessageCircleIcon }]
+          : []),
+        { label: 'Receipt', to: '/app/payments', search: { mode: 'receipts' } },
+      ]
+    }
+    case 'overdue-payable':
+      return [
+        { label: 'Pay', to: '/app/payments', search: { mode: 'payments' } },
+      ]
+    case 'low-stock':
+      return [{ label: 'Reorder', to: '/app/purchase-orders' }]
+    case 'gst-due':
+      return [
+        { label: 'GSTR-3B', to: '/app/reports', search: { tab: 'gstr3b' } },
+      ]
+    default:
+      return []
   }
+}
+
+function AttentionRow({
+  companyName,
+  item,
+}: {
+  companyName: string
+  item: AttentionItem
+}) {
+  const actions = rowActions(item, companyName)
 
   return (
-    <Link
-      className={cn(
-        rowClassName,
-        'transition-colors duration-(--duration-fast) ease-(--ease-precise) hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset',
+    <div className={rowClassName} data-attention-row="">
+      {item.actionable ? (
+        <Link
+          className="-my-1 flex min-w-0 flex-1 basis-full items-center gap-3 rounded-md py-1 transition-colors duration-(--duration-fast) ease-(--ease-precise) hover:text-primary focus-visible:outline-none sm:basis-0 focus-visible:ring-2 focus-visible:ring-ring/50"
+          data-row-link=""
+          search={item.search}
+          to={item.to}
+        >
+          <RowBody item={item} />
+        </Link>
+      ) : (
+        <span className="flex min-w-0 flex-1 basis-full items-center gap-3 sm:basis-0">
+          <RowBody item={item} />
+        </span>
       )}
-      search={item.search}
-      to={item.to}
-    >
-      <RowBody item={item} />
-    </Link>
+      {actions.length > 0 ? (
+        <span className="ml-11 flex shrink-0 items-center gap-1.5 sm:ml-0">
+          {actions.map((action) =>
+            'href' in action ? (
+              <Button asChild key={action.label} size="sm" variant="outline">
+                <a
+                  data-row-action=""
+                  href={action.href}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  <action.icon data-icon="inline-start" />
+                  {action.label}
+                </a>
+              </Button>
+            ) : (
+              <Button asChild key={action.label} size="sm" variant="outline">
+                <Link
+                  data-row-action=""
+                  search={action.search}
+                  to={action.to}
+                >
+                  {action.label}
+                </Link>
+              </Button>
+            ),
+          )}
+        </span>
+      ) : null}
+    </div>
   )
 }
 
@@ -152,6 +232,8 @@ function AttentionSkeletonRow() {
 
 export type AttentionQueueCardProps = {
   className?: string
+  /** Signs the WhatsApp payment reminders. */
+  companyName: string
   isLoading?: boolean
   items: Array<AttentionItem>
 }
@@ -162,6 +244,7 @@ export type AttentionQueueCardProps = {
  */
 export function AttentionQueueCard({
   className,
+  companyName,
   isLoading = false,
   items,
 }: AttentionQueueCardProps) {
@@ -171,7 +254,7 @@ export function AttentionQueueCard({
     <Card className={cn('gap-4', className)} size="hero">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          Needs attention
+          To do
           {showCount ? (
             <span className="text-sm font-normal tabular-nums text-muted-foreground">
               {items.length}
@@ -195,7 +278,9 @@ export function AttentionQueueCard({
             </span>
           </div>
         ) : (
-          items.map((item) => <AttentionRow item={item} key={item.id} />)
+          items.map((item) => (
+            <AttentionRow companyName={companyName} item={item} key={item.id} />
+          ))
         )}
       </CardContent>
     </Card>

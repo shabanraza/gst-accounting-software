@@ -42,6 +42,19 @@ export type DueTodayItem = {
   kind: 'receivable' | 'payable'
 }
 
+export type PartyBalance = {
+  partyId: string
+  partyName: string
+  outstandingAmount: string
+  overdueAmount: string
+}
+
+export type SetupProgress = {
+  hasParty: boolean
+  hasItem: boolean
+  hasSale: boolean
+}
+
 export type OwnerDashboardSnapshot = {
   asOfDate: string
   today: {
@@ -55,8 +68,18 @@ export type OwnerDashboardSnapshot = {
   balances: {
     cashBankBalance: string
     receivableTotal: string
+    /** Part of `receivableTotal` already past its due date. */
+    receivableOverdue: string
     payableTotal: string
+    /** Part of `payableTotal` overdue or falling due within the next 7 days. */
+    payableDueThisWeek: string
   }
+  /** Largest customer balances, biggest first. Empty without `view_reports`. */
+  topReceivables: Array<PartyBalance>
+  /** Largest supplier balances, biggest first. Empty without `view_reports`. */
+  topPayables: Array<PartyBalance>
+  /** Which first steps this company has done, read from real records. */
+  setup: SetupProgress
   trend: Array<{
     date: string
     sales: string
@@ -369,6 +392,58 @@ export function rollUpOverdueParties(
   return [...byParty.values()].map((entry) => entry.signal)
 }
 
+const TOP_PARTY_LIMIT = 5
+
+/** Outstanding per party across all their open documents, biggest first. */
+export function topPartyBalances(
+  rows: ReadonlyArray<AgeingRow>,
+): Array<PartyBalance> {
+  const byParty = new Map<
+    string,
+    { partyName: string; outstanding: Decimal; overdue: Decimal }
+  >()
+
+  for (const row of rows) {
+    const entry = byParty.get(row.partyId) ?? {
+      partyName: row.partyName,
+      outstanding: new Decimal(0),
+      overdue: new Decimal(0),
+    }
+    entry.outstanding = entry.outstanding.plus(row.outstandingAmount)
+    if (row.daysPastDue > 0) {
+      entry.overdue = entry.overdue.plus(row.outstandingAmount)
+    }
+    byParty.set(row.partyId, entry)
+  }
+
+  return [...byParty.entries()]
+    .filter(([, entry]) => entry.outstanding.gt(0))
+    .sort(([, left], [, right]) => right.outstanding.comparedTo(left.outstanding))
+    .slice(0, TOP_PARTY_LIMIT)
+    .map(([partyId, entry]) => ({
+      partyId,
+      partyName: entry.partyName,
+      outstandingAmount: entry.outstanding.toFixed(2),
+      overdueAmount: entry.overdue.toFixed(2),
+    }))
+}
+
+async function buildSetupProgress(
+  deps: Pick<OwnerDashboardDeps, 'parties' | 'items' | 'invoices'>,
+  companyId: string,
+): Promise<SetupProgress> {
+  const [parties, items, invoices] = await Promise.all([
+    deps.parties.listByCompanyId(companyId),
+    deps.items.listByCompanyId(companyId),
+    deps.invoices.listByCompanyId(companyId),
+  ])
+  return {
+    hasParty: parties.length > 0,
+    hasItem: items.length > 0,
+    hasSale: invoices.some((invoice) => invoice.status !== 'cancelled'),
+  }
+}
+
 /** `''`, `null` and unparseable values all mean "no quantity". */
 function toQuantity(value: string | null | undefined) {
   const trimmed = value?.trim()
@@ -423,6 +498,7 @@ export async function buildLowStockSignals(
 function emptyFinancialSnapshot(
   asOfDate: string,
   attention: Array<AttentionItem>,
+  setup: SetupProgress,
 ): OwnerDashboardSnapshot {
   const trendRange = dateRangeEndingOn(asOfDate, 7)
   const currentMonthStart = monthStart(asOfDate)
@@ -446,8 +522,13 @@ function emptyFinancialSnapshot(
     balances: {
       cashBankBalance: '0.00',
       receivableTotal: '0.00',
+      receivableOverdue: '0.00',
       payableTotal: '0.00',
+      payableDueThisWeek: '0.00',
     },
+    topReceivables: [],
+    topPayables: [],
+    setup,
     trend: trendRange.dates.map((date) => ({
       date,
       sales: '0.00',
@@ -487,7 +568,10 @@ export async function getOwnerDashboardSnapshot(
   // Operational callers (billing / inventory) keep the attention queue — low
   // stock and similar — but never receive company financials.
   if (!includeReports) {
-    const lowStock = await buildLowStockSignals(deps, companyId)
+    const [lowStock, setup] = await Promise.all([
+      buildLowStockSignals(deps, companyId),
+      buildSetupProgress(deps, companyId),
+    ])
     return emptyFinancialSnapshot(
       asOfDate,
       buildAttentionQueue({
@@ -495,6 +579,7 @@ export async function getOwnerDashboardSnapshot(
         capabilities,
         lowStock,
       }),
+      setup,
     )
   }
 
@@ -516,6 +601,7 @@ export async function getOwnerDashboardSnapshot(
     payablesAgeing,
     gstDocuments,
     lowStock,
+    items,
   ] = await Promise.all([
     getDashboardSummary(deps.summaries, companyId, asOfDate),
     listDashboardSummariesBetween(
@@ -554,7 +640,18 @@ export async function getOwnerDashboardSnapshot(
       parties: deps.parties,
     }),
     buildLowStockSignals(deps, companyId),
+    deps.items.listByCompanyId(companyId),
   ])
+
+  const phoneByParty = new Map(
+    parties.map((party) => [party.id, party.contactPhone?.trim() ?? '']),
+  )
+  const withPhone = (signals: Array<OverduePartySignal>) =>
+    signals.map((signal) => {
+      const phone = phoneByParty.get(signal.partyId)
+      return phone ? { ...signal, contactPhone: phone } : signal
+    })
+  const payableDueBy = addCalendarDays(asOfDate, 6)
 
   const partyNameById = new Map(parties.map((party) => [party.id, party.name]))
   const trendByDate = new Map(trendRows.map((row) => [row.summaryDate, row]))
@@ -638,8 +735,10 @@ export async function getOwnerDashboardSnapshot(
     asOf: asOfDate,
     capabilities,
     lowStock,
-    overdueReceivables: rollUpOverdueParties(receivablesAgeing.rows),
-    overduePayables: rollUpOverdueParties(payablesAgeing.rows),
+    overdueReceivables: withPhone(
+      rollUpOverdueParties(receivablesAgeing.rows),
+    ),
+    overduePayables: withPhone(rollUpOverdueParties(payablesAgeing.rows)),
     gst: {
       netPayableAmount: gstMtd.netGstPayable,
       periodLabel: currentLabel,
@@ -659,7 +758,20 @@ export async function getOwnerDashboardSnapshot(
     balances: {
       cashBankBalance,
       receivableTotal: sumOutstanding(openInvoices),
+      receivableOverdue: sumOutstanding(
+        receivablesAgeing.rows.filter((row) => row.daysPastDue > 0),
+      ),
       payableTotal: sumOutstanding(openBills),
+      payableDueThisWeek: sumOutstanding(
+        openBills.filter((bill) => bill.dueDate <= payableDueBy),
+      ),
+    },
+    topReceivables: topPartyBalances(receivablesAgeing.rows),
+    topPayables: topPartyBalances(payablesAgeing.rows),
+    setup: {
+      hasParty: parties.length > 0,
+      hasItem: items.length > 0,
+      hasSale: invoices.some((invoice) => invoice.status !== 'cancelled'),
     },
     trend: trendRange.dates.map((date) => {
       const row = trendByDate.get(date)

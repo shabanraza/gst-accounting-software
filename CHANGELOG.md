@@ -21,6 +21,12 @@ built. Never include customer names, balances or other real data.
 - You can choose product update emails when you sign up, or say yes or no once after saving an invoice.
 - Move from Tally: import your parties, stock items and opening stock straight from a Tally masters export (XML). Excel (.xlsx) files can be imported too, and common column names such as "Customer Name", "Stock Item", "UOM" and "IGST" are recognised.
 - The import check now lists which rows have problems and why.
+- A new dashboard. The top shows this month's sales, what customers owe you (and how much is overdue), what you owe suppliers (and what falls due this week), and cash and bank.
+- A setup checklist for new companies: business details, first party, first item and first sales invoice, each ticked off as you do it.
+- Send a payment reminder on WhatsApp straight from an overdue customer on the dashboard, or record their receipt in one click.
+- A GST card on the dashboard with this month's output GST, input tax credit, net payable and the monthly filing dates.
+- Top dues: your largest customer and supplier balances, with the overdue part.
+- Quick actions for a new sale, purchase, receipt or payment, with keyboard shortcuts Alt+S, Alt+P, Alt+R and Alt+Y.
 - Goa, Puducherry, Ladakh, Lakshadweep, Andaman and Nicobar Islands, and Dadra and Nagar Haveli and Daman and Diu are now in the state list.
 
 ### Fixed

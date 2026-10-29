@@ -60,6 +60,7 @@ import { CommandPalette } from '#/features/app-shell/components/command-palette.
 import { useTheme } from '#/features/app-shell/use-theme.ts'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { clearAppAccess } from '#/features/app-shell/app-access.ts'
+import { useQuickActionShortcuts } from '#/features/app-shell/components/quick-actions.tsx'
 import { HelpMenu } from '#/features/support/components/help-menu.tsx'
 import { authClient } from '#/lib/auth-client.ts'
 
@@ -162,6 +163,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
   const { company, companies, setActiveCompany, isReady, capabilities } =
     useWorkspace()
+  useQuickActionShortcuts(capabilities)
   const visibleNav = React.useMemo(
     () => filterAppNav(appNav, capabilities),
     [capabilities],
