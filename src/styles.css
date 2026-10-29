@@ -356,6 +356,19 @@ body {
   @apply border-b border-border/70 shadow-xs;
 }
 
+/* Toasts use an inverted surface (see components/ui/sonner.tsx); keep the
+   close and cancel buttons on that surface instead of sonner's own greys. */
+[data-sonner-toast] [data-close-button] {
+  background: var(--normal-bg);
+  color: var(--normal-text);
+  border-color: color-mix(in oklch, var(--normal-text) 25%, transparent);
+}
+
+[data-sonner-toast] [data-cancel] {
+  background: color-mix(in oklch, var(--normal-text) 15%, transparent);
+  color: var(--normal-text);
+}
+
 /* Hero surfaces: dashboard priority cards and empty/onboarding states get the
    larger radius + duotone icon language. Dense data surfaces intentionally
    stay flat and tight — see [data-ui='data'] rules below. */
