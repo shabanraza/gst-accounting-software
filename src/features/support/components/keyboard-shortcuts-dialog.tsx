@@ -15,7 +15,10 @@ const SHORTCUTS = [
   { keys: ['Ctrl', 'K'], action: 'Search pages, parties and items' },
   { keys: ['Ctrl', 'B'], action: 'Show or hide the sidebar' },
   { keys: ['F2'], action: 'Save the invoice or bill' },
-  { keys: ['Enter'], action: 'Next cell in the item grid' },
+  {
+    keys: ['Enter'],
+    action: 'Next cell in the item grid; on the last cell, a new line',
+  },
   { keys: ['F9'], action: 'Delete the current item line' },
 ] as const
 

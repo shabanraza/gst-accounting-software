@@ -19,6 +19,10 @@ built. Never include customer names, balances or other real data.
 - A Help menu in the app with the help center, keyboard shortcuts, contact support and a "Report a problem" form.
 - Product update emails you can turn on in Settings. They're off unless you choose them, and every email has an unsubscribe link.
 
+### Changed
+
+- Invoices and bills can be filled in from the keyboard: the party field is ready when the page opens, picking a party or item moves you to the next field, and Enter on the last cell starts a new line.
+
 ## [0.2.0] - 2026-10-28
 
 ### Added

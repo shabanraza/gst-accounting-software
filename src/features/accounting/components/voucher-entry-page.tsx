@@ -98,6 +98,17 @@ function lineGstAmount(
   return Number(line.igstAmount)
 }
 
+/** Focuses a voucher field by its data-voucher-cell id; false if not on screen. */
+function focusVoucherCell(cellId: string): boolean {
+  const cell = document.querySelector<HTMLElement>(
+    `[data-voucher-cell="${cellId}"]`,
+  )
+  if (!cell) return false
+  cell.focus()
+  if (cell instanceof HTMLInputElement) cell.select()
+  return document.activeElement === cell
+}
+
 function countFilled(...values: Array<string | undefined | null>) {
   return values.filter((value) => value?.trim()).length
 }
@@ -234,6 +245,16 @@ function VoucherEntryForm({
   >(null)
   const formRef = React.useRef<HTMLFormElement>(null)
   const activeRowIndexRef = React.useRef(0)
+  // A new voucher opens with the cursor in the party field, as in Tally.
+  const focusedOnOpenRef = React.useRef(false)
+  React.useEffect(() => {
+    if (focusedOnOpenRef.current) return
+    // Never pull the cursor out of a field the user is already typing in.
+    if (document.activeElement?.matches('input, textarea, [contenteditable]')) {
+      focusedOnOpenRef.current = true
+      return
+    }
+    focusedOnOpenRef.current = focusVoucherCell('party')  })
   const companyState = resolveStateCode(company?.stateCode)
   const party = parties.find((item) => item.id === partyId)
   const { recentIds, rememberParty } = useRecentParties(
@@ -513,22 +534,10 @@ function VoucherEntryForm({
       next?.select()
       return
     }
-    const nextRow = document.querySelector<HTMLInputElement>(
-      `[data-voucher-cell="${rowIndex + 1}-quantity"]`,
-    )
-    if (nextRow) {
-      nextRow.focus()
-      nextRow.select()
-      return
-    }
+    // Like Tally, a finished line continues at the next line's item.
+    if (focusVoucherCell(`${rowIndex + 1}-item`)) return
     addLine()
-    requestAnimationFrame(() => {
-      document
-        .querySelector<HTMLInputElement>(
-          `[data-voucher-cell="${rowIndex + 1}-quantity"]`,
-        )
-        ?.focus()
-    })
+    requestAnimationFrame(() => focusVoucherCell(`${rowIndex + 1}-item`))
   }
 
   function selectParty(nextPartyId: string) {
@@ -938,6 +947,8 @@ function VoucherEntryForm({
                       onSelect: () => setPartyCreateOpen(true),
                     }}
                     emptyText="No contacts yet."
+                    cellId="party"
+                    onPicked={() => focusVoucherCell('0-item')}
                     onValueChange={selectParty}
                     options={partyOptions}
                     placeholder="Select customer"
@@ -1038,6 +1049,8 @@ function VoucherEntryForm({
                       onSelect: () => setPartyCreateOpen(true),
                     }}
                     emptyText="No contacts yet."
+                    cellId="party"
+                    onPicked={() => focusVoucherCell('0-item')}
                     onValueChange={selectParty}
                     options={partyOptions}
                     placeholder="Select supplier"
@@ -1504,8 +1517,12 @@ function VoucherEntryForm({
                             onFocus={() => {
                               activeRowIndexRef.current = rowIndex
                             }}
+                            cellId={`${rowIndex}-item`}
                             onValueChange={(value) =>
                               selectItem(line.key, value)
+                            }
+                            onPicked={() =>
+                              focusVoucherCell(`${rowIndex}-quantity`)
                             }
                             options={itemOptions}
                             placeholder="Select item"
