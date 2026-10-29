@@ -111,6 +111,23 @@ describe('planStockValueRepair', () => {
     expect(plan.reconciliation).toBe('4320.00')
   })
 
+  test('can leave profit untouched: books openings and values, but posts no COGS plug', () => {
+    const input = {
+      ...base,
+      unvaluedOpenings: [opening({ quantity: '40' })],
+      unvaluedBalances: [{ itemId: 'item-a', quantity: '90' }],
+      bookStockBalance: '-320.00',
+    }
+    const reconciled = planStockValueRepair(input)
+    const plan = planStockValueRepair({ ...input, reconcile: false })
+
+    expect(plan.openingEntries).toEqual(reconciled.openingEntries)
+    expect(plan.balanceValues).toEqual(reconciled.balanceValues)
+    expect(plan.reconciliation).toBeNull()
+    // The remaining gap is still reported so the owner can review it.
+    expect(plan.difference).toBe('4320.00')
+  })
+
   test('plans nothing once the books already match', () => {
     const plan = planStockValueRepair({
       ...base,
@@ -125,6 +142,7 @@ describe('planStockValueRepair', () => {
       unpricedOpenings: [],
       balanceValues: [],
       reconciliation: '0.00',
+      difference: '0.00',
     })
   })
 })

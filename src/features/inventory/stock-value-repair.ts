@@ -31,6 +31,11 @@ export type StockValueRepairInput = {
   valuedStockTotal: string
   /** Openings of exactly 100 created before this date may be invented. */
   legacyBefore: string
+  /**
+   * Plug the books to the stock valuation through COGS (default). Pass false
+   * to leave profit untouched; the gap is then only reported in `difference`.
+   */
+  reconcile?: boolean
 }
 
 export type StockValueRepairPlan = {
@@ -61,6 +66,8 @@ export type StockValueRepairPlan = {
    * any opening awaits review, since its stock is not real value to match.
    */
   reconciliation: string | null
+  /** Stock valuation minus books after the repair; null while review is pending. */
+  difference: string | null
 }
 
 function isSuspectOpening(
@@ -130,6 +137,7 @@ export function planStockValueRepair(
       unpricedOpenings,
       balanceValues,
       reconciliation: null,
+      difference: null,
     }
   }
 
@@ -141,12 +149,14 @@ export function planStockValueRepair(
   const valuation = new Decimal(input.valuedStockTotal).plus(
     sum(balanceValues.map((entry) => entry.value)),
   )
+  const difference = valuation.minus(bookAfter).toFixed(2)
 
   return {
     openingEntries,
     needsReview,
     unpricedOpenings,
     balanceValues,
-    reconciliation: valuation.minus(bookAfter).toFixed(2),
+    reconciliation: input.reconcile === false ? null : difference,
+    difference,
   }
 }
