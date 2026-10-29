@@ -4,4 +4,13 @@
   "compatibility_date": "2025-09-02",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
+  // Non-secret settings live here because every deploy removes plain
+  // variables added in the Cloudflare dashboard. Secrets (RESEND_API_KEY,
+  // DATABASE_URL, BETTER_AUTH_SECRET) are set as Secrets and survive deploys.
+  // Local dev: override these in .env.local.
+  "vars": {
+    "EMAIL_FROM": "HisaabKro <support@hisaabkro.in>",
+    // Resend segment for opt-in product-update emails.
+    "RESEND_AUDIENCE_ID": "5de06341-27f3-4717-ae7d-dc384dbcf099",
+  },
 }

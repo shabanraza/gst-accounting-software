@@ -104,14 +104,13 @@ notes by email. It is off by default.
 1. In Resend, verify the sending domain (`hisaabkro.in`).
 2. Create a segment (Resend's new name for an audience), for example
    "Product updates", and copy its ID.
-3. On the Worker, set the segment ID and redeploy:
-
-   ```bash
-   bunx wrangler secret put RESEND_AUDIENCE_ID
-   ```
-
-   `RESEND_API_KEY` is already set for transactional email. For local dev put
-   `RESEND_AUDIENCE_ID` in `.env.local`, ideally a separate test segment.
+3. Put the segment ID in `RESEND_AUDIENCE_ID` under `vars` in
+   `wrangler.jsonc` (next to `EMAIL_FROM`), and set `RESEND_API_KEY` in
+   Cloudflare → Worker → Settings → Variables and secrets as type
+   **Secret**. Don't add plain variables in the dashboard: every deploy from
+   `main` removes any plain variable that isn't in `wrangler.jsonc`.
+   For local dev, override `RESEND_AUDIENCE_ID` in `.env.local` with a
+   separate test segment, so test sign-ups never land in the real list.
 4. In GitHub → Settings → Secrets and variables → Actions:
    - secret `RESEND_API_KEY`: a Resend key with full access (sending-only
      keys can't create broadcasts);
@@ -148,7 +147,7 @@ bun scripts/create-release-broadcast.ts --month 2026-11 --dry-run > digest.html
 ## Help and support
 
 - **Help → Report a problem** emails `support@hisaabkro.in` through Resend
-  (`RESEND_API_KEY` must be set on the Worker). The email carries the user's
+  (`RESEND_API_KEY` must be set on the Worker as a Secret). The email carries the user's
   description, their name and email (as reply-to), the page path without
   query string, the app version and the browser. It never includes balances,
   party data or session tokens.
