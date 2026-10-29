@@ -136,9 +136,8 @@ export function dryRunImportItems(
       messages.push('Item name is required')
     }
 
-    if (!row.hsn.trim()) {
-      messages.push('HSN is missing')
-    } else if (!/^(\d{4}|\d{6}|\d{8})$/.test(row.hsn)) {
+    // A blank HSN is allowed so switchers can import first and fill it in later.
+    if (row.hsn.trim() && !/^(\d{4}|\d{6}|\d{8})$/.test(row.hsn)) {
       messages.push('HSN must be 4, 6 or 8 digits')
     }
 

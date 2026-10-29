@@ -97,11 +97,12 @@ describe('dryRunImportItems with a missing GST rate', () => {
 })
 
 describe('dryRunImportItems with no HSN', () => {
-  test('says the HSN is missing', () => {
+  test('accepts it, so the HSN can be filled in later', () => {
     const result = dryRunImportItems([
       { name: 'Ball Pen', hsn: '', rate: '0.00', unit: 'Nos', gstRate: '12' },
     ])
 
-    expect(result.errors[0]?.messages).toEqual(['HSN is missing'])
+    expect(result.errors).toEqual([])
+    expect(result.validCount).toBe(1)
   })
 })

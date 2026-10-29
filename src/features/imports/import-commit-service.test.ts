@@ -131,3 +131,18 @@ describe('commitImportOpeningStock with existing items', () => {
     expect(item).toMatchObject({ hsnCode: '5204', gstRate: '12.00' })
   })
 })
+
+describe('commitImportItems without HSN', () => {
+  test('stores the 0000 placeholder used elsewhere for an unknown HSN', async () => {
+    const items = new InMemoryItemRepository()
+
+    const result = await commitImportItems(items, {
+      companyId: 'company-1',
+      rows: [{ name: 'Ball Pen', hsn: '', gstRate: '12', rate: '0.00', unit: 'Nos' }],
+    })
+
+    expect(result.createdCount).toBe(1)
+    const [item] = await items.listByCompanyId('company-1')
+    expect(item).toMatchObject({ hsnCode: '0000', gstRate: '12.00' })
+  })
+})

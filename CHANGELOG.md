@@ -24,7 +24,7 @@ built. Never include customer names, balances or other real data.
 
 ### Fixed
 
-- Imported items keep their GST rate, and 6- and 8-digit HSN codes are accepted.
+- Imported items keep their GST rate, and 6- and 8-digit HSN codes are accepted. Items without an HSN can be imported too; they get 0000 until you add the real code.
 - Importing opening stock for an item you already have adds the stock to it instead of creating a duplicate item.
 - Imported parties with an unrecognised state now get your company's state instead of Maharashtra.
 - The import screen starts empty instead of pre-filled with sample rows.

@@ -106,7 +106,7 @@ export function mapBusyPartyRow(
 
 export function mapBusyItemRow(row: Record<string, string>) {
   const name = pickField(row, ITEM_NAME_KEYS)
-  // A missing HSN stays blank so the dry-run asks for it.
+  // A missing HSN stays blank; the import stores a placeholder to fill in later.
   const hsn = pickField(row, HSN_KEYS)
   const rate = pickField(row, RATE_KEYS) || '0.00'
   const unit = pickField(row, UNIT_KEYS) || 'Nos'

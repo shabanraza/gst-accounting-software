@@ -28,6 +28,9 @@ import type {
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
 
+/** Placeholder the HSN summary also uses until the user sets the real code. */
+const UNKNOWN_HSN = '0000'
+
 function formatGstRate(rate: string | undefined): string {
   return Number(rate?.trim() || '0').toFixed(2)
 }
@@ -130,7 +133,7 @@ export async function commitImportOpeningStock(
       (await createItem(deps.items, {
         companyId: input.companyId,
         name: row.itemName,
-        hsnCode: row.hsn?.trim() || '0000',
+        hsnCode: row.hsn?.trim() || UNKNOWN_HSN,
         gstRate: formatGstRate(row.gstRate),
         baseUnit: row.unit,
         purchaseRate: row.rate,
@@ -183,7 +186,7 @@ export async function commitImportItems(
     await createItem(items, {
       companyId: input.companyId,
       name: row.name,
-      hsnCode: row.hsn,
+      hsnCode: row.hsn.trim() || UNKNOWN_HSN,
       gstRate: formatGstRate(row.gstRate),
       baseUnit: row.unit,
       purchaseRate: row.rate,
