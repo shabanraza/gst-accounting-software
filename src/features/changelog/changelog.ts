@@ -12,7 +12,7 @@ export type ChangelogRelease = {
 }
 
 /** Keep a Changelog change types, shown to customers in plain words. */
-const SECTION_LABELS: Record<string, ChangelogSectionLabel> = {
+export const SECTION_LABELS: Record<string, ChangelogSectionLabel> = {
   Added: 'New',
   Changed: 'Improved',
   Deprecated: 'Improved',
@@ -21,7 +21,7 @@ const SECTION_LABELS: Record<string, ChangelogSectionLabel> = {
   Security: 'Fixed',
 }
 
-const RELEASE_HEADING = /^## \[(\d+\.\d+\.\d+)\] - (\d{4}-\d{2}-\d{2})\s*$/
+export const RELEASE_HEADING = /^## \[(\d+\.\d+\.\d+)\] - (\d{4}-\d{2}-\d{2})\s*$/
 
 /** Parses a Keep a Changelog file into released versions, newest first. */
 export function parseChangelog(markdown: string): Array<ChangelogRelease> {

@@ -66,6 +66,84 @@ Write for a shop owner or accountant, not a developer:
 
    `notes.md` is the release's section copied from `CHANGELOG.md`.
 6. **Check** `https://hisaabkro.in/changelog` shows the new release.
+7. **Send the product update email.** Publishing the GitHub Release creates a
+   draft broadcast in Resend (see below). Open the link in the workflow run
+   summary, check it, send a test to yourself, then press Send in Resend.
+
+## Product update emails
+
+Users who turn on **Settings → Email → Email me product updates** get release
+notes by email. It is off by default.
+
+### How it works
+
+- **Consent** is stored per user in `user_preferences` (migration
+  `drizzle/0012_user_preferences.sql`): `product_updates`, the time consent
+  was given (`product_updates_consented_at`) and withdrawn
+  (`product_updates_withdrawn_at`).
+- **Audience sync.** Turning the switch on creates or resubscribes the user as
+  a Resend contact in the `RESEND_AUDIENCE_ID` segment. Turning it off marks
+  the contact `unsubscribed` (the contact is kept, so the opt-out stays on
+  record in Resend). If Resend rejects the change, the switch doesn't move.
+  With `RESEND_AUDIENCE_ID` unset, only the preference is stored.
+- **Unsubscribe.** Every email carries `{{{RESEND_UNSUBSCRIBE_URL}}}`, and
+  Resend adds the List-Unsubscribe header. An unsubscribe in Resend always
+  wins: when an opted-in user opens Settings, the app checks the contact and
+  turns the switch off if Resend says unsubscribed. The app never
+  resubscribes anyone on its own; only the user turning the switch back on
+  does. Transactional email (password reset, invites, invoices) is not
+  affected.
+- **Drafting.** `.github/workflows/product-update-email.yml` runs on
+  `release: published` (skipping pre-releases). It runs
+  `scripts/create-release-broadcast.ts`, which takes the version's section of
+  `CHANGELOG.md` (or the GitHub release notes if `CHANGELOG.md` has none),
+  turns it into simple HTML and creates a **draft** broadcast. It never sends.
+
+### One-time setup
+
+1. In Resend, verify the sending domain (`hisaabkro.in`).
+2. Create a segment (Resend's new name for an audience), for example
+   "Product updates", and copy its ID.
+3. On the Worker, set the segment ID and redeploy:
+
+   ```bash
+   bunx wrangler secret put RESEND_AUDIENCE_ID
+   ```
+
+   `RESEND_API_KEY` is already set for transactional email. For local dev put
+   `RESEND_AUDIENCE_ID` in `.env.local`, ideally a separate test segment.
+4. In GitHub → Settings → Secrets and variables → Actions:
+   - secret `RESEND_API_KEY`: a Resend key with full access (sending-only
+     keys can't create broadcasts);
+   - variable `RESEND_AUDIENCE_ID`: the same segment ID;
+   - optional variable `PRODUCT_UPDATES_FROM`, for example
+     `HisaabKro <updates@hisaabkro.in>` (that is the default).
+5. Run migration `0012_user_preferences.sql` against production before
+   deploying the release that ships the switch.
+
+Without the secret or variable, the workflow logs a notice and creates
+nothing.
+
+### Preview or redo a draft
+
+```bash
+bun scripts/create-release-broadcast.ts --version v0.3.0 --dry-run > email.html
+```
+
+To redo a draft, delete it in Resend and re-run the workflow from the Actions
+tab (**Run workflow**, with the tag in `version`).
+
+### Monthly digest instead of one email per release
+
+If releases ship more often than users want email, set the repo variable
+`PRODUCT_UPDATES_CADENCE` to `monthly`. Releases then stop creating drafts,
+and on the 1st of each month the workflow drafts one digest of the previous
+month's releases (nothing if there were none). To draft a digest by hand, run
+the workflow with `month` set to `YYYY-MM`, or:
+
+```bash
+bun scripts/create-release-broadcast.ts --month 2026-11 --dry-run > digest.html
+```
 
 ## Help and support
 

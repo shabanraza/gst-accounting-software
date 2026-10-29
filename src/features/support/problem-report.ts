@@ -1,3 +1,5 @@
+import { escapeHtml } from '#/lib/email.ts'
+
 export const SUPPORT_EMAIL = 'support@hisaabkro.in'
 
 export type ProblemReportInput = {
@@ -6,15 +8,6 @@ export type ProblemReportInput = {
   appVersion: string
   userAgent: string
   reporter: { name: string; email: string }
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;')
 }
 
 /** Query strings and hashes can carry filters or tokens; keep the path only. */

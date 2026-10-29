@@ -78,6 +78,13 @@
       "when": 1783879000000,
       "tag": "0011_stock_value",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1783880000000,
+      "tag": "0012_user_preferences",
+      "breakpoints": true
     }
   ]
 }

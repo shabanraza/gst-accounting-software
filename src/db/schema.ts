@@ -70,6 +70,17 @@ export const verification = pgTable('verification', {
   updatedAt: timestamp('updated_at').defaultNow(),
 })
 
+/** Per-user email consent. Not company data, so keyed by user only. */
+export const userPreferences = pgTable('user_preferences', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  productUpdates: boolean('product_updates').notNull().default(false),
+  productUpdatesConsentedAt: timestamp('product_updates_consented_at'),
+  productUpdatesWithdrawnAt: timestamp('product_updates_withdrawn_at'),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+})
+
 export const companies = pgTable(
   'companies',
   {
