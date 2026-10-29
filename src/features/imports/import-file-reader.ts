@@ -9,6 +9,10 @@ export function decodeImportText(buffer: ArrayBuffer): string {
   if (bytes[0] === 0xfe && bytes[1] === 0xff) {
     return new TextDecoder('utf-16be').decode(bytes)
   }
+  // UTF-16 without a byte order mark: ASCII "<" followed by a zero byte.
+  if (bytes[0] !== 0 && bytes[1] === 0) {
+    return new TextDecoder('utf-16le').decode(bytes)
+  }
   return new TextDecoder('utf-8').decode(bytes)
 }
 

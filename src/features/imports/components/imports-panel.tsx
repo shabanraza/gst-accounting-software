@@ -98,6 +98,11 @@ export function ImportsPanel() {
       }
       return parseBusyExport(text, mode, companyStateCode)
     }
+    // Excel and CSV party or item sheets rarely use our exact column names,
+    // so match common headers (Tally templates, BUSY, plain CSV).
+    if (format === 'csv' && (mode === 'parties' || mode === 'items')) {
+      return parseBusyExport(text, mode, companyStateCode)
+    }
     if (format === 'csv') {
       return parseCsvRows(text)
     }
@@ -177,8 +182,21 @@ export function ImportsPanel() {
               ? await dryRunItems.mutateAsync({ rows: rows as never })
               : await dryRunOpeningBalances.mutateAsync({ rows: rows as never })
       setDryRunComplete(true)
+      const rowErrors = report.errors
+        .slice(0, 5)
+        .map((error) =>
+          error.rowNumber > 0
+            ? `Row ${error.rowNumber}: ${error.messages.join('; ')}`
+            : error.messages.join('; '),
+        )
+      if (report.errors.length > 5) {
+        rowErrors.push(`…and ${report.errors.length - 5} more rows`)
+      }
       setResult(
-        `Dry-run: ${report.validCount} valid, ${report.errors.length} errors, wroteData=${report.wroteData}`,
+        [
+          `Dry-run: ${report.validCount} valid, ${report.errors.length} errors, wroteData=${report.wroteData}`,
+          ...rowErrors,
+        ].join('\n'),
       )
       if (report.errors.length > 0) {
         toast.error(
@@ -348,7 +366,9 @@ export function ImportsPanel() {
             </Button>
           </div>
           {result ? (
-            <p className="text-sm text-muted-foreground">{result}</p>
+            <p className="text-sm whitespace-pre-line text-muted-foreground">
+              {result}
+            </p>
           ) : null}
         </CardContent>
       </Card>

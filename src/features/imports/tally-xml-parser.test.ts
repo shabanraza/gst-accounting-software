@@ -155,3 +155,62 @@ describe('parseTallyMasters', () => {
     )
   })
 })
+
+// Real Tally Prime exports keep HSN, GST and GSTIN as dated revision lists,
+// often set the GST rate on the stock group, and may contain raw control
+// characters (not only &#4; references).
+describe('parseTallyMasters with real export quirks', () => {
+  const realExport = `<ENVELOPE>
+   <STOCKGROUP NAME="Yarns"><PARENT>&#4; Primary</PARENT>
+    <GSTDETAILS.LIST><STATEWISEDETAILS.LIST>
+     <RATEDETAILS.LIST><GSTRATEDUTYHEAD>IGST</GSTRATEDUTYHEAD><GSTRATE>12</GSTRATE></RATEDETAILS.LIST>
+    </STATEWISEDETAILS.LIST></GSTDETAILS.LIST>
+   </STOCKGROUP>
+   <STOCKGROUP NAME="Cotton Yarns"><PARENT>Yarns</PARENT></STOCKGROUP>
+   <STOCKITEM NAME="Combed Yarn"><PARENT>Cotton Yarns</PARENT><BASEUNITS>Kg</BASEUNITS>
+    <HSN>Cotton yarn description</HSN>
+    <HSNDETAILS.LIST><APPLICABLEFROM>20170701</APPLICABLEFROM><HSNCODE>5205</HSNCODE></HSNDETAILS.LIST>
+    <HSNDETAILS.LIST><APPLICABLEFROM>20220401</APPLICABLEFROM><HSNCODE>520512</HSNCODE></HSNDETAILS.LIST>
+    <GSTDETAILS.LIST><TAXABILITY>Taxable</TAXABILITY></GSTDETAILS.LIST>
+   </STOCKITEM>
+   <STOCKITEM NAME="Dyed Yarn"><PARENT>Yarns</PARENT><BASEUNITS>Kg</BASEUNITS>
+    <GSTDETAILS.LIST><APPLICABLEFROM>20170701</APPLICABLEFROM><STATEWISEDETAILS.LIST>
+     <RATEDETAILS.LIST><GSTRATEDUTYHEAD>IGST</GSTRATEDUTYHEAD><GSTRATE>12</GSTRATE></RATEDETAILS.LIST>
+    </STATEWISEDETAILS.LIST></GSTDETAILS.LIST>
+    <GSTDETAILS.LIST><APPLICABLEFROM>20250922</APPLICABLEFROM><STATEWISEDETAILS.LIST>
+     <RATEDETAILS.LIST><GSTRATEDUTYHEAD>IGST</GSTRATEDUTYHEAD><GSTRATE>5</GSTRATE></RATEDETAILS.LIST>
+    </STATEWISEDETAILS.LIST></GSTDETAILS.LIST>
+   </STOCKITEM>
+   <STOCKITEM NAME="Loose Fibre\u0004"><BASEUNITS>Kg</BASEUNITS>
+    <GSTDETAILS.LIST><TAXABILITY>Taxable</TAXABILITY></GSTDETAILS.LIST>
+   </STOCKITEM>
+   <LEDGER NAME="Moved Customer"><PARENT>Sundry Debtors</PARENT>
+    <LEDGSTREGDETAILS.LIST><APPLICABLEFROM>20170701</APPLICABLEFROM><GSTIN>24AAAAA0000A1Z5</GSTIN></LEDGSTREGDETAILS.LIST>
+    <LEDGSTREGDETAILS.LIST><APPLICABLEFROM>20240401</APPLICABLEFROM><GSTIN>29AAAAA0000A1Z5</GSTIN></LEDGSTREGDETAILS.LIST>
+   </LEDGER>
+  </ENVELOPE>`
+  const masters = parseTallyMasters(realExport, '27')
+  const item = (name: string) => masters.items.find((row) => row.name === name)
+
+  test('uses the latest HSN, not the description tag', () => {
+    expect(item('Combed Yarn')?.hsn).toBe('520512')
+  })
+
+  test('takes the GST rate from the stock group when the item has none', () => {
+    expect(item('Combed Yarn')?.gstRate).toBe('12.00')
+  })
+
+  test('uses the latest GST rate revision', () => {
+    expect(item('Dyed Yarn')?.gstRate).toBe('5.00')
+  })
+
+  test('leaves the rate blank for a taxable item with no rate anywhere, so dry-run flags it', () => {
+    expect(item('Loose Fibre')?.gstRate).toBe('')
+  })
+
+  test('uses the latest GSTIN and its state', () => {
+    expect(masters.parties).toEqual([
+      expect.objectContaining({ gstin: '29AAAAA0000A1Z5', stateCode: '29' }),
+    ])
+  })
+})

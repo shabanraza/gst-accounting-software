@@ -41,8 +41,15 @@ export type ImportDryRunResult = {
   wroteData: false
 }
 
-export function isGstRate(value: string): boolean {
+function isGstRate(value: string): boolean {
   return /^\d{1,2}(\.\d{1,2})?$/.test(value.trim()) && Number(value) <= 40
+}
+
+/** An omitted rate means 0%; a blank one means the file had none to give. */
+function gstRateMessage(rate: string | undefined): string | null {
+  if (rate === undefined) return null
+  if (!rate.trim()) return 'GST rate is missing'
+  return isGstRate(rate) ? null : 'GST rate must be a percentage between 0 and 40'
 }
 
 export function dryRunImportParties(
@@ -97,8 +104,9 @@ export function dryRunImportOpeningStock(
       messages.push('Quantity must be a positive number')
     }
 
-    if (row.gstRate !== undefined && !isGstRate(row.gstRate)) {
-      messages.push('GST rate must be a percentage between 0 and 40')
+    const gstRateError = gstRateMessage(row.gstRate)
+    if (gstRateError) {
+      messages.push(gstRateError)
     }
 
     if (!row.unit.trim()) {
@@ -128,12 +136,15 @@ export function dryRunImportItems(
       messages.push('Item name is required')
     }
 
-    if (!/^(\d{4}|\d{6}|\d{8})$/.test(row.hsn)) {
+    if (!row.hsn.trim()) {
+      messages.push('HSN is missing')
+    } else if (!/^(\d{4}|\d{6}|\d{8})$/.test(row.hsn)) {
       messages.push('HSN must be 4, 6 or 8 digits')
     }
 
-    if (row.gstRate !== undefined && !isGstRate(row.gstRate)) {
-      messages.push('GST rate must be a percentage between 0 and 40')
+    const gstRateError = gstRateMessage(row.gstRate)
+    if (gstRateError) {
+      messages.push(gstRateError)
     }
 
     if (!/^\d+(\.\d{1,2})?$/.test(row.rate)) {

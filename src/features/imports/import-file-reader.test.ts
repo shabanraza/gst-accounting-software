@@ -53,3 +53,9 @@ describe('sheetRowsToCsv', () => {
     expect(sheetRowsToCsv([['Name'], [null], ['A']])).toBe('Name\nA')
   })
 })
+
+describe('decodeImportText without a byte order mark', () => {
+  test('recognises UTF-16 from its zero bytes', () => {
+    expect(decodeImportText(utf16le('<ENVELOPE/>', false))).toBe('<ENVELOPE/>')
+  })
+})

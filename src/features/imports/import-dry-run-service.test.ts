@@ -85,3 +85,23 @@ describe('dryRunImportItems', () => {
     ])
   })
 })
+
+describe('dryRunImportItems with a missing GST rate', () => {
+  test('says the rate is missing', () => {
+    const result = dryRunImportItems([
+      { name: 'Yarn', hsn: '5205', rate: '0.00', unit: 'Kg', gstRate: '' },
+    ])
+
+    expect(result.errors[0]?.messages).toEqual(['GST rate is missing'])
+  })
+})
+
+describe('dryRunImportItems with no HSN', () => {
+  test('says the HSN is missing', () => {
+    const result = dryRunImportItems([
+      { name: 'Ball Pen', hsn: '', rate: '0.00', unit: 'Nos', gstRate: '12' },
+    ])
+
+    expect(result.errors[0]?.messages).toEqual(['HSN is missing'])
+  })
+})

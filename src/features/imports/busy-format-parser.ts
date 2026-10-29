@@ -3,14 +3,37 @@ import { resolveImportStateCode } from '#/features/imports/import-state-code.ts'
 
 export type BusyImportKind = 'parties' | 'items'
 
-const PARTY_NAME_KEYS = ['account name', 'party name', 'name', 'account']
-const PARTY_TYPE_KEYS = ['account type', 'type', 'group', 'account group']
+// Headers seen in BUSY/EZY exports, Tally's Excel templates and plain CSV.
+const PARTY_NAME_KEYS = [
+  'account name',
+  'party name',
+  'customer name',
+  'supplier name',
+  'ledger name',
+  'name',
+  'account',
+]
+const PARTY_TYPE_KEYS = [
+  'account type',
+  'party type',
+  'partytype',
+  'type',
+  'group',
+  'account group',
+]
 const GSTIN_KEYS = ['gst no.', 'gst no', 'gstin', 'gst number', 'gst no ']
-const STATE_KEYS = ['state', 'state code', 'state name']
-const ITEM_NAME_KEYS = ['item name', 'name', 'product name']
+const STATE_KEYS = ['state', 'state code', 'statecode', 'state name']
+const ITEM_NAME_KEYS = [
+  'item name',
+  'stock item',
+  'stock item name',
+  'name',
+  'product name',
+]
 const HSN_KEYS = ['hsn/sac', 'hsn', 'hsn code', 'sac']
 const RATE_KEYS = ['sale rate', 'rate', 'purchase rate', 'mrp']
 const UNIT_KEYS = ['unit', 'main unit', 'base unit', 'uom']
+const GST_RATE_KEYS = ['gst rate', 'gstrate', 'gst %', 'igst', 'igst rate', 'tax rate']
 
 function normalizeHeader(header: string): string {
   return header.trim().toLowerCase().replace(/\s+/g, ' ')
@@ -34,8 +57,11 @@ function pickField(
   return ''
 }
 
-function mapPartyType(rawType: string): 'customer' | 'supplier' {
+function mapPartyType(rawType: string): 'customer' | 'supplier' | 'both' {
   const value = rawType.toLowerCase()
+  if (value === 'both') {
+    return 'both'
+  }
   if (
     value.includes('supplier') ||
     value.includes('creditor') ||
@@ -65,9 +91,14 @@ export function mapBusyPartyRow(
     defaultStateCode,
   )
 
+  // Tally's templates have no type column; a "Supplier Name" header says it.
+  const rawType =
+    pickField(row, PARTY_TYPE_KEYS) ||
+    (pickField(row, ['supplier name']) ? 'supplier' : '')
+
   return {
     name,
-    partyType: mapPartyType(pickField(row, PARTY_TYPE_KEYS)),
+    partyType: mapPartyType(rawType),
     gstin,
     stateCode,
   }
@@ -75,15 +106,18 @@ export function mapBusyPartyRow(
 
 export function mapBusyItemRow(row: Record<string, string>) {
   const name = pickField(row, ITEM_NAME_KEYS)
-  const hsn = pickField(row, HSN_KEYS) || '9997'
+  // A missing HSN stays blank so the dry-run asks for it.
+  const hsn = pickField(row, HSN_KEYS)
   const rate = pickField(row, RATE_KEYS) || '0.00'
   const unit = pickField(row, UNIT_KEYS) || 'Nos'
+  const gstRate = pickField(row, GST_RATE_KEYS)
 
   return {
     name,
     hsn,
     rate,
     unit,
+    ...(gstRate ? { gstRate } : {}),
   }
 }
 
