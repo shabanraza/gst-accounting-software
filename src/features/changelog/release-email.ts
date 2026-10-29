@@ -159,3 +159,27 @@ ${body}
 
   return { subject, html }
 }
+
+/**
+ * Body for Resend's create-broadcast API. Without `sendAt` (or with "draft")
+ * the broadcast stays a draft; otherwise Resend sends it at that time, e.g.
+ * "in 1 hour", and it can be cancelled in Resend until then.
+ */
+export function buildBroadcastRequest(input: {
+  segmentId: string
+  from: string
+  name: string
+  email: { subject: string; html: string }
+  sendAt?: string
+}) {
+  const sendAt = input.sendAt?.trim()
+  return {
+    segment_id: input.segmentId,
+    from: input.from,
+    reply_to: 'support@hisaabkro.in',
+    subject: input.email.subject,
+    html: input.email.html,
+    name: input.name,
+    ...(sendAt && sendAt !== 'draft' ? { send: true, scheduled_at: sendAt } : {}),
+  }
+}

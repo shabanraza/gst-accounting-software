@@ -66,9 +66,10 @@ Write for a shop owner or accountant, not a developer:
 
    `notes.md` is the release's section copied from `CHANGELOG.md`.
 6. **Check** `https://hisaabkro.in/changelog` shows the new release.
-7. **Send the product update email.** Publishing the GitHub Release creates a
-   draft broadcast in Resend (see below). Open the link in the workflow run
-   summary, check it, send a test to yourself, then press Send in Resend.
+7. **Product update email goes out by itself.** Publishing the GitHub Release
+   schedules a Resend broadcast to everyone who opted in, sent **1 hour**
+   later (see below). To stop or fix it, open the link in the workflow run
+   summary and cancel or edit it in Resend within that hour.
 
 ## Product update emails
 
@@ -93,11 +94,15 @@ notes by email. It is off by default.
   resubscribes anyone on its own; only the user turning the switch back on
   does. Transactional email (password reset, invites, invoices) is not
   affected.
-- **Drafting.** `.github/workflows/product-update-email.yml` runs on
+- **Sending.** `.github/workflows/product-update-email.yml` runs on
   `release: published` (skipping pre-releases). It runs
   `scripts/create-release-broadcast.ts`, which takes the version's section of
   `CHANGELOG.md` (or the GitHub release notes if `CHANGELOG.md` has none),
-  turns it into simple HTML and creates a **draft** broadcast. It never sends.
+  turns it into simple HTML and creates a broadcast scheduled for
+  `PRODUCT_UPDATES_SEND_AT` (repo variable, default `in 1 hour`). Until then
+  it can be cancelled or edited in Resend. Set the variable to `draft` to go
+  back to drafts you send by hand. Manual runs from the Actions tab always
+  create a draft.
 
 ### One-time setup
 
@@ -116,28 +121,32 @@ notes by email. It is off by default.
      keys can't create broadcasts);
    - variable `RESEND_AUDIENCE_ID`: the same segment ID;
    - optional variable `PRODUCT_UPDATES_FROM`, for example
-     `HisaabKro <updates@hisaabkro.in>` (that is the default).
+     `HisaabKro <updates@hisaabkro.in>` (that is the default);
+   - optional variable `PRODUCT_UPDATES_SEND_AT`: when release emails send,
+     e.g. `in 3 hours`, or `draft` to send by hand (default `in 1 hour`).
 5. Run migration `0012_user_preferences.sql` against production before
    deploying the release that ships the switch.
 
 Without the secret or variable, the workflow logs a notice and creates
 nothing.
 
-### Preview or redo a draft
+### Preview, cancel or redo
 
 ```bash
 bun scripts/create-release-broadcast.ts --version v0.3.0 --dry-run > email.html
 ```
 
-To redo a draft, delete it in Resend and re-run the workflow from the Actions
-tab (**Run workflow**, with the tag in `version`).
+To stop a scheduled email, cancel it in Resend before it sends. To redo it,
+delete it in Resend and re-run the workflow from the Actions tab (**Run
+workflow**, with the tag in `version`); that creates a draft you send by hand.
 
 ### Monthly digest instead of one email per release
 
 If releases ship more often than users want email, set the repo variable
-`PRODUCT_UPDATES_CADENCE` to `monthly`. Releases then stop creating drafts,
-and on the 1st of each month the workflow drafts one digest of the previous
-month's releases (nothing if there were none). To draft a digest by hand, run
+`PRODUCT_UPDATES_CADENCE` to `monthly`. Releases then stop sending emails,
+and on the 1st of each month the workflow schedules one digest of the
+previous month's releases (nothing if there were none), with the same
+`PRODUCT_UPDATES_SEND_AT` delay. To draft a digest by hand, run
 the workflow with `month` set to `YYYY-MM`, or:
 
 ```bash
