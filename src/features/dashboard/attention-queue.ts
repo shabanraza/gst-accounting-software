@@ -47,6 +47,8 @@ export type AttentionItem = AttentionLink & {
   amount?: string
   tone: AttentionTone
   score: number
+  /** The party's phone on overdue rows, for a payment reminder. */
+  contactPhone?: string
   /**
    * Whether this caller can do the thing the row asks for. Rows they may read
    * but not act on stay in the queue as information, without an action
@@ -65,6 +67,7 @@ export type OverduePartySignal = {
   documentCount: number
   outstandingAmount: string
   maxDaysPastDue: number
+  contactPhone?: string
 }
 
 export type GstSignal = {
@@ -265,6 +268,7 @@ function overdueItems(
       tone: isReceivable ? ('money-in' as const) : ('money-out' as const),
       to: isReceivable ? '/app/sales' : '/app/purchases',
       search: { party: signal.partyId },
+      ...(signal.contactPhone ? { contactPhone: signal.contactPhone } : {}),
       score: moneyScore(
         toAmount(signal.outstandingAmount),
         signal.maxDaysPastDue,

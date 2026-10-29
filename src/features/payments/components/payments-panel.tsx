@@ -55,11 +55,17 @@ import { useTRPC } from '#/integrations/trpc/react.ts'
 
 import { paymentStatusBadgeIntent } from '#/lib/badge-intent.ts'
 
-export function PaymentsPanel() {
+export function PaymentsPanel({
+  initialMode,
+}: {
+  initialMode?: 'receipts' | 'payments'
+}) {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const { companyId, ledgerBySystemKey, isReady } = useWorkspace()
-  const [mode, setMode] = React.useState<'receipts' | 'payments'>('receipts')
+  const [mode, setMode] = React.useState<'receipts' | 'payments'>(
+    initialMode ?? 'receipts',
+  )
   const [open, setOpen] = React.useState(false)
   const [documentId, setDocumentId] = React.useState('')
   const [amount, setAmount] = React.useState('')

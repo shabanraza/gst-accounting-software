@@ -50,12 +50,12 @@ import type {
 import type { Gstr3bWorkingReport } from '#/features/gst/gstr3b-working-service.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
-export function ReportsPanel() {
+export function ReportsPanel({ initialTab }: { initialTab?: string }) {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { companyId, company, isReady } = useWorkspace()
-  const [tab, setTab] = React.useState('gstr1')
+  const [tab, setTab] = React.useState(initialTab ?? 'gstr1')
   const defaultReconPeriod = React.useMemo(() => currentGstMonthPeriod(), [])
   const [reconPeriodStart, setReconPeriodStart] = React.useState(
     defaultReconPeriod.periodStart,

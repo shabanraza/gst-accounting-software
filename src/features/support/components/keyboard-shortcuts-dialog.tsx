@@ -14,6 +14,10 @@ import {
 const SHORTCUTS = [
   { keys: ['Ctrl', 'K'], action: 'Search pages, parties and items' },
   { keys: ['Ctrl', 'B'], action: 'Show or hide the sidebar' },
+  { keys: ['Alt', 'S'], action: 'New sales invoice' },
+  { keys: ['Alt', 'P'], action: 'New purchase bill' },
+  { keys: ['Alt', 'R'], action: 'Record a customer receipt' },
+  { keys: ['Alt', 'Y'], action: 'Record a supplier payment' },
   { keys: ['F2'], action: 'Save the invoice or bill' },
   {
     keys: ['Enter'],
