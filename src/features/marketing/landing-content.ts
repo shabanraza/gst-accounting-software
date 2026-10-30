@@ -2,9 +2,9 @@ export const SITE = {
   name: 'HisaabKro',
   url: 'https://hisaabkro.in',
   githubUrl: 'https://github.com/shabanraza/gst-accounting-software',
-  title: 'HisaabKro — Free GST billing & accounting for Indian business',
+  title: 'Free GST Billing & Accounting Software – HisaabKro',
   description:
-    'Free GST billing, sales, purchases, inventory, party ledgers, and GST returns in one keyboard-first workspace. Proper double-entry books. No license fee.',
+    'Free GST billing and accounting software for Indian businesses: GST invoices, inventory, khata and GSTR reports on double-entry books. Import from Tally.',
   /** Absolute URL for Open Graph / Twitter cards (1200×630). */
   ogImage: 'https://hisaabkro.in/og-card.png',
 } as const
@@ -22,60 +22,174 @@ export function buildSocialImageMeta(imageUrl: string = SITE.ogImage) {
 
 export const NAV_LINKS = [
   { href: '/#features', label: 'Features' },
-  { href: '/#how-it-works', label: 'How it works' },
+  { href: '/#security', label: 'Security' },
   { href: '/#compare', label: 'Compare' },
   { href: '/#faq', label: 'FAQ' },
   { href: '/changelog', label: 'Changelog' },
 ] as const
 
 export const HERO = {
-  headline: 'Free GST billing and accounting for Indian business.',
+  headline: 'Free GST billing and accounting software for Indian businesses',
   subhead:
-    'Sales, purchases, inventory, party ledgers, and GST returns in one workspace — with proper double-entry books underneath. Keyboard-first, so a full invoice takes seconds at the counter.',
+    'GST invoices, inventory, khata and GST returns on real double-entry books. Fast at the counter, and moving from Tally takes minutes.',
   primaryCta: { label: 'Start free', to: '/signup' as const },
   secondaryCta: { label: 'View on GitHub', href: SITE.githubUrl },
-  reassurance: 'No license fee. No credit card. Self-host it if you prefer.',
+  reassurance: 'Free to use · No credit card · Open source (MIT)',
 } as const
 
-export const HOW_IT_WORKS = {
-  id: 'how-it-works',
-  title: 'From company setup to GST filing',
-  subtitle: 'Three steps. The ledger stays balanced at every one of them.',
-  steps: [
+export type Screenshot = {
+  src: string
+  width: number
+  height: number
+  alt: string
+}
+
+/** Real app screens, captured from a sample company on a test database. */
+export const HERO_SCREENSHOT: Screenshot = {
+  src: '/screenshots/dashboard.webp',
+  width: 1920,
+  height: 1109,
+  alt: "HisaabKro dashboard showing sales this month, amounts to collect and pay, a to-do list with payment reminders and this month's GST",
+}
+
+export const HERO_CALLOUTS = [
+  { icon: 'whatsapp', label: 'Payment reminder on WhatsApp' },
+  { icon: 'gst', label: 'GSTR-3B net payable' },
+  { icon: 'stock', label: 'Stock matches the books' },
+] as const
+
+export const TRUST_POINTS = [
+  'Double-entry ledger',
+  'Gapless invoice numbers',
+  'Audit log',
+  'Role-based team access',
+  'Open source (MIT)',
+] as const
+
+export const SHOWCASE = {
+  id: 'features',
+  title: 'Everything a growing business runs on',
+  subtitle:
+    'Billing, stock, collections and GST in one place, all posting to the same books.',
+  items: [
     {
-      title: 'Set up your company',
-      body: 'Enter GSTIN, state, and financial year. Chart of accounts is generated for you.',
+      id: 'billing',
+      eyebrow: 'Billing',
+      title: 'GST invoices in seconds',
+      body: 'Built for the counter: pick a party and items from the keyboard, and the tax splits itself by place of supply.',
+      points: [
+        'CGST, SGST and IGST worked out for every line',
+        'Bill of supply for businesses without a GSTIN',
+        'Gapless invoice numbers, even when two people bill at once',
+        'Alt+S for a new invoice, F2 to save',
+      ],
+      screenshot: {
+        src: '/screenshots/sales-invoice.webp',
+        width: 1200,
+        height: 950,
+        alt: 'A GST tax invoice printed from HisaabKro with item lines, HSN codes, CGST and SGST split and the invoice total',
+      },
     },
     {
-      title: 'Bill and record',
-      body: 'Sales invoices, purchase bills, payments — each posts double-entry automatically.',
+      id: 'inventory',
+      eyebrow: 'Inventory',
+      title: 'Stock that matches your books',
+      body: 'Every sale and purchase moves stock through a recorded movement, valued at what it actually cost you.',
+      points: [
+        'Weighted-average cost, so the balance sheet matches the stock report',
+        'Reorder levels with low-stock alerts on the dashboard',
+        'Godowns, HSN codes and units per item',
+        'Import items and opening stock from Tally or Excel',
+      ],
+      screenshot: {
+        src: '/screenshots/inventory.webp',
+        width: 1400,
+        height: 579,
+        alt: 'HisaabKro stock screen listing items with quantity in stock, average cost and stock value',
+      },
     },
     {
-      title: 'File with confidence',
-      body: 'GSTR-1, GSTR-3B, HSN summary, and GSTR-2B reconciliation from the same books.',
+      id: 'collections',
+      eyebrow: 'Collections',
+      title: 'Get paid on time',
+      body: 'See who owes you, who is overdue and by how much, then act on it in one tap.',
+      points: [
+        'Send a payment reminder on WhatsApp from any overdue customer',
+        'Record receipts and payments against invoices and bills',
+        'Receivable and payable ageing by party',
+      ],
+      screenshot: {
+        src: '/screenshots/ageing.webp',
+        width: 1400,
+        height: 453,
+        alt: 'HisaabKro receivables and payables ageing report grouped by how many days each amount is overdue',
+      },
+    },
+    {
+      id: 'gst',
+      eyebrow: 'GST',
+      title: 'GST returns from the same books',
+      body: 'No re-entering figures into a separate tool. The returns come from the invoices and bills you already posted.',
+      points: [
+        'GSTR-1 and GSTR-3B working',
+        'GSTR-2B reconciliation against purchase bills',
+        'HSN summary and GST rate-wise totals',
+      ],
+      screenshot: {
+        src: '/screenshots/hsn-summary.webp',
+        width: 1400,
+        height: 392,
+        alt: 'HisaabKro HSN summary report with taxable value and GST for each HSN code',
+      },
     },
   ],
 } as const
 
-export const KEYBOARD_SPEED = {
-  id: 'keyboard-speed',
-  title: 'Built for the counter PC',
+export const PATHWAYS = [
+  {
+    title: 'Moving from Tally?',
+    body: 'Import parties, stock items and opening stock from a Tally masters export (XML) or an Excel sheet.',
+    cta: { label: 'Tally vs HisaabKro', to: '/alternatives/tally' as const },
+  },
+  {
+    title: 'For CAs and accountants',
+    body: 'Run several client companies, invite staff with roles, and work from GSTR-1, GSTR-3B and trial balance.',
+    cta: { label: 'Start free', to: '/signup' as const },
+  },
+  {
+    title: 'Open source',
+    body: 'Read how every tax and ledger figure is worked out, self-host it, or contribute on GitHub.',
+    cta: { label: 'View on GitHub', href: SITE.githubUrl },
+  },
+] as const
+
+export const SECURITY = {
+  id: 'security',
+  title: 'Built to be trusted with your books',
   subtitle:
-    'Desktop-first voucher entry for people who left Tally and Busy for a reason — speed without the license fee.',
-  shortcuts: [
-    { keys: 'Tab / Enter', action: 'Move through line items' },
-    { keys: '⌘K', action: 'Jump anywhere in the workspace' },
-    { keys: 'Esc', action: 'Close preview without losing focus' },
+    'Accounting software has one job above all: the numbers must be right.',
+  items: [
+    {
+      title: 'Books that always balance',
+      body: 'Every invoice, bill and payment posts both sides of the entry in one database transaction. It saves completely or not at all.',
+    },
+    {
+      title: 'Who did what, and when',
+      body: 'An audit log records changes, and roles (owner, admin, accountant, billing, inventory, read-only) limit who can post or see reports.',
+    },
+    {
+      title: 'Your data stays yours',
+      body: 'Download a full company backup from Settings at any time, and request account deletion whenever you want.',
+    },
+    {
+      title: 'Code you can inspect',
+      body: 'The whole app is open source, so how GST, stock value and ledgers are calculated is visible to anyone.',
+    },
   ],
 } as const
 
 export type FeatureTone =
-  | 'money-in'
-  | 'money-out'
-  | 'gst'
-  | 'inventory'
-  | 'banking'
-  | 'foreground'
+  'money-in' | 'money-out' | 'gst' | 'inventory' | 'banking' | 'foreground'
 
 export const FEATURES = {
   id: 'features',
@@ -151,55 +265,44 @@ export const COMPARISON = {
   ],
 } as const
 
-export const ROADMAP = {
-  id: 'roadmap',
-  title: 'On the roadmap',
-  subtitle: 'Honest about what is not shipping yet.',
-  items: [
-    {
-      title: 'OCR bill capture',
-      body: 'Photograph a purchase bill and review extracted fields before posting. Review-and-post already exists; extraction is next.',
-    },
-    {
-      title: 'Android companion app',
-      body: 'Capture bills away from the counter. Desktop remains the daily workspace.',
-    },
-  ],
-} as const
-
 export const FAQ = {
   id: 'faq',
-  title: 'Questions worth asking',
+  title: 'Frequently asked questions',
   items: [
     {
-      question: 'Is HisaabKro really free?',
+      question: 'Is HisaabKro free GST billing software?',
       answer:
-        'Yes. The software is MIT-licensed open source. There is no license fee and no credit card required to sign up for the hosted app. You can also self-host on Cloudflare Workers and Neon.',
+        'Yes. HisaabKro is free to use and open source under the MIT licence. There is no licence fee and no credit card needed to sign up. You can also self-host it.',
+    },
+    {
+      question: 'Can I move from Tally to HisaabKro?',
+      answer:
+        'Yes. Import your parties, stock items and opening stock from a Tally masters export (XML) or an Excel file, then continue billing in HisaabKro.',
+    },
+    {
+      question: 'Does it make GST invoices and GSTR-1 and GSTR-3B?',
+      answer:
+        'Yes. Sales invoices split CGST, SGST and IGST by place of supply, and the GSTR-1, GSTR-3B working, GSTR-2B reconciliation and HSN summary come from the same books.',
+    },
+    {
+      question: 'Can I use it if my business has no GSTIN?',
+      answer:
+        'Yes. Businesses without a GSTIN bill without GST, and invoices print as a Bill of Supply instead of a Tax Invoice.',
     },
     {
       question: 'Where is my data stored?',
       answer:
-        'On the hosted service, business data lives in PostgreSQL (Neon). You control what you enter. We do not sell user data. See the privacy policy for details.',
+        'On the hosted service, business data lives in PostgreSQL (Neon). We do not sell user data, and you can download a company backup at any time. See the privacy policy for details.',
     },
     {
-      question: 'Can I self-host?',
+      question: 'Can my accountant or staff use it too?',
       answer:
-        'Yes. The recommended path is Cloudflare Workers for the app and Neon for PostgreSQL. The repository README covers setup and deploy.',
-    },
-    {
-      question: 'Does it produce GSTR-1 and GSTR-3B?',
-      answer:
-        'Yes. You get GSTR-style reports, HSN summary, and GSTR-2B reconciliation from the same double-entry books that post your invoices and bills.',
-    },
-    {
-      question: 'Can I run multiple companies?',
-      answer:
-        'Yes. Create multiple companies under one account, invite teammates with roles, and switch the active company from the workspace.',
+        'Yes. Run several companies under one account and invite people with roles such as accountant, billing, inventory or read-only.',
     },
     {
       question: 'Do I still need a CA?',
       answer:
-        'For filing strategy, notices, and advisory — yes, a CA remains valuable. HisaabKro keeps books, invoices, and GST reports organised so your CA works from clean data rather than chasing WhatsApp photos.',
+        'For filing strategy, notices and advice, yes. HisaabKro keeps invoices, books and GST reports organised so your CA works from clean data.',
     },
   ],
 } as const
@@ -241,5 +344,16 @@ export function buildSoftwareJsonLd() {
     description: SITE.description,
     url: SITE.url,
     image: SITE.ogImage,
+  }
+}
+
+export function buildOrganizationJsonLd() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: SITE.name,
+    url: SITE.url,
+    logo: `${SITE.url}/icon-512.png`,
+    sameAs: [SITE.githubUrl],
   }
 }
