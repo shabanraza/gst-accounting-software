@@ -86,7 +86,7 @@ export const appNav: Array<AppNavSection> = [
     label: 'Sales',
     icon: TrendingUpIcon,
     items: [
-      { label: 'Invoices', path: '/app/sales', icon: FileTextIcon },
+      { label: 'Sales invoices', path: '/app/sales', icon: FileTextIcon },
       {
         label: 'Quotations & orders',
         path: '/app/sales/documents',
@@ -100,8 +100,8 @@ export const appNav: Array<AppNavSection> = [
     label: 'Purchase',
     icon: ShoppingCartIcon,
     items: [
-      { label: 'Bills', path: '/app/purchases', icon: ReceiptIcon },
-      { label: 'OCR review', path: '/app/ocr', icon: ScanTextIcon },
+      { label: 'Purchase bills', path: '/app/purchases', icon: ReceiptIcon },
+      { label: 'Scanned bills', path: '/app/ocr', icon: ScanTextIcon },
       {
         label: 'Purchase orders',
         path: '/app/purchase-orders',
@@ -119,7 +119,11 @@ export const appNav: Array<AppNavSection> = [
     label: 'Payments & banking',
     icon: WalletIcon,
     items: [
-      { label: 'Payments', path: '/app/payments', icon: BanknoteIcon },
+      {
+        label: 'Receipts & payments',
+        path: '/app/payments',
+        icon: BanknoteIcon,
+      },
       {
         label: 'Bank reconciliation',
         path: '/app/bank-reconciliation',

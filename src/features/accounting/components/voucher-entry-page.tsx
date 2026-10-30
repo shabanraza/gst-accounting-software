@@ -256,7 +256,8 @@ function VoucherEntryForm({
       focusedOnOpenRef.current = true
       return
     }
-    focusedOnOpenRef.current = focusVoucherCell('party')  })
+    focusedOnOpenRef.current = focusVoucherCell('party')
+  })
   const companyState = resolveStateCode(company?.stateCode)
   const party = parties.find((item) => item.id === partyId)
   const { recentIds, rememberParty } = useRecentParties(
@@ -929,7 +930,7 @@ function VoucherEntryForm({
           </Link>
         </Button>
       }
-      title={isSales ? 'New sales bill' : 'New purchase bill'}
+      title={isSales ? 'New sales invoice' : 'New purchase bill'}
     >
       <form
         className="flex flex-col gap-4 pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] sm:pb-24"
@@ -1355,7 +1356,8 @@ function VoucherEntryForm({
                         Price list
                       </span>
                       <p className="rounded-md bg-muted/40 px-2.5 py-2 text-xs text-muted-foreground">
-                        Party price list — rates apply on item pick
+                        Party price list — its rates fill in when you pick an
+                        item
                       </p>
                     </div>
                   ) : null}

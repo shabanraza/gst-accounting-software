@@ -140,7 +140,7 @@ export function SalesPanel({
         <Button asChild>
           <Link to="/app/sales/new">
             <PlusIcon data-icon="inline-start" />
-            New sales bill
+            New sales invoice
           </Link>
         </Button>
       }
@@ -207,7 +207,7 @@ export function SalesPanel({
                   className="py-10 text-center text-muted-foreground"
                   colSpan={8}
                 >
-                  No sales yet. Create a sales voucher.
+                  No sales invoices yet.
                 </TableCell>
               </TableRow>
             ) : (
@@ -326,7 +326,7 @@ export function SalesPanel({
               Cancel invoice {cancelTarget?.invoiceNumber}?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This reverses the ledger and stock postings and cannot be undone.
+              Stock and account balances will be reversed. This can't be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

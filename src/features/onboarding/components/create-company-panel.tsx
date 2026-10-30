@@ -124,8 +124,7 @@ export function CreateCompanyPanel() {
           </div>
           <CardTitle className="text-lg">Set up your company</CardTitle>
           <CardDescription>
-            We will seed your chart of accounts, financial year, and ledgers
-            automatically.
+            We'll set up your ledgers and financial year automatically.
           </CardDescription>
         </CardHeader>
 
@@ -139,7 +138,7 @@ export function CreateCompanyPanel() {
                 <Input
                   id="ob-legal"
                   onChange={(event) => setLegalName(event.target.value)}
-                  placeholder="Shaban Textiles Private Limited"
+                  placeholder="As on your GST registration"
                   value={legalName}
                 />
               </div>
@@ -150,7 +149,7 @@ export function CreateCompanyPanel() {
                 <Input
                   id="ob-trade"
                   onChange={(event) => setTradeName(event.target.value)}
-                  placeholder="Shaban Textiles"
+                  placeholder="Name printed on your bills"
                   value={tradeName}
                 />
               </div>

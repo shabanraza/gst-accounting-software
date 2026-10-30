@@ -288,12 +288,12 @@ export function BankReconciliationPanel() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Status</TableHead>
-                  <TableHead>Stmt date</TableHead>
-                  <TableHead>Statement</TableHead>
+                  <TableHead>Bank date</TableHead>
+                  <TableHead>As per bank</TableHead>
                   <TableHead>Book date</TableHead>
-                  <TableHead>Books</TableHead>
-                  <TableHead className="text-right">Stmt</TableHead>
-                  <TableHead className="text-right">Book</TableHead>
+                  <TableHead>As per books</TableHead>
+                  <TableHead className="text-right">Bank amount</TableHead>
+                  <TableHead className="text-right">Book amount</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -309,7 +309,7 @@ export function BankReconciliationPanel() {
                       className="py-8 text-center text-muted-foreground"
                       colSpan={7}
                     >
-                      No reconciliation rows yet.
+                      No bank statement lines yet.
                     </TableCell>
                   </TableRow>
                 ) : (

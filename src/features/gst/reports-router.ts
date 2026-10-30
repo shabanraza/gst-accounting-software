@@ -140,6 +140,7 @@ export const createReportsRouter = (deps: {
           invoices: deps.invoices,
           bills: deps.bills,
           parties: deps.parties,
+          notes: deps.notes,
         })
         return buildGstr1Report({
           companyId: input.companyId,
@@ -157,6 +158,7 @@ export const createReportsRouter = (deps: {
           invoices: deps.invoices,
           bills: deps.bills,
           parties: deps.parties,
+          notes: deps.notes,
         })
         return buildGstr3bReport({
           companyId: input.companyId,
@@ -248,7 +250,7 @@ export const createReportsRouter = (deps: {
         )
       }),
     gstr1Json: capabilityProcedure('view_reports')
-      .input(reportInputSchema)
+      .input(reportInputSchema.extend({ companyGstin: z.string().length(15) }))
       .query(async ({ input }) => {
         const documents = await buildGstDocuments({
           companyId: input.companyId,
@@ -256,6 +258,7 @@ export const createReportsRouter = (deps: {
           invoices: deps.invoices,
           bills: deps.bills,
           parties: deps.parties,
+          notes: deps.notes,
         })
         const report = buildGstr1Report({
           companyId: input.companyId,
@@ -263,7 +266,7 @@ export const createReportsRouter = (deps: {
           periodEnd: input.periodEnd,
           documents,
         })
-        return buildGstr1Json(report)
+        return buildGstr1Json(report, input.companyGstin)
       }),
     gstr2bReconciliation: capabilityProcedure('view_reports')
       .input(gstr2bReconciliationInputSchema)
@@ -306,6 +309,7 @@ export const createReportsRouter = (deps: {
           invoices: deps.invoices,
           bills: deps.bills,
           parties: deps.parties,
+          notes: deps.notes,
         })
         return buildGstr3bWorkingReport(
           {

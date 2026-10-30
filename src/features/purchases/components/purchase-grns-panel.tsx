@@ -111,16 +111,16 @@ export function PurchaseGrnsPanel() {
 
   return (
     <WorkspacePage
-      description="Goods receipt notes record stock-in from purchase orders."
-      title="Purchase GRNs"
+      description="Goods received from suppliers against purchase orders."
+      title="Goods receipt (GRN)"
     >
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Receive from PO</CardTitle>
             <CardDescription>
-              Posts stock-in without a purchase bill. Convert to bill when the
-              supplier invoice arrives.
+              Stock is added now. Convert to a purchase bill when the supplier's
+              bill arrives.
             </CardDescription>
           </CardHeader>
           <CardContent>

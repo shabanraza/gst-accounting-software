@@ -57,7 +57,7 @@ export function OcrReviewPanel() {
       !payableAccountId ||
       !stockAccountId
     ) {
-      toast.error('Ledger mappings required before posting OCR bills')
+      toast.error('Set up default accounts in Chart of accounts first.')
       return
     }
 
@@ -78,9 +78,9 @@ export function OcrReviewPanel() {
       await queryClient.invalidateQueries({
         queryKey: trpc.purchases.list.queryKey(),
       })
-      toast.success('Purchase bill posted from OCR draft.')
+      toast.success('Purchase bill saved from the scanned bill.')
     } catch (err) {
-      toastActionError(err, 'Failed to confirm OCR draft')
+      toastActionError(err, 'Could not confirm the scanned bill')
     }
   }
 
@@ -90,8 +90,8 @@ export function OcrReviewPanel() {
 
   return (
     <WorkspacePage
-      description="Review OCR-extracted purchase bills before posting."
-      title="OCR review"
+      description="Check bills read from scans before saving them as purchase bills."
+      title="Scanned bills"
     >
       <Card>
         <CardHeader>
@@ -100,7 +100,7 @@ export function OcrReviewPanel() {
             Draft purchase bills
           </CardTitle>
           <CardDescription>
-            Confirm posts a purchase bill from extracted header fields
+            Confirm saves the scanned bill as a purchase bill.
           </CardDescription>
         </CardHeader>
         <CardContent className="px-0">
@@ -124,7 +124,7 @@ export function OcrReviewPanel() {
                     className="py-10 text-center text-muted-foreground"
                     colSpan={8}
                   >
-                    Loading OCR drafts…
+                    Loading scanned bills…
                   </TableCell>
                 </TableRow>
               ) : drafts.length === 0 ? (
@@ -133,7 +133,7 @@ export function OcrReviewPanel() {
                     className="py-10 text-center text-muted-foreground"
                     colSpan={8}
                   >
-                    No OCR drafts awaiting review.
+                    No scanned bills waiting for review.
                   </TableCell>
                 </TableRow>
               ) : (

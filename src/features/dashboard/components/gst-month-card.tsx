@@ -89,7 +89,7 @@ export function GstMonthCard({
       <CardFooter>
         <Button asChild size="sm" variant="outline">
           <Link search={{ tab: 'gstr3b' }} to="/app/reports">
-            GSTR-3B working
+            GSTR-3B summary
             <ArrowRightIcon data-icon="inline-end" />
           </Link>
         </Button>

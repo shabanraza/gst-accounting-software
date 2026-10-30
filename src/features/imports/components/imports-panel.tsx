@@ -194,26 +194,26 @@ export function ImportsPanel() {
       }
       setResult(
         [
-          `Dry-run: ${report.validCount} valid, ${report.errors.length} errors, wroteData=${report.wroteData}`,
+          `${report.validCount} rows ready, ${report.errors.length} with problems. Nothing is saved yet.`,
           ...rowErrors,
         ].join('\n'),
       )
       if (report.errors.length > 0) {
         toast.error(
-          `Dry-run found ${report.errors.length} error(s). Fix them before commit.`,
+          `${report.errors.length} row(s) have problems. Fix them before importing.`,
         )
       } else {
-        toast.success('Dry-run passed. You can commit the import.')
+        toast.success('File looks good. You can import it now.')
       }
     } catch (err) {
-      toastActionError(err, 'Invalid rows / dry-run failed')
+      toastActionError(err, 'Could not check the file')
     }
   }
 
   async function handleCommit() {
     if (!requireWorkspace(companyId)) return
     if (!dryRunComplete) {
-      toast.error('Run dry-run and fix errors before committing.')
+      toast.error('Check the file and fix any problems before importing.')
       return
     }
     if (!requireTrimmed(jsonText, 'Import data')) return
@@ -225,7 +225,7 @@ export function ImportsPanel() {
           !ledgerBySystemKey.customer_receivable ||
           !ledgerBySystemKey.supplier_payable
         ) {
-          toast.error('Receivable and payable ledger mappings are required.')
+          toast.error('Set up default accounts in Chart of accounts first.')
           return
         }
         const report = await commitParties.mutateAsync({
@@ -238,7 +238,7 @@ export function ImportsPanel() {
           queryKey: trpc.parties.list.queryKey({ companyId }),
         })
         setResult(
-          `Committed ${report.createdCount} parties (${report.errors.length} errors)`,
+          `Imported ${report.createdCount} parties (${report.errors.length} rows with problems)`,
         )
         toast.success(`Imported ${report.createdCount} parties.`)
       } else if (mode === 'stock') {
@@ -254,7 +254,7 @@ export function ImportsPanel() {
           queryKey: trpc.inventory.listStockBalances.queryKey({ companyId }),
         })
         setResult(
-          `Committed ${report.createdCount} opening stock rows (${report.errors.length} errors)`,
+          `Imported ${report.createdCount} opening stock rows (${report.errors.length} rows with problems)`,
         )
         toast.success(`Imported ${report.createdCount} opening stock rows.`)
       } else if (mode === 'items') {
@@ -266,7 +266,7 @@ export function ImportsPanel() {
           queryKey: trpc.inventory.listItems.queryKey({ companyId }),
         })
         setResult(
-          `Committed ${report.createdCount} items (${report.errors.length} errors)`,
+          `Imported ${report.createdCount} items (${report.errors.length} rows with problems)`,
         )
         toast.success(`Imported ${report.createdCount} items.`)
       } else {
@@ -276,19 +276,19 @@ export function ImportsPanel() {
           rows: rows as never,
         })
         setResult(
-          `Committed ${report.createdCount} opening balances (${report.errors.length} errors)`,
+          `Imported ${report.createdCount} opening balances (${report.errors.length} rows with problems)`,
         )
         toast.success(`Imported ${report.createdCount} opening balances.`)
       }
       setDryRunComplete(false)
     } catch (err) {
-      toastActionError(err, 'Commit failed')
+      toastActionError(err, 'Import failed')
     }
   }
 
   return (
     <WorkspacePage
-      description="Dry-run then commit masters, stock, items, and opening balances."
+      description="Bring in parties, items, opening stock and opening balances from a file."
       title="Import"
     >
       <Card>
@@ -296,10 +296,10 @@ export function ImportsPanel() {
           <div className="flex flex-col gap-1">
             <CardTitle className="flex items-center gap-2 text-base">
               <UploadIcon className="size-4 text-muted-foreground" />
-              Opening import
+              Import opening data
             </CardTitle>
             <CardDescription>
-              Validate first — commit only writes after a clean dry-run path
+              Check the file first. Nothing is saved until you import.
             </CardDescription>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -359,10 +359,10 @@ export function ImportsPanel() {
           />
           <div className="flex flex-wrap gap-2">
             <Button onClick={handleDryRun} type="button" variant="outline">
-              Dry-run
+              Check file
             </Button>
             <Button disabled={!companyId} onClick={handleCommit} type="button">
-              Commit
+              Import
             </Button>
           </div>
           {result ? (

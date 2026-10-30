@@ -196,7 +196,7 @@ export function PurchasesPanel({
                     className="py-10 text-center text-muted-foreground"
                     colSpan={9}
                   >
-                    No purchases yet. Create a purchase voucher.
+                    No purchase bills yet.
                   </TableCell>
                 </TableRow>
               ) : (
