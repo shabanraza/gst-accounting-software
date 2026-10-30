@@ -26,6 +26,11 @@ built. Never include customer names, balances or other real data.
 - The GSTR-1 report now shows one return period at a time (this month by default) instead of the whole financial year.
 - Companies without a GSTIN now see that they don't file GSTR-1, instead of an empty report.
 - A redesigned home page at hisaabkro.in with real screens from the app: the dashboard, a GST tax invoice, stock, ageing and the HSN summary.
+- The Items page and the New item window now use plain wording.
+
+### Fixed
+
+- The New item window no longer fills in an opening stock of 100. Opening stock stays empty, and no stock is added unless you type a quantity.
 
 ### Fixed
 

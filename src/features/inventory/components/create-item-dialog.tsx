@@ -47,7 +47,7 @@ const emptyForm = {
   saleRate: '',
   mrp: '',
   reorderLevel: '',
-  openingQuantity: '100',
+  openingQuantity: '',
   openingGodown: '',
   tracksInventory: 'yes',
 }
@@ -159,9 +159,9 @@ export function CreateItemDialog({
   const dialog = (
     <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
       <DialogHeader>
-        <DialogTitle>Item master</DialogTitle>
+        <DialogTitle>New item</DialogTitle>
         <DialogDescription>
-          Group, HSN, tax slab, units, rates, and optional opening stock.
+          HSN, GST rate, units, rates and any stock you already have.
         </DialogDescription>
       </DialogHeader>
       <form className="flex flex-col gap-4" onSubmit={handleCreate}>
