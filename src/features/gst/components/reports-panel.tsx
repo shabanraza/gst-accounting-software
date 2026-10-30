@@ -38,6 +38,7 @@ import { requireTrimmed, requireWorkspace } from '#/lib/form-validation.ts'
 import { formatInr } from '#/lib/format-inr.ts'
 import { Label } from '#/components/ui/label.tsx'
 import { currentGstMonthPeriod } from '#/lib/gst-period.ts'
+import { Gstr1B2cCards } from '#/features/gst/components/gstr1-b2c-cards.tsx'
 import { parseGstr1PortalJson } from '#/features/gst/gstr1-portal-parser.ts'
 import type { Gstr1ReconciliationReport } from '#/features/gst/gstr1-reconciliation-service.ts'
 import { parseGstr2bPortalJson } from '#/features/gst/gstr2b-portal-parser.ts'
@@ -210,11 +211,14 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
     }
   }
 
-  async function handleGstr2bFile(event: React.ChangeEvent<HTMLInputElement>) {
+  async function readFileInto(
+    event: React.ChangeEvent<HTMLInputElement>,
+    setText: (text: string) => void,
+  ) {
     const file = event.target.files?.[0]
     if (!file) return
     try {
-      setGstr2bText(await file.text())
+      setText(await file.text())
     } catch {
       toast.error('Could not read the uploaded file')
     } finally {
@@ -254,7 +258,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
 
   async function runGstr1Reconciliation() {
     if (!requireWorkspace(companyId)) return
-    if (!requireTrimmed(gstr1ReconText, 'GSTR-1 portal data')) return
+    if (!requireTrimmed(gstr1ReconText, 'GSTR-1 file')) return
     try {
       const portalRows = parseGstr1PortalJson(gstr1ReconText)
       const report = await gstr1ReconMutation.mutateAsync({
@@ -265,7 +269,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
       })
       setGstr1ReconReport(report)
     } catch (err) {
-      toastActionError(err, 'GSTR-1 reconciliation failed')
+      toastActionError(err, 'Could not compare GSTR-1')
     }
   }
 
@@ -304,7 +308,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
           <TabsTrigger value="export">Export</TabsTrigger>
         </ScrollableTabsList>
 
-        <TabsContent className="mt-4" value="gstr1">
+        <TabsContent className="mt-4 flex flex-col gap-4" value="gstr1">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
@@ -320,7 +324,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Invoice</TableHead>
+                    <TableHead>B2B invoice</TableHead>
                     <TableHead>Party</TableHead>
                     <TableHead>GSTIN</TableHead>
                     <TableHead>Taxable</TableHead>
@@ -334,7 +338,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                         className="py-10 text-center text-muted-foreground"
                         colSpan={5}
                       >
-                        No outward supplies in period.
+                        No B2B invoices in period.
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -356,12 +360,16 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
               </Table>
             </CardContent>
           </Card>
-          <Card className="mt-4">
+          <Gstr1B2cCards
+            b2cl={gstr1Query.data?.b2cl ?? []}
+            b2cs={gstr1Query.data?.b2cs ?? []}
+          />
+          <Card>
             <CardHeader>
-              <CardTitle className="text-base">GSTR-1 vs books</CardTitle>
+              <CardTitle className="text-base">Match with filed GSTR-1</CardTitle>
               <CardDescription>
-                Paste filed GSTR-1 JSON and reconcile against sales invoices for{' '}
-                {reconPeriodStart} to {reconPeriodEnd}
+                Compare the GSTR-1 you filed on the GST portal with your sales
+                invoices for {reconPeriodStart} to {reconPeriodEnd}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -383,10 +391,20 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                   />
                 </div>
               </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="gstr1-file">GSTR-1 file from the GST portal</Label>
+                <Input
+                  accept=".json"
+                  id="gstr1-file"
+                  onChange={(event) => readFileInto(event, setGstr1ReconText)}
+                  type="file"
+                />
+              </div>
               <Textarea
+                aria-label="GSTR-1 JSON"
                 className="min-h-32 font-mono text-xs"
                 onChange={(event) => setGstr1ReconText(event.target.value)}
-                placeholder='[{"customerGstin":"24AAAA...","invoiceNumber":"INV-1","invoiceDate":"2026-01-06","taxableAmount":"1000.00","totalGstAmount":"180.00"}]'
+                placeholder="Or paste the GSTR-1 JSON here"
                 value={gstr1ReconText}
               />
               <Button
@@ -394,7 +412,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                 onClick={runGstr1Reconciliation}
                 type="button"
               >
-                Reconcile GSTR-1
+                Compare with books
               </Button>
               {gstr1ReconReport ? (
                 <>
@@ -1124,7 +1142,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                 <Input
                   accept=".json,.csv,.txt"
                   id="gstr2b-file"
-                  onChange={handleGstr2bFile}
+                  onChange={(event) => readFileInto(event, setGstr2bText)}
                   type="file"
                 />
               </div>

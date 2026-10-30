@@ -44,6 +44,11 @@ export async function buildGstDocuments(input: {
       totalGstAmount: invoice.totalGstAmount,
       totalAmount: invoice.totalAmount,
       invoiceNumber: invoice.invoiceNumber,
+      rateLines: invoice.lines.map((line) => ({
+        gstRate: line.gstRate,
+        taxableAmount: line.taxableAmount,
+        gstAmount: line.gstAmount,
+      })),
     }
   })
 
