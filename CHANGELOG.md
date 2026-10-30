@@ -26,14 +26,15 @@ built. Never include customer names, balances or other real data.
 - The GSTR-1 report now shows one return period at a time (this month by default) instead of the whole financial year.
 - Companies without a GSTIN now see that they don't file GSTR-1, instead of an empty report.
 - A redesigned home page at hisaabkro.in with real screens from the app: the dashboard, a GST tax invoice, stock, ageing and the HSN summary.
+- Plainer wording across the app, using the names accountants already know: Sales invoices, Purchase bills, Receipts & payments, Scanned bills, Goods receipt (GRN), Quotations & orders, and Credit / debit notes for returns.
+- Import now has "Check file" and "Import" buttons, and tells you how many rows are ready or have problems.
+- Clearer column names in bank reconciliation (As per bank, As per books), ageing (Age) and GST matching (Taxable and GST as per books).
+- The new company form no longer shows a sample business name.
 - The Items page and the New item window now use plain wording.
 
 ### Fixed
 
 - The New item window no longer fills in an opening stock of 100. Opening stock stays empty, and no stock is added unless you type a quantity.
-
-### Fixed
-
 - Cancelled sales invoices are no longer counted in GSTR-1, GSTR-3B or the GST card on the dashboard.
 - GST reports now use the place of supply on each sales invoice (for example a ship-to state) instead of the customer's state, so CGST/SGST or IGST is shown correctly.
 - The Stock page now marks an item as low stock when it is at or below its reorder level, matching the dashboard's low-stock alert. Items with no reorder level still show as low when they run out.

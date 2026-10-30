@@ -314,7 +314,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
 
   return (
     <WorkspacePage
-      description="Live GSTR working reports and trial balance from posted documents."
+      description="GST returns, trial balance and other reports from your invoices and bills."
       title="Reports"
     >
       <Tabs onValueChange={setTab} value={tab}>
@@ -354,7 +354,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <FileBarChartIcon className="size-4 text-muted-foreground" />
-                    GSTR-1 working report
+                    GSTR-1 summary
                   </CardTitle>
                   <CardDescription>
                     Net taxable{' '}
@@ -469,7 +469,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                           <TableRow>
                             <TableHead>Invoice</TableHead>
                             <TableHead>GSTIN</TableHead>
-                            <TableHead>Books taxable</TableHead>
+                            <TableHead>Taxable (books)</TableHead>
                             <TableHead>GSTR-1 taxable</TableHead>
                             <TableHead>Status</TableHead>
                           </TableRow>
@@ -778,7 +778,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                       <TableHead>Party</TableHead>
                       <TableHead>Invoice</TableHead>
                       <TableHead>Days past due</TableHead>
-                      <TableHead>Bucket</TableHead>
+                      <TableHead>Age</TableHead>
                       <TableHead className="text-right">Outstanding</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -827,7 +827,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                       <TableHead>Party</TableHead>
                       <TableHead>Bill</TableHead>
                       <TableHead>Days past due</TableHead>
-                      <TableHead>Bucket</TableHead>
+                      <TableHead>Age</TableHead>
                       <TableHead className="text-right">Outstanding</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -881,7 +881,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                   <TableRow>
                     <TableHead>Item</TableHead>
                     <TableHead>Unit</TableHead>
-                    <TableHead className="text-right">Qty on hand</TableHead>
+                    <TableHead className="text-right">Closing qty</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1134,8 +1134,9 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                 GSTR-2B reconciliation
               </CardTitle>
               <CardDescription>
-                Import portal JSON, reconcile purchase bills for the return
-                period, and accept or reject ITC before filing GSTR-3B
+                Upload the GSTR-2B file from the GST portal and match it with
+                your purchase bills period, and accept or reject ITC before
+                filing GSTR-3B
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -1241,7 +1242,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                         <TableHead>Invoice</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>GSTIN</TableHead>
-                        <TableHead>Books GST</TableHead>
+                        <TableHead>GST (books)</TableHead>
                         <TableHead>2B GST</TableHead>
                         <TableHead>CGST / SGST / IGST (2B)</TableHead>
                         <TableHead>Status</TableHead>
@@ -1384,7 +1385,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                 </div>
                 <div className="rounded-lg bg-muted/40 p-4">
                   <p className="text-xs text-muted-foreground">
-                    Trial balance rows
+                    Trial balance lines
                   </p>
                   <p className="text-lg font-semibold">
                     {exportQuery.data?.trialBalance.rows.length ?? 0}
@@ -1397,7 +1398,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                 onClick={downloadExport}
               >
                 <DownloadIcon data-icon="inline-start" />
-                Download JSON pack
+                Download for your accountant
               </Button>
             </CardContent>
           </Card>

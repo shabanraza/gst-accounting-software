@@ -76,7 +76,9 @@ function AllocationModal({
   submitting: boolean
   error: string | null
 }) {
-  const selected = documents.find((document) => document.id === draft.documentId)
+  const selected = documents.find(
+    (document) => document.id === draft.documentId,
+  )
 
   return (
     <BottomSheet
@@ -98,7 +100,11 @@ function AllocationModal({
       ) : (
         <View style={{ gap: pageLayout.sectionGap }}>
           <View style={{ gap: pageLayout.sectionHeaderGap }}>
-            <SectionHeader title="Document" compact icon="document-text-outline" />
+            <SectionHeader
+              title="Document"
+              compact
+              icon="document-text-outline"
+            />
             <FlatList
               data={documents}
               contentContainerStyle={styles.documentList}
@@ -108,7 +114,9 @@ function AllocationModal({
                 <CardRow
                   title={document.label}
                   subtitle={`${partyName(document.id)} · due ${formatInr(document.outstandingAmount)}`}
-                  badge={draft.documentId === document.id ? 'Selected' : undefined}
+                  badge={
+                    draft.documentId === document.id ? 'Selected' : undefined
+                  }
                   onPress={() =>
                     onChange({
                       ...draft,
@@ -146,7 +154,7 @@ function AllocationModal({
           ) : null}
 
           <PrimaryButton
-            label={submitting ? 'Posting…' : 'Post allocation'}
+            label={submitting ? 'Saving…' : 'Save'}
             loading={submitting}
             disabled={submitting}
             onPress={onSubmit}
@@ -171,12 +179,17 @@ function createInitialDraft(): PaymentAllocationDraft {
   }
 }
 
-export function PaymentsScreen({ variant = 'stack' }: { variant?: ScreenVariant }) {
+export function PaymentsScreen({
+  variant = 'stack',
+}: {
+  variant?: ScreenVariant
+}) {
   const queryClient = useQueryClient()
   const { companyId, ledgerBySystemKey, isReady } = useWorkspace()
   const [mode, setMode] = React.useState<PaymentTab>('receipts')
   const [modalOpen, setModalOpen] = React.useState(false)
-  const [draft, setDraft] = React.useState<PaymentAllocationDraft>(createInitialDraft)
+  const [draft, setDraft] =
+    React.useState<PaymentAllocationDraft>(createInitialDraft)
   const [error, setError] = React.useState<string | null>(null)
 
   const salesQuery = useQuery({
@@ -233,7 +246,9 @@ export function PaymentsScreen({ variant = 'stack' }: { variant?: ScreenVariant 
               outstandingAmount: document.outstandingAmount,
             }))
 
-      const selected = documents.find((document) => document.id === draft.documentId)
+      const selected = documents.find(
+        (document) => document.id === draft.documentId,
+      )
       const validationError = validatePaymentAllocation(
         draft,
         selected?.outstandingAmount ?? '0',
@@ -274,12 +289,18 @@ export function PaymentsScreen({ variant = 'stack' }: { variant?: ScreenVariant 
       setError(null)
       setModalOpen(false)
       setDraft(createInitialDraft())
-      await queryClient.invalidateQueries({ queryKey: ['payments-sales', companyId] })
+      await queryClient.invalidateQueries({
+        queryKey: ['payments-sales', companyId],
+      })
       await queryClient.invalidateQueries({
         queryKey: ['payments-purchases', companyId],
       })
-      await queryClient.invalidateQueries({ queryKey: ['module-list', 'sales'] })
-      await queryClient.invalidateQueries({ queryKey: ['module-list', 'purchases'] })
+      await queryClient.invalidateQueries({
+        queryKey: ['module-list', 'sales'],
+      })
+      await queryClient.invalidateQueries({
+        queryKey: ['module-list', 'purchases'],
+      })
     },
     onError: (mutationError) => {
       setError(
@@ -351,7 +372,11 @@ export function PaymentsScreen({ variant = 'stack' }: { variant?: ScreenVariant 
             />
 
             <View className="gap-section-header">
-              <SectionHeader title="Open balances" compact icon="wallet-outline" />
+              <SectionHeader
+                title="Open balances"
+                compact
+                icon="wallet-outline"
+              />
               {loading ? <LoadingState /> : null}
             </View>
           </View>

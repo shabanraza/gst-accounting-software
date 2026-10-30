@@ -121,7 +121,7 @@ export function ReturnsPanel() {
           !ledgerBySystemKey.output_gst ||
           !ledgerBySystemKey.customer_receivable
         ) {
-          toast.error('Sales ledger mappings are missing for this company.')
+          toast.error('Set up default accounts in Chart of accounts first.')
           return
         }
 
@@ -177,7 +177,7 @@ export function ReturnsPanel() {
           !ledgerBySystemKey.input_gst ||
           !ledgerBySystemKey.supplier_payable
         ) {
-          toast.error('Purchase ledger mappings are missing for this company.')
+          toast.error('Set up default accounts in Chart of accounts first.')
           return
         }
 
@@ -220,7 +220,7 @@ export function ReturnsPanel() {
 
   return (
     <WorkspacePage
-      description="Sales and purchase returns reverse stock and GST through the ledger engine."
+      description="Credit notes for sales returns and debit notes for purchase returns. Stock and GST are reversed."
       title="Returns"
     >
       <Card>
@@ -228,10 +228,10 @@ export function ReturnsPanel() {
           <div className="flex flex-col gap-1">
             <CardTitle className="flex items-center gap-2 text-base">
               <Undo2Icon className="size-4 text-muted-foreground" />
-              Return / note entry
+              Credit / debit note
             </CardTitle>
             <CardDescription>
-              Returns first line of the selected document for a quick MVP flow
+              Returns the first item line of the selected invoice or bill.
             </CardDescription>
           </div>
           <Tabs

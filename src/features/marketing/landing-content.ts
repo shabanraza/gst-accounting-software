@@ -131,7 +131,7 @@ export const SHOWCASE = {
       title: 'GST returns from the same books',
       body: 'No re-entering figures into a separate tool. The returns come from the invoices and bills you already posted.',
       points: [
-        'GSTR-1 and GSTR-3B working',
+        'GSTR-1 and GSTR-3B summaries',
         'GSTR-2B reconciliation against purchase bills',
         'HSN summary and GST rate-wise totals',
       ],
@@ -282,7 +282,7 @@ export const FAQ = {
     {
       question: 'Does it make GST invoices and GSTR-1 and GSTR-3B?',
       answer:
-        'Yes. Sales invoices split CGST, SGST and IGST by place of supply, and the GSTR-1, GSTR-3B working, GSTR-2B reconciliation and HSN summary come from the same books.',
+        'Yes. Sales invoices split CGST, SGST and IGST by place of supply, and the GSTR-1 and GSTR-3B summaries, GSTR-2B reconciliation and HSN summary come from the same books.',
     },
     {
       question: 'Can I use it if my business has no GSTIN?',

@@ -117,7 +117,7 @@ export function JournalEntryPanel() {
 
   return (
     <WorkspacePage
-      description="Manual double-entry journal vouchers."
+      description="Adjustment entries between ledgers."
       title="Journal"
     >
       <Card>
