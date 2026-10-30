@@ -24,6 +24,7 @@ built. Never include customer names, balances or other real data.
 
 ### Fixed
 
+- Sales and purchase returns can be posted from the Returns screen again. Before, posting stopped with a message that the selected invoice or bill had no line items.
 - Cancelled sales invoices are no longer counted in GSTR-1, GSTR-3B or the GST card on the dashboard.
 - The Stock page now marks an item as low stock when it is at or below its reorder level, matching the dashboard's low-stock alert. Items with no reorder level still show as low when they run out.
 - Clearer wording on the Stock page and in the GSTR-1 comparison.
