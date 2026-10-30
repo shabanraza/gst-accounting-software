@@ -77,7 +77,7 @@ describe('buildGstr1Report', () => {
     expect(report.totalTaxableValue).toBe('2400.00')
   })
 
-  test('includes credit and debit notes', () => {
+  test('puts credit notes to registered customers in CDNR', () => {
     const report = buildGstr1Report({
       companyId: 'company-1',
       periodStart: '2026-07-01',
@@ -85,29 +85,154 @@ describe('buildGstr1Report', () => {
       documents: [outwardInvoice, creditNote],
     })
 
-    expect(report.creditDebitNotes).toHaveLength(1)
-    expect(report.creditDebitNotes[0]?.invoiceNumber).toBe('CN-1001')
-    expect(report.creditDebitNotes[0]?.taxableAmount).toBe('600.00')
+    expect(report.cdnr).toHaveLength(1)
+    expect(report.cdnr[0]?.invoiceNumber).toBe('CN-1001')
+    expect(report.cdnr[0]?.taxableAmount).toBe('600.00')
+    expect(report.cdnur).toHaveLength(0)
     expect(report.totalTaxableValue).toBe('1800.00')
+  })
+
+  test('leaves purchase debit notes out of GSTR-1', () => {
+    const report = buildGstr1Report({
+      companyId: 'company-1',
+      periodStart: '2026-07-01',
+      periodEnd: '2026-07-31',
+      documents: [
+        outwardInvoice,
+        { ...creditNote, id: 'dn-1', documentType: 'debit_note' },
+      ],
+    })
+
+    expect(report.cdnr).toHaveLength(0)
+    expect(report.cdnur).toHaveLength(0)
+    expect(report.totalTaxableValue).toBe('2400.00')
+  })
+
+  test('splits B2B invoices by GST rate', () => {
+    const report = buildGstr1Report({
+      companyId: 'company-1',
+      periodStart: '2026-07-01',
+      periodEnd: '2026-07-31',
+      documents: [
+        {
+          ...outwardInvoice,
+          rateLines: [
+            { gstRate: '5.00', taxableAmount: '2000.00', gstAmount: '100.00' },
+            { gstRate: '12.00', taxableAmount: '400.00', gstAmount: '20.00' },
+          ],
+        },
+      ],
+    })
+
+    expect(report.b2b[0]?.rates).toEqual([
+      {
+        gstRate: '5.00',
+        taxableAmount: '2000.00',
+        cgstAmount: '50.00',
+        sgstAmount: '50.00',
+        igstAmount: '0.00',
+      },
+      {
+        gstRate: '12.00',
+        taxableAmount: '400.00',
+        cgstAmount: '10.00',
+        sgstAmount: '10.00',
+        igstAmount: '0.00',
+      },
+    ])
   })
 })
 
 describe('buildGstr1Json', () => {
-  test('exports B2B and credit/debit note rows as GSTR-1 JSON', () => {
+  test('exports B2B invoices and credit notes in the GSTN layout', () => {
     const report = buildGstr1Report({
       companyId: 'company-1',
       periodStart: '2026-07-01',
       periodEnd: '2026-07-31',
-      documents: [outwardInvoice, creditNote],
+      documents: [
+        {
+          ...outwardInvoice,
+          rateLines: [
+            { gstRate: '5.00', taxableAmount: '2000.00', gstAmount: '100.00' },
+            { gstRate: '1.00', taxableAmount: '400.00', gstAmount: '20.00' },
+          ],
+        },
+        creditNote,
+      ],
     })
 
-    const json = JSON.parse(buildGstr1Json(report))
+    const json = JSON.parse(buildGstr1Json(report, '27ABCDE1234F1Z5'))
 
-    expect(json.b2b).toHaveLength(1)
-    expect(json.b2b[0].inum).toBe('INV-1001')
-    expect(json.cdnr).toHaveLength(1)
-    expect(json.cdnr[0].nt_num).toBe('CN-1001')
+    expect(json.gstin).toBe('27ABCDE1234F1Z5')
     expect(json.fp).toBe('072026')
+    expect(json.b2b).toEqual([
+      {
+        ctin: '27AABCU9603R1ZM',
+        inv: [
+          {
+            inum: 'INV-1001',
+            idt: '11-07-2026',
+            val: 2520,
+            pos: '27',
+            rchrg: 'N',
+            inv_typ: 'R',
+            itms: [
+              {
+                num: 1,
+                itm_det: {
+                  rt: 5,
+                  txval: 2000,
+                  iamt: 0,
+                  camt: 50,
+                  samt: 50,
+                  csamt: 0,
+                },
+              },
+              {
+                num: 2,
+                itm_det: {
+                  rt: 1,
+                  txval: 400,
+                  iamt: 0,
+                  camt: 10,
+                  samt: 10,
+                  csamt: 0,
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ])
+    expect(json.cdnr).toEqual([
+      {
+        ctin: '27AABCU9603R1ZM',
+        nt: [
+          {
+            ntty: 'C',
+            nt_num: 'CN-1001',
+            nt_dt: '12-07-2026',
+            pos: '27',
+            rchrg: 'N',
+            inv_typ: 'R',
+            val: 630,
+            itms: [
+              {
+                num: 1,
+                itm_det: {
+                  rt: 5,
+                  txval: 600,
+                  iamt: 0,
+                  camt: 15,
+                  samt: 15,
+                  csamt: 0,
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ])
   })
 })
 
@@ -127,9 +252,7 @@ describe('buildGstr3bReport', () => {
   })
 })
 
-function b2cInvoice(
-  overrides: Partial<GstReportDocument>,
-): GstReportDocument {
+function b2cInvoice(overrides: Partial<GstReportDocument>): GstReportDocument {
   return {
     ...outwardInvoice,
     partyGstin: null,
@@ -270,6 +393,82 @@ describe('buildGstr1Report B2C sections', () => {
     expect(report.totalTaxableValue).toBe('2100.00')
   })
 
+  test('puts credit notes against B2C large invoices in CDNUR', () => {
+    const report = buildGstr1Report({
+      ...period,
+      documents: [
+        b2cInvoice({
+          id: 'cn-l',
+          documentType: 'credit_note',
+          invoiceNumber: 'CN-L',
+          placeOfSupply: '24',
+          supplyType: 'inter_state',
+          taxableAmount: '1000.00',
+          cgstAmount: '0.00',
+          sgstAmount: '0.00',
+          igstAmount: '180.00',
+          totalGstAmount: '180.00',
+          totalAmount: '1180.00',
+          originalInvoice: {
+            invoiceNumber: 'INV-L',
+            documentDate: '2026-06-20',
+            totalAmount: '118000.00',
+          },
+        }),
+      ],
+    })
+
+    expect(report.cdnur.map((line) => line.invoiceNumber)).toEqual(['CN-L'])
+    expect(report.cdnr).toHaveLength(0)
+    expect(report.b2cs).toHaveLength(0)
+    expect(report.totalTaxableValue).toBe('-1000.00')
+  })
+
+  test('nets other credit notes to unregistered customers into B2C small', () => {
+    const report = buildGstr1Report({
+      ...period,
+      documents: [
+        b2cInvoice({
+          rateLines: [
+            { gstRate: '5.00', taxableAmount: '2400.00', gstAmount: '120.00' },
+          ],
+        }),
+        b2cInvoice({
+          id: 'cn-s',
+          documentType: 'credit_note',
+          invoiceNumber: 'CN-S',
+          taxableAmount: '400.00',
+          cgstAmount: '10.00',
+          sgstAmount: '10.00',
+          totalGstAmount: '20.00',
+          totalAmount: '420.00',
+          rateLines: [
+            { gstRate: '5.00', taxableAmount: '400.00', gstAmount: '20.00' },
+          ],
+          originalInvoice: {
+            invoiceNumber: 'INV-1001',
+            documentDate: '2026-07-11',
+            totalAmount: '2520.00',
+          },
+        }),
+      ],
+    })
+
+    expect(report.cdnur).toHaveLength(0)
+    expect(report.b2cs).toEqual([
+      {
+        placeOfSupply: '27',
+        supplyType: 'intra_state',
+        gstRate: '5.00',
+        taxableAmount: '2000.00',
+        cgstAmount: '50.00',
+        sgstAmount: '50.00',
+        igstAmount: '0.00',
+      },
+    ])
+    expect(report.totalTaxableValue).toBe('2000.00')
+  })
+
   test('exports B2C large and small rows in the JSON', () => {
     const report = buildGstr1Report({
       ...period,
@@ -279,21 +478,93 @@ describe('buildGstr1Report B2C sections', () => {
             { gstRate: '5.00', taxableAmount: '2400.00', gstAmount: '120.00' },
           ],
         }),
+        b2cInvoice({
+          id: 'inv-l',
+          invoiceNumber: 'INV-L',
+          placeOfSupply: '24',
+          supplyType: 'inter_state',
+          taxableAmount: '100000.00',
+          cgstAmount: '0.00',
+          sgstAmount: '0.00',
+          igstAmount: '18000.00',
+          totalGstAmount: '18000.00',
+          totalAmount: '118000.00',
+          rateLines: [
+            {
+              gstRate: '18.00',
+              taxableAmount: '100000.00',
+              gstAmount: '18000.00',
+            },
+          ],
+        }),
+        b2cInvoice({
+          id: 'cn-l',
+          documentType: 'credit_note',
+          invoiceNumber: 'CN-L',
+          placeOfSupply: '24',
+          supplyType: 'inter_state',
+          taxableAmount: '1000.00',
+          cgstAmount: '0.00',
+          sgstAmount: '0.00',
+          igstAmount: '180.00',
+          totalGstAmount: '180.00',
+          totalAmount: '1180.00',
+          originalInvoice: {
+            invoiceNumber: 'INV-L',
+            documentDate: '2026-07-11',
+            totalAmount: '118000.00',
+          },
+        }),
       ],
     })
 
-    const json = JSON.parse(buildGstr1Json(report))
+    const json = JSON.parse(buildGstr1Json(report, '27ABCDE1234F1Z5'))
 
-    expect(json.b2cl).toEqual([])
+    expect(json.b2cl).toEqual([
+      {
+        pos: '24',
+        inv: [
+          {
+            inum: 'INV-L',
+            idt: '11-07-2026',
+            val: 118000,
+            itms: [
+              {
+                num: 1,
+                itm_det: { rt: 18, txval: 100000, iamt: 18000, csamt: 0 },
+              },
+            ],
+          },
+        ],
+      },
+    ])
     expect(json.b2cs).toEqual([
       {
         sply_ty: 'INTRA',
         pos: '27',
-        rt: '5.00',
-        txval: '2400.00',
-        cgst: '60.00',
-        sgst: '60.00',
-        igst: '0.00',
+        typ: 'OE',
+        rt: 5,
+        txval: 2400,
+        iamt: 0,
+        camt: 60,
+        samt: 60,
+        csamt: 0,
+      },
+    ])
+    expect(json.cdnur).toEqual([
+      {
+        typ: 'B2CL',
+        ntty: 'C',
+        nt_num: 'CN-L',
+        nt_dt: '11-07-2026',
+        pos: '24',
+        val: 1180,
+        itms: [
+          {
+            num: 1,
+            itm_det: { rt: 18, txval: 1000, iamt: 180, csamt: 0 },
+          },
+        ],
       },
     ])
   })
