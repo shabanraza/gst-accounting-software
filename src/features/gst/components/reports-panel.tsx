@@ -344,8 +344,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                 </CardTitle>
                 <CardDescription>
                   {company.tradeName || company.legalName} has no GSTIN, so it
-                  issues bills of supply and does not file GSTR-1. Add the GSTIN
-                  in company settings once you register for GST.
+                  issues bills of supply and does not file GSTR-1.
                 </CardDescription>
               </CardHeader>
             </Card>
