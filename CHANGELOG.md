@@ -33,6 +33,7 @@ built. Never include customer names, balances or other real data.
 - GST reports now use the place of supply on each sales invoice (for example a ship-to state) instead of the customer's state, so CGST/SGST or IGST is shown correctly.
 - The Stock page now marks an item as low stock when it is at or below its reorder level, matching the dashboard's low-stock alert. Items with no reorder level still show as low when they run out.
 - Clearer wording on the Stock page and in the GSTR-1 comparison.
+- New quotations, sales orders and delivery challans are numbered in their own series for each financial year (QT-0001, SO-0001, DC-0001), the same series the mobile app uses, instead of a long code, and their status reads Open or Converted. Existing document numbers are unchanged.
 
 ## [0.3.0] - 2026-10-29
 
