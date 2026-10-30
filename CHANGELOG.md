@@ -21,6 +21,10 @@ built. Never include customer names, balances or other real data.
 ### Changed
 
 - A redesigned home page at hisaabkro.in with real screens from the app: the dashboard, a GST tax invoice, stock, ageing and the HSN summary.
+- Plainer wording across the app, using the names accountants already know: Sales invoices, Purchase bills, Receipts & payments, Scanned bills, Goods receipt (GRN), Quotations & orders, and Credit / debit notes for returns.
+- Import now has "Check file" and "Import" buttons, and tells you how many rows are ready or have problems.
+- Clearer column names in bank reconciliation (As per bank, As per books), ageing (Age) and GST matching (Taxable and GST as per books).
+- The new company form no longer shows a sample business name.
 
 ### Fixed
 

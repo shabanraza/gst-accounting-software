@@ -109,7 +109,7 @@ export function MasterLookup({
         </span>
       </Button>
       <CommandDialog
-        description="Search and select a master record"
+        description="Search and pick from the list"
         onOpenChange={setOpen}
         open={open}
         title={title}

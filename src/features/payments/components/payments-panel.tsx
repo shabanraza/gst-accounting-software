@@ -246,7 +246,7 @@ export function PaymentsPanel({
                 {mode === 'receipts' ? 'Customer receipt' : 'Supplier payment'}
               </DialogTitle>
               <DialogDescription>
-                Allocate amount against an open document and post to ledger.
+                Adjust the amount against an open invoice or bill.
               </DialogDescription>
             </DialogHeader>
             <form className="flex flex-col gap-4" onSubmit={handleAllocate}>
@@ -316,7 +316,7 @@ export function PaymentsPanel({
                   }
                   type="submit"
                 >
-                  Post allocation
+                  {mode === 'receipts' ? 'Save receipt' : 'Save payment'}
                 </Button>
               </DialogFooter>
             </form>
@@ -324,7 +324,7 @@ export function PaymentsPanel({
         </Dialog>
       }
       description="Customer receipts and supplier payments against open invoices and bills."
-      title="Payments"
+      title="Receipts & payments"
     >
       <Card>
         <CardHeader className="gap-3">
@@ -334,7 +334,7 @@ export function PaymentsPanel({
               Open balances
             </CardTitle>
             <CardDescription>
-              Allocate receipts and payments to update Paid / Part paid status
+              Invoices and bills with an amount still due
             </CardDescription>
           </div>
           <Tabs

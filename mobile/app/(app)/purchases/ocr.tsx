@@ -67,7 +67,7 @@ export default function OcrReviewScreen() {
   }
 
   return (
-    <Screen title="OCR review" subtitle="Capture bills and review drafts">
+    <Screen title="Scanned bills" subtitle="Photograph a bill, then check it">
       <View className="gap-section-header">
         <SectionHeader title="Capture bill" compact icon="camera-outline" />
         <View className="flex-row gap-3">
@@ -99,7 +99,9 @@ export default function OcrReviewScreen() {
             onPress={
               draft.id
                 ? () =>
-                    router.push(`/(app)/purchases/ocr/${String(draft.id)}` as never)
+                    router.push(
+                      `/(app)/purchases/ocr/${String(draft.id)}` as never,
+                    )
                 : undefined
             }
           />

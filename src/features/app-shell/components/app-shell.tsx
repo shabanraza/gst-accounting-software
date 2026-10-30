@@ -380,7 +380,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <DropdownMenuContent align="end" className="w-52">
                 <DropdownMenuGroup>
                   <DropdownMenuItem asChild>
-                    <Link to="/app/sales/new">New sales bill</Link>
+                    <Link to="/app/sales/new">New sales invoice</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/app/purchases/new">New purchase bill</Link>

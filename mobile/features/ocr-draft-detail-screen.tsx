@@ -14,10 +14,7 @@ import { DateField } from '@/components/ui/date-field'
 import { FormField } from '@/components/ui/form-field'
 import { FormFieldGroup } from '@/components/ui/form-label'
 import { formatInr } from '@/lib/format-inr'
-import {
-  withEditedOcrField,
-  type OcrFieldsDraft,
-} from '@/lib/ocr-fields'
+import { withEditedOcrField, type OcrFieldsDraft } from '@/lib/ocr-fields'
 import {
   buildOcrConfirmInput,
   buildOcrUpdateDraftInput,
@@ -111,10 +108,16 @@ export function OcrDraftDetailScreen() {
       setError(null)
       setMessage('Purchase bill posted from OCR draft.')
       await queryClient.invalidateQueries({ queryKey: ['module-list', 'ocr'] })
-      await queryClient.invalidateQueries({ queryKey: ['ocr-draft', companyId, id] })
-      await queryClient.invalidateQueries({ queryKey: ['module-list', 'purchases'] })
+      await queryClient.invalidateQueries({
+        queryKey: ['ocr-draft', companyId, id],
+      })
+      await queryClient.invalidateQueries({
+        queryKey: ['module-list', 'purchases'],
+      })
       if (result.postedPurchaseBillId) {
-        router.replace(`/(app)/purchases/${result.postedPurchaseBillId}` as never)
+        router.replace(
+          `/(app)/purchases/${result.postedPurchaseBillId}` as never,
+        )
       }
     },
     onError: (mutationError) => {
@@ -142,7 +145,7 @@ export function OcrDraftDetailScreen() {
 
   if (draftsQuery.isLoading) {
     return (
-      <Screen title="OCR draft">
+      <Screen title="Scanned bill">
         <LoadingState />
       </Screen>
     )
@@ -150,7 +153,7 @@ export function OcrDraftDetailScreen() {
 
   if (draftsQuery.isError || !draft || !fields) {
     return (
-      <Screen title="OCR draft">
+      <Screen title="Scanned bill">
         <EmptyState message="OCR draft not found or unavailable." />
       </Screen>
     )
@@ -188,7 +191,7 @@ export function OcrDraftDetailScreen() {
         </View>
       ) : null}
 
-      <FormSection title="Extracted fields" icon="scan-outline">
+      <FormSection title="Read from the bill" icon="scan-outline">
         <FormFieldGroup label="Supplier name">
           <FormField
             placeholder="Supplier name"

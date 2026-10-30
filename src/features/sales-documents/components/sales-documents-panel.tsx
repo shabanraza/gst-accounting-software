@@ -222,14 +222,14 @@ export function SalesDocumentsPanel() {
   return (
     <WorkspacePage
       description="Quotations, sales orders, and delivery challans before invoicing."
-      title="Sales documents"
+      title="Quotations & orders"
     >
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">New document</CardTitle>
             <CardDescription>
-              Non-posting sales paperwork. Convert open documents to invoices.
+              Convert to a sales invoice when you bill.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -365,9 +365,7 @@ export function SalesDocumentsPanel() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Documents</CardTitle>
-            <CardDescription>
-              Open documents for the active company.
-            </CardDescription>
+            <CardDescription>Not yet converted to an invoice.</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>

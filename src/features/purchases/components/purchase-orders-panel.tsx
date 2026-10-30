@@ -245,7 +245,7 @@ export function PurchaseOrdersPanel() {
 
   return (
     <WorkspacePage
-      description="Purchase orders without ledger posting or stock movement."
+      description="Orders placed with suppliers. Stock and accounts change only when you make the bill."
       title="Purchase orders"
     >
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
@@ -253,8 +253,7 @@ export function PurchaseOrdersPanel() {
           <CardHeader>
             <CardTitle className="text-base">New purchase order</CardTitle>
             <CardDescription>
-              Commitment to supplier — convert to purchase bill when goods
-              arrive.
+              Convert to a purchase bill when the goods arrive.
             </CardDescription>
           </CardHeader>
           <CardContent>
