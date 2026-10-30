@@ -84,8 +84,8 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
     ...trpc.reports.gstr1.queryOptions({
       companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
       companyStateCode: company?.stateCode ?? '27',
-      periodStart,
-      periodEnd,
+      periodStart: reconPeriodStart,
+      periodEnd: reconPeriodEnd,
     }),
     enabled: Boolean(companyId) && isReady && tab === 'gstr1' && hasGstin,
   })
@@ -275,17 +275,41 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
     }
   }
 
-  function downloadExport() {
-    if (!requireWorkspace(companyId) || !exportQuery.data) return
-    const blob = new Blob([JSON.stringify(exportQuery.data, null, 2)], {
-      type: 'application/json',
-    })
+  function saveJsonFile(text: string, fileName: string) {
+    const blob = new Blob([text], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `accountant-export-${companyId}.json`
+    anchor.download = fileName
     anchor.click()
     URL.revokeObjectURL(url)
+  }
+
+  function downloadExport() {
+    if (!requireWorkspace(companyId) || !exportQuery.data) return
+    saveJsonFile(
+      JSON.stringify(exportQuery.data, null, 2),
+      `accountant-export-${companyId}.json`,
+    )
+  }
+
+  async function downloadGstr1Json() {
+    if (!requireWorkspace(companyId) || !company?.gstin) return
+    try {
+      const json = await queryClient.fetchQuery(
+        trpc.reports.gstr1Json.queryOptions({
+          companyId,
+          companyStateCode: company.stateCode,
+          companyGstin: company.gstin,
+          periodStart: reconPeriodStart,
+          periodEnd: reconPeriodEnd,
+        }),
+      )
+      const fp = reconPeriodEnd.slice(5, 7) + reconPeriodEnd.slice(0, 4)
+      saveJsonFile(json, `GSTR1_${company.gstin}_${fp}.json`)
+    } catch (error) {
+      toastActionError(error, 'Could not prepare the GSTR-1 file')
+    }
   }
 
   return (
@@ -334,10 +358,37 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                     GSTR-1 working report
                   </CardTitle>
                   <CardDescription>
-                    FY {periodStart} to {periodEnd} · net taxable{' '}
+                    Net taxable{' '}
                     {formatInr(gstr1Query.data?.totalTaxableValue ?? 0)}
                   </CardDescription>
                 </CardHeader>
+                <CardContent className="flex flex-wrap items-end gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Period start</Label>
+                    <DatePicker
+                      onChange={setReconPeriodStart}
+                      value={reconPeriodStart}
+                      variant="toolbar"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Period end</Label>
+                    <DatePicker
+                      onChange={setReconPeriodEnd}
+                      value={reconPeriodEnd}
+                      variant="toolbar"
+                    />
+                  </div>
+                  <Button
+                    disabled={!gstr1Query.data}
+                    onClick={downloadGstr1Json}
+                    type="button"
+                    variant="outline"
+                  >
+                    <DownloadIcon data-icon="inline-start" />
+                    Download JSON
+                  </Button>
+                </CardContent>
               </Card>
               <Gstr1Sections report={gstr1Query.data} />
               <Card>
@@ -347,28 +398,10 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                   </CardTitle>
                   <CardDescription>
                     Compare the GSTR-1 you filed on the GST portal with your
-                    sales invoices for {reconPeriodStart} to {reconPeriodEnd}
+                    sales invoices for the same period
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
-                  <div className="flex flex-wrap items-end gap-3">
-                    <div className="flex flex-col gap-1.5">
-                      <Label>Period start</Label>
-                      <DatePicker
-                        onChange={setReconPeriodStart}
-                        value={reconPeriodStart}
-                        variant="toolbar"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <Label>Period end</Label>
-                      <DatePicker
-                        onChange={setReconPeriodEnd}
-                        value={reconPeriodEnd}
-                        variant="toolbar"
-                      />
-                    </div>
-                  </div>
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="gstr1-file">
                       GSTR-1 file from the GST portal

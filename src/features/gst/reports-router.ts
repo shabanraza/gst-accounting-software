@@ -250,7 +250,7 @@ export const createReportsRouter = (deps: {
         )
       }),
     gstr1Json: capabilityProcedure('view_reports')
-      .input(reportInputSchema)
+      .input(reportInputSchema.extend({ companyGstin: z.string().length(15) }))
       .query(async ({ input }) => {
         const documents = await buildGstDocuments({
           companyId: input.companyId,
@@ -266,7 +266,7 @@ export const createReportsRouter = (deps: {
           periodEnd: input.periodEnd,
           documents,
         })
-        return buildGstr1Json(report)
+        return buildGstr1Json(report, input.companyGstin)
       }),
     gstr2bReconciliation: capabilityProcedure('view_reports')
       .input(gstr2bReconciliationInputSchema)

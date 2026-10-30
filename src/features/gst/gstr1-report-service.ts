@@ -189,10 +189,7 @@ function buildB2cs(documents: Array<GstReportDocument>): Array<Gstr1B2csRow> {
 }
 
 function sumTaxable(rows: Array<{ taxableAmount: string }>) {
-  return rows.reduce(
-    (sum, row) => sum.plus(row.taxableAmount),
-    new Decimal(0),
-  )
+  return rows.reduce((sum, row) => sum.plus(row.taxableAmount), new Decimal(0))
 }
 
 export function buildGstr1Report(input: GstReportPeriodInput): Gstr1Report {
@@ -214,9 +211,7 @@ export function buildGstr1Report(input: GstReportPeriodInput): Gstr1Report {
   const b2cs = buildB2cs(
     [...b2cSales, ...b2cNotes].filter((document) => !isB2cLarge(document)),
   )
-  const cdnr = creditNotes
-    .filter((document) => document.partyGstin)
-    .map(toLine)
+  const cdnr = creditNotes.filter((document) => document.partyGstin).map(toLine)
   const cdnur = b2cNotes.filter(isB2cLarge).map(toLine)
 
   const invoicesTaxable = sumTaxable(b2b)
@@ -239,49 +234,112 @@ export function buildGstr1Report(input: GstReportPeriodInput): Gstr1Report {
   }
 }
 
-export function buildGstr1Json(report: Gstr1Report): string {
+/** GSTN dates are dd-mm-yyyy. */
+function portalDate(date: string) {
+  const [year, month, day] = date.split('-')
+  return `${day}-${month}-${year}`
+}
+
+function portalItems(line: Gstr1Line, igstOnly = false) {
+  return line.rates.map((rate, index) => ({
+    num: index + 1,
+    itm_det: igstOnly
+      ? {
+          rt: Number(rate.gstRate),
+          txval: Number(rate.taxableAmount),
+          iamt: Number(rate.igstAmount),
+          csamt: 0,
+        }
+      : {
+          rt: Number(rate.gstRate),
+          txval: Number(rate.taxableAmount),
+          iamt: Number(rate.igstAmount),
+          camt: Number(rate.cgstAmount),
+          samt: Number(rate.sgstAmount),
+          csamt: 0,
+        },
+  }))
+}
+
+/** Groups lines under a key, keeping first-seen order. */
+function groupBy<T>(
+  lines: Array<Gstr1Line>,
+  keyOf: (line: Gstr1Line) => string,
+  map: (line: Gstr1Line) => T,
+) {
+  const groups = new Map<string, Array<T>>()
+  for (const line of lines) {
+    const key = keyOf(line)
+    groups.set(key, [...(groups.get(key) ?? []), map(line)])
+  }
+  return [...groups.entries()]
+}
+
+/**
+ * GSTR-1 upload file in the GSTN offline-tool layout (amounts as numbers).
+ * Cess is not tracked, so `csamt` is always 0.
+ */
+export function buildGstr1Json(report: Gstr1Report, gstin: string): string {
   return JSON.stringify(
     {
-      gstin: '',
+      gstin,
       fp: report.periodEnd.slice(5, 7) + report.periodEnd.slice(0, 4),
-      b2b: report.b2b.map((line) => ({
-        inum: line.invoiceNumber,
-        idt: line.documentDate,
-        ctin: line.partyGstin,
-        pos: line.placeOfSupply,
-        val: line.totalAmount,
-        txval: line.taxableAmount,
-        cgst: line.cgstAmount,
-        sgst: line.sgstAmount,
-        igst: line.igstAmount,
-      })),
-      b2cl: report.b2cl.map((line) => ({
-        inum: line.invoiceNumber,
-        idt: line.documentDate,
-        pos: line.placeOfSupply,
-        val: line.totalAmount,
-        txval: line.taxableAmount,
-        igst: line.igstAmount,
-      })),
+      b2b: groupBy(
+        report.b2b,
+        (line) => line.partyGstin ?? '',
+        (line) => ({
+          inum: line.invoiceNumber,
+          idt: portalDate(line.documentDate),
+          val: Number(line.totalAmount),
+          pos: line.placeOfSupply,
+          rchrg: line.reverseCharge ? 'Y' : 'N',
+          inv_typ: 'R',
+          itms: portalItems(line),
+        }),
+      ).map(([ctin, inv]) => ({ ctin, inv })),
+      b2cl: groupBy(
+        report.b2cl,
+        (line) => line.placeOfSupply,
+        (line) => ({
+          inum: line.invoiceNumber,
+          idt: portalDate(line.documentDate),
+          val: Number(line.totalAmount),
+          itms: portalItems(line, true),
+        }),
+      ).map(([pos, inv]) => ({ pos, inv })),
       b2cs: report.b2cs.map((row) => ({
         sply_ty: row.supplyType === 'intra_state' ? 'INTRA' : 'INTER',
         pos: row.placeOfSupply,
-        rt: row.gstRate,
-        txval: row.taxableAmount,
-        cgst: row.cgstAmount,
-        sgst: row.sgstAmount,
-        igst: row.igstAmount,
+        typ: 'OE',
+        rt: Number(row.gstRate),
+        txval: Number(row.taxableAmount),
+        iamt: Number(row.igstAmount),
+        camt: Number(row.cgstAmount),
+        samt: Number(row.sgstAmount),
+        csamt: 0,
       })),
-      cdnr: report.cdnr.map((line) => ({
+      cdnr: groupBy(
+        report.cdnr,
+        (line) => line.partyGstin ?? '',
+        (line) => ({
+          ntty: 'C',
+          nt_num: line.invoiceNumber,
+          nt_dt: portalDate(line.documentDate),
+          pos: line.placeOfSupply,
+          rchrg: line.reverseCharge ? 'Y' : 'N',
+          inv_typ: 'R',
+          val: Number(line.totalAmount),
+          itms: portalItems(line),
+        }),
+      ).map(([ctin, nt]) => ({ ctin, nt })),
+      cdnur: report.cdnur.map((line) => ({
+        typ: 'B2CL',
+        ntty: 'C',
         nt_num: line.invoiceNumber,
-        nt_dt: line.documentDate,
-        ctin: line.partyGstin,
+        nt_dt: portalDate(line.documentDate),
         pos: line.placeOfSupply,
-        val: line.totalAmount,
-        txval: line.taxableAmount,
-        cgst: line.cgstAmount,
-        sgst: line.sgstAmount,
-        igst: line.igstAmount,
+        val: Number(line.totalAmount),
+        itms: portalItems(line, true),
       })),
     },
     null,

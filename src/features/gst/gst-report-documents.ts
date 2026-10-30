@@ -56,8 +56,7 @@ export async function buildGstDocuments(input: {
       partyName: party?.name ?? 'Customer',
       ...taxSplit(
         input.companyStateCode,
-        invoice.placeOfSupply ||
-          (party?.stateCode ?? input.companyStateCode),
+        invoice.placeOfSupply || (party?.stateCode ?? input.companyStateCode),
         invoice.totalGstAmount,
       ),
       taxableAmount: invoice.taxableAmount,

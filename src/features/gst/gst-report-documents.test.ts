@@ -112,7 +112,10 @@ describe('buildGstDocuments', () => {
   })
 })
 
-function party(id: string, overrides: { gstin: string | null; stateCode: string }) {
+function party(
+  id: string,
+  overrides: { gstin: string | null; stateCode: string },
+) {
   return {
     id,
     companyId: 'company-1',
@@ -154,7 +157,9 @@ async function documentsFor(input: {
   notes?: Array<CreditDebitNoteRecord>
 }) {
   const parties = new InMemoryPartyRepository()
-  await parties.create(party('party-1', { gstin: '24AABCU9603R1ZM', stateCode: '24' }))
+  await parties.create(
+    party('party-1', { gstin: '24AABCU9603R1ZM', stateCode: '24' }),
+  )
   await parties.create(party('party-2', { gstin: null, stateCode: '24' }))
   const invoices = new InMemorySalesInvoiceRepository()
   for (const invoice of input.invoices ?? []) await invoices.create(invoice)
