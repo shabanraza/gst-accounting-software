@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest'
 import { buildGstDocuments } from '#/features/gst/gst-report-documents.ts'
 import { buildGstr1Report } from '#/features/gst/gstr1-report-service.ts'
 import { buildGstr3bReport } from '#/features/gst/gstr3b-report-service.ts'
+import { InMemoryItemRepository } from '#/features/inventory/inventory-store.ts'
 import { InMemoryPartyRepository } from '#/features/parties/party-store.ts'
 import { InMemoryPurchaseBillRepository } from '#/features/purchases/purchase-bill-store.ts'
 import { InMemoryCreditDebitNoteRepository } from '#/features/returns/credit-debit-note-store.ts'
@@ -155,6 +156,7 @@ function note(
 async function documentsFor(input: {
   invoices?: Array<SalesInvoiceRecord>
   notes?: Array<CreditDebitNoteRecord>
+  items?: InMemoryItemRepository
 }) {
   const parties = new InMemoryPartyRepository()
   await parties.create(
@@ -172,6 +174,7 @@ async function documentsFor(input: {
     bills: new InMemoryPurchaseBillRepository(),
     parties,
     notes,
+    items: input.items,
   })
 }
 
@@ -255,5 +258,76 @@ describe('buildGstDocuments credit and debit notes', () => {
     expect(gstr3b.outwardTaxableValue).toBe('800.00')
     expect(gstr3b.outputGst).toBe('144.00')
     expect(gstr3b.inputGst).toBe('-18.00')
+  })
+})
+
+describe('buildGstDocuments HSN lines', () => {
+  test('carries HSN, item name and UQC per sales line, with NA for services', async () => {
+    const items = new InMemoryItemRepository()
+    const item = (
+      id: string,
+      name: string,
+      hsnCode: string,
+      baseUnit: string,
+    ) =>
+      items.create({
+        id,
+        companyId: 'company-1',
+        name,
+        alias: '',
+        itemGroup: '',
+        hsnCode,
+        gstRate: '18.00',
+        baseUnit,
+        alternateUnit: '',
+        conversionFactor: '1',
+        mrp: '0.00',
+        reorderLevel: '0',
+        purchaseRate: '0.00',
+        saleRate: '0.00',
+        tracksInventory: true,
+        createdAt: new Date(),
+      })
+    await item('item-1', 'Cotton', '5208', 'Meter')
+    await item('item-2', 'Stitching', '998898', 'Job')
+    const line = (itemId: string, quantity: string, unit: string) =>
+      ({
+        itemId,
+        quantity,
+        unit,
+        gstRate: '18.00',
+        taxableAmount: '500.00',
+        gstAmount: '90.00',
+      }) as SalesInvoiceRecord['lines'][number]
+
+    const [document] = await documentsFor({
+      invoices: [
+        baseInvoice({
+          lines: [line('item-1', '12.5', 'Meter'), line('item-2', '2', 'Job')],
+        }),
+      ],
+      items,
+    })
+
+    expect(document.hsnLines).toEqual([
+      {
+        hsnCode: '5208',
+        description: 'Cotton',
+        uqc: 'MTR',
+        quantity: '12.5',
+        gstRate: '18.00',
+        taxableAmount: '500.00',
+        gstAmount: '90.00',
+      },
+      {
+        hsnCode: '998898',
+        description: 'Stitching',
+        uqc: 'NA',
+        quantity: '0',
+        gstRate: '18.00',
+        taxableAmount: '500.00',
+        gstAmount: '90.00',
+      },
+    ])
   })
 })
