@@ -19,6 +19,7 @@ import {
 import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
 import { InMemoryPurchaseBillRepository } from '#/features/purchases/purchase-bill-store.ts'
 import { InMemoryPartyRepository } from '#/features/parties/party-store.ts'
+import { InMemoryCreditDebitNoteRepository } from '#/features/returns/credit-debit-note-store.ts'
 import { InMemorySalesInvoiceRepository } from '#/features/sales/sales-invoice-store.ts'
 
 import type { AgeingRow } from '#/features/accounting/ageing-service.ts'
@@ -362,6 +363,7 @@ describe('getOwnerDashboardSnapshot', () => {
         ledgers,
         items: new InMemoryItemRepository(),
         stockBalances: new InMemoryStockStore(),
+        notes: new InMemoryCreditDebitNoteRepository(),
       },
       companyId,
       asOfDate,
@@ -425,6 +427,7 @@ describe('getOwnerDashboardSnapshot', () => {
         ledgers: new InMemoryLedgerAccountRepository(),
         items: new InMemoryItemRepository(),
         stockBalances: new InMemoryStockStore(),
+        notes: new InMemoryCreditDebitNoteRepository(),
       },
       companyId,
       asOfDate,
@@ -499,6 +502,7 @@ describe('getOwnerDashboardSnapshot', () => {
         ledgers: new InMemoryLedgerAccountRepository(),
         items: new InMemoryItemRepository(),
         stockBalances: new InMemoryStockStore(),
+        notes: new InMemoryCreditDebitNoteRepository(),
       },
       companyId,
       asOfDate,
@@ -550,6 +554,7 @@ describe('getOwnerDashboardSnapshot', () => {
         ledgers: new InMemoryLedgerAccountRepository(),
         items: new InMemoryItemRepository(),
         stockBalances: new InMemoryStockStore(),
+        notes: new InMemoryCreditDebitNoteRepository(),
       },
       companyId,
       '2026-07-14',
@@ -608,6 +613,7 @@ describe('getOwnerDashboardSnapshot', () => {
         ledgers: new InMemoryLedgerAccountRepository(),
         items: new InMemoryItemRepository(),
         stockBalances: new InMemoryStockStore(),
+        notes: new InMemoryCreditDebitNoteRepository(),
       },
       companyId,
       asOfDate,
@@ -674,6 +680,7 @@ describe('getOwnerDashboardSnapshot', () => {
         ledgers: new InMemoryLedgerAccountRepository(),
         items: new InMemoryItemRepository(),
         stockBalances: new InMemoryStockStore(),
+        notes: new InMemoryCreditDebitNoteRepository(),
       },
       companyId,
       '2026-07-14',
@@ -735,6 +742,7 @@ describe('getOwnerDashboardSnapshot low stock', () => {
         ledgers: new InMemoryLedgerAccountRepository(),
         items,
         stockBalances: stock,
+        notes: new InMemoryCreditDebitNoteRepository(),
       },
       companyId,
       asOfDate,
@@ -873,6 +881,7 @@ describe('getOwnerDashboardSnapshot money position and setup', () => {
         ledgers: new InMemoryLedgerAccountRepository(),
         items: deps.items ?? new InMemoryItemRepository(),
         stockBalances: new InMemoryStockStore(),
+        notes: new InMemoryCreditDebitNoteRepository(),
       },
       companyId,
       asOfDate,

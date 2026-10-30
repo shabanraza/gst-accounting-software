@@ -140,6 +140,7 @@ export const createReportsRouter = (deps: {
           invoices: deps.invoices,
           bills: deps.bills,
           parties: deps.parties,
+          notes: deps.notes,
         })
         return buildGstr1Report({
           companyId: input.companyId,
@@ -157,6 +158,7 @@ export const createReportsRouter = (deps: {
           invoices: deps.invoices,
           bills: deps.bills,
           parties: deps.parties,
+          notes: deps.notes,
         })
         return buildGstr3bReport({
           companyId: input.companyId,
@@ -256,6 +258,7 @@ export const createReportsRouter = (deps: {
           invoices: deps.invoices,
           bills: deps.bills,
           parties: deps.parties,
+          notes: deps.notes,
         })
         const report = buildGstr1Report({
           companyId: input.companyId,
@@ -306,6 +309,7 @@ export const createReportsRouter = (deps: {
           invoices: deps.invoices,
           bills: deps.bills,
           parties: deps.parties,
+          notes: deps.notes,
         })
         return buildGstr3bWorkingReport(
           {

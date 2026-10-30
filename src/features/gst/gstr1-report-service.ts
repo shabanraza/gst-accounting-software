@@ -18,17 +18,24 @@ export type Gstr1Line = {
   igstAmount: string
   totalGstAmount: string
   totalAmount: string
+  supplyType: GstReportDocument['supplyType']
+  reverseCharge: boolean
+  /** Taxable value and tax per GST rate, as the portal asks for each invoice. */
+  rates: Array<Gstr1RateRow>
 }
 
-/** One GSTR-1 Table 7 row: B2C small supplies for a place of supply and rate. */
-export type Gstr1B2csRow = {
-  placeOfSupply: string
-  supplyType: 'intra_state' | 'inter_state'
+export type Gstr1RateRow = {
   gstRate: string
   taxableAmount: string
   cgstAmount: string
   sgstAmount: string
   igstAmount: string
+}
+
+/** One GSTR-1 Table 7 row: B2C small supplies for a place of supply and rate. */
+export type Gstr1B2csRow = Gstr1RateRow & {
+  placeOfSupply: string
+  supplyType: GstReportDocument['supplyType']
 }
 
 export type Gstr1Report = {
@@ -38,7 +45,10 @@ export type Gstr1Report = {
   b2b: Array<Gstr1Line>
   b2cl: Array<Gstr1Line>
   b2cs: Array<Gstr1B2csRow>
-  creditDebitNotes: Array<Gstr1Line>
+  /** Table 9B: credit notes to registered customers. */
+  cdnr: Array<Gstr1Line>
+  /** Table 9B: credit notes to unregistered customers against B2C large invoices. */
+  cdnur: Array<Gstr1Line>
   totalTaxableValue: string
 }
 
@@ -60,10 +70,16 @@ function inPeriod(document: GstReportDocument, input: GstReportPeriodInput) {
   )
 }
 
+/** A credit note follows the invoice it was issued against. */
 function isB2cLarge(document: GstReportDocument) {
+  const invoice =
+    document.documentType === 'credit_note'
+      ? document.originalInvoice
+      : document
   return (
+    invoice !== undefined &&
     document.supplyType === 'inter_state' &&
-    new Decimal(document.totalAmount).gt(b2cLargeLimit(document.documentDate))
+    new Decimal(invoice.totalAmount).gt(b2cLargeLimit(invoice.documentDate))
   )
 }
 
@@ -80,6 +96,33 @@ function toLine(document: GstReportDocument): Gstr1Line {
     igstAmount: document.igstAmount,
     totalGstAmount: document.totalGstAmount,
     totalAmount: document.totalAmount,
+    supplyType: document.supplyType,
+    reverseCharge: document.reverseCharge ?? false,
+    rates: rateLinesOf(document).map((line) =>
+      rateRow(
+        document.supplyType,
+        new Decimal(line.gstRate),
+        new Decimal(line.taxableAmount),
+        new Decimal(line.gstAmount),
+      ),
+    ),
+  }
+}
+
+function rateRow(
+  supplyType: GstReportDocument['supplyType'],
+  gstRate: Decimal,
+  taxable: Decimal,
+  gst: Decimal,
+): Gstr1RateRow {
+  const isIntraState = supplyType === 'intra_state'
+  const half = gst.div(2).toFixed(2)
+  return {
+    gstRate: gstRate.toFixed(2),
+    taxableAmount: taxable.toFixed(2),
+    cgstAmount: isIntraState ? half : '0.00',
+    sgstAmount: isIntraState ? half : '0.00',
+    igstAmount: isIntraState ? '0.00' : gst.toFixed(2),
   }
 }
 
@@ -112,6 +155,8 @@ function buildB2cs(documents: Array<GstReportDocument>): Array<Gstr1B2csRow> {
   >()
 
   for (const document of documents) {
+    // Credit notes on B2C small sales reduce the same Table 7 row.
+    const sign = document.documentType === 'credit_note' ? -1 : 1
     for (const line of rateLinesOf(document)) {
       const gstRate = new Decimal(line.gstRate)
       const key = `${document.placeOfSupply}|${document.supplyType}|${gstRate.toFixed(2)}`
@@ -122,8 +167,10 @@ function buildB2cs(documents: Array<GstReportDocument>): Array<Gstr1B2csRow> {
         taxable: new Decimal(0),
         gst: new Decimal(0),
       }
-      group.taxable = group.taxable.plus(line.taxableAmount)
-      group.gst = group.gst.plus(line.gstAmount)
+      group.taxable = group.taxable.plus(
+        new Decimal(line.taxableAmount).mul(sign),
+      )
+      group.gst = group.gst.plus(new Decimal(line.gstAmount).mul(sign))
       groups.set(key, group)
     }
   }
@@ -134,19 +181,11 @@ function buildB2cs(documents: Array<GstReportDocument>): Array<Gstr1B2csRow> {
         left.placeOfSupply.localeCompare(right.placeOfSupply) ||
         left.gstRate.comparedTo(right.gstRate),
     )
-    .map((group) => {
-      const isIntraState = group.supplyType === 'intra_state'
-      const half = group.gst.div(2).toFixed(2)
-      return {
-        placeOfSupply: group.placeOfSupply,
-        supplyType: group.supplyType,
-        gstRate: group.gstRate.toFixed(2),
-        taxableAmount: group.taxable.toFixed(2),
-        cgstAmount: isIntraState ? half : '0.00',
-        sgstAmount: isIntraState ? half : '0.00',
-        igstAmount: isIntraState ? '0.00' : group.gst.toFixed(2),
-      }
-    })
+    .map((group) => ({
+      placeOfSupply: group.placeOfSupply,
+      supplyType: group.supplyType,
+      ...rateRow(group.supplyType, group.gstRate, group.taxable, group.gst),
+    }))
 }
 
 function sumTaxable(rows: Array<{ taxableAmount: string }>) {
@@ -163,19 +202,22 @@ export function buildGstr1Report(input: GstReportPeriodInput): Gstr1Report {
   const sales = periodDocs.filter(
     (document) => document.documentType === 'sales_invoice',
   )
+  // Debit notes here are purchase returns, which belong to GSTR-3B, not GSTR-1.
+  const creditNotes = periodDocs.filter(
+    (document) => document.documentType === 'credit_note',
+  )
   const b2cSales = sales.filter((document) => !document.partyGstin)
+  const b2cNotes = creditNotes.filter((document) => !document.partyGstin)
 
   const b2b = sales.filter((document) => document.partyGstin).map(toLine)
   const b2cl = b2cSales.filter(isB2cLarge).map(toLine)
-  const b2cs = buildB2cs(b2cSales.filter((document) => !isB2cLarge(document)))
-
-  const creditDebitNotes = periodDocs
-    .filter(
-      (document) =>
-        document.documentType === 'credit_note' ||
-        document.documentType === 'debit_note',
-    )
+  const b2cs = buildB2cs(
+    [...b2cSales, ...b2cNotes].filter((document) => !isB2cLarge(document)),
+  )
+  const cdnr = creditNotes
+    .filter((document) => document.partyGstin)
     .map(toLine)
+  const cdnur = b2cNotes.filter(isB2cLarge).map(toLine)
 
   const invoicesTaxable = sumTaxable(b2b)
     .plus(sumTaxable(b2cl))
@@ -188,9 +230,11 @@ export function buildGstr1Report(input: GstReportPeriodInput): Gstr1Report {
     b2b,
     b2cl,
     b2cs,
-    creditDebitNotes,
+    cdnr,
+    cdnur,
     totalTaxableValue: invoicesTaxable
-      .minus(sumTaxable(creditDebitNotes))
+      .minus(sumTaxable(cdnr))
+      .minus(sumTaxable(cdnur))
       .toFixed(2),
   }
 }
@@ -228,7 +272,7 @@ export function buildGstr1Json(report: Gstr1Report): string {
         sgst: row.sgstAmount,
         igst: row.igstAmount,
       })),
-      cdnr: report.creditDebitNotes.map((line) => ({
+      cdnr: report.cdnr.map((line) => ({
         nt_num: line.invoiceNumber,
         nt_dt: line.documentDate,
         ctin: line.partyGstin,
