@@ -17,6 +17,8 @@ export type GstReportDocument = {
   totalGstAmount: string
   totalAmount: string
   invoiceNumber: string
+  /** Taxable value and GST per rate; set for sales invoices. */
+  rateLines?: Array<GstRateLine>
 }
 
 export type GstReportPeriodInput = {
@@ -24,4 +26,10 @@ export type GstReportPeriodInput = {
   periodStart: string
   periodEnd: string
   documents: Array<GstReportDocument>
+}
+
+export type GstRateLine = {
+  gstRate: string
+  taxableAmount: string
+  gstAmount: string
 }
