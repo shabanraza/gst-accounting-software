@@ -104,7 +104,7 @@ describe('createItemWithOpening', () => {
     expect(posting.list()).toEqual([])
   })
 
-  test.each([undefined, '', '0', '0.00'])(
+  test.each([undefined, null, '', '  ', '0', '0.00'])(
     'records no opening stock when opening qty is %j',
     async (openingQuantity) => {
       const { deps, posting } = await openingContext()
