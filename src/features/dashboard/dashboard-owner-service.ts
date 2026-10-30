@@ -34,6 +34,7 @@ import type { ItemRepository } from '#/features/inventory/item-service.ts'
 import type { StockBalanceRepository } from '#/features/inventory/stock-movement-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
+import type { CreditDebitNoteRepository } from '#/features/returns/credit-debit-note-service.ts'
 import type { SalesInvoiceRepository } from '#/features/sales/sales-invoice-service.ts'
 
 import { localCalendarDate } from '#/lib/calendar-date.ts'
@@ -164,6 +165,7 @@ export type OwnerDashboardDeps = {
   ledgers: LedgerAccountRepository
   items: ItemRepository
   stockBalances: StockBalanceRepository
+  notes: CreditDebitNoteRepository
 }
 
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP })
@@ -635,6 +637,7 @@ export async function getOwnerDashboardSnapshot(
       invoices: deps.invoices,
       bills: deps.bills,
       parties: deps.parties,
+      notes: deps.notes,
     }),
     buildLowStockSignals(deps, companyId),
     deps.items.listByCompanyId(companyId),
