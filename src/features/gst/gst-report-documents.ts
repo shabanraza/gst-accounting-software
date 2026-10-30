@@ -144,7 +144,7 @@ export async function buildGstDocuments(input: {
         invoiceRates.size === 1
           ? [
               {
-                gstRate: [...invoiceRates][0]!,
+                gstRate: [...invoiceRates][0],
                 taxableAmount: note.taxableAmount,
                 gstAmount: note.totalGstAmount,
               },

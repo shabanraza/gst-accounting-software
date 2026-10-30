@@ -176,10 +176,10 @@ describe('buildGstDocuments place of supply', () => {
       invoices: [baseInvoice({ placeOfSupply: '27' })],
     })
 
-    expect(document?.placeOfSupply).toBe('27')
-    expect(document?.supplyType).toBe('inter_state')
-    expect(document?.igstAmount).toBe('180.00')
-    expect(document?.cgstAmount).toBe('0.00')
+    expect(document.placeOfSupply).toBe('27')
+    expect(document.supplyType).toBe('inter_state')
+    expect(document.igstAmount).toBe('180.00')
+    expect(document.cgstAmount).toBe('0.00')
   })
 })
 
