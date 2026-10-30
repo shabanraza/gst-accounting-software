@@ -11,6 +11,10 @@ import {
 } from '#/features/dashboard/dashboard-summary-service.ts'
 import { buildGstr3bReport } from '#/features/gst/gstr3b-report-service.ts'
 import { buildGstDocuments } from '#/features/gst/gst-report-documents.ts'
+import {
+  isAtOrBelowReorderLevel,
+  toStockQuantity,
+} from '#/features/inventory/low-stock.ts'
 
 import type {
   AgeingBucketLabel,
@@ -444,13 +448,6 @@ async function buildSetupProgress(
   }
 }
 
-/** `''`, `null` and unparseable values all mean "no quantity". */
-function toQuantity(value: string | null | undefined) {
-  const trimmed = value?.trim()
-  if (!trimmed || !Number.isFinite(Number(trimmed))) return new Decimal(0)
-  return new Decimal(trimmed)
-}
-
 /**
  * Items at or below their reorder level, read from the stock-movement-derived
  * balance table. An item with no reorder level carries no threshold and so no
@@ -470,26 +467,26 @@ export async function buildLowStockSignals(
     quantityByItem.set(
       balance.itemId,
       (quantityByItem.get(balance.itemId) ?? new Decimal(0)).plus(
-        toQuantity(balance.quantity),
+        toStockQuantity(balance.quantity),
       ),
     )
   }
 
   return items.flatMap((item) => {
-    if (!item.tracksInventory) return []
-
-    const reorderLevel = toQuantity(item.reorderLevel)
-    if (reorderLevel.lte(0)) return []
-
     const availableQuantity = quantityByItem.get(item.id) ?? new Decimal(0)
-    if (availableQuantity.gt(reorderLevel)) return []
+    const isLow = isAtOrBelowReorderLevel({
+      quantity: availableQuantity.toString(),
+      reorderLevel: item.reorderLevel,
+      tracksInventory: item.tracksInventory,
+    })
+    if (!isLow) return []
 
     return [
       {
         itemId: item.id,
         itemName: item.name,
         availableQuantity: availableQuantity.toNumber(),
-        reorderLevel: reorderLevel.toNumber(),
+        reorderLevel: toStockQuantity(item.reorderLevel).toNumber(),
       },
     ]
   })

@@ -13,6 +13,11 @@ built. Never include customer names, balances or other real data.
 
 ## [Unreleased]
 
+### Added
+
+- The GSTR-1 report now includes sales to unregistered customers: B2C large invoices (other-state sales above ₹1 lakh) and B2C small totals by place of supply and GST rate. These are also in the GSTR-1 JSON export.
+- You can upload the GSTR-1 file downloaded from the GST portal to compare it with your sales invoices, instead of pasting it.
+
 ### Changed
 
 - A redesigned home page at hisaabkro.in with real screens from the app: the dashboard, a GST tax invoice, stock, ageing and the HSN summary.
@@ -20,6 +25,8 @@ built. Never include customer names, balances or other real data.
 ### Fixed
 
 - Cancelled sales invoices are no longer counted in GSTR-1, GSTR-3B or the GST card on the dashboard.
+- The Stock page now marks an item as low stock when it is at or below its reorder level, matching the dashboard's low-stock alert. Items with no reorder level still show as low when they run out.
+- Clearer wording on the Stock page and in the GSTR-1 comparison.
 
 ## [0.3.0] - 2026-10-29
 

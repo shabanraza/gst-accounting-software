@@ -20,6 +20,7 @@ import {
   resolveItemRateForVoucher,
   setPriceListItemRate,
 } from '#/features/inventory/price-list-service.ts'
+import { needsRestock } from '#/features/inventory/low-stock.ts'
 import {
   getCurrentStock,
   recordStockMovement,
@@ -283,13 +284,19 @@ export const createInventoryRouter = (
 
         return balances.map((balance) => {
           const item = itemById.get(balance.itemId)
+          const tracksInventory = item?.tracksInventory ?? true
           return {
             itemId: balance.itemId,
             itemName: item?.name ?? 'Unknown item',
             unit: item?.baseUnit ?? '',
             quantity: balance.quantity,
             avgRate: averageRate(balance),
-            tracksInventory: item?.tracksInventory ?? true,
+            tracksInventory,
+            isLow: needsRestock({
+              quantity: balance.quantity,
+              reorderLevel: item?.reorderLevel,
+              tracksInventory,
+            }),
           }
         })
       }),

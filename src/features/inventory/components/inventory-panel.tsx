@@ -58,7 +58,7 @@ export function InventoryPanel({
   )
   const filtered = rows.filter((row) => {
     if (itemFilter.id && row.itemId !== itemFilter.id) return false
-    const isLow = Number(row.quantity) < 1
+    const isLow = row.isLow
     const matchesStatus =
       statusFilter === 'all' || (statusFilter === 'low' ? isLow : !isLow)
     const haystack = row.itemName.toLowerCase()
@@ -69,17 +69,17 @@ export function InventoryPanel({
     (sum, row) => sum + Number(row.quantity) * Number(row.avgRate),
     0,
   )
-  const lowCount = filtered.filter((row) => Number(row.quantity) < 1).length
+  const lowCount = filtered.filter((row) => row.isLow).length
 
   return (
     <WorkspacePage
-      description="Godown-agnostic stock balances from the movement ledger API."
+      description="Stock on hand for every item, across all godowns."
       title="Inventory"
     >
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Lines shown</CardDescription>
+            <CardDescription>Items</CardDescription>
             <CardTitle className="text-2xl tabular-nums">
               {filtered.length}
             </CardTitle>
@@ -87,7 +87,7 @@ export function InventoryPanel({
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Stock value (avg)</CardDescription>
+            <CardDescription>Stock value</CardDescription>
             <CardTitle className="text-2xl tabular-nums">
               {formatInr(totalValue)}
             </CardTitle>
@@ -95,7 +95,7 @@ export function InventoryPanel({
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Zero / low</CardDescription>
+            <CardDescription>Low stock</CardDescription>
             <CardTitle className="text-2xl tabular-nums">{lowCount}</CardTitle>
           </CardHeader>
         </Card>
@@ -109,7 +109,7 @@ export function InventoryPanel({
               Stock status
             </CardTitle>
             <CardDescription>
-              Live balances from opening / purchase / sale movements
+              Quantity and value on hand, updated with every purchase and sale
             </CardDescription>
           </div>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -123,7 +123,7 @@ export function InventoryPanel({
                 <ScrollableTabsList>
                   <TabsTrigger value="all">All</TabsTrigger>
                   <TabsTrigger value="healthy">In stock</TabsTrigger>
-                  <TabsTrigger value="low">Low / zero</TabsTrigger>
+                  <TabsTrigger value="low">Low stock</TabsTrigger>
                 </ScrollableTabsList>
               </Tabs>
               {itemFilter.id && onClearItemFilter ? (
@@ -174,7 +174,7 @@ export function InventoryPanel({
                 </TableRow>
               ) : (
                 filtered.map((row) => {
-                  const isLow = Number(row.quantity) < 1
+                  const isLow = row.isLow
                   const value = Number(row.quantity) * Number(row.avgRate)
                   return (
                     <TableRow key={row.itemId}>
@@ -193,7 +193,7 @@ export function InventoryPanel({
                             isLowOrZero: isLow,
                           })}
                         >
-                          {isLow ? 'Low / zero' : 'In stock'}
+                          {isLow ? 'Low stock' : 'In stock'}
                         </Badge>
                       </TableCell>
                     </TableRow>
