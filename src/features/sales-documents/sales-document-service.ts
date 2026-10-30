@@ -1,10 +1,20 @@
 import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
+import { nextDocumentNumber } from '#/features/documents/document-sequence-service.ts'
+
+import type { DocumentSequenceRepository } from '#/features/documents/document-sequence-service.ts'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
 
 export type SalesDocumentType = 'quotation' | 'sales_order' | 'delivery_challan'
 export type SalesDocumentStatus = 'open' | 'converted'
+
+// Same series the mobile app allocates from, so both share one counter.
+const salesDocumentNumberPrefixes: Record<SalesDocumentType, string> = {
+  quotation: 'QT',
+  sales_order: 'SO',
+  delivery_challan: 'DC',
+}
 
 export type SalesDocumentLineInput = {
   itemId: string
@@ -22,6 +32,15 @@ export type CreateSalesDocumentInput = {
   customerId: string
   narration?: string
   lines: Array<SalesDocumentLineInput>
+}
+
+export type CreateSalesDocumentRequest = Omit<
+  CreateSalesDocumentInput,
+  'documentNumber'
+> & {
+  /** Left blank, the next number in the company's per-type series is used. */
+  documentNumber?: string
+  financialYearId?: string
 }
 
 export type SalesDocumentRecord = CreateSalesDocumentInput & {
@@ -81,8 +100,11 @@ Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP })
 
 export async function createSalesDocument(
   repository: SalesDocumentRepository,
-  input: CreateSalesDocumentInput,
+  sequences: DocumentSequenceRepository,
+  request: CreateSalesDocumentRequest,
 ): Promise<SalesDocumentRecord> {
+  const { financialYearId, ...input } = request
+
   if (input.lines.length === 0) {
     throw new InvalidSalesDocumentError(
       'A sales document requires at least one line',
@@ -96,14 +118,39 @@ export async function createSalesDocument(
     )
     .toFixed(2)
 
+  const documentNumber =
+    input.documentNumber?.trim() ||
+    (await allocateSalesDocumentNumber(sequences, input, financialYearId))
+
   return repository.create({
     ...input,
+    documentNumber,
     narration: input.narration?.trim() ?? '',
     id: crypto.randomUUID(),
     totalAmount,
     status: 'open',
     convertedToInvoiceId: null,
     createdAt: new Date(),
+  })
+}
+
+function allocateSalesDocumentNumber(
+  sequences: DocumentSequenceRepository,
+  input: { companyId: string; documentType: SalesDocumentType },
+  financialYearId: string | undefined,
+) {
+  if (!financialYearId) {
+    throw new InvalidSalesDocumentError(
+      'Set up a financial year before creating sales documents',
+    )
+  }
+
+  return nextDocumentNumber(sequences, {
+    companyId: input.companyId,
+    financialYearId,
+    voucherType: 'sales',
+    series: salesDocumentNumberPrefixes[input.documentType],
+    padLength: 4,
   })
 }
 

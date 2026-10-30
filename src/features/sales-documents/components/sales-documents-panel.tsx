@@ -52,6 +52,11 @@ const documentTypeLabels = {
   delivery_challan: 'Delivery challan',
 } as const
 
+const documentStatusLabels = {
+  open: 'Open',
+  converted: 'Converted',
+} as const
+
 type SalesDocumentLineDraft = {
   key: string
   itemId: string
@@ -71,7 +76,7 @@ function createEmptySalesDocumentLine(): SalesDocumentLineDraft {
 export function SalesDocumentsPanel() {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
-  const { companyId, isReady } = useWorkspace()
+  const { activeFinancialYearId, companyId, isReady } = useWorkspace()
   const [documentType, setDocumentType] =
     React.useState<keyof typeof documentTypeLabels>('quotation')
   const [documentNumber, setDocumentNumber] = React.useState('')
@@ -195,9 +200,8 @@ export function SalesDocumentsPanel() {
       await createDocument.mutateAsync({
         companyId,
         documentType,
-        documentNumber:
-          documentNumber.trim() ||
-          `${documentType.toUpperCase()}-${Date.now()}`,
+        documentNumber,
+        financialYearId: activeFinancialYearId ?? undefined,
         documentDate,
         customerId: selectedCustomerId,
         lines: payloadLines,
@@ -393,7 +397,7 @@ export function SalesDocumentsPanel() {
                       <Badge
                         variant={documentStatusBadgeIntent(document.status)}
                       >
-                        {document.status}
+                        {documentStatusLabels[document.status]}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">

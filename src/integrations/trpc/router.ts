@@ -153,6 +153,7 @@ export const trpcRouter = createTRPCRouter({
   salesDocuments: createSalesDocumentsRouter(
     salesDocumentRepository,
     itemRepository,
+    documentSequenceRepository,
   ),
   ocr: createOcrRouter(
     ocrDraftRepository,
