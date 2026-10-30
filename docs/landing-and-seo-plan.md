@@ -113,6 +113,27 @@ with real releases.
 - Re-capture when the UI changes noticeably; keep the capture steps in this
   doc so anyone can redo them.
 
+How the current set (October 2026) was made:
+
+1. Create a Neon branch of `accounting-dev` and point a local dev server at
+   it. Never production.
+2. Sign up a throwaway account on that branch and create "Demo Traders
+   (sample)" with the dummy GSTIN `27AAAAA0000A1Z5` and a sample address.
+3. Enter fictional parties, six electrical items, purchase bills, sales
+   invoices, receipts, supplier payments and an opening-capital journal
+   through the app's own API (the same tRPC calls the screens make), so every
+   figure goes through the normal posting rules.
+4. Capture at 1440×900 CSS px, 2× density, light theme, using headless Edge
+   over the DevTools protocol.
+5. Crop each screen to the useful area, export WebP at quality 80 with `sharp`
+   (full size plus an `-800.webp` copy for phones), and update the sizes in
+   `landing-content.ts`. A test checks that every screenshot and its phone
+   copy exist.
+6. Delete the Neon branch afterwards.
+
+Current files: `dashboard` (hero), `sales-invoice` (printed tax invoice),
+`inventory`, `ageing`, `hsn-summary`.
+
 ### Performance
 
 - The hero image is the Largest Contentful Paint element: `fetchpriority="high"`,

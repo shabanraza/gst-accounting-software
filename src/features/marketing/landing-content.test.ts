@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, test } from 'vitest'
@@ -6,10 +6,14 @@ import { describe, expect, test } from 'vitest'
 import {
   FAQ,
   HERO,
+  HERO_SCREENSHOT,
+  SHOWCASE,
   SITE,
   buildFaqJsonLd,
+  buildOrganizationJsonLd,
   buildSoftwareJsonLd,
 } from '#/features/marketing/landing-content.ts'
+import { smallScreenshotSrc } from '#/features/marketing/components/app-screenshot.tsx'
 
 describe('landing content', () => {
   test('FAQPage JSON-LD includes every visible FAQ answer', () => {
@@ -57,25 +61,55 @@ describe('landing content', () => {
       'components/landing-page.tsx',
       'components/landing-header.tsx',
       'components/landing-hero.tsx',
-      'components/how-it-works.tsx',
-      'components/keyboard-speed.tsx',
+      'components/app-screenshot.tsx',
+      'components/trust-strip.tsx',
+      'components/feature-showcase.tsx',
+      'components/pathway-cards.tsx',
+      'components/security-section.tsx',
       'components/feature-grid.tsx',
       'components/comparison-table.tsx',
-      'components/roadmap-strip.tsx',
       'components/landing-faq.tsx',
       'components/landing-cta.tsx',
       'components/landing-footer.tsx',
-      'components/product-preview.tsx',
       'components/alternative-page.tsx',
     ]
 
     for (const file of files) {
       const source = readFileSync(path.join(root, file), 'utf8')
       for (const token of forbidden) {
-        expect(source, `${file} must not mention ${token}`).not.toContain(
-          token,
-        )
+        expect(source, `${file} must not mention ${token}`).not.toContain(token)
       }
+    }
+  })
+
+  test('title and description fit what Google shows in results', () => {
+    expect(SITE.title.length).toBeLessThanOrEqual(60)
+    expect(SITE.title).toContain('GST Billing')
+    expect(SITE.description.length).toBeLessThanOrEqual(155)
+  })
+
+  test('Organization JSON-LD names the product and links its profiles', () => {
+    const jsonLd = buildOrganizationJsonLd()
+    expect(jsonLd['@type']).toBe('Organization')
+    expect(jsonLd.name).toBe(SITE.name)
+    expect(jsonLd.url).toBe(SITE.url)
+    expect(jsonLd.logo).toBe(`${SITE.url}/icon-512.png`)
+    expect(jsonLd.sameAs).toContain(SITE.githubUrl)
+  })
+
+  test('every screenshot is a sized WebP with descriptive alt text', () => {
+    for (const shot of [
+      HERO_SCREENSHOT,
+      ...SHOWCASE.items.map((item) => item.screenshot),
+    ]) {
+      expect(shot.src).toMatch(/^\/screenshots\/[a-z0-9-]+\.webp$/)
+      expect(shot.width).toBeGreaterThan(0)
+      expect(shot.height).toBeGreaterThan(0)
+      expect(shot.alt.length).toBeGreaterThan(20)
+      expect(existsSync(path.join('public', shot.src))).toBe(true)
+      expect(
+        existsSync(path.join('public', smallScreenshotSrc(shot.src))),
+      ).toBe(true)
     }
   })
 })
