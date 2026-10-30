@@ -17,6 +17,10 @@ built. Never include customer names, balances or other real data.
 
 - A redesigned home page at hisaabkro.in with real screens from the app: the dashboard, a GST tax invoice, stock, ageing and the HSN summary.
 
+### Fixed
+
+- Cancelled sales invoices are no longer counted in GSTR-1, GSTR-3B or the GST card on the dashboard.
+
 ## [0.3.0] - 2026-10-29
 
 ### Added

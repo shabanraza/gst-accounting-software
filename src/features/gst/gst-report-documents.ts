@@ -21,7 +21,9 @@ export async function buildGstDocuments(input: {
   ])
   const partyById = new Map(partyList.map((party) => [party.id, party]))
 
-  const salesDocs: Array<GstReportDocument> = sales.map((invoice) => {
+  const activeSales = sales.filter((invoice) => invoice.status !== 'cancelled')
+
+  const salesDocs: Array<GstReportDocument> = activeSales.map((invoice) => {
     const party = partyById.get(invoice.customerId)
     const partyState = party?.stateCode ?? input.companyStateCode
     const supplyType =
