@@ -653,3 +653,239 @@ describe('buildGstr1Report B2C sections', () => {
     ])
   })
 })
+
+describe('buildGstr1Report HSN summary and documents issued', () => {
+  const period = {
+    companyId: 'company-1',
+    periodStart: '2026-07-01',
+    periodEnd: '2026-07-31',
+  }
+  const shirts = {
+    hsnCode: '6105',
+    description: 'Cotton shirt',
+    uqc: 'PCS',
+    gstRate: '5.00',
+  }
+
+  const b2bInvoice: GstReportDocument = {
+    ...outwardInvoice,
+    hsnLines: [
+      {
+        ...shirts,
+        quantity: '10',
+        taxableAmount: '2000.00',
+        gstAmount: '100.00',
+      },
+      {
+        hsnCode: '998898',
+        description: 'Stitching',
+        uqc: 'NA',
+        quantity: '0',
+        gstRate: '18.00',
+        taxableAmount: '400.00',
+        gstAmount: '72.00',
+      },
+    ],
+  }
+  const b2cIntra: GstReportDocument = {
+    ...outwardInvoice,
+    id: 'inv-2',
+    invoiceNumber: 'INV-1002',
+    partyGstin: null,
+    partyName: 'Walk-in',
+    hsnLines: [
+      { ...shirts, quantity: '2', taxableAmount: '400.00', gstAmount: '20.00' },
+    ],
+  }
+  const b2cInter: GstReportDocument = {
+    ...b2cIntra,
+    id: 'inv-3',
+    invoiceNumber: 'INV-1004',
+    placeOfSupply: '24',
+    supplyType: 'inter_state',
+    hsnLines: [
+      { ...shirts, quantity: '3', taxableAmount: '600.00', gstAmount: '30.00' },
+    ],
+  }
+  const nextMonth: GstReportDocument = {
+    ...b2cIntra,
+    id: 'inv-4',
+    invoiceNumber: 'INV-1005',
+    documentDate: '2026-08-01',
+  }
+  const cancelled = (invoiceNumber: string, documentDate: string) => ({
+    companyId: 'company-1',
+    invoiceNumber,
+    documentDate,
+  })
+
+  test('summarises HSN by code, unit and rate, split into B2B and B2C', () => {
+    const report = buildGstr1Report({
+      ...period,
+      documents: [b2bInvoice, b2cIntra, b2cInter, nextMonth, creditNote],
+    })
+
+    expect(report.hsnB2b).toEqual([
+      {
+        hsnCode: '6105',
+        description: 'Cotton shirt',
+        uqc: 'PCS',
+        quantity: '10.00',
+        gstRate: '5.00',
+        taxableAmount: '2000.00',
+        igstAmount: '0.00',
+        cgstAmount: '50.00',
+        sgstAmount: '50.00',
+      },
+      {
+        hsnCode: '998898',
+        description: 'Stitching',
+        uqc: 'NA',
+        quantity: '0.00',
+        gstRate: '18.00',
+        taxableAmount: '400.00',
+        igstAmount: '0.00',
+        cgstAmount: '36.00',
+        sgstAmount: '36.00',
+      },
+    ])
+    expect(report.hsnB2c).toEqual([
+      {
+        hsnCode: '6105',
+        description: 'Cotton shirt',
+        uqc: 'PCS',
+        quantity: '5.00',
+        gstRate: '5.00',
+        taxableAmount: '1000.00',
+        igstAmount: '30.00',
+        cgstAmount: '10.00',
+        sgstAmount: '10.00',
+      },
+    ])
+  })
+
+  test('lists documents issued per series, counting cancelled invoices', () => {
+    const report = buildGstr1Report({
+      ...period,
+      documents: [b2bInvoice, b2cIntra, b2cInter, nextMonth, creditNote],
+      cancelledInvoices: [
+        cancelled('INV-1003', '2026-07-15'),
+        cancelled('TAX-0001', '2026-07-16'),
+        cancelled('INV-0999', '2026-06-30'),
+      ],
+    })
+
+    expect(report.documentsIssued).toEqual([
+      {
+        documentType: 'invoice',
+        series: 'INV',
+        from: 'INV-1001',
+        to: 'INV-1004',
+        total: 4,
+        cancelled: 1,
+      },
+      {
+        documentType: 'invoice',
+        series: 'TAX',
+        from: 'TAX-0001',
+        to: 'TAX-0001',
+        total: 1,
+        cancelled: 1,
+      },
+      {
+        documentType: 'credit_note',
+        series: 'CN',
+        from: 'CN-1001',
+        to: 'CN-1001',
+        total: 1,
+        cancelled: 0,
+      },
+    ])
+  })
+
+  test('exports Table 12 and Table 13 in the GSTN layout', () => {
+    const report = buildGstr1Report({
+      ...period,
+      documents: [b2bInvoice, b2cInter, creditNote],
+      cancelledInvoices: [cancelled('INV-1003', '2026-07-15')],
+    })
+
+    const json = JSON.parse(buildGstr1Json(report, '27ABCDE1234F1Z5'))
+
+    expect(json.hsn).toEqual({
+      hsn_b2b: [
+        {
+          num: 1,
+          hsn_sc: '6105',
+          desc: 'Cotton shirt',
+          uqc: 'PCS',
+          qty: 10,
+          rt: 5,
+          txval: 2000,
+          iamt: 0,
+          camt: 50,
+          samt: 50,
+          csamt: 0,
+        },
+        {
+          num: 2,
+          hsn_sc: '998898',
+          desc: 'Stitching',
+          uqc: 'NA',
+          qty: 0,
+          rt: 18,
+          txval: 400,
+          iamt: 0,
+          camt: 36,
+          samt: 36,
+          csamt: 0,
+        },
+      ],
+      hsn_b2c: [
+        {
+          num: 1,
+          hsn_sc: '6105',
+          desc: 'Cotton shirt',
+          uqc: 'PCS',
+          qty: 3,
+          rt: 5,
+          txval: 600,
+          iamt: 30,
+          camt: 0,
+          samt: 0,
+          csamt: 0,
+        },
+      ],
+    })
+    expect(json.doc_issue).toEqual({
+      doc_det: [
+        {
+          doc_num: 1,
+          docs: [
+            {
+              num: 1,
+              from: 'INV-1001',
+              to: 'INV-1004',
+              totnum: 3,
+              cancel: 1,
+              net_issue: 2,
+            },
+          ],
+        },
+        {
+          doc_num: 5,
+          docs: [
+            {
+              num: 1,
+              from: 'CN-1001',
+              to: 'CN-1001',
+              totnum: 1,
+              cancel: 0,
+              net_issue: 1,
+            },
+          ],
+        },
+      ],
+    })
+  })
+})
