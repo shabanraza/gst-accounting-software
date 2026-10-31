@@ -57,6 +57,17 @@ export function Gstr3bSections({
                 <TableCell>{formatInr(outward?.cgst ?? 0)}</TableCell>
                 <TableCell>{formatInr(outward?.sgst ?? 0)}</TableCell>
               </TableRow>
+              <TableRow>
+                <TableCell className="min-w-40 whitespace-normal">
+                  (c) Other outward supplies (nil rated, exempted)
+                </TableCell>
+                <TableCell>
+                  {formatInr(report?.nilRatedExemptValue ?? 0)}
+                </TableCell>
+                <TableCell />
+                <TableCell />
+                <TableCell />
+              </TableRow>
             </TableBody>
           </Table>
         </CardContent>
