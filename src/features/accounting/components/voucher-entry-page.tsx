@@ -1,6 +1,11 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { ChevronDownIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -345,37 +350,41 @@ function VoucherEntryForm({
   const activePriceListId = party?.priceListId ?? null
 
   const salesDraftQuery = useQuery({
-    ...trpc.salesDocuments.buildInvoiceDraft.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      documentId: sourceDocumentId ?? '00000000-0000-4000-8000-000000000000',
-    }),
-    enabled:
-      Boolean(companyId) &&
-      isReady &&
-      isSales &&
-      Boolean(sourceDocumentId) &&
-      !prefillApplied,
+    ...trpc.salesDocuments.buildInvoiceDraft.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            documentId:
+              sourceDocumentId ?? '00000000-0000-4000-8000-000000000000',
+          }
+        : skipToken,
+    ),
+    enabled: isSales && Boolean(sourceDocumentId) && !prefillApplied,
   })
 
   const grnDraftQuery = useQuery({
-    ...trpc.purchaseGrns.buildBillDraft.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      grnId: sourceGrnId ?? '00000000-0000-4000-8000-000000000000',
-    }),
-    enabled:
-      Boolean(companyId) &&
-      isReady &&
-      !isSales &&
-      Boolean(sourceGrnId) &&
-      !prefillApplied,
+    ...trpc.purchaseGrns.buildBillDraft.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            grnId: sourceGrnId ?? '00000000-0000-4000-8000-000000000000',
+          }
+        : skipToken,
+    ),
+    enabled: !isSales && Boolean(sourceGrnId) && !prefillApplied,
   })
 
   const priceListItemsQuery = useQuery({
-    ...trpc.inventory.listPriceListItems.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      priceListId: activePriceListId ?? '00000000-0000-4000-8000-000000000000',
-    }),
-    enabled: Boolean(companyId) && Boolean(activePriceListId) && isReady,
+    ...trpc.inventory.listPriceListItems.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            priceListId:
+              activePriceListId ?? '00000000-0000-4000-8000-000000000000',
+          }
+        : skipToken,
+    ),
+    enabled: Boolean(activePriceListId),
   })
 
   React.useEffect(() => {

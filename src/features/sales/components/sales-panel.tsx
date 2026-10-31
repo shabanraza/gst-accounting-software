@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
 import {
+  skipToken,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -72,13 +73,11 @@ export function SalesPanel({
     id: string
     invoiceNumber: string
   } | null>(null)
-  const resolvedCompanyId = companyId ?? '00000000-0000-4000-8000-000000000099'
-  const partiesQuery = useQuery({
-    ...trpc.parties.list.queryOptions({
-      companyId: resolvedCompanyId,
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const partiesQuery = useQuery(
+    trpc.parties.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
   const parties = partiesQuery.data ?? []
   const partyFilter = resolveListFilter(
     partyId,
@@ -87,15 +86,16 @@ export function SalesPanel({
   )
   const salesQuery = useInfiniteQuery(
     trpc.sales.list.infiniteQueryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            limit: VOUCHER_LIST_PAGE_SIZE,
+            partyId: partyFilter.id,
+            paymentStatus: filter === 'all' ? undefined : filter,
+            search: query.trim() || undefined,
+          }
+        : skipToken,
       {
-        companyId: resolvedCompanyId,
-        limit: VOUCHER_LIST_PAGE_SIZE,
-        partyId: partyFilter.id,
-        paymentStatus: filter === 'all' ? undefined : filter,
-        search: query.trim() || undefined,
-      },
-      {
-        enabled: Boolean(companyId) && isReady,
         getNextPageParam: (lastPage) =>
           nextVoucherListCursor(
             lastPage,

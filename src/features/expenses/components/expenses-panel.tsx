@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { ReceiptIcon, PlusIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -61,18 +66,16 @@ export function ExpensesPanel() {
   )
   const [paymentAccountId, setPaymentAccountId] = React.useState('')
 
-  const expensesQuery = useQuery({
-    ...trpc.expenses.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
-  const ledgersQuery = useQuery({
-    ...trpc.accounting.listLedgerAccounts.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const expensesQuery = useQuery(
+    trpc.expenses.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
+  const ledgersQuery = useQuery(
+    trpc.accounting.listLedgerAccounts.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
   const postExpense = useMutation(trpc.expenses.post.mutationOptions())
 
   const expenseAccountId = ledgerBySystemKey.expenses

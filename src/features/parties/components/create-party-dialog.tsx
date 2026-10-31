@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { Button } from '#/components/ui/button.tsx'
@@ -90,12 +95,11 @@ export function CreatePartyDialog({
   const [priceListId, setPriceListId] = React.useState('')
   const [formError, setFormError] = React.useState<string | null>(null)
 
-  const priceListsQuery = useQuery({
-    ...trpc.inventory.listPriceLists.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const priceListsQuery = useQuery(
+    trpc.inventory.listPriceLists.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const createParty = useMutation(trpc.parties.create.mutationOptions())
   const updateParty = useMutation(trpc.parties.update.mutationOptions())

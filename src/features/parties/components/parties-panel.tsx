@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { skipToken, useQuery } from '@tanstack/react-query'
 import { PencilIcon, PlusIcon, UsersIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
@@ -56,24 +56,21 @@ export function PartiesPanel() {
   const [editParty, setEditParty] = React.useState<PartyRecord | null>(null)
 
   const partiesQuery = usePartiesList()
-  const salesQuery = useQuery({
-    ...trpc.sales.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
-  const purchasesQuery = useQuery({
-    ...trpc.purchases.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
-  const priceListsQuery = useQuery({
-    ...trpc.inventory.listPriceLists.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const salesQuery = useQuery(
+    trpc.sales.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
+  const purchasesQuery = useQuery(
+    trpc.purchases.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
+  const priceListsQuery = useQuery(
+    trpc.inventory.listPriceLists.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const priceListNameById = React.useMemo(() => {
     return new Map(

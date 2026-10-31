@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { skipToken, useQuery } from '@tanstack/react-query'
 
 import { VoucherDocumentPaper } from '#/features/documents/components/voucher-document-paper.tsx'
 import { VoucherPrintToolbar } from '#/features/documents/components/voucher-print-toolbar.tsx'
@@ -28,23 +28,27 @@ export function PurchaseBillPrintView({
   const { companyId, company, isReady } = useWorkspace()
 
   const billQuery = useQuery({
-    ...trpc.purchases.getById.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      id: billId,
-    }),
-    enabled: !initialDocument && Boolean(billId) && Boolean(companyId) && isReady,
+    ...trpc.purchases.getById.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            id: billId,
+          }
+        : skipToken,
+    ),
+    enabled: !initialDocument && Boolean(billId),
   })
   const partiesQuery = useQuery({
-    ...trpc.parties.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: !initialDocument && Boolean(companyId) && isReady,
+    ...trpc.parties.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+    enabled: !initialDocument,
   })
   const itemsQuery = useQuery({
-    ...trpc.inventory.listItems.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: !initialDocument && Boolean(companyId) && isReady,
+    ...trpc.inventory.listItems.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+    enabled: !initialDocument,
   })
 
   const bill = billQuery.data
