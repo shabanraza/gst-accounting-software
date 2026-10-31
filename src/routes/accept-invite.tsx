@@ -3,12 +3,14 @@ import { z } from 'zod'
 
 import { AcceptInvitePanel } from '#/features/team/components/accept-invite-panel.tsx'
 import { authClient } from '#/lib/auth-client.ts'
+import { noindexHead } from '#/lib/seo.ts'
 
 const searchSchema = z.object({
   token: z.string().optional(),
 })
 
 export const Route = createFileRoute('/accept-invite')({
+  head: noindexHead,
   validateSearch: searchSchema,
   beforeLoad: async () => {
     if (typeof window === 'undefined') return

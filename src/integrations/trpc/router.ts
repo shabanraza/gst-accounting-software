@@ -25,6 +25,8 @@ import {
   stockStore,
 } from '#/features/inventory/inventory-store.ts'
 import { priceListRepository } from '#/features/inventory/price-list-store.ts'
+import { createMarketingRouter } from '#/features/marketing/marketing-router.ts'
+import { submissionRepository } from '#/features/marketing/submission-store.ts'
 import { createOcrRouter } from '#/features/ocr/ocr-router.ts'
 import { ocrDraftRepository } from '#/features/ocr/ocr-draft-store.ts'
 import { createPartiesRouter } from '#/features/parties/party-router.ts'
@@ -73,6 +75,7 @@ export const trpcRouter = createTRPCRouter({
     ping: publicProcedure.query(() => ({ ok: true })),
   },
   audit: createAuditRouter(auditLogRepository),
+  marketing: createMarketingRouter(submissionRepository),
   companies: createCompaniesRouter({
     companies: companyRepository,
     ledgers: ledgerAccountRepository,

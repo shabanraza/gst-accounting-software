@@ -134,3 +134,26 @@ export async function sendInvitationEmail(input: {
     ),
   })
 }
+
+/** Notifies the team inbox (`CONTACT_INBOX`) of a public-site submission. */
+export async function sendSubmissionNotificationEmail(input: {
+  kind: string
+  fields: Record<string, string | number | null>
+}) {
+  const to = process.env.CONTACT_INBOX
+  if (!to) return
+
+  const rows = Object.entries(input.fields)
+    .filter(([, value]) => value !== null && value !== '')
+    .map(
+      ([label, value]) =>
+        `<p style="margin:0 0 8px"><strong>${escapeHtml(label)}:</strong><br>${escapeHtml(String(value)).replaceAll('\n', '<br>')}</p>`,
+    )
+    .join('')
+
+  await sendEmail({
+    to,
+    subject: `New ${input.kind} submission on HisaabKro`,
+    html: emailShell(`New ${escapeHtml(input.kind)}`, rows),
+  })
+}

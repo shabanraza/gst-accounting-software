@@ -2,8 +2,10 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 
 import { LoginForm } from '#/features/auth/components/login-form.tsx'
 import { authClient } from '#/lib/auth-client.ts'
+import { noindexHead } from '#/lib/seo.ts'
 
 export const Route = createFileRoute('/login')({
+  head: noindexHead,
   beforeLoad: async () => {
     if (typeof window === 'undefined') return
     const session = await authClient.getSession()

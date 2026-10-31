@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import {
   boolean,
   index,
@@ -986,6 +987,43 @@ export const gstr2bItcDecisions = pgTable(
       table.companyId,
       table.periodStart,
       table.periodEnd,
+    ),
+  ],
+)
+
+/**
+ * Public marketing-site submissions (waitlist, feedback, contact). Not company
+ * data, so this is the one table without `company_id`. Only a salted hash of
+ * the submitter's IP is stored, for rate limiting.
+ */
+export const marketingSubmissions = pgTable(
+  'marketing_submissions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    kind: text('kind').notNull(),
+    email: text('email'),
+    name: text('name'),
+    phone: text('phone'),
+    topic: text('topic'),
+    message: text('message'),
+    rating: integer('rating'),
+    sourcePath: text('source_path'),
+    userAgent: text('user_agent'),
+    ipHash: text('ip_hash'),
+    status: text('status').notNull().default('new'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('marketing_submissions_waitlist_email_idx')
+      .on(table.email)
+      .where(sql`${table.kind} = 'waitlist'`),
+    index('marketing_submissions_ip_created_idx').on(
+      table.ipHash,
+      table.createdAt,
+    ),
+    index('marketing_submissions_kind_created_idx').on(
+      table.kind,
+      table.createdAt,
     ),
   ],
 )

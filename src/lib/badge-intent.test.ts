@@ -4,6 +4,7 @@ import {
   ageingBucketBadgeIntent,
   ageingBucketChartColor,
   paymentStatusBadgeIntent,
+  toolCheckBadgeIntent,
 } from '#/lib/badge-intent.ts'
 
 describe('paymentStatusBadgeIntent', () => {
@@ -47,5 +48,14 @@ describe('ageingBucketChartColor', () => {
     ] as const) {
       expect(ageingBucketChartColor(bucket)).not.toMatch(/gst|chart-3/i)
     }
+  })
+})
+
+describe('toolCheckBadgeIntent', () => {
+  test('maps check outcomes to status colours', () => {
+    expect(toolCheckBadgeIntent('pass')).toBe('success')
+    expect(toolCheckBadgeIntent('action')).toBe('warning')
+    expect(toolCheckBadgeIntent('fail')).toBe('destructive')
+    expect(toolCheckBadgeIntent('info')).toBe('info')
   })
 })
