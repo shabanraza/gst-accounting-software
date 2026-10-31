@@ -238,7 +238,7 @@ export function AskAiDemo({ className }: { className?: string }) {
                 <span>{draft}</span>
               ) : (
                 <span className="text-muted-foreground">
-                  Ask about your books…
+                  Sharma Traders ka kitna baaki hai?
                 </span>
               )}
               {state.phase === 'typing' && playing ? (
@@ -247,7 +247,8 @@ export function AskAiDemo({ className }: { className?: string }) {
             </div>
             <InputGroupAddon align="block-end">
               <InputGroupText className="hidden gap-1 sm:flex">
-                <Kbd>Enter</Kbd> to send
+                <Kbd>Enter</Kbd> to send, <Kbd>Shift</Kbd>+<Kbd>Enter</Kbd> for
+                a new line
               </InputGroupText>
               <Button
                 asChild
