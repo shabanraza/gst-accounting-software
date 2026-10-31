@@ -146,11 +146,15 @@ export async function postSalesReturn(
         debit: formatMoney(taxableTotal),
         credit: '0.00',
       },
-      {
-        ledgerAccountId: input.outputGstAccountId,
-        debit: formatMoney(gstTotal),
-        credit: '0.00',
-      },
+      ...(gstTotal.isZero()
+        ? []
+        : [
+            {
+              ledgerAccountId: input.outputGstAccountId,
+              debit: formatMoney(gstTotal),
+              credit: '0.00',
+            },
+          ]),
       {
         ledgerAccountId: input.receivableAccountId,
         debit: '0.00',
