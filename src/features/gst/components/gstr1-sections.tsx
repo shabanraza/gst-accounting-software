@@ -18,10 +18,12 @@ import { formatMediumDate } from '#/lib/calendar-date.ts'
 import { formatInr } from '#/lib/format-inr.ts'
 
 import type {
+  Gstr1DocumentSeries,
   Gstr1Line,
   Gstr1RateRow,
   Gstr1Report,
 } from '#/features/gst/gstr1-report-service.ts'
+import type { Gstr1HsnRow } from '#/features/gst/hsn-summary-service.ts'
 
 function sectionTotals(rows: Array<Gstr1RateRow>) {
   let taxable = 0
@@ -147,6 +149,120 @@ function DocumentSection({
   )
 }
 
+function HsnSection({
+  title,
+  emptyLabel,
+  rows,
+}: {
+  title: string
+  emptyLabel: string
+  rows: Array<Gstr1HsnRow>
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">{title}</CardTitle>
+        <CardDescription>{sectionTotals(rows)}</CardDescription>
+      </CardHeader>
+      <CardContent className="px-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>HSN</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>UQC</TableHead>
+              <TableHead>Quantity</TableHead>
+              <TaxHeads />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.length === 0 ? (
+              <EmptyRow colSpan={9} label={emptyLabel} />
+            ) : (
+              rows.map((row) => (
+                <TableRow key={`${row.hsnCode}-${row.uqc}-${row.gstRate}`}>
+                  <TableCell className="font-mono font-medium">
+                    {row.hsnCode}
+                  </TableCell>
+                  <TableCell className="max-w-48 truncate">
+                    {row.description}
+                  </TableCell>
+                  <TableCell>{row.uqc}</TableCell>
+                  <TableCell className="tabular-nums">
+                    {Number(row.quantity)}
+                  </TableCell>
+                  <TaxCells row={row} />
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  )
+}
+
+const documentTypeLabel: Record<Gstr1DocumentSeries['documentType'], string> =
+  {
+    invoice: 'Invoices for outward supply',
+    credit_note: 'Credit notes',
+  }
+
+function DocumentsIssuedSection({
+  series,
+}: {
+  series: Array<Gstr1DocumentSeries>
+}) {
+  const total = series.reduce((sum, row) => sum + row.total, 0)
+  const cancelled = series.reduce((sum, row) => sum + row.cancelled, 0)
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">13 · Documents issued</CardTitle>
+        <CardDescription>
+          {`Total ${total} · Cancelled ${cancelled} · Net issued ${total - cancelled}`}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="px-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Document type</TableHead>
+              <TableHead>From</TableHead>
+              <TableHead>To</TableHead>
+              <TableHead>Total</TableHead>
+              <TableHead>Cancelled</TableHead>
+              <TableHead>Net issued</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {series.length === 0 ? (
+              <EmptyRow colSpan={6} label="No documents issued in period." />
+            ) : (
+              series.map((row) => (
+                <TableRow key={`${row.documentType}-${row.series}`}>
+                  <TableCell className="font-medium">
+                    {documentTypeLabel[row.documentType]}
+                  </TableCell>
+                  <TableCell>{row.from}</TableCell>
+                  <TableCell>{row.to}</TableCell>
+                  <TableCell className="tabular-nums">{row.total}</TableCell>
+                  <TableCell className="tabular-nums">
+                    {row.cancelled}
+                  </TableCell>
+                  <TableCell className="tabular-nums">
+                    {row.total - row.cancelled}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  )
+}
+
 export function Gstr1Sections({ report }: { report: Gstr1Report | undefined }) {
   const b2cs = report?.b2cs ?? []
   return (
@@ -211,6 +327,17 @@ export function Gstr1Sections({ report }: { report: Gstr1Report | undefined }) {
         showParty={false}
         title="9B · Credit notes (unregistered)"
       />
+      <HsnSection
+        emptyLabel="No sales to registered customers in period."
+        rows={report?.hsnB2b ?? []}
+        title="12 · HSN summary (B2B)"
+      />
+      <HsnSection
+        emptyLabel="No sales to unregistered customers in period."
+        rows={report?.hsnB2c ?? []}
+        title="12 · HSN summary (B2C)"
+      />
+      <DocumentsIssuedSection series={report?.documentsIssued ?? []} />
     </>
   )
 }

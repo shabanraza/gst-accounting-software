@@ -250,6 +250,90 @@ describe('buildGstr3bReport', () => {
     expect(report.inputGst).toBe('400.00')
     expect(report.netGstPayable).toBe('-310.00')
   })
+
+  test('splits Table 3.1(a) outward supplies and ITC by IGST, CGST and SGST', () => {
+    const interStateInvoice: GstReportDocument = {
+      ...outwardInvoice,
+      id: 'inv-2',
+      invoiceNumber: 'INV-1002',
+      placeOfSupply: '24',
+      supplyType: 'inter_state',
+      taxableAmount: '1000.00',
+      cgstAmount: '0.00',
+      sgstAmount: '0.00',
+      igstAmount: '180.00',
+      totalGstAmount: '180.00',
+      totalAmount: '1180.00',
+    }
+    const purchaseReturn: GstReportDocument = {
+      ...purchaseBill,
+      id: 'dn-1',
+      documentType: 'debit_note',
+      invoiceNumber: 'DN-1001',
+      taxableAmount: '1000.00',
+      igstAmount: '50.00',
+      totalGstAmount: '50.00',
+      totalAmount: '1050.00',
+    }
+    const intraStateBill: GstReportDocument = {
+      ...purchaseBill,
+      id: 'bill-2',
+      invoiceNumber: 'SUP-1002',
+      partyGstin: '27AABCU9603R1ZM',
+      placeOfSupply: '27',
+      supplyType: 'intra_state',
+      taxableAmount: '500.00',
+      cgstAmount: '45.00',
+      sgstAmount: '45.00',
+      igstAmount: '0.00',
+      totalGstAmount: '90.00',
+      totalAmount: '590.00',
+    }
+    const report = buildGstr3bReport({
+      companyId: 'company-1',
+      periodStart: '2026-07-01',
+      periodEnd: '2026-07-31',
+      documents: [
+        outwardInvoice,
+        interStateInvoice,
+        creditNote,
+        purchaseBill,
+        purchaseReturn,
+        intraStateBill,
+      ],
+    })
+
+    expect(report.outwardTaxableSupplies).toEqual({
+      taxableValue: '2800.00',
+      igst: '180.00',
+      cgst: '45.00',
+      sgst: '45.00',
+    })
+    expect(report.eligibleItc).toEqual({
+      igst: '350.00',
+      cgst: '45.00',
+      sgst: '45.00',
+    })
+    expect(report.outputGst).toBe('270.00')
+    expect(report.inputGst).toBe('440.00')
+  })
+
+  test('leaves out documents outside the return period', () => {
+    const report = buildGstr3bReport({
+      companyId: 'company-1',
+      periodStart: '2026-08-01',
+      periodEnd: '2026-08-31',
+      documents: [outwardInvoice, creditNote, purchaseBill],
+    })
+
+    expect(report.outwardTaxableSupplies).toEqual({
+      taxableValue: '0.00',
+      igst: '0.00',
+      cgst: '0.00',
+      sgst: '0.00',
+    })
+    expect(report.netGstPayable).toBe('0.00')
+  })
 })
 
 function b2cInvoice(overrides: Partial<GstReportDocument>): GstReportDocument {
@@ -567,5 +651,241 @@ describe('buildGstr1Report B2C sections', () => {
         ],
       },
     ])
+  })
+})
+
+describe('buildGstr1Report HSN summary and documents issued', () => {
+  const period = {
+    companyId: 'company-1',
+    periodStart: '2026-07-01',
+    periodEnd: '2026-07-31',
+  }
+  const shirts = {
+    hsnCode: '6105',
+    description: 'Cotton shirt',
+    uqc: 'PCS',
+    gstRate: '5.00',
+  }
+
+  const b2bInvoice: GstReportDocument = {
+    ...outwardInvoice,
+    hsnLines: [
+      {
+        ...shirts,
+        quantity: '10',
+        taxableAmount: '2000.00',
+        gstAmount: '100.00',
+      },
+      {
+        hsnCode: '998898',
+        description: 'Stitching',
+        uqc: 'NA',
+        quantity: '0',
+        gstRate: '18.00',
+        taxableAmount: '400.00',
+        gstAmount: '72.00',
+      },
+    ],
+  }
+  const b2cIntra: GstReportDocument = {
+    ...outwardInvoice,
+    id: 'inv-2',
+    invoiceNumber: 'INV-1002',
+    partyGstin: null,
+    partyName: 'Walk-in',
+    hsnLines: [
+      { ...shirts, quantity: '2', taxableAmount: '400.00', gstAmount: '20.00' },
+    ],
+  }
+  const b2cInter: GstReportDocument = {
+    ...b2cIntra,
+    id: 'inv-3',
+    invoiceNumber: 'INV-1004',
+    placeOfSupply: '24',
+    supplyType: 'inter_state',
+    hsnLines: [
+      { ...shirts, quantity: '3', taxableAmount: '600.00', gstAmount: '30.00' },
+    ],
+  }
+  const nextMonth: GstReportDocument = {
+    ...b2cIntra,
+    id: 'inv-4',
+    invoiceNumber: 'INV-1005',
+    documentDate: '2026-08-01',
+  }
+  const cancelled = (invoiceNumber: string, documentDate: string) => ({
+    companyId: 'company-1',
+    invoiceNumber,
+    documentDate,
+  })
+
+  test('summarises HSN by code, unit and rate, split into B2B and B2C', () => {
+    const report = buildGstr1Report({
+      ...period,
+      documents: [b2bInvoice, b2cIntra, b2cInter, nextMonth, creditNote],
+    })
+
+    expect(report.hsnB2b).toEqual([
+      {
+        hsnCode: '6105',
+        description: 'Cotton shirt',
+        uqc: 'PCS',
+        quantity: '10.00',
+        gstRate: '5.00',
+        taxableAmount: '2000.00',
+        igstAmount: '0.00',
+        cgstAmount: '50.00',
+        sgstAmount: '50.00',
+      },
+      {
+        hsnCode: '998898',
+        description: 'Stitching',
+        uqc: 'NA',
+        quantity: '0.00',
+        gstRate: '18.00',
+        taxableAmount: '400.00',
+        igstAmount: '0.00',
+        cgstAmount: '36.00',
+        sgstAmount: '36.00',
+      },
+    ])
+    expect(report.hsnB2c).toEqual([
+      {
+        hsnCode: '6105',
+        description: 'Cotton shirt',
+        uqc: 'PCS',
+        quantity: '5.00',
+        gstRate: '5.00',
+        taxableAmount: '1000.00',
+        igstAmount: '30.00',
+        cgstAmount: '10.00',
+        sgstAmount: '10.00',
+      },
+    ])
+  })
+
+  test('lists documents issued per series, counting cancelled invoices', () => {
+    const report = buildGstr1Report({
+      ...period,
+      documents: [b2bInvoice, b2cIntra, b2cInter, nextMonth, creditNote],
+      cancelledInvoices: [
+        cancelled('INV-1003', '2026-07-15'),
+        cancelled('TAX-0001', '2026-07-16'),
+        cancelled('INV-0999', '2026-06-30'),
+      ],
+    })
+
+    expect(report.documentsIssued).toEqual([
+      {
+        documentType: 'invoice',
+        series: 'INV',
+        from: 'INV-1001',
+        to: 'INV-1004',
+        total: 4,
+        cancelled: 1,
+      },
+      {
+        documentType: 'invoice',
+        series: 'TAX',
+        from: 'TAX-0001',
+        to: 'TAX-0001',
+        total: 1,
+        cancelled: 1,
+      },
+      {
+        documentType: 'credit_note',
+        series: 'CN',
+        from: 'CN-1001',
+        to: 'CN-1001',
+        total: 1,
+        cancelled: 0,
+      },
+    ])
+  })
+
+  test('exports Table 12 and Table 13 in the GSTN layout', () => {
+    const report = buildGstr1Report({
+      ...period,
+      documents: [b2bInvoice, b2cInter, creditNote],
+      cancelledInvoices: [cancelled('INV-1003', '2026-07-15')],
+    })
+
+    const json = JSON.parse(buildGstr1Json(report, '27ABCDE1234F1Z5'))
+
+    expect(json.hsn).toEqual({
+      hsn_b2b: [
+        {
+          num: 1,
+          hsn_sc: '6105',
+          desc: 'Cotton shirt',
+          uqc: 'PCS',
+          qty: 10,
+          rt: 5,
+          txval: 2000,
+          iamt: 0,
+          camt: 50,
+          samt: 50,
+          csamt: 0,
+        },
+        {
+          num: 2,
+          hsn_sc: '998898',
+          desc: 'Stitching',
+          uqc: 'NA',
+          qty: 0,
+          rt: 18,
+          txval: 400,
+          iamt: 0,
+          camt: 36,
+          samt: 36,
+          csamt: 0,
+        },
+      ],
+      hsn_b2c: [
+        {
+          num: 1,
+          hsn_sc: '6105',
+          desc: 'Cotton shirt',
+          uqc: 'PCS',
+          qty: 3,
+          rt: 5,
+          txval: 600,
+          iamt: 30,
+          camt: 0,
+          samt: 0,
+          csamt: 0,
+        },
+      ],
+    })
+    expect(json.doc_issue).toEqual({
+      doc_det: [
+        {
+          doc_num: 1,
+          docs: [
+            {
+              num: 1,
+              from: 'INV-1001',
+              to: 'INV-1004',
+              totnum: 3,
+              cancel: 1,
+              net_issue: 2,
+            },
+          ],
+        },
+        {
+          doc_num: 5,
+          docs: [
+            {
+              num: 1,
+              from: 'CN-1001',
+              to: 'CN-1001',
+              totnum: 1,
+              cancel: 0,
+              net_issue: 1,
+            },
+          ],
+        },
+      ],
+    })
   })
 })

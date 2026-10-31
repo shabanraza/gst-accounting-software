@@ -1,5 +1,8 @@
 import Decimal from 'decimal.js'
 
+import { hsnLineOf } from '#/features/gst/hsn-summary-service.ts'
+
+import type { ItemRepository } from '#/features/inventory/item-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
 import type { CreditDebitNoteRepository } from '#/features/returns/credit-debit-note-service.ts'
@@ -32,14 +35,18 @@ export async function buildGstDocuments(input: {
   bills: PurchaseBillRepository
   parties: PartyRepository
   notes: CreditDebitNoteRepository
+  /** Needed only for the GSTR-1 HSN summary. */
+  items?: ItemRepository
 }): Promise<Array<GstReportDocument>> {
-  const [sales, purchases, partyList, notes] = await Promise.all([
+  const [sales, purchases, partyList, notes, items] = await Promise.all([
     input.invoices.listByCompanyId(input.companyId),
     input.bills.listByCompanyId(input.companyId),
     input.parties.listByCompanyId(input.companyId),
     input.notes.listByCompanyId(input.companyId),
+    input.items?.listByCompanyId(input.companyId),
   ])
   const partyById = new Map(partyList.map((party) => [party.id, party]))
+  const itemById = items && new Map(items.map((item) => [item.id, item]))
   const invoiceById = new Map(sales.map((invoice) => [invoice.id, invoice]))
   const billById = new Map(purchases.map((bill) => [bill.id, bill]))
 
@@ -69,6 +76,11 @@ export async function buildGstDocuments(input: {
         taxableAmount: line.taxableAmount,
         gstAmount: line.gstAmount,
       })),
+      hsnLines: itemById
+        ? invoice.lines.map((line) =>
+            hsnLineOf(line, itemById.get(line.itemId)),
+          )
+        : undefined,
     }
   })
 

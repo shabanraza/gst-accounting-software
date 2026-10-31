@@ -20,10 +20,12 @@ built. Never include customer names, balances or other real data.
 - GSTR-1 now includes credit notes from sales returns: notes to registered customers and notes against B2C large invoices each have their own section, and other returns from unregistered customers reduce the B2C small totals. GSTR-3B and the dashboard GST card count the same credit notes, and purchase returns now reduce input GST.
 - The GSTR-1 report is laid out section by section as on the GST portal (B2B, B2C large, B2C others, credit notes), with section totals and a line for each GST rate on an invoice.
 - Download GSTR-1 as a JSON file in the GST portal's upload layout for the period you pick.
+- GSTR-1 now includes the HSN summary (Table 12), split into B2B and B2C as on the GST portal, and the documents issued list (Table 13) with each invoice series, credit notes, and cancelled invoices. Both are on the GSTR-1 tab and in the JSON download.
 
 ### Changed
 
 - The GSTR-1 report now shows one return period at a time (this month by default) instead of the whole financial year.
+- GSTR-3B now follows the same return period as GSTR-1 (this month by default) instead of the whole financial year, and shows Table 3.1(a) outward taxable supplies and Table 4 eligible ITC with IGST, CGST and SGST in separate columns, as on the GST portal.
 - Companies without a GSTIN now see that they don't file GSTR-1, instead of an empty report.
 - A redesigned home page at hisaabkro.in with real screens from the app: the dashboard, a GST tax invoice, stock, ageing and the HSN summary.
 - Plainer wording across the app, using the names accountants already know: Sales invoices, Purchase bills, Receipts & payments, Scanned bills, Goods receipt (GRN), Quotations & orders, and Credit / debit notes for returns.

@@ -119,7 +119,7 @@ const gstr3bWorkingInputSchema = z.object({
   portalRows: z.array(gstPortalRowSchema),
 })
 
-export const createReportsRouter = (deps: {
+type ReportsRouterDeps = {
   invoices: SalesInvoiceRepository
   bills: PurchaseBillRepository
   parties: PartyRepository
@@ -129,26 +129,48 @@ export const createReportsRouter = (deps: {
   stockMovements: StockMovementRepository
   stockBalances: StockBalanceRepository
   items: ItemRepository
-}) =>
+}
+
+async function loadGstr1Report(
+  deps: ReportsRouterDeps,
+  input: z.infer<typeof reportInputSchema>,
+) {
+  const [documents, periodInvoices] = await Promise.all([
+    buildGstDocuments({
+      companyId: input.companyId,
+      companyStateCode: input.companyStateCode,
+      invoices: deps.invoices,
+      bills: deps.bills,
+      parties: deps.parties,
+      notes: deps.notes,
+      items: deps.items,
+    }),
+    deps.invoices.listByCompanyId(input.companyId, {
+      includeLines: false,
+      startDate: input.periodStart,
+      endDate: input.periodEnd,
+    }),
+  ])
+  return buildGstr1Report({
+    companyId: input.companyId,
+    periodStart: input.periodStart,
+    periodEnd: input.periodEnd,
+    documents,
+    cancelledInvoices: periodInvoices
+      .filter((invoice) => invoice.status === 'cancelled')
+      .map((invoice) => ({
+        companyId: invoice.companyId,
+        invoiceNumber: invoice.invoiceNumber,
+        documentDate: invoice.invoiceDate,
+      })),
+  })
+}
+
+export const createReportsRouter = (deps: ReportsRouterDeps) =>
   ({
     gstr1: capabilityProcedure('view_reports')
       .input(reportInputSchema)
-      .query(async ({ input }) => {
-        const documents = await buildGstDocuments({
-          companyId: input.companyId,
-          companyStateCode: input.companyStateCode,
-          invoices: deps.invoices,
-          bills: deps.bills,
-          parties: deps.parties,
-          notes: deps.notes,
-        })
-        return buildGstr1Report({
-          companyId: input.companyId,
-          periodStart: input.periodStart,
-          periodEnd: input.periodEnd,
-          documents,
-        })
-      }),
+      .query(({ input }) => loadGstr1Report(deps, input)),
     gstr3b: capabilityProcedure('view_reports')
       .input(reportInputSchema)
       .query(async ({ input }) => {
@@ -252,20 +274,7 @@ export const createReportsRouter = (deps: {
     gstr1Json: capabilityProcedure('view_reports')
       .input(reportInputSchema.extend({ companyGstin: z.string().length(15) }))
       .query(async ({ input }) => {
-        const documents = await buildGstDocuments({
-          companyId: input.companyId,
-          companyStateCode: input.companyStateCode,
-          invoices: deps.invoices,
-          bills: deps.bills,
-          parties: deps.parties,
-          notes: deps.notes,
-        })
-        const report = buildGstr1Report({
-          companyId: input.companyId,
-          periodStart: input.periodStart,
-          periodEnd: input.periodEnd,
-          documents,
-        })
+        const report = await loadGstr1Report(deps, input)
         return buildGstr1Json(report, input.companyGstin)
       }),
     gstr2bReconciliation: capabilityProcedure('view_reports')
