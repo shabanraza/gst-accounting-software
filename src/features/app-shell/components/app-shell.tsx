@@ -62,6 +62,7 @@ import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { clearAppAccess } from '#/features/app-shell/app-access.ts'
 import { useQuickActionShortcuts } from '#/features/app-shell/components/quick-actions.tsx'
 import { HelpMenu } from '#/features/support/components/help-menu.tsx'
+import { AskBooksButton } from '#/features/assistant/components/ask-books-sheet.tsx'
 import { authClient } from '#/lib/auth-client.ts'
 
 function NavItemButton({
@@ -348,6 +349,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 ⌘K
               </kbd>
             </Button>
+            <AskBooksButton />
             <Button
               aria-label={
                 isDark ? 'Switch to light theme' : 'Switch to dark theme'

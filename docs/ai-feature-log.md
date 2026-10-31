@@ -25,6 +25,7 @@ This log tracks planned, active, and shipped AI-related work in HisaabKro.
 | Customer ledger summary | Planned | Ledger | Plain-English summary of balance, unpaid invoices, and last payment. |
 | Vendor ledger summary | Planned | Ledger | Plain-English summary of outstanding bills and purchase activity. |
 | GST monthly summary | Planned | Reports | Explain GST collected, paid, and estimated liability. |
+| Ask your books | Experimental | Reports | Read-only Q&A with Claude (`claude-sonnet-5-5`) over six company-scoped report tools; header "Ask" sheet, Alt+A. Needs the `ANTHROPIC_API_KEY` Worker secret. See `ask-your-books-plan.md`. |
 | Payment reminder draft | Planned | Receivables | Generate editable follow-up message text. |
 | Duplicate bill warning | Planned | Anomaly detection | Detect possible duplicate vendor invoice before posting. |
 | Tax total mismatch warning | Planned | Anomaly detection | Warn when taxable, GST, and grand total do not reconcile. |
