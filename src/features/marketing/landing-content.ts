@@ -20,16 +20,23 @@ export function buildSocialImageMeta(imageUrl: string = SITE.ogImage) {
   ] as const
 }
 
-/** Root-relative so the header works from /contact and /alternatives too. */
-export const NAV_LINKS = [
-  { href: '/#features', label: 'Features' },
-  { href: '/#security', label: 'Security' },
-  { href: '/#compare', label: 'Compare' },
-  { href: '/#faq', label: 'FAQ' },
-  { href: '/tools', label: 'Free tools' },
-  { href: '/changelog', label: 'Changelog' },
-  { href: '/contact', label: 'Contact' },
-] as const
+export type NavLink = {
+  to: '/' | '/tools' | '/changelog' | '/contact'
+  /** Section id on the target page, scrolled into view by the router. */
+  hash?: string
+  label: string
+}
+
+/** Rendered as router links so moving between marketing pages never reloads the document. */
+export const NAV_LINKS: ReadonlyArray<NavLink> = [
+  { to: '/', hash: 'features', label: 'Features' },
+  { to: '/', hash: 'security', label: 'Security' },
+  { to: '/', hash: 'compare', label: 'Compare' },
+  { to: '/', hash: 'faq', label: 'FAQ' },
+  { to: '/tools', label: 'Free tools' },
+  { to: '/changelog', label: 'Changelog' },
+  { to: '/contact', label: 'Contact' },
+]
 
 export const HERO = {
   headline: 'Free GST billing and accounting software for Indian businesses',
