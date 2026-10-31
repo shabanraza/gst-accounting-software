@@ -1,6 +1,7 @@
 import { CheckIcon } from 'lucide-react'
 
 import { AppScreenshot } from '#/features/marketing/components/app-screenshot.tsx'
+import { AskAiDemo } from '#/features/marketing/components/ask-ai-demo.tsx'
 import { SHOWCASE } from '#/features/marketing/landing-content.ts'
 import { cn } from '#/lib/utils.ts'
 
@@ -53,11 +54,15 @@ export function FeatureShowcase() {
               ))}
             </ul>
           </div>
-          <AppScreenshot
-            className={cn(index % 2 === 1 && 'lg:order-1')}
-            shot={item.screenshot}
-            sizes="(min-width: 1024px) 640px, 100vw"
-          />
+          {'screenshot' in item ? (
+            <AppScreenshot
+              className={cn(index % 2 === 1 && 'lg:order-1')}
+              shot={item.screenshot}
+              sizes="(min-width: 1024px) 640px, 100vw"
+            />
+          ) : (
+            <AskAiDemo className={cn(index % 2 === 1 && 'lg:order-1')} />
+          )}
         </article>
       ))}
     </section>
