@@ -2,7 +2,10 @@ import Decimal from 'decimal.js'
 
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
 import { calculateGst } from '#/features/gst/gst-calculator.ts'
-import { recordCreditDebitNote } from '#/features/returns/credit-debit-note-service.ts'
+import {
+  allocateNoteNumber,
+  recordCreditDebitNote,
+} from '#/features/returns/credit-debit-note-service.ts'
 import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
 
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
@@ -10,7 +13,10 @@ import type {
   StockBalanceRepository,
   StockMovementRepository,
 } from '#/features/inventory/stock-movement-service.ts'
-import type { CreditDebitNoteRepository } from '#/features/returns/credit-debit-note-service.ts'
+import type {
+  CreditDebitNoteRepository,
+  NoteNumberDependencies,
+} from '#/features/returns/credit-debit-note-service.ts'
 
 export type ReturnLineInput = {
   itemId: string
@@ -54,7 +60,7 @@ export type SalesReturnDependencies = {
   posting: LedgerPostingRepository
   stock: StockMovementRepository & StockBalanceRepository
   notes: CreditDebitNoteRepository
-}
+} & NoteNumberDependencies
 
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP })
 
@@ -70,6 +76,14 @@ export async function postSalesReturn(
   deps: SalesReturnDependencies,
   input: PostSalesReturnInput,
 ): Promise<SalesReturnRecord> {
+  // Reserve the note number first so a missing financial year stops the
+  // return before any stock or ledger posting.
+  const noteNumber = await allocateNoteNumber(deps, {
+    companyId: input.companyId,
+    noteType: 'credit',
+    noteDate: input.returnDate,
+  })
+
   let taxableTotal = new Decimal(0)
   let gstTotal = new Decimal(0)
 
@@ -166,6 +180,7 @@ export async function postSalesReturn(
   const note = await recordCreditDebitNote(deps.notes, {
     companyId: input.companyId,
     noteType: 'credit',
+    noteNumber,
     noteDate: input.returnDate,
     partyId: input.customerId,
     referenceDocumentId: input.salesInvoiceId,

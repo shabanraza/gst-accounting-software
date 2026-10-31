@@ -18,6 +18,9 @@ import { postPurchaseBill } from '#/features/purchases/purchase-bill-service.ts'
 import { InMemoryPurchaseBillRepository } from '#/features/purchases/purchase-bill-store.ts'
 import { postSalesInvoice } from '#/features/sales/sales-invoice-service.ts'
 import { InMemorySalesInvoiceRepository } from '#/features/sales/sales-invoice-store.ts'
+import { createFinancialYear } from '#/features/companies/financial-year-service.ts'
+import { InMemoryFinancialYearRepository } from '#/features/companies/financial-year-store.ts'
+import { InMemoryDocumentSequenceRepository } from '#/features/documents/document-sequence-store.ts'
 import { InMemoryCreditDebitNoteRepository } from '#/features/returns/credit-debit-note-store.ts'
 import { postPurchaseReturn } from '#/features/returns/purchase-return-service.ts'
 import { postSalesReturn } from '#/features/returns/sales-return-service.ts'
@@ -31,8 +34,14 @@ async function seedReturnsContext() {
   const invoices = new InMemorySalesInvoiceRepository()
   const bills = new InMemoryPurchaseBillRepository()
   const notes = new InMemoryCreditDebitNoteRepository()
+  const sequences = new InMemoryDocumentSequenceRepository()
+  const financialYears = new InMemoryFinancialYearRepository()
 
   const companyId = 'company-1'
+  await createFinancialYear(financialYears, {
+    companyId,
+    startDate: '2026-04-01',
+  })
   const accounts = await setupDefaultChartOfAccounts(ledgerAccounts, {
     companyId,
     businessType: 'wholesale',
@@ -152,6 +161,8 @@ async function seedReturnsContext() {
     stock,
     ledgerPosting,
     notes,
+    sequences,
+    financialYears,
     customer,
     supplier,
     salesAccountId: byKey('sales'),
@@ -174,6 +185,8 @@ describe('postSalesReturn', () => {
         posting: context.ledgerPosting,
         stock: context.stock,
         notes: context.notes,
+        sequences: context.sequences,
+        financialYears: context.financialYears,
       },
       {
         companyId: context.companyId,
@@ -238,6 +251,8 @@ describe('postSalesReturn', () => {
         posting: context.ledgerPosting,
         stock: context.stock,
         notes: context.notes,
+        sequences: context.sequences,
+        financialYears: context.financialYears,
       },
       {
         companyId: context.companyId,
@@ -294,6 +309,8 @@ describe('postPurchaseReturn', () => {
         posting: context.ledgerPosting,
         stock: context.stock,
         notes: context.notes,
+        sequences: context.sequences,
+        financialYears: context.financialYears,
       },
       {
         companyId: context.companyId,
@@ -359,6 +376,8 @@ describe('postPurchaseReturn', () => {
         posting: context.ledgerPosting,
         stock: context.stock,
         notes: context.notes,
+        sequences: context.sequences,
+        financialYears: context.financialYears,
       },
       {
         companyId: context.companyId,
@@ -409,6 +428,8 @@ describe('return stock value', () => {
         posting: context.ledgerPosting,
         stock: context.stock,
         notes: context.notes,
+        sequences: context.sequences,
+        financialYears: context.financialYears,
       },
       {
         companyId: context.companyId,
@@ -452,6 +473,8 @@ describe('return stock value', () => {
         posting: context.ledgerPosting,
         stock: context.stock,
         notes: context.notes,
+        sequences: context.sequences,
+        financialYears: context.financialYears,
       },
       {
         companyId: context.companyId,
@@ -486,5 +509,125 @@ describe('return stock value', () => {
     expect(
       await context.stock.getValue(context.companyId, context.item.id),
     ).toBe('8861.54')
+  })
+})
+
+describe('credit and debit note numbers', () => {
+  type ReturnsContext = Awaited<ReturnType<typeof seedReturnsContext>>
+
+  function depsOf(context: ReturnsContext) {
+    return {
+      posting: context.ledgerPosting,
+      stock: context.stock,
+      notes: context.notes,
+      sequences: context.sequences,
+      financialYears: context.financialYears,
+    }
+  }
+
+  function salesReturnInput(
+    context: ReturnsContext,
+    returnDate = '2026-07-12',
+  ) {
+    return {
+      companyId: context.companyId,
+      companyStateCode: '27',
+      customerId: context.customer.id,
+      customerStateCode: '27',
+      salesInvoiceId: context.invoice.id,
+      returnDate,
+      salesAccountId: context.salesAccountId,
+      outputGstAccountId: context.outputGstAccountId,
+      receivableAccountId: context.receivableAccountId,
+      lines: [
+        {
+          itemId: context.item.id,
+          description: 'Cotton Fabric',
+          quantity: '1',
+          unit: 'meter',
+          rate: '120.00',
+          gstRate: '5.00',
+        },
+      ],
+    }
+  }
+
+  function purchaseReturnInput(context: ReturnsContext) {
+    return {
+      companyId: context.companyId,
+      companyStateCode: '27',
+      supplierId: context.supplier.id,
+      supplierStateCode: '24',
+      purchaseBillId: context.bill.id,
+      returnDate: '2026-07-12',
+      purchaseAccountId: context.purchaseAccountId,
+      inputGstAccountId: context.inputGstAccountId,
+      payableAccountId: context.payableAccountId,
+      lines: [
+        {
+          itemId: context.item.id,
+          description: 'Cotton Fabric',
+          quantity: '1',
+          unit: 'meter',
+          rate: '80.00',
+          gstRate: '5.00',
+        },
+      ],
+    }
+  }
+
+  test('numbers credit and debit notes in their own running series', async () => {
+    const context = await seedReturnsContext()
+    const deps = depsOf(context)
+
+    const first = await postSalesReturn(deps, salesReturnInput(context))
+    const debit = await postPurchaseReturn(deps, purchaseReturnInput(context))
+    const second = await postSalesReturn(deps, salesReturnInput(context))
+
+    expect(first.noteNumber).toBe('CN-0001')
+    expect(debit.noteNumber).toBe('DN-0001')
+    expect(second.noteNumber).toBe('CN-0002')
+    const notes = await context.notes.listByCompanyId(context.companyId)
+    expect(notes.map((note) => note.noteNumber)).toEqual([
+      'CN-0001',
+      'DN-0001',
+      'CN-0002',
+    ])
+  })
+
+  test('starts a new series in the financial year of the return date', async () => {
+    const context = await seedReturnsContext()
+    await createFinancialYear(context.financialYears, {
+      companyId: context.companyId,
+      startDate: '2027-04-01',
+      isActive: false,
+    })
+    const deps = depsOf(context)
+
+    await postSalesReturn(deps, salesReturnInput(context))
+    const nextYear = await postSalesReturn(
+      deps,
+      salesReturnInput(context, '2027-04-15'),
+    )
+
+    expect(nextYear.noteNumber).toBe('CN-0001')
+  })
+
+  test('refuses a return before posting anything when there is no financial year', async () => {
+    const context = await seedReturnsContext()
+    const deps = {
+      ...depsOf(context),
+      financialYears: new InMemoryFinancialYearRepository(),
+    }
+    const entriesBefore = context.ledgerPosting.list().length
+
+    await expect(
+      postSalesReturn(deps, salesReturnInput(context)),
+    ).rejects.toThrow(/financial year/i)
+
+    expect(context.ledgerPosting.list()).toHaveLength(entriesBefore)
+    expect(
+      await getCurrentStock(context.stock, context.companyId, context.item.id),
+    ).toBe('130')
   })
 })

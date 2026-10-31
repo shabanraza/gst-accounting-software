@@ -6,6 +6,8 @@ import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
+import type { FinancialYearRepository } from '#/features/companies/financial-year-service.ts'
+import type { DocumentSequenceRepository } from '#/features/documents/document-sequence-service.ts'
 import type { CreditDebitNoteRepository } from '#/features/returns/credit-debit-note-service.ts'
 import type {
   StockBalanceRepository,
@@ -58,17 +60,25 @@ export const createReturnsRouter = (
   posting: LedgerPostingRepository,
   stock: StockMovementRepository & StockBalanceRepository,
   notes: CreditDebitNoteRepository,
+  sequences: DocumentSequenceRepository,
+  financialYears: FinancialYearRepository,
 ) =>
   ({
     postSalesReturn: capabilityProcedure('post_sales')
       .input(salesReturnInputSchema)
       .mutation(({ input }) => {
-        return postSalesReturn({ posting, stock, notes }, input)
+        return postSalesReturn(
+          { posting, stock, notes, sequences, financialYears },
+          input,
+        )
       }),
     postPurchaseReturn: capabilityProcedure('post_purchase')
       .input(purchaseReturnInputSchema)
       .mutation(({ input }) => {
-        return postPurchaseReturn({ posting, stock, notes }, input)
+        return postPurchaseReturn(
+          { posting, stock, notes, sequences, financialYears },
+          input,
+        )
       }),
     listCreditDebitNotes: capabilityProcedure('view')
       .input(listReturnsInputSchema)
