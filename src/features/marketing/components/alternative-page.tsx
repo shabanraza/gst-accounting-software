@@ -52,6 +52,15 @@ export function AlternativePage({ slug }: { slug: AlternativeSlug }) {
                 </a>
               </Button>
             </div>
+            {alternative.loginNotice ? (
+              <a
+                className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                href={alternative.loginNotice.href}
+                rel="noreferrer nofollow"
+              >
+                {alternative.loginNotice.label}
+              </a>
+            ) : null}
           </div>
         </section>
 

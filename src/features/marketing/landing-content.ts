@@ -26,6 +26,7 @@ export const NAV_LINKS = [
   { href: '/#how-it-works', label: 'How it works' },
   { href: '/#compare', label: 'Compare' },
   { href: '/#faq', label: 'FAQ' },
+  { href: '/tools', label: 'Free tools' },
   { href: '/contact', label: 'Contact' },
 ] as const
 
@@ -121,23 +122,56 @@ export const COMPARISON = {
   title: 'How HisaabKro compares',
   subtitle:
     'Stable facts only — pricing model and how the software is delivered. Feature checklists go stale; these do not.',
-  columns: ['', 'HisaabKro', 'Tally', 'Busy', 'Vyapar', 'Zoho Books'] as const,
+  columns: [
+    '',
+    'HisaabKro',
+    'Tally',
+    'Busy',
+    'Vyapar',
+    'Zoho Books',
+    'Marg',
+    'myBillBook',
+  ] as const,
   rows: [
     {
       label: 'Runs in a browser',
-      values: ['Yes', 'Desktop app', 'Desktop app', 'App / web', 'Yes'],
+      values: [
+        'Yes',
+        'Desktop app',
+        'Desktop app',
+        'App / web',
+        'Yes',
+        'Desktop app',
+        'App / web',
+      ],
     },
     {
       label: 'Source code available',
-      values: ['Yes (MIT)', 'No', 'No', 'No', 'No'],
+      values: ['Yes (MIT)', 'No', 'No', 'No', 'No', 'No', 'No'],
     },
     {
       label: 'Self-hostable',
-      values: ['Yes', 'On-prem install', 'On-prem install', 'No', 'No'],
+      values: [
+        'Yes',
+        'On-prem install',
+        'On-prem install',
+        'No',
+        'No',
+        'On-prem install',
+        'No',
+      ],
     },
     {
       label: 'Multi-company',
-      values: ['Yes', 'Yes', 'Yes', 'Plan-dependent', 'Plan-dependent'],
+      values: [
+        'Yes',
+        'Yes',
+        'Yes',
+        'Plan-dependent',
+        'Plan-dependent',
+        'Yes',
+        'Plan-dependent',
+      ],
     },
     {
       label: 'Pricing model',
@@ -146,6 +180,8 @@ export const COMPARISON = {
         'Paid license',
         'Paid license',
         'Subscription',
+        'Subscription',
+        'Paid license',
         'Subscription',
       ],
     },

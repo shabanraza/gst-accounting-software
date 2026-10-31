@@ -5,6 +5,8 @@ export const ALTERNATIVE_SLUGS = [
   'busy',
   'vyapar',
   'zoho-books',
+  'marg',
+  'mybillbook',
 ] as const
 
 export type AlternativeSlug = (typeof ALTERNATIVE_SLUGS)[number]
@@ -22,6 +24,8 @@ interface Alternative {
   headline: string
   intro: string
   faq: [AlternativeFaqItem, AlternativeFaqItem]
+  /** For searchers who land here looking for the competitor's own login. */
+  loginNotice?: { label: string; href: string }
 }
 
 /**
@@ -65,9 +69,13 @@ const ALTERNATIVES_LIST: Array<Alternative> = [
   {
     slug: 'busy',
     name: 'Busy',
-    seoTitle: `Busy accounting software alternative — Free GST billing | ${SITE.name}`,
+    seoTitle: `BUSY accounting software alternative — online, GST-ready, free | ${SITE.name}`,
     seoDescription:
-      'Looking for a Busy accounting software alternative? HisaabKro is free, open source, and self-hostable, with GST billing, GRN, and party ledgers in the browser.',
+      'Looking for a BUSY accounting software alternative that runs online? HisaabKro is free, open source, and self-hostable, with GST billing, GRN, and party ledgers in the browser.',
+    loginNotice: {
+      label: 'Looking for the BUSY login? Go to hi.busy.in',
+      href: 'https://hi.busy.in',
+    },
     headline: 'A Busy accounting software alternative without the annual license renewal',
     intro:
       'Like Tally, Busy is an on-premise desktop install sold under a paid license. HisaabKro has no license fee: it is free to use as a hosted app, its source code is published under MIT, and you can self-host it on Cloudflare Workers and Neon. The same voucher-entry speed carries over — sales, purchase bills, goods receipt, and GST reports all post to one double-entry ledger.',
@@ -125,6 +133,50 @@ const ALTERNATIVES_LIST: Array<Alternative> = [
         question: 'Is HisaabKro free the way Zoho Books free plan is?',
         answer:
           "Zoho Books' free plan is limited by invoice count and revenue. HisaabKro's core billing, inventory, and GST reporting workflow has no license fee and no such usage cap.",
+      },
+    ],
+  },
+  {
+    slug: 'marg',
+    name: 'Marg',
+    seoTitle: `Marg ERP alternative — Free online GST billing software | ${SITE.name}`,
+    seoDescription:
+      'A Marg ERP alternative for GST billing, inventory, and accounts that runs in the browser — no paid license, no counter-PC install, and open source.',
+    headline: 'A Marg ERP alternative that runs in the browser, not on one counter PC',
+    intro:
+      'Marg ERP is a Windows desktop install sold as a paid license in several editions. HisaabKro has no license fee and nothing to install: open it in any browser, invite your accountant with a role, and keep sales, purchases, godown stock, and GST reports on one double-entry ledger. The source is published under MIT if you would rather self-host it.',
+    faq: [
+      {
+        question: 'Can I import my existing Marg data into HisaabKro?',
+        answer:
+          'Not yet — there is no automated Marg import tool today. You set up your company fresh and enter opening balances for parties and stock.',
+      },
+      {
+        question: 'Does HisaabKro track batches and expiry dates like Marg?',
+        answer:
+          'Not today. HisaabKro tracks items with HSN codes across godowns, but batch and expiry tracking are not built yet. If your business depends on them, tell us through the contact page.',
+      },
+    ],
+  },
+  {
+    slug: 'mybillbook',
+    name: 'myBillBook',
+    seoTitle: `myBillBook alternative — Free GST billing with double-entry books | ${SITE.name}`,
+    seoDescription:
+      'A myBillBook alternative with no yearly subscription: GST invoices, purchases, godown inventory, and proper double-entry accounts in one free workspace.',
+    headline: 'A myBillBook alternative with no yearly plan and real double-entry books',
+    intro:
+      "myBillBook is sold as a yearly subscription, and the number of businesses and users depends on the plan. HisaabKro's billing, purchases, inventory, and GST reports are free on every account, with multiple companies and teammates included. Every invoice posts to a double-entry ledger, so your accountant gets a trial balance and party ledgers without re-entering anything.",
+    faq: [
+      {
+        question: 'Can I import my existing myBillBook data into HisaabKro?',
+        answer:
+          'Not yet — there is no automated myBillBook import tool today. You set up your company fresh and enter opening balances for parties and stock.',
+      },
+      {
+        question: 'Is there a HisaabKro phone app like myBillBook?',
+        answer:
+          'HisaabKro is a browser workspace built for a keyboard at the counter. It opens in a phone browser, and an Android companion app is on the roadmap.',
       },
     ],
   },

@@ -110,3 +110,13 @@ export function ocrDraftBadgeIntent(input: {
   if (input.status === 'rejected') return 'destructive'
   return 'secondary'
 }
+
+/** Outcome of a free-tool check: it passes, needs action, fails, or is informational. */
+export function toolCheckBadgeIntent(
+  outcome: 'pass' | 'action' | 'fail' | 'info',
+): BadgeIntent {
+  if (outcome === 'pass') return 'success'
+  if (outcome === 'action') return 'warning'
+  if (outcome === 'fail') return 'destructive'
+  return 'info'
+}

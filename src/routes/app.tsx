@@ -10,8 +10,10 @@ import { WorkspaceLoadingGate } from '#/features/app-shell/components/workspace-
 import { WorkspaceProvider } from '#/features/app-shell/workspace-context.tsx'
 import { trpcClient } from '#/integrations/tanstack-query/root-provider.tsx'
 import { authClient } from '#/lib/auth-client.ts'
+import { noindexHead } from '#/lib/seo.ts'
 
 export const Route = createFileRoute('/app')({
+  head: noindexHead,
   beforeLoad: async ({ location }) => {
     if (location.pathname === '/app' || location.pathname === '/app/') {
       throw redirect({

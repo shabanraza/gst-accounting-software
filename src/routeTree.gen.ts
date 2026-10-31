@@ -20,7 +20,19 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ToolsIndexRouteImport } from './routes/tools/index'
+import { Route as GuidesIndexRouteImport } from './routes/guides/index'
+import { Route as GstBillingSoftwareForIndexRouteImport } from './routes/gst-billing-software-for/index'
+import { Route as CompareIndexRouteImport } from './routes/compare/index'
+import { Route as ToolsPaymentReminderRouteImport } from './routes/tools/payment-reminder'
+import { Route as ToolsGstinValidatorRouteImport } from './routes/tools/gstin-validator'
+import { Route as ToolsGstInvoiceGeneratorRouteImport } from './routes/tools/gst-invoice-generator'
+import { Route as ToolsGstDueDatesRouteImport } from './routes/tools/gst-due-dates'
+import { Route as ToolsEInvoiceEWayBillCheckerRouteImport } from './routes/tools/e-invoice-e-way-bill-checker'
+import { Route as GuidesSlugRouteImport } from './routes/guides/$slug'
+import { Route as GstBillingSoftwareForSlugRouteImport } from './routes/gst-billing-software-for/$slug'
 import { Route as DesignAccountingRouteImport } from './routes/design/accounting'
+import { Route as CompareSlugRouteImport } from './routes/compare/$slug'
 import { Route as AppSettingsRouteImport } from './routes/app/settings'
 import { Route as AppSalesRouteImport } from './routes/app/sales'
 import { Route as AppReturnsRouteImport } from './routes/app/returns'
@@ -36,8 +48,12 @@ import { Route as AppExpensesRouteImport } from './routes/app/expenses'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 import { Route as AppBankReconciliationRouteImport } from './routes/app/bank-reconciliation'
 import { Route as AlternativesCompetitorRouteImport } from './routes/alternatives/$competitor'
+import { Route as ToolsHsnCodeFinderIndexRouteImport } from './routes/tools/hsn-code-finder.index'
+import { Route as ToolsGstCalculatorIndexRouteImport } from './routes/tools/gst-calculator.index'
 import { Route as AppSalesIndexRouteImport } from './routes/app/sales/index'
 import { Route as AppPurchasesIndexRouteImport } from './routes/app/purchases/index'
+import { Route as ToolsHsnCodeFinderChapterRouteImport } from './routes/tools/hsn-code-finder.$chapter'
+import { Route as ToolsGstCalculatorRateRouteImport } from './routes/tools/gst-calculator.$rate'
 import { Route as DesignAccountingSidebarRouteImport } from './routes/design/accounting/sidebar'
 import { Route as AppSalesNewRouteImport } from './routes/app/sales/new'
 import { Route as AppSalesDocumentsRouteImport } from './routes/app/sales/documents'
@@ -109,9 +125,73 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ToolsIndexRoute = ToolsIndexRouteImport.update({
+  id: '/tools/',
+  path: '/tools/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuidesIndexRoute = GuidesIndexRouteImport.update({
+  id: '/guides/',
+  path: '/guides/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GstBillingSoftwareForIndexRoute =
+  GstBillingSoftwareForIndexRouteImport.update({
+    id: '/gst-billing-software-for/',
+    path: '/gst-billing-software-for/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const CompareIndexRoute = CompareIndexRouteImport.update({
+  id: '/compare/',
+  path: '/compare/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsPaymentReminderRoute = ToolsPaymentReminderRouteImport.update({
+  id: '/tools/payment-reminder',
+  path: '/tools/payment-reminder',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsGstinValidatorRoute = ToolsGstinValidatorRouteImport.update({
+  id: '/tools/gstin-validator',
+  path: '/tools/gstin-validator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsGstInvoiceGeneratorRoute =
+  ToolsGstInvoiceGeneratorRouteImport.update({
+    id: '/tools/gst-invoice-generator',
+    path: '/tools/gst-invoice-generator',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ToolsGstDueDatesRoute = ToolsGstDueDatesRouteImport.update({
+  id: '/tools/gst-due-dates',
+  path: '/tools/gst-due-dates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsEInvoiceEWayBillCheckerRoute =
+  ToolsEInvoiceEWayBillCheckerRouteImport.update({
+    id: '/tools/e-invoice-e-way-bill-checker',
+    path: '/tools/e-invoice-e-way-bill-checker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const GuidesSlugRoute = GuidesSlugRouteImport.update({
+  id: '/guides/$slug',
+  path: '/guides/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GstBillingSoftwareForSlugRoute =
+  GstBillingSoftwareForSlugRouteImport.update({
+    id: '/gst-billing-software-for/$slug',
+    path: '/gst-billing-software-for/$slug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const DesignAccountingRoute = DesignAccountingRouteImport.update({
   id: '/design/accounting',
   path: '/design/accounting',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompareSlugRoute = CompareSlugRouteImport.update({
+  id: '/compare/$slug',
+  path: '/compare/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
@@ -189,6 +269,16 @@ const AlternativesCompetitorRoute = AlternativesCompetitorRouteImport.update({
   path: '/alternatives/$competitor',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ToolsHsnCodeFinderIndexRoute = ToolsHsnCodeFinderIndexRouteImport.update({
+  id: '/tools/hsn-code-finder/',
+  path: '/tools/hsn-code-finder/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsGstCalculatorIndexRoute = ToolsGstCalculatorIndexRouteImport.update({
+  id: '/tools/gst-calculator/',
+  path: '/tools/gst-calculator/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppSalesIndexRoute = AppSalesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -198,6 +288,17 @@ const AppPurchasesIndexRoute = AppPurchasesIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppPurchasesRoute,
+} as any)
+const ToolsHsnCodeFinderChapterRoute =
+  ToolsHsnCodeFinderChapterRouteImport.update({
+    id: '/tools/hsn-code-finder/$chapter',
+    path: '/tools/hsn-code-finder/$chapter',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ToolsGstCalculatorRateRoute = ToolsGstCalculatorRateRouteImport.update({
+  id: '/tools/gst-calculator/$rate',
+  path: '/tools/gst-calculator/$rate',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DesignAccountingSidebarRoute = DesignAccountingSidebarRouteImport.update({
   id: '/sidebar',
@@ -304,7 +405,19 @@ export interface FileRoutesByFullPath {
   '/app/returns': typeof AppReturnsRoute
   '/app/sales': typeof AppSalesRouteWithChildren
   '/app/settings': typeof AppSettingsRoute
+  '/compare/$slug': typeof CompareSlugRoute
   '/design/accounting': typeof DesignAccountingRouteWithChildren
+  '/gst-billing-software-for/$slug': typeof GstBillingSoftwareForSlugRoute
+  '/guides/$slug': typeof GuidesSlugRoute
+  '/tools/e-invoice-e-way-bill-checker': typeof ToolsEInvoiceEWayBillCheckerRoute
+  '/tools/gst-due-dates': typeof ToolsGstDueDatesRoute
+  '/tools/gst-invoice-generator': typeof ToolsGstInvoiceGeneratorRoute
+  '/tools/gstin-validator': typeof ToolsGstinValidatorRoute
+  '/tools/payment-reminder': typeof ToolsPaymentReminderRoute
+  '/compare/': typeof CompareIndexRoute
+  '/gst-billing-software-for/': typeof GstBillingSoftwareForIndexRoute
+  '/guides/': typeof GuidesIndexRoute
+  '/tools/': typeof ToolsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/app/accounting/journal': typeof AppAccountingJournalRoute
@@ -318,8 +431,12 @@ export interface FileRoutesByFullPath {
   '/app/sales/documents': typeof AppSalesDocumentsRoute
   '/app/sales/new': typeof AppSalesNewRoute
   '/design/accounting/sidebar': typeof DesignAccountingSidebarRoute
+  '/tools/gst-calculator/$rate': typeof ToolsGstCalculatorRateRoute
+  '/tools/hsn-code-finder/$chapter': typeof ToolsHsnCodeFinderChapterRoute
   '/app/purchases/': typeof AppPurchasesIndexRoute
   '/app/sales/': typeof AppSalesIndexRoute
+  '/tools/gst-calculator/': typeof ToolsGstCalculatorIndexRoute
+  '/tools/hsn-code-finder/': typeof ToolsHsnCodeFinderIndexRoute
   '/app/purchases/$billId/print': typeof AppPurchasesBillIdPrintRoute
   '/app/sales/$invoiceId/print': typeof AppSalesInvoiceIdPrintRoute
 }
@@ -348,7 +465,19 @@ export interface FileRoutesByTo {
   '/app/reports': typeof AppReportsRoute
   '/app/returns': typeof AppReturnsRoute
   '/app/settings': typeof AppSettingsRoute
+  '/compare/$slug': typeof CompareSlugRoute
   '/design/accounting': typeof DesignAccountingRouteWithChildren
+  '/gst-billing-software-for/$slug': typeof GstBillingSoftwareForSlugRoute
+  '/guides/$slug': typeof GuidesSlugRoute
+  '/tools/e-invoice-e-way-bill-checker': typeof ToolsEInvoiceEWayBillCheckerRoute
+  '/tools/gst-due-dates': typeof ToolsGstDueDatesRoute
+  '/tools/gst-invoice-generator': typeof ToolsGstInvoiceGeneratorRoute
+  '/tools/gstin-validator': typeof ToolsGstinValidatorRoute
+  '/tools/payment-reminder': typeof ToolsPaymentReminderRoute
+  '/compare': typeof CompareIndexRoute
+  '/gst-billing-software-for': typeof GstBillingSoftwareForIndexRoute
+  '/guides': typeof GuidesIndexRoute
+  '/tools': typeof ToolsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/app/accounting/journal': typeof AppAccountingJournalRoute
@@ -362,8 +491,12 @@ export interface FileRoutesByTo {
   '/app/sales/documents': typeof AppSalesDocumentsRoute
   '/app/sales/new': typeof AppSalesNewRoute
   '/design/accounting/sidebar': typeof DesignAccountingSidebarRoute
+  '/tools/gst-calculator/$rate': typeof ToolsGstCalculatorRateRoute
+  '/tools/hsn-code-finder/$chapter': typeof ToolsHsnCodeFinderChapterRoute
   '/app/purchases': typeof AppPurchasesIndexRoute
   '/app/sales': typeof AppSalesIndexRoute
+  '/tools/gst-calculator': typeof ToolsGstCalculatorIndexRoute
+  '/tools/hsn-code-finder': typeof ToolsHsnCodeFinderIndexRoute
   '/app/purchases/$billId/print': typeof AppPurchasesBillIdPrintRoute
   '/app/sales/$invoiceId/print': typeof AppSalesInvoiceIdPrintRoute
 }
@@ -395,7 +528,19 @@ export interface FileRoutesById {
   '/app/returns': typeof AppReturnsRoute
   '/app/sales': typeof AppSalesRouteWithChildren
   '/app/settings': typeof AppSettingsRoute
+  '/compare/$slug': typeof CompareSlugRoute
   '/design/accounting': typeof DesignAccountingRouteWithChildren
+  '/gst-billing-software-for/$slug': typeof GstBillingSoftwareForSlugRoute
+  '/guides/$slug': typeof GuidesSlugRoute
+  '/tools/e-invoice-e-way-bill-checker': typeof ToolsEInvoiceEWayBillCheckerRoute
+  '/tools/gst-due-dates': typeof ToolsGstDueDatesRoute
+  '/tools/gst-invoice-generator': typeof ToolsGstInvoiceGeneratorRoute
+  '/tools/gstin-validator': typeof ToolsGstinValidatorRoute
+  '/tools/payment-reminder': typeof ToolsPaymentReminderRoute
+  '/compare/': typeof CompareIndexRoute
+  '/gst-billing-software-for/': typeof GstBillingSoftwareForIndexRoute
+  '/guides/': typeof GuidesIndexRoute
+  '/tools/': typeof ToolsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/app/accounting/journal': typeof AppAccountingJournalRoute
@@ -409,8 +554,12 @@ export interface FileRoutesById {
   '/app/sales/documents': typeof AppSalesDocumentsRoute
   '/app/sales/new': typeof AppSalesNewRoute
   '/design/accounting/sidebar': typeof DesignAccountingSidebarRoute
+  '/tools/gst-calculator/$rate': typeof ToolsGstCalculatorRateRoute
+  '/tools/hsn-code-finder/$chapter': typeof ToolsHsnCodeFinderChapterRoute
   '/app/purchases/': typeof AppPurchasesIndexRoute
   '/app/sales/': typeof AppSalesIndexRoute
+  '/tools/gst-calculator/': typeof ToolsGstCalculatorIndexRoute
+  '/tools/hsn-code-finder/': typeof ToolsHsnCodeFinderIndexRoute
   '/app/purchases/$billId/print': typeof AppPurchasesBillIdPrintRoute
   '/app/sales/$invoiceId/print': typeof AppSalesInvoiceIdPrintRoute
 }
@@ -443,7 +592,19 @@ export interface FileRouteTypes {
     | '/app/returns'
     | '/app/sales'
     | '/app/settings'
+    | '/compare/$slug'
     | '/design/accounting'
+    | '/gst-billing-software-for/$slug'
+    | '/guides/$slug'
+    | '/tools/e-invoice-e-way-bill-checker'
+    | '/tools/gst-due-dates'
+    | '/tools/gst-invoice-generator'
+    | '/tools/gstin-validator'
+    | '/tools/payment-reminder'
+    | '/compare/'
+    | '/gst-billing-software-for/'
+    | '/guides/'
+    | '/tools/'
     | '/api/auth/$'
     | '/api/trpc/$'
     | '/app/accounting/journal'
@@ -457,8 +618,12 @@ export interface FileRouteTypes {
     | '/app/sales/documents'
     | '/app/sales/new'
     | '/design/accounting/sidebar'
+    | '/tools/gst-calculator/$rate'
+    | '/tools/hsn-code-finder/$chapter'
     | '/app/purchases/'
     | '/app/sales/'
+    | '/tools/gst-calculator/'
+    | '/tools/hsn-code-finder/'
     | '/app/purchases/$billId/print'
     | '/app/sales/$invoiceId/print'
   fileRoutesByTo: FileRoutesByTo
@@ -487,7 +652,19 @@ export interface FileRouteTypes {
     | '/app/reports'
     | '/app/returns'
     | '/app/settings'
+    | '/compare/$slug'
     | '/design/accounting'
+    | '/gst-billing-software-for/$slug'
+    | '/guides/$slug'
+    | '/tools/e-invoice-e-way-bill-checker'
+    | '/tools/gst-due-dates'
+    | '/tools/gst-invoice-generator'
+    | '/tools/gstin-validator'
+    | '/tools/payment-reminder'
+    | '/compare'
+    | '/gst-billing-software-for'
+    | '/guides'
+    | '/tools'
     | '/api/auth/$'
     | '/api/trpc/$'
     | '/app/accounting/journal'
@@ -501,8 +678,12 @@ export interface FileRouteTypes {
     | '/app/sales/documents'
     | '/app/sales/new'
     | '/design/accounting/sidebar'
+    | '/tools/gst-calculator/$rate'
+    | '/tools/hsn-code-finder/$chapter'
     | '/app/purchases'
     | '/app/sales'
+    | '/tools/gst-calculator'
+    | '/tools/hsn-code-finder'
     | '/app/purchases/$billId/print'
     | '/app/sales/$invoiceId/print'
   id:
@@ -533,7 +714,19 @@ export interface FileRouteTypes {
     | '/app/returns'
     | '/app/sales'
     | '/app/settings'
+    | '/compare/$slug'
     | '/design/accounting'
+    | '/gst-billing-software-for/$slug'
+    | '/guides/$slug'
+    | '/tools/e-invoice-e-way-bill-checker'
+    | '/tools/gst-due-dates'
+    | '/tools/gst-invoice-generator'
+    | '/tools/gstin-validator'
+    | '/tools/payment-reminder'
+    | '/compare/'
+    | '/gst-billing-software-for/'
+    | '/guides/'
+    | '/tools/'
     | '/api/auth/$'
     | '/api/trpc/$'
     | '/app/accounting/journal'
@@ -547,8 +740,12 @@ export interface FileRouteTypes {
     | '/app/sales/documents'
     | '/app/sales/new'
     | '/design/accounting/sidebar'
+    | '/tools/gst-calculator/$rate'
+    | '/tools/hsn-code-finder/$chapter'
     | '/app/purchases/'
     | '/app/sales/'
+    | '/tools/gst-calculator/'
+    | '/tools/hsn-code-finder/'
     | '/app/purchases/$billId/print'
     | '/app/sales/$invoiceId/print'
   fileRoutesById: FileRoutesById
@@ -566,9 +763,25 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   AlternativesCompetitorRoute: typeof AlternativesCompetitorRoute
+  CompareSlugRoute: typeof CompareSlugRoute
   DesignAccountingRoute: typeof DesignAccountingRouteWithChildren
+  GstBillingSoftwareForSlugRoute: typeof GstBillingSoftwareForSlugRoute
+  GuidesSlugRoute: typeof GuidesSlugRoute
+  ToolsEInvoiceEWayBillCheckerRoute: typeof ToolsEInvoiceEWayBillCheckerRoute
+  ToolsGstDueDatesRoute: typeof ToolsGstDueDatesRoute
+  ToolsGstInvoiceGeneratorRoute: typeof ToolsGstInvoiceGeneratorRoute
+  ToolsGstinValidatorRoute: typeof ToolsGstinValidatorRoute
+  ToolsPaymentReminderRoute: typeof ToolsPaymentReminderRoute
+  CompareIndexRoute: typeof CompareIndexRoute
+  GstBillingSoftwareForIndexRoute: typeof GstBillingSoftwareForIndexRoute
+  GuidesIndexRoute: typeof GuidesIndexRoute
+  ToolsIndexRoute: typeof ToolsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
+  ToolsGstCalculatorRateRoute: typeof ToolsGstCalculatorRateRoute
+  ToolsHsnCodeFinderChapterRoute: typeof ToolsHsnCodeFinderChapterRoute
+  ToolsGstCalculatorIndexRoute: typeof ToolsGstCalculatorIndexRoute
+  ToolsHsnCodeFinderIndexRoute: typeof ToolsHsnCodeFinderIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -650,11 +863,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tools/': {
+      id: '/tools/'
+      path: '/tools'
+      fullPath: '/tools/'
+      preLoaderRoute: typeof ToolsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guides/': {
+      id: '/guides/'
+      path: '/guides'
+      fullPath: '/guides/'
+      preLoaderRoute: typeof GuidesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gst-billing-software-for/': {
+      id: '/gst-billing-software-for/'
+      path: '/gst-billing-software-for'
+      fullPath: '/gst-billing-software-for/'
+      preLoaderRoute: typeof GstBillingSoftwareForIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compare/': {
+      id: '/compare/'
+      path: '/compare'
+      fullPath: '/compare/'
+      preLoaderRoute: typeof CompareIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/payment-reminder': {
+      id: '/tools/payment-reminder'
+      path: '/tools/payment-reminder'
+      fullPath: '/tools/payment-reminder'
+      preLoaderRoute: typeof ToolsPaymentReminderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/gstin-validator': {
+      id: '/tools/gstin-validator'
+      path: '/tools/gstin-validator'
+      fullPath: '/tools/gstin-validator'
+      preLoaderRoute: typeof ToolsGstinValidatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/gst-invoice-generator': {
+      id: '/tools/gst-invoice-generator'
+      path: '/tools/gst-invoice-generator'
+      fullPath: '/tools/gst-invoice-generator'
+      preLoaderRoute: typeof ToolsGstInvoiceGeneratorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/gst-due-dates': {
+      id: '/tools/gst-due-dates'
+      path: '/tools/gst-due-dates'
+      fullPath: '/tools/gst-due-dates'
+      preLoaderRoute: typeof ToolsGstDueDatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/e-invoice-e-way-bill-checker': {
+      id: '/tools/e-invoice-e-way-bill-checker'
+      path: '/tools/e-invoice-e-way-bill-checker'
+      fullPath: '/tools/e-invoice-e-way-bill-checker'
+      preLoaderRoute: typeof ToolsEInvoiceEWayBillCheckerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guides/$slug': {
+      id: '/guides/$slug'
+      path: '/guides/$slug'
+      fullPath: '/guides/$slug'
+      preLoaderRoute: typeof GuidesSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gst-billing-software-for/$slug': {
+      id: '/gst-billing-software-for/$slug'
+      path: '/gst-billing-software-for/$slug'
+      fullPath: '/gst-billing-software-for/$slug'
+      preLoaderRoute: typeof GstBillingSoftwareForSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/design/accounting': {
       id: '/design/accounting'
       path: '/design/accounting'
       fullPath: '/design/accounting'
       preLoaderRoute: typeof DesignAccountingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compare/$slug': {
+      id: '/compare/$slug'
+      path: '/compare/$slug'
+      fullPath: '/compare/$slug'
+      preLoaderRoute: typeof CompareSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/settings': {
@@ -762,6 +1059,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlternativesCompetitorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tools/hsn-code-finder/': {
+      id: '/tools/hsn-code-finder/'
+      path: '/tools/hsn-code-finder'
+      fullPath: '/tools/hsn-code-finder/'
+      preLoaderRoute: typeof ToolsHsnCodeFinderIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/gst-calculator/': {
+      id: '/tools/gst-calculator/'
+      path: '/tools/gst-calculator'
+      fullPath: '/tools/gst-calculator/'
+      preLoaderRoute: typeof ToolsGstCalculatorIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/sales/': {
       id: '/app/sales/'
       path: '/'
@@ -775,6 +1086,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/purchases/'
       preLoaderRoute: typeof AppPurchasesIndexRouteImport
       parentRoute: typeof AppPurchasesRoute
+    }
+    '/tools/hsn-code-finder/$chapter': {
+      id: '/tools/hsn-code-finder/$chapter'
+      path: '/tools/hsn-code-finder/$chapter'
+      fullPath: '/tools/hsn-code-finder/$chapter'
+      preLoaderRoute: typeof ToolsHsnCodeFinderChapterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/gst-calculator/$rate': {
+      id: '/tools/gst-calculator/$rate'
+      path: '/tools/gst-calculator/$rate'
+      fullPath: '/tools/gst-calculator/$rate'
+      preLoaderRoute: typeof ToolsGstCalculatorRateRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/design/accounting/sidebar': {
       id: '/design/accounting/sidebar'
@@ -992,9 +1317,25 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   AlternativesCompetitorRoute: AlternativesCompetitorRoute,
+  CompareSlugRoute: CompareSlugRoute,
   DesignAccountingRoute: DesignAccountingRouteWithChildren,
+  GstBillingSoftwareForSlugRoute: GstBillingSoftwareForSlugRoute,
+  GuidesSlugRoute: GuidesSlugRoute,
+  ToolsEInvoiceEWayBillCheckerRoute: ToolsEInvoiceEWayBillCheckerRoute,
+  ToolsGstDueDatesRoute: ToolsGstDueDatesRoute,
+  ToolsGstInvoiceGeneratorRoute: ToolsGstInvoiceGeneratorRoute,
+  ToolsGstinValidatorRoute: ToolsGstinValidatorRoute,
+  ToolsPaymentReminderRoute: ToolsPaymentReminderRoute,
+  CompareIndexRoute: CompareIndexRoute,
+  GstBillingSoftwareForIndexRoute: GstBillingSoftwareForIndexRoute,
+  GuidesIndexRoute: GuidesIndexRoute,
+  ToolsIndexRoute: ToolsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,
+  ToolsGstCalculatorRateRoute: ToolsGstCalculatorRateRoute,
+  ToolsHsnCodeFinderChapterRoute: ToolsHsnCodeFinderChapterRoute,
+  ToolsGstCalculatorIndexRoute: ToolsGstCalculatorIndexRoute,
+  ToolsHsnCodeFinderIndexRoute: ToolsHsnCodeFinderIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
