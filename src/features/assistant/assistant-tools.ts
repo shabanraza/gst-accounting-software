@@ -10,7 +10,6 @@ import { buildGstDocuments } from '#/features/gst/gst-report-documents.ts'
 import { buildGstr3bReport } from '#/features/gst/gstr3b-report-service.ts'
 import { buildStockSummary } from '#/features/inventory/stock-ledger-service.ts'
 
-import type Anthropic from '@anthropic-ai/sdk'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
@@ -45,8 +44,15 @@ export type AssistantLink = { label: string; href: string }
 
 export type AssistantToolResult = { data: unknown; link: AssistantLink }
 
+/** JSON-schema function definition, as Workers AI function calling expects. */
+export type AssistantToolDefinition = {
+  name: string
+  description: string
+  parameters: Record<string, unknown>
+}
+
 export type AssistantToolset = {
-  definitions: Array<Anthropic.Beta.BetaTool>
+  definitions: Array<AssistantToolDefinition>
   run: (
     name: string,
     input: unknown,
@@ -54,7 +60,7 @@ export type AssistantToolset = {
   ) => Promise<AssistantToolResult>
 }
 
-const TOP_N = 10
+const TOP_N = 5
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 
 const money = (value: Decimal.Value) => new Decimal(value).toFixed(2)
@@ -77,12 +83,12 @@ const schemas = {
 
 type ToolName = keyof typeof schemas
 
-const definitions: Array<Anthropic.Beta.BetaTool> = [
+const definitions: Array<AssistantToolDefinition> = [
   {
     name: 'party_balance',
     description:
       'Outstanding receivable (customer owes us) and payable (we owe supplier) for parties whose name contains the given text. Use for "how much does X owe" or "X ka kitna baaki hai".',
-    input_schema: {
+    parameters: {
       type: 'object',
       properties: {
         partyName: {
@@ -97,7 +103,7 @@ const definitions: Array<Anthropic.Beta.BetaTool> = [
     name: 'ageing',
     description:
       'Receivables or payables ageing: totals by overdue bucket and the parties with the largest outstanding.',
-    input_schema: {
+    parameters: {
       type: 'object',
       properties: { kind: { type: 'string', enum: ['receivables', 'payables'] } },
       required: ['kind'],
@@ -107,7 +113,7 @@ const definitions: Array<Anthropic.Beta.BetaTool> = [
     name: 'sales_purchase_summary',
     description:
       'Totals of posted sales invoices or purchase bills between two dates (inclusive), optionally grouped by party or item with the top entries by taxable value.',
-    input_schema: {
+    parameters: {
       type: 'object',
       properties: {
         kind: { type: 'string', enum: ['sales', 'purchases'] },
@@ -122,7 +128,7 @@ const definitions: Array<Anthropic.Beta.BetaTool> = [
     name: 'gstr3b_summary',
     description:
       'GSTR-3B summary for a period: outward taxable value, output GST, eligible ITC and net GST payable.',
-    input_schema: {
+    parameters: {
       type: 'object',
       properties: {
         periodStart: { type: 'string', description: 'YYYY-MM-DD' },
@@ -135,7 +141,7 @@ const definitions: Array<Anthropic.Beta.BetaTool> = [
     name: 'stock_on_hand',
     description:
       'Current stock quantity per item, optionally filtered to items whose name contains the given text.',
-    input_schema: {
+    parameters: {
       type: 'object',
       properties: { itemName: { type: 'string' } },
     },
@@ -143,7 +149,7 @@ const definitions: Array<Anthropic.Beta.BetaTool> = [
   {
     name: 'cash_bank_balances',
     description: 'Current balances of the cash and bank ledgers.',
-    input_schema: { type: 'object', properties: {} },
+    parameters: { type: 'object', properties: {} },
   },
 ]
 
@@ -352,7 +358,7 @@ export function createAssistantTools(deps: AssistantToolDeps): AssistantToolset 
         data: {
           items: rows
             .filter((row) => !query || matches(row.itemName, query))
-            .slice(0, 25)
+            .slice(0, 10)
             .map((row) => ({
               name: row.itemName,
               quantity: row.quantityOnHand,

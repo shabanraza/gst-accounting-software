@@ -17,7 +17,14 @@ import { InMemoryCreditDebitNoteRepository } from '#/features/returns/credit-deb
 import { InMemorySalesInvoiceRepository } from '#/features/sales/sales-invoice-store.ts'
 import { createTRPCRouter } from '#/integrations/trpc/init.ts'
 
-import type { CreateMessage } from '#/features/assistant/assistant-service.ts'
+import { InMemoryAssistantUsageRepository } from '#/features/assistant/assistant-usage-store.ts'
+import {
+  ASSISTANT_DAILY_LIMIT,
+  DAILY_LIMIT_MESSAGE,
+  FREE_QUOTA_USED_MESSAGE,
+} from '#/features/assistant/assistant-service.ts'
+
+import type { AiBinding } from '#/features/assistant/assistant-service.ts'
 import type { TRPCContext } from '#/integrations/trpc/init.ts'
 
 const testContext = (userId: string): TRPCContext => ({
@@ -30,8 +37,8 @@ const testContext = (userId: string): TRPCContext => ({
 
 function createCaller(
   userId: string,
-  apiKey: string | undefined,
-  createMessage?: CreateMessage,
+  ai: AiBinding | undefined,
+  usage = new InMemoryAssistantUsageRepository(),
 ) {
   const stock = new InMemoryStockStore()
   const router = createTRPCRouter({
@@ -44,8 +51,8 @@ function createCaller(
       stockBalances: stock,
       ledgers: new InMemoryLedgerAccountRepository(),
       postings: new InMemoryLedgerPostingRepository(),
-      getApiKey: () => apiKey,
-      createMessage: createMessage && (() => createMessage),
+      usage,
+      getAi: async () => ai,
     }),
   })
   return router.createCaller(testContext(userId))
@@ -70,20 +77,25 @@ const question = (companyId: string) => ({
   question: 'Cash balance?',
 })
 
+const answering = (text: string) => ({
+  run: vi.fn<AiBinding['run']>().mockResolvedValue({ response: text }),
+})
+
 describe('assistant router', () => {
   beforeEach(() => resetMembershipRepositoryForTests())
 
-  test('status reports whether the key is set without exposing it', async () => {
+  test('status reports whether the AI binding is available', async () => {
     const { userId } = await member('owner')
     expect(await createCaller(userId, undefined).assistant.status()).toEqual({
       configured: false,
+      dailyLimit: ASSISTANT_DAILY_LIMIT,
     })
-    expect(await createCaller(userId, 'sk-test').assistant.status()).toEqual({
-      configured: true,
-    })
+    expect(
+      await createCaller(userId, answering('x')).assistant.status(),
+    ).toEqual({ configured: true, dailyLimit: ASSISTANT_DAILY_LIMIT })
   })
 
-  test('ask fails with PRECONDITION_FAILED when the key is missing', async () => {
+  test('ask fails with PRECONDITION_FAILED without the AI binding', async () => {
     const { userId, companyId } = await member('owner')
     await expect(
       createCaller(userId, undefined).assistant.ask(question(companyId)),
@@ -92,26 +104,49 @@ describe('assistant router', () => {
 
   test('ask requires view_reports on the company', async () => {
     const { userId, companyId } = await member('billing')
-    const createMessage = vi.fn()
+    const ai = answering('x')
     await expect(
-      createCaller(userId, 'sk-test', createMessage).assistant.ask(
-        question(companyId),
-      ),
+      createCaller(userId, ai).assistant.ask(question(companyId)),
     ).rejects.toThrow()
-    expect(createMessage).not.toHaveBeenCalled()
+    expect(ai.run).not.toHaveBeenCalled()
   })
 
   test('ask returns the model answer', async () => {
     const { userId, companyId } = await member('owner')
-    const createMessage = vi.fn().mockResolvedValue({
-      content: [{ type: 'text', text: 'Cash is ₹0.00.' }],
-      stop_reason: 'end_turn',
-    })
     const result = await createCaller(
       userId,
-      'sk-test',
-      createMessage,
+      answering('Cash is ₹0.00.'),
     ).assistant.ask(question(companyId))
     expect(result).toEqual({ answer: 'Cash is ₹0.00.', links: [] })
+  })
+
+  test('stops a company at the daily question limit', async () => {
+    const { userId, companyId } = await member('owner')
+    const ai = answering('ok')
+    const caller = createCaller(userId, ai)
+    for (let index = 0; index < ASSISTANT_DAILY_LIMIT; index++) {
+      await caller.assistant.ask(question(companyId))
+    }
+    await expect(caller.assistant.ask(question(companyId))).rejects.toMatchObject(
+      { code: 'TOO_MANY_REQUESTS', message: DAILY_LIMIT_MESSAGE },
+    )
+    expect(ai.run).toHaveBeenCalledTimes(ASSISTANT_DAILY_LIMIT)
+  })
+
+  test('shows the friendly message when the free daily allowance is used up', async () => {
+    const { userId, companyId } = await member('owner')
+    const ai = {
+      run: vi
+        .fn()
+        .mockRejectedValue(
+          new Error('AiError: 3036: daily free allocation of 10,000 neurons'),
+        ),
+    }
+    await expect(
+      createCaller(userId, ai).assistant.ask(question(companyId)),
+    ).rejects.toMatchObject({
+      code: 'TOO_MANY_REQUESTS',
+      message: FREE_QUOTA_USED_MESSAGE,
+    })
   })
 })

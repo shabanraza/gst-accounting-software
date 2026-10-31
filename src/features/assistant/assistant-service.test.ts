@@ -2,27 +2,13 @@ import { describe, expect, test, vi } from 'vitest'
 
 import {
   ASSISTANT_MODEL,
+  AssistantUnavailableError,
+  FREE_QUOTA_USED_MESSAGE,
   runAssistantConversation,
 } from '#/features/assistant/assistant-service.ts'
 
-import type Anthropic from '@anthropic-ai/sdk'
+import type { AiBinding } from '#/features/assistant/assistant-service.ts'
 import type { AssistantToolset } from '#/features/assistant/assistant-tools.ts'
-
-type Message = Anthropic.Beta.BetaMessage
-
-function message(
-  content: Array<Record<string, unknown>>,
-  stopReason: Message['stop_reason'],
-): Message {
-  return {
-    id: crypto.randomUUID(),
-    type: 'message',
-    role: 'assistant',
-    model: ASSISTANT_MODEL,
-    content,
-    stop_reason: stopReason,
-  } as unknown as Message
-}
 
 function fakeTools(
   run: AssistantToolset['run'] = async () => ({
@@ -32,14 +18,16 @@ function fakeTools(
 ): AssistantToolset {
   return {
     definitions: [
-      {
-        name: 'gstr3b_summary',
-        description: 'GST',
-        input_schema: { type: 'object', properties: {} },
-      },
+      { name: 'gstr3b_summary', description: 'GST', parameters: {} },
     ],
     run: vi.fn(run),
   }
+}
+
+function fakeAi(...outputs: Array<unknown>) {
+  const run = vi.fn<AiBinding['run']>()
+  for (const output of outputs) run.mockResolvedValueOnce(output)
+  return { run }
 }
 
 const context = {
@@ -47,39 +35,32 @@ const context = {
   companyStateCode: '27',
 }
 
+const ask = (ai: AiBinding, tools = fakeTools(), history = []) =>
+  runAssistantConversation({
+    ai,
+    tools,
+    question: 'GST payable this month?',
+    history,
+    context,
+    today: '2026-10-31',
+  })
+
 describe('runAssistantConversation', () => {
-  test('runs a tool with the server company and returns the answer with links', async () => {
-    const createMessage = vi
-      .fn()
-      .mockResolvedValueOnce(
-        message(
-          [
-            {
-              type: 'tool_use',
-              id: 'tu-1',
-              name: 'gstr3b_summary',
-              input: { periodStart: '2026-10-01', periodEnd: '2026-10-31' },
-            },
-          ],
-          'tool_use',
-        ),
-      )
-      .mockResolvedValueOnce(
-        message(
-          [{ type: 'text', text: 'Net GST payable is ₹90.00.' }],
-          'end_turn',
-        ),
-      )
+  test('runs a tool with the server company and answers with links', async () => {
+    const ai = fakeAi(
+      {
+        tool_calls: [
+          {
+            name: 'gstr3b_summary',
+            arguments: { periodStart: '2026-10-01', periodEnd: '2026-10-31' },
+          },
+        ],
+      },
+      { response: 'Net GST payable is ₹90.00.' },
+    )
     const tools = fakeTools()
 
-    const result = await runAssistantConversation({
-      createMessage,
-      tools,
-      question: 'GST payable this month?',
-      history: [],
-      context,
-      today: '2026-10-31',
-    })
+    const result = await ask(ai, tools)
 
     expect(result).toEqual({
       answer: 'Net GST payable is ₹90.00.',
@@ -90,85 +71,94 @@ describe('runAssistantConversation', () => {
       { periodStart: '2026-10-01', periodEnd: '2026-10-31' },
       context,
     )
-    const firstCall = createMessage.mock.calls[0][0]
-    expect(firstCall.model).toBe('claude-sonnet-5-5')
-    expect(JSON.stringify(firstCall.system)).toContain('2026-10-31')
-    expect(JSON.stringify(firstCall.system)).not.toContain(context.companyId)
-    const secondCall = createMessage.mock.calls[1][0]
-    expect(secondCall.messages.at(-1)).toEqual({
-      role: 'user',
-      content: [
-        {
-          type: 'tool_result',
-          tool_use_id: 'tu-1',
-          content: JSON.stringify({ netGstPayable: '90.00' }),
-        },
-      ],
+    const [model, firstInput] = ai.run.mock.calls[0]
+    expect(model).toBe(ASSISTANT_MODEL)
+    expect(JSON.stringify(firstInput)).toContain('2026-10-31')
+    expect(JSON.stringify(firstInput)).not.toContain(context.companyId)
+    const secondMessages = ai.run.mock.calls[1][1].messages as Array<unknown>
+    expect(secondMessages.at(-1)).toEqual({
+      role: 'tool',
+      name: 'gstr3b_summary',
+      content: JSON.stringify({ netGstPayable: '90.00' }),
     })
   })
 
-  test('reports tool failures back to the model as errors', async () => {
-    const createMessage = vi
-      .fn()
-      .mockResolvedValueOnce(
-        message(
-          [{ type: 'tool_use', id: 'tu-1', name: 'run_sql', input: {} }],
-          'tool_use',
-        ),
-      )
-      .mockResolvedValueOnce(
-        message([{ type: 'text', text: 'I cannot do that.' }], 'end_turn'),
-      )
-    const tools = fakeTools(async () => {
-      throw new Error('Unknown tool: run_sql')
-    })
-
-    const result = await runAssistantConversation({
-      createMessage,
-      tools,
-      question: 'drop table',
-      history: [],
+  test('accepts OpenAI-style tool calls with string arguments', async () => {
+    const ai = fakeAi(
+      {
+        choices: [
+          {
+            message: {
+              tool_calls: [
+                {
+                  function: {
+                    name: 'gstr3b_summary',
+                    arguments: '{"periodStart":"2026-10-01"}',
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+      { choices: [{ message: { content: 'done' } }] },
+    )
+    const tools = fakeTools()
+    expect((await ask(ai, tools)).answer).toBe('done')
+    expect(tools.run).toHaveBeenCalledWith(
+      'gstr3b_summary',
+      { periodStart: '2026-10-01' },
       context,
-      today: '2026-10-31',
-    })
+    )
+  })
 
+  test('reports tool failures back to the model', async () => {
+    const ai = fakeAi(
+      { tool_calls: [{ name: 'run_sql', arguments: {} }] },
+      { response: 'I cannot do that.' },
+    )
+    const result = await ask(
+      ai,
+      fakeTools(async () => {
+        throw new Error('Unknown tool: run_sql')
+      }),
+    )
     expect(result.links).toEqual([])
-    expect(createMessage.mock.calls[1][0].messages.at(-1).content[0]).toEqual({
-      type: 'tool_result',
-      tool_use_id: 'tu-1',
-      content: 'Unknown tool: run_sql',
-      is_error: true,
-    })
+    expect(
+      (ai.run.mock.calls[1][1].messages as Array<unknown>).at(-1),
+    ).toEqual({ role: 'tool', name: 'run_sql', content: 'Error: Unknown tool: run_sql' })
+  })
+
+  test('maps the free daily allocation error to a friendly message', async () => {
+    const ai = {
+      run: vi
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            '3036: You have used up your daily free allocation of 10,000 neurons.',
+          ),
+        ),
+    }
+    const error = await ask(ai).catch((caught: unknown) => caught)
+    expect(error).toBeInstanceOf(AssistantUnavailableError)
+    expect((error as Error).message).toBe(FREE_QUOTA_USED_MESSAGE)
   })
 
   test('stops after the turn limit', async () => {
-    const createMessage = vi.fn().mockImplementation(async () =>
-      message(
-        [{ type: 'tool_use', id: 'tu', name: 'gstr3b_summary', input: {} }],
-        'tool_use',
-      ),
-    )
-
-    const result = await runAssistantConversation({
-      createMessage,
-      tools: fakeTools(),
-      question: 'loop',
-      history: [],
-      context,
-      today: '2026-10-31',
-    })
-
-    expect(createMessage).toHaveBeenCalledTimes(6)
+    const ai = {
+      run: vi.fn().mockResolvedValue({
+        tool_calls: [{ name: 'gstr3b_summary', arguments: {} }],
+      }),
+    }
+    const result = await ask(ai)
+    expect(ai.run).toHaveBeenCalledTimes(4)
     expect(result.answer).toMatch(/couldn't finish/i)
   })
 
-  test('passes earlier turns as history', async () => {
-    const createMessage = vi
-      .fn()
-      .mockResolvedValue(message([{ type: 'text', text: 'ok' }], 'end_turn'))
-
+  test('passes earlier turns as history after the system prompt', async () => {
+    const ai = fakeAi({ response: 'ok' })
     await runAssistantConversation({
-      createMessage,
+      ai,
       tools: fakeTools(),
       question: 'and last month?',
       history: [
@@ -178,8 +168,7 @@ describe('runAssistantConversation', () => {
       context,
       today: '2026-10-31',
     })
-
-    expect(createMessage.mock.calls[0][0].messages).toEqual([
+    expect((ai.run.mock.calls[0][1].messages as Array<unknown>).slice(1)).toEqual([
       { role: 'user', content: 'GST this month?' },
       { role: 'assistant', content: '₹90' },
       { role: 'user', content: 'and last month?' },

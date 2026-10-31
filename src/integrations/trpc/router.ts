@@ -1,4 +1,6 @@
 import { createAssistantRouter } from '#/features/assistant/assistant-router.ts'
+import { assistantUsageRepository } from '#/features/assistant/assistant-usage-store.ts'
+import { getWorkersAi } from '#/features/assistant/workers-ai-binding.ts'
 import { createAuditRouter } from '#/features/audit/audit-router.ts'
 import { createBankingRouter } from '#/features/banking/banking-router.ts'
 import { bankReconciliationRepository } from '#/features/banking/bank-reconciliation-store.ts'
@@ -139,7 +141,8 @@ export const trpcRouter = createTRPCRouter({
     stockBalances: stockStore,
     ledgers: ledgerAccountRepository,
     postings: ledgerPostingRepository,
-    getApiKey: () => process.env.ANTHROPIC_API_KEY,
+    usage: assistantUsageRepository,
+    getAi: getWorkersAi,
   }),
   dashboard: createDashboardRouter(dashboardSummaryRepository, {
     summaries: dashboardSummaryRepository,

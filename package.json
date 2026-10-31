@@ -51,7 +51,6 @@
   },
   "dependencies": {
     "@accounting/api-client": "workspace:*",
-    "@anthropic-ai/sdk": "^1.3.0",
     "@better-auth/expo": "^1.6.23",
     "@faker-js/faker": "^10.5.0",
     "@fontsource-variable/ibm-plex-sans": "^5.2.8",

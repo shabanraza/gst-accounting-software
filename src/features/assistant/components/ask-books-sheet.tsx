@@ -96,7 +96,7 @@ function AskBooksPanel() {
     if (!trimmed || !companyId || !company || ask.isPending) return
     const history = turns
       .filter((turn) => !turn.failed)
-      .slice(-10)
+      .slice(-6)
       .map(({ role, content }) => ({ role, content }))
     setTurns((current) => [...current, { role: 'user', content: trimmed }])
     setQuestion('')
@@ -209,7 +209,7 @@ function AskBooksPanel() {
             <Input
               aria-label="Question"
               autoFocus
-              maxLength={1000}
+              maxLength={500}
               onChange={(event) => setQuestion(event.target.value)}
               placeholder="Sharma Traders ka kitna baaki hai?"
               value={question}

@@ -4,6 +4,7 @@ import {
   index,
   integer,
   pgTable,
+  primaryKey,
   serial,
   text,
   timestamp,
@@ -1026,4 +1027,18 @@ export const marketingSubmissions = pgTable(
       table.createdAt,
     ),
   ],
+)
+
+/** "Ask your books" questions per company per day (IST), for the daily limit. */
+export const assistantUsage = pgTable(
+  'assistant_usage',
+  {
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id, { onDelete: 'cascade' }),
+    usageDate: text('usage_date').notNull(),
+    questionCount: integer('question_count').notNull().default(0),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.companyId, table.usageDate] })],
 )
