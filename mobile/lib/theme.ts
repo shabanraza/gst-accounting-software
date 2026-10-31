@@ -2,6 +2,8 @@
  * JS color values mirrored from mobile/src/global.css for APIs that cannot use
  * Tailwind classes (Ionicons, React Navigation tab bar, DynamicColorIOS).
  */
+import { pageLayout, spacing } from './spacing'
+
 export const themeColors = {
   background: '#ffffff',
   foreground: '#111827',
@@ -64,8 +66,6 @@ export const typography = {
   controlHeight: 48,
   labelFieldGap: 10,
 } as const
-
-import { pageLayout, spacing } from './spacing'
 
 /** Mirrors global.css spacing tokens. Prefer inline on Android where custom classes may not apply. */
 export const themeSpacing = {

@@ -26,7 +26,7 @@ export function GrnDetailScreen() {
     queryFn: () =>
       trpcClient.purchaseGrns.getById.query({
         companyId: companyId!,
-        grnId: id!,
+        grnId: id,
       }),
   })
 
@@ -90,7 +90,7 @@ export function GrnDetailScreen() {
             router.push({
               pathname: '/(app)/purchases/new',
               params: { fromGrn: grn.id },
-            } as never)
+            })
           }
         />
       ) : null}

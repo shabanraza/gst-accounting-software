@@ -22,10 +22,11 @@ import {
   filterOpenSalesDocuments,
   validatePaymentAllocation,
   validateReceiptLedgers,
-  validateSupplierPaymentLedgers,
-  type PaymentAllocationDraft,
-  type PaymentTab,
+  validateSupplierPaymentLedgers
+  
+  
 } from '@/lib/payment-form'
+import type {PaymentAllocationDraft, PaymentTab} from '@/lib/payment-form';
 import { trpcClient } from '@/lib/trpc-client'
 import { Text, View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'

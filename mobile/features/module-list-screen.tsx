@@ -207,7 +207,6 @@ function ModuleRecordsList({
     emptyMessage = 'No records yet.'
   } else if (
     !query.isLoading &&
-    !query.isError &&
     (query.data?.length ?? 0) > 0 &&
     filteredRecords.length === 0
   ) {
@@ -257,7 +256,7 @@ function ModuleRecordsList({
             badge={pickBadge(record)}
             onPress={
               detailPath
-                ? () => router.push(detailPath as never)
+                ? () => router.push(detailPath)
                 : undefined
             }
           />

@@ -85,7 +85,7 @@ export function RecentPartyChips({
         </View>
       ) : null}
       {createHref ? (
-        <Pressable onPress={() => router.push(createHref as never)}>
+        <Pressable onPress={() => router.push(createHref)}>
           <Text className="text-sm font-medium text-primary">
             {createLabel ?? 'Add new party'}
           </Text>

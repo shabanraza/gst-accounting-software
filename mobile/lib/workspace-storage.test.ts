@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const storage = new Map<string, string>()
-
 import {
   clearWorkspaceStorage,
   readPreferredCompanyId,
   writePreferredCompanyId,
 } from './workspace-storage.ts'
 import { WORKSPACE_COMPANY_KEY } from './env.ts'
+
+const storage = new Map<string, string>()
 
 describe('workspace-storage', () => {
   beforeEach(() => {

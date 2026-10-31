@@ -1,13 +1,15 @@
 import {
-  createEmptyPurchaseLine,
-  type PurchaseBillFormDraft,
+  createEmptyPurchaseLine
+  
 } from './purchase-bill-form.ts'
+import type {PurchaseBillFormDraft} from './purchase-bill-form.ts';
 import {
   createEmptySalesLine,
-  resolvePlaceOfSupply,
-  type SalesInvoiceFormDraft,
-  type SupplyRegion,
+  resolvePlaceOfSupply
+  
+  
 } from './sales-invoice-form.ts'
+import type {SalesInvoiceFormDraft, SupplyRegion} from './sales-invoice-form.ts';
 import { randomId } from './random-id.ts'
 
 export type SalesDocumentDraftLine = {

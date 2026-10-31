@@ -19,6 +19,7 @@ export default [
       'eslint.config.js',
       'prettier.config.js',
       'packages/api-client/vitest.config.ts',
+      'mobile/metro.config.js',
     ],
   },
 ]

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Animated, Easing, Pressable } from 'react-native'
 
+// eslint-disable-next-line import/no-commonjs -- Metro resolves static image assets through require().
 const mascotSource = require('@/assets/brand/hisaabkro-mascot.png')
 
 export function HisaabKroMascot() {

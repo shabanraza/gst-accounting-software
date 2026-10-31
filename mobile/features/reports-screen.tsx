@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Ionicons } from '@expo/vector-icons'
+import type { Ionicons } from '@expo/vector-icons'
 
 import { CardRow } from '@/components/data/card-row'
 import { AGEING_BUCKET_DISPLAY_LABEL } from '@/lib/dashboard-metrics'
@@ -182,7 +182,9 @@ export function ReportsScreen({ variant = 'stack' }: { variant?: ScreenVariant }
             />
             <CardRow
               title="Credit / debit notes"
-              amount={String(gstr1Query.data.creditDebitNotes.length)}
+              amount={String(
+                gstr1Query.data.cdnr.length + gstr1Query.data.cdnur.length,
+              )}
             />
             <CardRow
               title="Taxable value"

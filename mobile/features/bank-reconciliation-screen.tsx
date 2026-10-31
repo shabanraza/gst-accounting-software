@@ -75,7 +75,7 @@ export function BankReconciliationScreen() {
       (left, right) =>
         new Date(right.importedAt).getTime() -
         new Date(left.importedAt).getTime(),
-    )[0]
+    ).at(0)
 
     if (!latest) {
       setStatementId(undefined)

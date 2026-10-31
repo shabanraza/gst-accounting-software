@@ -19,9 +19,10 @@ import {
   buildReceiveFromPurchaseOrderInput,
   createInitialGrnForm,
   filterOpenPurchaseOrders,
-  validateGrnForm,
-  type GrnFormDraft,
+  validateGrnForm
+  
 } from '@/lib/grn-form'
+import type {GrnFormDraft} from '@/lib/grn-form';
 import { formatInr } from '@/lib/format-inr'
 import {
   useFormPickerCoordination,

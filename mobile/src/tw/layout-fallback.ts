@@ -1,5 +1,7 @@
-import { cloneElement, isValidElement, type ReactElement } from 'react'
-import { Platform, type StyleProp, type ViewStyle } from 'react-native'
+import { cloneElement, isValidElement  } from 'react'
+import type {ReactElement} from 'react';
+import { Platform   } from 'react-native'
+import type {StyleProp, ViewStyle} from 'react-native';
 
 import { mergeLayoutFallbackStyles } from './layout-fallback-core'
 
