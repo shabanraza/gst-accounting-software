@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
+import { skipToken, useQuery } from '@tanstack/react-query'
 import { DownloadIcon, ExternalLinkIcon } from 'lucide-react'
 
 import { Button } from '#/components/ui/button.tsx'
@@ -27,9 +27,9 @@ function SettingsRoute() {
   const { companyId, isReady } = useWorkspace()
 
   const exportQuery = useQuery({
-    ...trpc.reports.accountantExport.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
+    ...trpc.reports.accountantExport.queryOptions(
+      companyId ? { companyId } : skipToken,
+    ),
     enabled: false,
   })
 

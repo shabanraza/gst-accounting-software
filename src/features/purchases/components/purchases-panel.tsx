@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { skipToken, useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { EyeIcon, PlusIcon, PrinterIcon, TruckIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
@@ -58,14 +58,12 @@ export function PurchasesPanel({
   const [previewTarget, setPreviewTarget] =
     React.useState<VoucherPreviewTarget | null>(null)
   const [previewOpen, setPreviewOpen] = React.useState(false)
-  const resolvedCompanyId = companyId ?? '00000000-0000-4000-8000-000000000099'
 
-  const partiesQuery = useQuery({
-    ...trpc.parties.list.queryOptions({
-      companyId: resolvedCompanyId,
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const partiesQuery = useQuery(
+    trpc.parties.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
   const partyFilter = resolveListFilter(
     partyId,
     (partiesQuery.data ?? []).map((party) => ({
@@ -77,15 +75,16 @@ export function PurchasesPanel({
 
   const purchasesQuery = useInfiniteQuery(
     trpc.purchases.list.infiniteQueryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            limit: VOUCHER_LIST_PAGE_SIZE,
+            partyId: partyFilter.id,
+            paymentStatus: filter === 'all' ? undefined : filter,
+            search: query.trim() || undefined,
+          }
+        : skipToken,
       {
-        companyId: resolvedCompanyId,
-        limit: VOUCHER_LIST_PAGE_SIZE,
-        partyId: partyFilter.id,
-        paymentStatus: filter === 'all' ? undefined : filter,
-        search: query.trim() || undefined,
-      },
-      {
-        enabled: Boolean(companyId) && isReady,
         getNextPageParam: (lastPage) =>
           nextVoucherListCursor(
             lastPage,

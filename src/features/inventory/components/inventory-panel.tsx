@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { skipToken, useQuery } from '@tanstack/react-query'
 import { WarehouseIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
@@ -43,12 +43,11 @@ export function InventoryPanel({
     'all' | 'healthy' | 'low'
   >('all')
 
-  const stockQuery = useQuery({
-    ...trpc.inventory.listStockBalances.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const stockQuery = useQuery(
+    trpc.inventory.listStockBalances.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const rows = stockQuery.data ?? []
   const itemFilter = resolveListFilter(

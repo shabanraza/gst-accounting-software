@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { CheckIcon, ScanTextIcon } from 'lucide-react'
 
 import { toast } from 'sonner'
@@ -34,12 +39,11 @@ export function OcrReviewPanel() {
   const queryClient = useQueryClient()
   const { companyId, company, ledgerBySystemKey, isReady } = useWorkspace()
 
-  const draftsQuery = useQuery({
-    ...trpc.ocr.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const draftsQuery = useQuery(
+    trpc.ocr.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const confirmMutation = useMutation(trpc.ocr.confirm.mutationOptions())
 

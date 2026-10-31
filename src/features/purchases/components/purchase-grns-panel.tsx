@@ -1,6 +1,11 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { FileTextIcon, PlusIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -50,18 +55,16 @@ export function PurchaseGrnsPanel() {
   const [purchaseOrderId, setPurchaseOrderId] = React.useState('')
   const [godownName, setGodownName] = React.useState('')
 
-  const grnsQuery = useQuery({
-    ...trpc.purchaseGrns.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
-  const ordersQuery = useQuery({
-    ...trpc.purchaseOrders.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const grnsQuery = useQuery(
+    trpc.purchaseGrns.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
+  const ordersQuery = useQuery(
+    trpc.purchaseOrders.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const receiveFromPo = useMutation(
     trpc.purchaseGrns.receiveFromPurchaseOrder.mutationOptions(),

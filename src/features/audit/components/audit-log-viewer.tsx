@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { skipToken, useQuery } from '@tanstack/react-query'
 import { HistoryIcon } from 'lucide-react'
 
 import {
@@ -23,12 +23,11 @@ export function AuditLogViewer() {
   const trpc = useTRPC()
   const { companyId, isReady } = useWorkspace()
 
-  const auditQuery = useQuery({
-    ...trpc.audit.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const auditQuery = useQuery(
+    trpc.audit.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const events = [...(auditQuery.data ?? [])].sort(
     (left, right) =>

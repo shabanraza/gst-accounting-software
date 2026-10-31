@@ -1,6 +1,11 @@
 import * as React from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { DownloadIcon, FileBarChartIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -82,97 +87,117 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
   const hasGstin = Boolean(company?.gstin)
 
   const gstr1Query = useQuery({
-    ...trpc.reports.gstr1.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      companyStateCode: company?.stateCode ?? '27',
-      periodStart: reconPeriodStart,
-      periodEnd: reconPeriodEnd,
-    }),
-    enabled: Boolean(companyId) && isReady && tab === 'gstr1' && hasGstin,
+    ...trpc.reports.gstr1.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            companyStateCode: company?.stateCode ?? '27',
+            periodStart: reconPeriodStart,
+            periodEnd: reconPeriodEnd,
+          }
+        : skipToken,
+    ),
+    enabled: tab === 'gstr1' && hasGstin,
   })
   const gstr3bQuery = useQuery({
-    ...trpc.reports.gstr3b.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      companyStateCode: company?.stateCode ?? '27',
-      periodStart: reconPeriodStart,
-      periodEnd: reconPeriodEnd,
-    }),
-    enabled: Boolean(companyId) && isReady && tab === 'gstr3b',
+    ...trpc.reports.gstr3b.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            companyStateCode: company?.stateCode ?? '27',
+            periodStart: reconPeriodStart,
+            periodEnd: reconPeriodEnd,
+          }
+        : skipToken,
+    ),
+    enabled: tab === 'gstr3b',
   })
   const trialQuery = useQuery({
-    ...trpc.reports.trialBalance.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady && tab === 'trial',
+    ...trpc.reports.trialBalance.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+    enabled: tab === 'trial',
   })
   const profitAndLossQuery = useQuery({
-    ...trpc.reports.profitAndLoss.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady && tab === 'pl',
+    ...trpc.reports.profitAndLoss.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+    enabled: tab === 'pl',
   })
   const balanceSheetQuery = useQuery({
-    ...trpc.reports.balanceSheet.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady && tab === 'bs',
+    ...trpc.reports.balanceSheet.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+    enabled: tab === 'bs',
   })
   const receivablesAgeingQuery = useQuery({
-    ...trpc.reports.receivablesAgeing.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady && tab === 'ageing',
+    ...trpc.reports.receivablesAgeing.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+    enabled: tab === 'ageing',
   })
   const payablesAgeingQuery = useQuery({
-    ...trpc.reports.payablesAgeing.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady && tab === 'ageing',
+    ...trpc.reports.payablesAgeing.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+    enabled: tab === 'ageing',
   })
   const stockSummaryQuery = useQuery({
-    ...trpc.reports.stockSummary.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady && tab === 'stock',
+    ...trpc.reports.stockSummary.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+    enabled: tab === 'stock',
   })
   const stockValuationQuery = useQuery({
-    ...trpc.reports.stockValuation.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady && tab === 'valuation',
+    ...trpc.reports.stockValuation.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+    enabled: tab === 'valuation',
   })
   const dayBookQuery = useQuery({
-    ...trpc.reports.dayBook.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      companyStateCode: company?.stateCode ?? '27',
-      periodStart,
-      periodEnd,
-    }),
-    enabled: Boolean(companyId) && isReady && tab === 'daybook',
+    ...trpc.reports.dayBook.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            companyStateCode: company?.stateCode ?? '27',
+            periodStart,
+            periodEnd,
+          }
+        : skipToken,
+    ),
+    enabled: tab === 'daybook',
   })
   const cashBookQuery = useQuery({
-    ...trpc.reports.cashBook.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      companyStateCode: company?.stateCode ?? '27',
-      periodStart,
-      periodEnd,
-    }),
-    enabled: Boolean(companyId) && isReady && tab === 'cashbook',
+    ...trpc.reports.cashBook.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            companyStateCode: company?.stateCode ?? '27',
+            periodStart,
+            periodEnd,
+          }
+        : skipToken,
+    ),
+    enabled: tab === 'cashbook',
   })
   const hsnSummaryQuery = useQuery({
-    ...trpc.reports.hsnSummary.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      companyStateCode: company?.stateCode ?? '27',
-      periodStart,
-      periodEnd,
-    }),
-    enabled: Boolean(companyId) && isReady && tab === 'hsn',
+    ...trpc.reports.hsnSummary.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            companyStateCode: company?.stateCode ?? '27',
+            periodStart,
+            periodEnd,
+          }
+        : skipToken,
+    ),
+    enabled: tab === 'hsn',
   })
   const exportQuery = useQuery({
-    ...trpc.reports.accountantExport.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady && tab === 'export',
+    ...trpc.reports.accountantExport.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+    enabled: tab === 'export',
   })
 
   const [gstr2bLoading, setGstr2bLoading] = React.useState(false)
