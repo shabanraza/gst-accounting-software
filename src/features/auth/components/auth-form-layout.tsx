@@ -7,6 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
+import { Label } from '#/components/ui/label.tsx'
+import { Separator } from '#/components/ui/separator.tsx'
 
 export function AuthPage({
   title,
@@ -65,9 +67,9 @@ export function AuthFieldGroup({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex min-h-6 items-center justify-between gap-2">
-        <label className="text-sm font-medium" htmlFor={htmlFor}>
+        <Label className="text-sm" htmlFor={htmlFor}>
           {label}
-        </label>
+        </Label>
         {hint}
       </div>
       {children}
@@ -78,9 +80,9 @@ export function AuthFieldGroup({
 export function AuthDivider() {
   return (
     <div className="flex items-center gap-2">
-      <div className="h-px flex-1 bg-border" />
+      <Separator className="flex-1" />
       <span className="text-xs text-muted-foreground">or</span>
-      <div className="h-px flex-1 bg-border" />
+      <Separator className="flex-1" />
     </div>
   )
 }

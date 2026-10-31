@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 
 import { Button } from '#/components/ui/button.tsx'
 import { Input } from '#/components/ui/input.tsx'
+import { Label } from '#/components/ui/label.tsx'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { useSpamGuard } from '#/features/marketing/components/use-spam-guard.tsx'
 import { WAITLIST } from '#/features/marketing/landing-content.ts'
@@ -33,9 +34,9 @@ export function WaitlistForm() {
       className="flex w-full max-w-md flex-col gap-2 sm:flex-row"
       onSubmit={(event) => void handleSubmit(event)}
     >
-      <label className="sr-only" htmlFor="waitlist-email">
+      <Label className="sr-only" htmlFor="waitlist-email">
         {WAITLIST.label}
-      </label>
+      </Label>
       <Input
         autoComplete="email"
         className="h-9 border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground placeholder:text-primary-foreground/60"

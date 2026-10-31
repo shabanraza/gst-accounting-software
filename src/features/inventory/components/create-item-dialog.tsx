@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from '#/components/ui/dialog.tsx'
 import { Input } from '#/components/ui/input.tsx'
+import { Label } from '#/components/ui/label.tsx'
 import {
   Select,
   SelectContent,
@@ -167,9 +168,9 @@ export function CreateItemDialog({
       <form className="flex flex-col gap-4" onSubmit={handleCreate}>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5 sm:col-span-2">
-            <label className="text-sm font-medium" htmlFor="item-name">
+            <Label className="text-sm" htmlFor="item-name">
               Item name
-            </label>
+            </Label>
             <Input
               id="item-name"
               onChange={(event) => updateForm('name', event.target.value)}
@@ -178,9 +179,9 @@ export function CreateItemDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="item-alias">
+            <Label className="text-sm" htmlFor="item-alias">
               Alias / code
-            </label>
+            </Label>
             <Input
               id="item-alias"
               onChange={(event) => updateForm('alias', event.target.value)}
@@ -208,9 +209,9 @@ export function CreateItemDialog({
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="item-hsn">
+            <Label className="text-sm" htmlFor="item-hsn">
               HSN / SAC
-            </label>
+            </Label>
             <Input
               id="item-hsn"
               onChange={(event) => updateForm('hsnCode', event.target.value)}
@@ -286,9 +287,9 @@ export function CreateItemDialog({
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="item-conv">
+            <Label className="text-sm" htmlFor="item-conv">
               Conversion (1 alt = ? main)
-            </label>
+            </Label>
             <Input
               disabled={form.altUnit === 'none'}
               id="item-conv"
@@ -300,9 +301,9 @@ export function CreateItemDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="item-pur">
+            <Label className="text-sm" htmlFor="item-pur">
               Purchase rate
-            </label>
+            </Label>
             <Input
               id="item-pur"
               onChange={(event) =>
@@ -312,9 +313,9 @@ export function CreateItemDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="item-sale">
+            <Label className="text-sm" htmlFor="item-sale">
               Sale rate
-            </label>
+            </Label>
             <Input
               id="item-sale"
               onChange={(event) => updateForm('saleRate', event.target.value)}
@@ -322,9 +323,9 @@ export function CreateItemDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="item-mrp">
+            <Label className="text-sm" htmlFor="item-mrp">
               MRP
-            </label>
+            </Label>
             <Input
               id="item-mrp"
               onChange={(event) => updateForm('mrp', event.target.value)}
@@ -333,9 +334,9 @@ export function CreateItemDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="item-reorder">
+            <Label className="text-sm" htmlFor="item-reorder">
               Reorder level
-            </label>
+            </Label>
             <Input
               id="item-reorder"
               onChange={(event) =>
@@ -363,9 +364,9 @@ export function CreateItemDialog({
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="item-open">
+            <Label className="text-sm" htmlFor="item-open">
               Opening stock qty
-            </label>
+            </Label>
             <Input
               disabled={form.tracksInventory !== 'yes'}
               id="item-open"

@@ -21,6 +21,7 @@ import {
   DialogTrigger,
 } from '#/components/ui/dialog.tsx'
 import { Input } from '#/components/ui/input.tsx'
+import { Label } from '#/components/ui/label.tsx'
 import {
   Select,
   SelectContent,
@@ -185,9 +186,9 @@ export function TeamMembersPanel() {
             </DialogHeader>
             <form className="flex flex-col gap-4" onSubmit={handleInvite}>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium" htmlFor="invite-email">
+                <Label className="text-sm" htmlFor="invite-email">
                   Email
-                </label>
+                </Label>
                 <Input
                   id="invite-email"
                   onChange={(event) => setInviteEmail(event.target.value)}
