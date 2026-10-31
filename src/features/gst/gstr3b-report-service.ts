@@ -18,6 +18,8 @@ export type Gstr3bReport = {
   outwardTaxableValue: string
   /** Table 3.1(a): outward taxable supplies, net of credit notes. */
   outwardTaxableSupplies: Gstr3bTaxSplit & { taxableValue: string }
+  /** Table 3.1(c): 0% rated sales, net of credit notes. */
+  nilRatedExemptValue: string
   /** Table 4(A)(5): ITC on purchase bills, net of debit notes. */
   eligibleItc: Gstr3bTaxSplit
   outputGst: string
@@ -69,6 +71,13 @@ function addDocument(
   )
 }
 
+/** Taxable value of a document's 0% rate lines; documents without rate lines have none. */
+function nilRatedTaxable(document: GstReportDocument) {
+  return (document.rateLines ?? [])
+    .filter((line) => new Decimal(line.gstRate).isZero())
+    .reduce((sum, line) => sum.plus(line.taxableAmount), new Decimal(0))
+}
+
 function taxSplit(totals: TaxTotals): Gstr3bTaxSplit {
   return {
     igst: totals.igst.toFixed(2),
@@ -84,14 +93,17 @@ export function buildGstr3bReport(input: GstReportPeriodInput): Gstr3bReport {
 
   const outward = emptyTotals()
   const itc = emptyTotals()
+  let nilRated = new Decimal(0)
 
   for (const document of periodDocs) {
     if (document.documentType === 'sales_invoice') {
       addDocument(outward, document, 1)
+      nilRated = nilRated.plus(nilRatedTaxable(document))
     }
 
     if (document.documentType === 'credit_note') {
       addDocument(outward, document, -1)
+      nilRated = nilRated.minus(nilRatedTaxable(document))
     }
 
     if (document.documentType === 'purchase_bill') {
@@ -112,9 +124,10 @@ export function buildGstr3bReport(input: GstReportPeriodInput): Gstr3bReport {
     periodEnd: input.periodEnd,
     outwardTaxableValue: outward.taxable.toFixed(2),
     outwardTaxableSupplies: {
-      taxableValue: outward.taxable.toFixed(2),
+      taxableValue: outward.taxable.minus(nilRated).toFixed(2),
       ...taxSplit(outward),
     },
+    nilRatedExemptValue: nilRated.toFixed(2),
     eligibleItc: taxSplit(itc),
     outputGst: outputGst.toFixed(2),
     inputGst: inputGst.toFixed(2),

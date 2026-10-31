@@ -318,6 +318,62 @@ describe('buildGstr3bReport', () => {
     expect(report.inputGst).toBe('440.00')
   })
 
+  test('moves 0% rated sales from Table 3.1(a) to 3.1(c), net of credit notes', () => {
+    const mixedInvoice: GstReportDocument = {
+      ...outwardInvoice,
+      taxableAmount: '3000.00',
+      cgstAmount: '50.00',
+      sgstAmount: '50.00',
+      totalGstAmount: '100.00',
+      totalAmount: '3100.00',
+      rateLines: [
+        { gstRate: '0.00', taxableAmount: '1000.00', gstAmount: '0.00' },
+        { gstRate: '5.00', taxableAmount: '2000.00', gstAmount: '100.00' },
+      ],
+    }
+    const nilRatedReturn: GstReportDocument = {
+      ...creditNote,
+      taxableAmount: '200.00',
+      cgstAmount: '0.00',
+      sgstAmount: '0.00',
+      igstAmount: '0.00',
+      totalGstAmount: '0.00',
+      totalAmount: '200.00',
+      rateLines: [
+        { gstRate: '0.00', taxableAmount: '200.00', gstAmount: '0.00' },
+      ],
+    }
+    const report = buildGstr3bReport({
+      companyId: 'company-1',
+      periodStart: '2026-07-01',
+      periodEnd: '2026-07-31',
+      documents: [mixedInvoice, nilRatedReturn, purchaseBill],
+    })
+
+    expect(report.outwardTaxableSupplies).toEqual({
+      taxableValue: '2000.00',
+      igst: '0.00',
+      cgst: '50.00',
+      sgst: '50.00',
+    })
+    expect(report.nilRatedExemptValue).toBe('800.00')
+    expect(report.outwardTaxableValue).toBe('2800.00')
+    expect(report.outputGst).toBe('100.00')
+    expect(report.netGstPayable).toBe('-300.00')
+  })
+
+  test('keeps documents without rate lines in Table 3.1(a)', () => {
+    const report = buildGstr3bReport({
+      companyId: 'company-1',
+      periodStart: '2026-07-01',
+      periodEnd: '2026-07-31',
+      documents: [outwardInvoice, creditNote],
+    })
+
+    expect(report.outwardTaxableSupplies.taxableValue).toBe('1800.00')
+    expect(report.nilRatedExemptValue).toBe('0.00')
+  })
+
   test('leaves out documents outside the return period', () => {
     const report = buildGstr3bReport({
       companyId: 'company-1',
