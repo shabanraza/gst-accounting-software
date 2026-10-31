@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import type { BusinessType } from '#/features/companies/company-service.ts'
 
 export type LedgerAccountType =
@@ -15,6 +16,7 @@ export type LedgerAccountSystemKey =
   | 'stock_in_hand'
   | 'expenses'
   | 'cogs'
+  | 'opening_balance'
 
 export type LedgerAccountRecord = {
   id: string
@@ -39,7 +41,7 @@ export interface LedgerAccountRepository {
   ) => Promise<Array<LedgerAccountRecord>>
 }
 
-export class ChartAlreadySetupError extends Error {
+export class ChartAlreadySetupError extends DomainError {
   constructor(companyId: string) {
     super(`Chart of accounts already exists for company: ${companyId}`)
     this.name = 'ChartAlreadySetupError'
@@ -79,6 +81,12 @@ const sharedLedgers: Array<LedgerTemplate> = [
     name: 'Output GST',
     accountType: 'liability',
     systemKey: 'output_gst',
+  },
+  {
+    code: '3000',
+    name: 'Opening Balance',
+    accountType: 'equity',
+    systemKey: 'opening_balance',
   },
   { code: '4000', name: 'Sales', accountType: 'income', systemKey: 'sales' },
   {
@@ -122,6 +130,33 @@ function templatesForBusinessType(
   )
 }
 
+function accountsFromTemplates(
+  companyId: string,
+  templates: Array<LedgerTemplate>,
+  takenCodes: Set<string>,
+): Array<LedgerAccountRecord> {
+  const createdAt = new Date()
+
+  return templates.map((template) => {
+    let code = template.code
+    while (takenCodes.has(code)) {
+      code = String(Number(code) + 1)
+    }
+    takenCodes.add(code)
+
+    return {
+      id: crypto.randomUUID(),
+      companyId,
+      code,
+      name: template.name,
+      accountType: template.accountType,
+      systemKey: template.systemKey,
+      isSystem: true,
+      createdAt,
+    }
+  })
+}
+
 export async function setupDefaultChartOfAccounts(
   repository: LedgerAccountRepository,
   input: SetupChartOfAccountsInput,
@@ -132,21 +167,45 @@ export async function setupDefaultChartOfAccounts(
     throw new ChartAlreadySetupError(input.companyId)
   }
 
-  const createdAt = new Date()
-  const accounts = templatesForBusinessType(input.businessType).map(
-    (template) => ({
-      id: crypto.randomUUID(),
-      companyId: input.companyId,
-      code: template.code,
-      name: template.name,
-      accountType: template.accountType,
-      systemKey: template.systemKey,
-      isSystem: true,
-      createdAt,
-    }),
+  return repository.createMany(
+    accountsFromTemplates(
+      input.companyId,
+      templatesForBusinessType(input.businessType),
+      new Set(),
+    ),
+  )
+}
+
+/**
+ * Adds any default system ledger an existing company lacks (for example the
+ * Opening Balance ledger, which companies set up before it existed do not
+ * have). Returns the company's full chart.
+ */
+export async function ensureSystemLedgers(
+  repository: LedgerAccountRepository,
+  input: SetupChartOfAccountsInput,
+): Promise<Array<LedgerAccountRecord>> {
+  const existingAccounts = await repository.listByCompanyId(input.companyId)
+  const existingKeys = new Set(
+    existingAccounts.map((account) => account.systemKey),
+  )
+  const missing = templatesForBusinessType(input.businessType).filter(
+    (template) => !existingKeys.has(template.systemKey),
   )
 
-  return repository.createMany(accounts)
+  if (missing.length === 0) {
+    return existingAccounts
+  }
+
+  const created = await repository.createMany(
+    accountsFromTemplates(
+      input.companyId,
+      missing,
+      new Set(existingAccounts.map((account) => account.code)),
+    ),
+  )
+
+  return [...existingAccounts, ...created]
 }
 
 export async function listLedgerAccountsByCompany(

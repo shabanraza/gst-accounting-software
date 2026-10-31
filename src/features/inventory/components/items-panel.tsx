@@ -22,7 +22,7 @@ import {
 } from '#/components/ui/table.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { CreateItemDialog } from '#/features/inventory/components/create-item-dialog.tsx'
 import { useItemsList } from '#/features/masters/use-master-data.ts'
 
@@ -50,7 +50,7 @@ export function ItemsPanel() {
           }
         />
       }
-      description="Item master wired to inventory API, with optional opening stock movement."
+      description="The goods and services you buy and sell, with HSN, GST rate, units and rates."
       title="Items"
     >
       {workspaceError ? (
@@ -64,7 +64,7 @@ export function ItemsPanel() {
               Item master
             </CardTitle>
             <CardDescription>
-              {filtered.length} items · F2 lookup on vouchers uses this list
+              {filtered.length} {filtered.length === 1 ? 'item' : 'items'}
             </CardDescription>
           </div>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -106,7 +106,9 @@ export function ItemsPanel() {
                     className="py-10 text-center text-muted-foreground"
                     colSpan={8}
                   >
-                    No items yet. Create the first item master.
+                    {query.trim()
+                      ? 'No items match your search.'
+                      : 'No items yet.'}
                   </TableCell>
                 </TableRow>
               ) : (

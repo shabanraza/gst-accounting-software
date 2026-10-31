@@ -2,8 +2,8 @@ import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 
 import {
+  ensureSystemLedgers,
   listLedgerAccountsByCompany,
-  setupDefaultChartOfAccounts,
 } from '#/features/accounting/chart-of-accounts.ts'
 import {
   listCompaniesByIds,
@@ -22,25 +22,41 @@ import type { AuditLogRepository } from '#/features/audit/audit-service.ts'
 import type { CompanyRepository } from '#/features/companies/company-service.ts'
 import type { CompanySetupDependencies } from '#/features/companies/company-setup-service.ts'
 
-const createCompanyInputSchema = z.object({
-  legalName: z.string().min(1),
-  tradeName: z.string().min(1),
-  gstin: z
-    .union([z.string().trim().min(1), z.null()])
-    .optional()
-    .transform((value) => value ?? null),
-  stateCode: z.string().length(2),
-  financialYearStart: z.string().min(1),
-  businessType: z.enum([
-    'trading',
-    'wholesale',
-    'retail',
-    'manufacturing_light',
-    'services',
-    'distribution',
-    'custom',
-  ]),
-})
+const createCompanyInputSchema = z
+  .object({
+    legalName: z.string().min(1),
+    tradeName: z.string().min(1),
+    gstin: z
+      .union([z.string().trim().min(1), z.null()])
+      .optional()
+      .transform((value) => value ?? null),
+    stateCode: z.string().length(2),
+    financialYearStart: z.string().min(1),
+    businessType: z.enum([
+      'trading',
+      'wholesale',
+      'retail',
+      'manufacturing_light',
+      'services',
+      'distribution',
+      'custom',
+    ]),
+    addressLine1: z.string().trim().optional(),
+    addressLine2: z.string().trim().optional(),
+    city: z.string().trim().optional(),
+    pincode: z.string().trim().optional(),
+  })
+  // A GST tax invoice must carry the supplier's address (CGST Rule 46).
+  .refine(
+    (input) =>
+      !input.gstin ||
+      Boolean(input.addressLine1 && input.city && input.pincode),
+    {
+      message:
+        'Address, city and PIN code are required for a GST-registered company',
+      path: ['addressLine1'],
+    },
+  )
 
 const ensureWorkspaceInputSchema = z.object({
   preferredCompanyId: z.string().uuid().optional(),
@@ -112,16 +128,14 @@ export const createCompaniesRouter = (deps: CompaniesRouterDependencies) =>
           })
         }
 
-        let ledgers = await listLedgerAccountsByCompany(
+        await ensureSystemLedgers(deps.ledgers, {
+          companyId: company.id,
+          businessType: company.businessType,
+        })
+        const ledgers = await listLedgerAccountsByCompany(
           deps.ledgers,
           company.id,
         )
-        if (ledgers.length === 0) {
-          ledgers = await setupDefaultChartOfAccounts(deps.ledgers, {
-            companyId: company.id,
-            businessType: company.businessType,
-          })
-        }
 
         const ledgerBySystemKey = Object.fromEntries(
           ledgers

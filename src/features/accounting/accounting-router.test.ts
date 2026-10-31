@@ -44,7 +44,7 @@ describe('accountingRouter', () => {
   })
   test('sets up and lists chart of accounts for a company', async () => {
     const userId = crypto.randomUUID()
-    const { caller, membershipRepository } = createCaller(userId)
+    const { caller } = createCaller(userId)
     const companyId = crypto.randomUUID()
 
     await membershipRepository.create({
@@ -62,14 +62,14 @@ describe('accountingRouter', () => {
 
     const listed = await caller.accounting.listLedgerAccounts({ companyId })
 
-    expect(created).toHaveLength(11)
-    expect(listed).toHaveLength(11)
+    expect(created).toHaveLength(12)
+    expect(listed).toHaveLength(12)
     expect(listed.map((account) => account.name)).toContain('Stock In Hand')
   })
 
   test('posts a balanced ledger entry through the router', async () => {
     const userId = crypto.randomUUID()
-    const { caller, membershipRepository } = createCaller(userId)
+    const { caller } = createCaller(userId)
     const companyId = crypto.randomUUID()
     const cashId = crypto.randomUUID()
     const salesId = crypto.randomUUID()
@@ -100,7 +100,7 @@ describe('accountingRouter', () => {
 
   test('rejects posting when the caller lacks a permitted membership role', async () => {
     const userId = crypto.randomUUID()
-    const { caller, membershipRepository } = createCaller(userId)
+    const { caller } = createCaller(userId)
     const companyId = crypto.randomUUID()
 
     await membershipRepository.create({
@@ -135,7 +135,7 @@ describe('accountingRouter', () => {
 
   test('allows posting when the caller has a permitted membership role', async () => {
     const userId = crypto.randomUUID()
-    const { caller, membershipRepository } = createCaller(userId)
+    const { caller } = createCaller(userId)
     const companyId = crypto.randomUUID()
 
     await membershipRepository.create({

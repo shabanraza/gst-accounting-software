@@ -1,7 +1,10 @@
 import Decimal from 'decimal.js'
 
 import type { ItemRecord } from '#/features/inventory/item-service.ts'
-import type { StockBalanceRepository } from '#/features/inventory/stock-movement-service.ts'
+import type {
+  StockBalanceRecord,
+  StockBalanceRepository,
+} from '#/features/inventory/stock-movement-service.ts'
 
 export type StockValuationRow = {
   itemId: string
@@ -11,6 +14,16 @@ export type StockValuationRow = {
   avgRate: string
   stockValue: string
   tracksInventory: boolean
+}
+
+/** Moving-average unit cost of a balance (value ÷ quantity). */
+export function averageRate(balance: StockBalanceRecord): string {
+  const quantity = new Decimal(balance.quantity || '0')
+  if (quantity.lte(0)) {
+    return '0.00'
+  }
+
+  return new Decimal(balance.value || '0').div(quantity).toFixed(2)
 }
 
 export async function buildStockValuation(
@@ -31,18 +44,14 @@ export async function buildStockValuation(
   return balances
     .map((balance) => {
       const item = itemById.get(balance.itemId)
-      const avgRate = item?.purchaseRate ?? '0.00'
-      const stockValue = new Decimal(balance.quantity || '0')
-        .times(avgRate)
-        .toFixed(2)
 
       return {
         itemId: balance.itemId,
         itemName: item?.name ?? 'Unknown item',
         unit: item?.baseUnit ?? '',
         quantity: balance.quantity,
-        avgRate,
-        stockValue,
+        avgRate: averageRate(balance),
+        stockValue: new Decimal(balance.value || '0').toFixed(2),
         tracksInventory: item?.tracksInventory ?? true,
       }
     })

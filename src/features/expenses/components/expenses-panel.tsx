@@ -40,7 +40,7 @@ import {
 } from '#/components/ui/table.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import {
   requirePositiveAmount,
@@ -135,7 +135,7 @@ export function ExpensesPanel() {
             <DialogHeader>
               <DialogTitle>Expense voucher</DialogTitle>
               <DialogDescription>
-                Debits Expenses and credits Cash/Bank through the ledger engine.
+                Records the expense and the cash or bank it was paid from.
               </DialogDescription>
             </DialogHeader>
             <form className="flex flex-col gap-4" onSubmit={handleCreate}>
@@ -201,7 +201,7 @@ export function ExpensesPanel() {
           </DialogContent>
         </Dialog>
       }
-      description="Operating expenses posted through double-entry ledger."
+      description="Day-to-day business expenses paid by cash or bank."
       title="Expenses"
     >
       <Card>

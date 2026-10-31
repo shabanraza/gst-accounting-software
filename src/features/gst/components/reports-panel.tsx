@@ -18,7 +18,6 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
-import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
 import { Textarea } from '#/components/ui/textarea.tsx'
 import {
@@ -30,18 +29,17 @@ import {
   TableRow,
 } from '#/components/ui/table.tsx'
 import { ScrollableTabsList } from '#/components/ui/scrollable-tabs-list.tsx'
-import {
-  Tabs,
-  TabsContent,
-  TabsTrigger,
-} from '#/components/ui/tabs.tsx'
+import { Tabs, TabsContent, TabsTrigger } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { requireTrimmed, requireWorkspace } from '#/lib/form-validation.ts'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { Label } from '#/components/ui/label.tsx'
 import { currentGstMonthPeriod } from '#/lib/gst-period.ts'
+import { Gstr1Sections } from '#/features/gst/components/gstr1-sections.tsx'
+import { Gstr3bSections } from '#/features/gst/components/gstr3b-sections.tsx'
+import { ReturnPeriodFields } from '#/features/gst/components/return-period-fields.tsx'
 import { parseGstr1PortalJson } from '#/features/gst/gstr1-portal-parser.ts'
 import type { Gstr1ReconciliationReport } from '#/features/gst/gstr1-reconciliation-service.ts'
 import { parseGstr2bPortalJson } from '#/features/gst/gstr2b-portal-parser.ts'
@@ -54,12 +52,12 @@ import type {
 import type { Gstr3bWorkingReport } from '#/features/gst/gstr3b-working-service.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
-export function ReportsPanel() {
+export function ReportsPanel({ initialTab }: { initialTab?: string }) {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { companyId, company, isReady } = useWorkspace()
-  const [tab, setTab] = React.useState('gstr1')
+  const [tab, setTab] = React.useState(initialTab ?? 'gstr1')
   const defaultReconPeriod = React.useMemo(() => currentGstMonthPeriod(), [])
   const [reconPeriodStart, setReconPeriodStart] = React.useState(
     defaultReconPeriod.periodStart,
@@ -68,9 +66,9 @@ export function ReportsPanel() {
     defaultReconPeriod.periodEnd,
   )
   const [gstr2bText, setGstr2bText] = React.useState('')
-  const [gstr2bPortalRows, setGstr2bPortalRows] = React.useState<Array<Gstr2bRow>>(
-    [],
-  )
+  const [gstr2bPortalRows, setGstr2bPortalRows] = React.useState<
+    Array<Gstr2bRow>
+  >([])
   const [gstr2bReport, setGstr2bReport] =
     React.useState<Gstr2bReconciliationReport | null>(null)
   const [gstr3bWorking, setGstr3bWorking] =
@@ -80,22 +78,24 @@ export function ReportsPanel() {
     React.useState<Gstr1ReconciliationReport | null>(null)
   const periodStart = '2026-04-01'
   const periodEnd = '2027-03-31'
+  // Businesses without a GSTIN issue bills of supply and file no GSTR-1.
+  const hasGstin = Boolean(company?.gstin)
 
   const gstr1Query = useQuery({
     ...trpc.reports.gstr1.queryOptions({
       companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
       companyStateCode: company?.stateCode ?? '27',
-      periodStart,
-      periodEnd,
+      periodStart: reconPeriodStart,
+      periodEnd: reconPeriodEnd,
     }),
-    enabled: Boolean(companyId) && isReady && tab === 'gstr1',
+    enabled: Boolean(companyId) && isReady && tab === 'gstr1' && hasGstin,
   })
   const gstr3bQuery = useQuery({
     ...trpc.reports.gstr3b.queryOptions({
       companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
       companyStateCode: company?.stateCode ?? '27',
-      periodStart,
-      periodEnd,
+      periodStart: reconPeriodStart,
+      periodEnd: reconPeriodEnd,
     }),
     enabled: Boolean(companyId) && isReady && tab === 'gstr3b',
   })
@@ -214,11 +214,14 @@ export function ReportsPanel() {
     }
   }
 
-  async function handleGstr2bFile(event: React.ChangeEvent<HTMLInputElement>) {
+  async function readFileInto(
+    event: React.ChangeEvent<HTMLInputElement>,
+    setText: (text: string) => void,
+  ) {
     const file = event.target.files?.[0]
     if (!file) return
     try {
-      setGstr2bText(await file.text())
+      setText(await file.text())
     } catch {
       toast.error('Could not read the uploaded file')
     } finally {
@@ -258,7 +261,7 @@ export function ReportsPanel() {
 
   async function runGstr1Reconciliation() {
     if (!requireWorkspace(companyId)) return
-    if (!requireTrimmed(gstr1ReconText, 'GSTR-1 portal data')) return
+    if (!requireTrimmed(gstr1ReconText, 'GSTR-1 file')) return
     try {
       const portalRows = parseGstr1PortalJson(gstr1ReconText)
       const report = await gstr1ReconMutation.mutateAsync({
@@ -269,26 +272,50 @@ export function ReportsPanel() {
       })
       setGstr1ReconReport(report)
     } catch (err) {
-      toastActionError(err, 'GSTR-1 reconciliation failed')
+      toastActionError(err, 'Could not compare GSTR-1')
     }
   }
 
-  function downloadExport() {
-    if (!requireWorkspace(companyId) || !exportQuery.data) return
-    const blob = new Blob([JSON.stringify(exportQuery.data, null, 2)], {
-      type: 'application/json',
-    })
+  function saveJsonFile(text: string, fileName: string) {
+    const blob = new Blob([text], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `accountant-export-${companyId}.json`
+    anchor.download = fileName
     anchor.click()
     URL.revokeObjectURL(url)
   }
 
+  function downloadExport() {
+    if (!requireWorkspace(companyId) || !exportQuery.data) return
+    saveJsonFile(
+      JSON.stringify(exportQuery.data, null, 2),
+      `accountant-export-${companyId}.json`,
+    )
+  }
+
+  async function downloadGstr1Json() {
+    if (!requireWorkspace(companyId) || !company?.gstin) return
+    try {
+      const json = await queryClient.fetchQuery(
+        trpc.reports.gstr1Json.queryOptions({
+          companyId,
+          companyStateCode: company.stateCode,
+          companyGstin: company.gstin,
+          periodStart: reconPeriodStart,
+          periodEnd: reconPeriodEnd,
+        }),
+      )
+      const fp = reconPeriodEnd.slice(5, 7) + reconPeriodEnd.slice(0, 4)
+      saveJsonFile(json, `GSTR1_${company.gstin}_${fp}.json`)
+    } catch (error) {
+      toastActionError(error, 'Could not prepare the GSTR-1 file')
+    }
+  }
+
   return (
     <WorkspacePage
-      description="Live GSTR working reports and trial balance from posted documents."
+      description="GST returns, trial balance and other reports from your invoices and bills."
       title="Reports"
     >
       <Tabs onValueChange={setTab} value={tab}>
@@ -308,177 +335,197 @@ export function ReportsPanel() {
           <TabsTrigger value="export">Export</TabsTrigger>
         </ScrollableTabsList>
 
-        <TabsContent className="mt-4" value="gstr1">
+        <TabsContent className="mt-4 flex flex-col gap-4" value="gstr1">
+          {company && !hasGstin ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FileBarChartIcon className="size-4 text-muted-foreground" />
+                  No GSTR-1 for this company
+                </CardTitle>
+                <CardDescription>
+                  {company.tradeName || company.legalName} has no GSTIN, so it
+                  issues bills of supply and does not file GSTR-1.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          ) : (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <FileBarChartIcon className="size-4 text-muted-foreground" />
+                    GSTR-1 summary
+                  </CardTitle>
+                  <CardDescription>
+                    Net taxable{' '}
+                    {formatInr(gstr1Query.data?.totalTaxableValue ?? 0)}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-wrap items-end gap-3">
+                  <ReturnPeriodFields
+                    onPeriodEndChange={setReconPeriodEnd}
+                    onPeriodStartChange={setReconPeriodStart}
+                    periodEnd={reconPeriodEnd}
+                    periodStart={reconPeriodStart}
+                  />
+                  <Button
+                    disabled={!gstr1Query.data}
+                    onClick={downloadGstr1Json}
+                    type="button"
+                    variant="outline"
+                  >
+                    <DownloadIcon data-icon="inline-start" />
+                    Download JSON
+                  </Button>
+                </CardContent>
+              </Card>
+              <Gstr1Sections report={gstr1Query.data} />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">
+                    Match with filed GSTR-1
+                  </CardTitle>
+                  <CardDescription>
+                    Compare the GSTR-1 you filed on the GST portal with your
+                    sales invoices for the same period
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="gstr1-file">
+                      GSTR-1 file from the GST portal
+                    </Label>
+                    <Input
+                      accept=".json"
+                      id="gstr1-file"
+                      onChange={(event) =>
+                        readFileInto(event, setGstr1ReconText)
+                      }
+                      type="file"
+                    />
+                  </div>
+                  <Textarea
+                    aria-label="GSTR-1 JSON"
+                    className="min-h-32 font-mono text-xs"
+                    onChange={(event) => setGstr1ReconText(event.target.value)}
+                    placeholder="Or paste the GSTR-1 JSON here"
+                    value={gstr1ReconText}
+                  />
+                  <Button
+                    disabled={!companyId || gstr1ReconMutation.isPending}
+                    onClick={runGstr1Reconciliation}
+                    type="button"
+                  >
+                    Compare with books
+                  </Button>
+                  {gstr1ReconReport ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-xs text-muted-foreground">
+                            Matched
+                          </p>
+                          <p className="text-lg font-semibold">
+                            {gstr1ReconReport.summary.matchedCount}
+                          </p>
+                        </div>
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-xs text-muted-foreground">
+                            Mismatched
+                          </p>
+                          <p className="text-lg font-semibold">
+                            {gstr1ReconReport.summary.mismatchedCount}
+                          </p>
+                        </div>
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-xs text-muted-foreground">
+                            Missing in books
+                          </p>
+                          <p className="text-lg font-semibold">
+                            {gstr1ReconReport.summary.missingInBooksCount}
+                          </p>
+                        </div>
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-xs text-muted-foreground">
+                            Missing in GSTR-1
+                          </p>
+                          <p className="text-lg font-semibold">
+                            {gstr1ReconReport.summary.missingInGstr1Count}
+                          </p>
+                        </div>
+                      </div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Invoice</TableHead>
+                            <TableHead>GSTIN</TableHead>
+                            <TableHead>Taxable (books)</TableHead>
+                            <TableHead>GSTR-1 taxable</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {gstr1ReconReport.rows.map((row) => (
+                            <TableRow key={row.rowKey}>
+                              <TableCell className="font-medium">
+                                {row.invoiceNumber}
+                              </TableCell>
+                              <TableCell className="font-mono text-xs">
+                                {row.customerGstin ?? '—'}
+                              </TableCell>
+                              <TableCell>
+                                {row.bookTaxableAmount
+                                  ? formatInr(row.bookTaxableAmount)
+                                  : '—'}
+                              </TableCell>
+                              <TableCell>
+                                {row.portalTaxableAmount
+                                  ? formatInr(row.portalTaxableAmount)
+                                  : '—'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={gstReconciliationBadgeIntent(
+                                    row.status,
+                                  )}
+                                >
+                                  {row.status.replaceAll('_', ' ')}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent className="mt-4 flex flex-col gap-4" value="gstr3b">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <FileBarChartIcon className="size-4 text-muted-foreground" />
-                GSTR-1 working report
+                GSTR-3B summary
               </CardTitle>
               <CardDescription>
-                FY {periodStart} to {periodEnd} · taxable{' '}
-                {formatInr(gstr1Query.data?.totalTaxableValue ?? 0)}
+                Net payable {formatInr(gstr3bQuery.data?.netGstPayable ?? 0)}
               </CardDescription>
             </CardHeader>
-            <CardContent className="px-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Invoice</TableHead>
-                    <TableHead>Party</TableHead>
-                    <TableHead>GSTIN</TableHead>
-                    <TableHead>Taxable</TableHead>
-                    <TableHead>Tax</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(gstr1Query.data?.b2b ?? []).length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        className="py-10 text-center text-muted-foreground"
-                        colSpan={5}
-                      >
-                        No outward supplies in period.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    (gstr1Query.data?.b2b ?? []).map((row) => (
-                      <TableRow key={row.invoiceNumber}>
-                        <TableCell className="font-medium">
-                          {row.invoiceNumber}
-                        </TableCell>
-                        <TableCell>{row.partyName}</TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {row.partyGstin ?? 'URP'}
-                        </TableCell>
-                        <TableCell>{formatInr(row.taxableAmount)}</TableCell>
-                        <TableCell>{formatInr(row.totalGstAmount)}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle className="text-base">GSTR-1 vs books</CardTitle>
-              <CardDescription>
-                Paste filed GSTR-1 JSON and reconcile against sales invoices for{' '}
-                {reconPeriodStart} to {reconPeriodEnd}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <div className="flex flex-wrap items-end gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <Label>Period start</Label>
-                  <DatePicker
-                    onChange={setReconPeriodStart}
-                    value={reconPeriodStart}
-                    variant="toolbar"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label>Period end</Label>
-                  <DatePicker
-                    onChange={setReconPeriodEnd}
-                    value={reconPeriodEnd}
-                    variant="toolbar"
-                  />
-                </div>
-              </div>
-              <Textarea
-                className="min-h-32 font-mono text-xs"
-                onChange={(event) => setGstr1ReconText(event.target.value)}
-                placeholder='[{"customerGstin":"24AAAA...","invoiceNumber":"INV-1","invoiceDate":"2026-01-06","taxableAmount":"1000.00","totalGstAmount":"180.00"}]'
-                value={gstr1ReconText}
+            <CardContent className="flex flex-wrap items-end gap-3">
+              <ReturnPeriodFields
+                onPeriodEndChange={setReconPeriodEnd}
+                onPeriodStartChange={setReconPeriodStart}
+                periodEnd={reconPeriodEnd}
+                periodStart={reconPeriodStart}
               />
-              <Button
-                disabled={!companyId || gstr1ReconMutation.isPending}
-                onClick={runGstr1Reconciliation}
-                type="button"
-              >
-                Reconcile GSTR-1
-              </Button>
-              {gstr1ReconReport ? (
-                <>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <div className="rounded-lg bg-muted/40 p-3">
-                      <p className="text-xs text-muted-foreground">Matched</p>
-                      <p className="text-lg font-semibold">
-                        {gstr1ReconReport.summary.matchedCount}
-                      </p>
-                    </div>
-                    <div className="rounded-lg bg-muted/40 p-3">
-                      <p className="text-xs text-muted-foreground">Mismatched</p>
-                      <p className="text-lg font-semibold">
-                        {gstr1ReconReport.summary.mismatchedCount}
-                      </p>
-                    </div>
-                    <div className="rounded-lg bg-muted/40 p-3">
-                      <p className="text-xs text-muted-foreground">
-                        Missing in books
-                      </p>
-                      <p className="text-lg font-semibold">
-                        {gstr1ReconReport.summary.missingInBooksCount}
-                      </p>
-                    </div>
-                    <div className="rounded-lg bg-muted/40 p-3">
-                      <p className="text-xs text-muted-foreground">
-                        Missing in GSTR-1
-                      </p>
-                      <p className="text-lg font-semibold">
-                        {gstr1ReconReport.summary.missingInGstr1Count}
-                      </p>
-                    </div>
-                  </div>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Invoice</TableHead>
-                        <TableHead>GSTIN</TableHead>
-                        <TableHead>Books taxable</TableHead>
-                        <TableHead>GSTR-1 taxable</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {gstr1ReconReport.rows.map((row) => (
-                        <TableRow key={row.rowKey}>
-                          <TableCell className="font-medium">
-                            {row.invoiceNumber}
-                          </TableCell>
-                          <TableCell className="font-mono text-xs">
-                            {row.customerGstin ?? '—'}
-                          </TableCell>
-                          <TableCell>
-                            {row.bookTaxableAmount
-                              ? formatInr(row.bookTaxableAmount)
-                              : '—'}
-                          </TableCell>
-                          <TableCell>
-                            {row.portalTaxableAmount
-                              ? formatInr(row.portalTaxableAmount)
-                              : '—'}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={gstReconciliationBadgeIntent(row.status)}
-                            >
-                              {row.status.replaceAll('_', ' ')}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </>
-              ) : null}
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent className="mt-4" value="gstr3b">
+          <Gstr3bSections report={gstr3bQuery.data} />
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader className="pb-2">
@@ -505,8 +552,10 @@ export function ReportsPanel() {
               </CardHeader>
             </Card>
           </div>
-          {gstr3bWorking ? (
-            <div className="mt-4 grid gap-4 md:grid-cols-4">
+          {gstr3bWorking &&
+          gstr3bWorking.periodStart === reconPeriodStart &&
+          gstr3bWorking.periodEnd === reconPeriodEnd ? (
+            <div className="grid gap-4 md:grid-cols-4">
               <Card>
                 <CardHeader className="pb-2">
                   <CardDescription>Accepted ITC (2B)</CardDescription>
@@ -742,7 +791,7 @@ export function ReportsPanel() {
                       <TableHead>Party</TableHead>
                       <TableHead>Invoice</TableHead>
                       <TableHead>Days past due</TableHead>
-                      <TableHead>Bucket</TableHead>
+                      <TableHead>Age</TableHead>
                       <TableHead className="text-right">Outstanding</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -763,7 +812,9 @@ export function ReportsPanel() {
                           <TableCell>{row.documentNumber}</TableCell>
                           <TableCell>{row.daysPastDue}</TableCell>
                           <TableCell>
-                            <Badge variant={ageingBucketBadgeIntent(row.bucket)}>
+                            <Badge
+                              variant={ageingBucketBadgeIntent(row.bucket)}
+                            >
                               {AGEING_BUCKET_DISPLAY_LABEL[row.bucket]}
                             </Badge>
                           </TableCell>
@@ -789,7 +840,7 @@ export function ReportsPanel() {
                       <TableHead>Party</TableHead>
                       <TableHead>Bill</TableHead>
                       <TableHead>Days past due</TableHead>
-                      <TableHead>Bucket</TableHead>
+                      <TableHead>Age</TableHead>
                       <TableHead className="text-right">Outstanding</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -810,7 +861,9 @@ export function ReportsPanel() {
                           <TableCell>{row.documentNumber}</TableCell>
                           <TableCell>{row.daysPastDue}</TableCell>
                           <TableCell>
-                            <Badge variant={ageingBucketBadgeIntent(row.bucket)}>
+                            <Badge
+                              variant={ageingBucketBadgeIntent(row.bucket)}
+                            >
                               {AGEING_BUCKET_DISPLAY_LABEL[row.bucket]}
                             </Badge>
                           </TableCell>
@@ -841,7 +894,7 @@ export function ReportsPanel() {
                   <TableRow>
                     <TableHead>Item</TableHead>
                     <TableHead>Unit</TableHead>
-                    <TableHead className="text-right">Qty on hand</TableHead>
+                    <TableHead className="text-right">Closing qty</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1094,35 +1147,26 @@ export function ReportsPanel() {
                 GSTR-2B reconciliation
               </CardTitle>
               <CardDescription>
-                Import portal JSON, reconcile purchase bills for the return
-                period, and accept or reject ITC before filing GSTR-3B
+                Upload the GSTR-2B file from the GST portal and match it with
+                your purchase bills period, and accept or reject ITC before
+                filing GSTR-3B
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="flex flex-wrap items-end gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <Label>Period start</Label>
-                  <DatePicker
-                    onChange={setReconPeriodStart}
-                    value={reconPeriodStart}
-                    variant="toolbar"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label>Period end</Label>
-                  <DatePicker
-                    onChange={setReconPeriodEnd}
-                    value={reconPeriodEnd}
-                    variant="toolbar"
-                  />
-                </div>
+                <ReturnPeriodFields
+                  onPeriodEndChange={setReconPeriodEnd}
+                  onPeriodStartChange={setReconPeriodStart}
+                  periodEnd={reconPeriodEnd}
+                  periodStart={reconPeriodStart}
+                />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="gstr2b-file">Portal file</Label>
                 <Input
                   accept=".json,.csv,.txt"
                   id="gstr2b-file"
-                  onChange={handleGstr2bFile}
+                  onChange={(event) => readFileInto(event, setGstr2bText)}
                   type="file"
                 />
               </div>
@@ -1151,7 +1195,9 @@ export function ReportsPanel() {
                       </p>
                     </div>
                     <div className="rounded-lg bg-muted/40 p-3">
-                      <p className="text-xs text-muted-foreground">Mismatched</p>
+                      <p className="text-xs text-muted-foreground">
+                        Mismatched
+                      </p>
                       <p className="text-lg font-semibold">
                         {gstr2bReport.summary.mismatchedCount}
                       </p>
@@ -1199,7 +1245,7 @@ export function ReportsPanel() {
                         <TableHead>Invoice</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>GSTIN</TableHead>
-                        <TableHead>Books GST</TableHead>
+                        <TableHead>GST (books)</TableHead>
                         <TableHead>2B GST</TableHead>
                         <TableHead>CGST / SGST / IGST (2B)</TableHead>
                         <TableHead>Status</TableHead>
@@ -1285,8 +1331,10 @@ export function ReportsPanel() {
                                 <Button
                                   onClick={() => {
                                     storeGstr2bPurchasePrefill({
-                                      supplierGstin: row.supplierGstin ?? undefined,
-                                      supplierBillNumber: row.supplierInvoiceNumber,
+                                      supplierGstin:
+                                        row.supplierGstin ?? undefined,
+                                      supplierBillNumber:
+                                        row.supplierInvoiceNumber,
                                       billDate: row.invoiceDate ?? undefined,
                                       taxableAmount:
                                         row.portalTaxableAmount ?? undefined,
@@ -1340,7 +1388,7 @@ export function ReportsPanel() {
                 </div>
                 <div className="rounded-lg bg-muted/40 p-4">
                   <p className="text-xs text-muted-foreground">
-                    Trial balance rows
+                    Trial balance lines
                   </p>
                   <p className="text-lg font-semibold">
                     {exportQuery.data?.trialBalance.rows.length ?? 0}
@@ -1353,7 +1401,7 @@ export function ReportsPanel() {
                 onClick={downloadExport}
               >
                 <DownloadIcon data-icon="inline-start" />
-                Download JSON pack
+                Download for your accountant
               </Button>
             </CardContent>
           </Card>

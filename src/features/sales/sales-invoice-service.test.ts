@@ -5,6 +5,7 @@ import { InMemoryLedgerAccountRepository } from '#/features/accounting/ledger-ac
 import { InMemoryLedgerPostingRepository } from '#/features/accounting/ledger-posting-store.ts'
 import { createItem } from '#/features/inventory/item-service.ts'
 import {
+  InsufficientStockError,
   getCurrentStock,
   recordStockMovement,
 } from '#/features/inventory/stock-movement-service.ts'
@@ -86,6 +87,7 @@ async function seedSalesContext() {
     name: 'Noor Retailers',
     partyType: 'customer',
     gstin: '27AABCU9603R1ZM',
+    billingAddress: '12 Market Road, Surat',
     stateCode: '27',
     creditLimit: '100000.00',
     paymentTermsDays: 30,
@@ -132,6 +134,116 @@ async function seedSalesContext() {
 }
 
 describe('postSalesInvoice', () => {
+  test('loads each item once and writes all stock lines in one batch', async () => {
+    const context = await seedSalesContext()
+    const lookups: Array<string> = []
+    const findById = context.items.findById.bind(context.items)
+    context.items.findById = (id: string) => {
+      lookups.push(id)
+      return findById(id)
+    }
+    const batches: Array<number> = []
+    const createMovements = context.stock.createMovements.bind(context.stock)
+    context.stock.createMovements = (movements) => {
+      batches.push(movements.length)
+      return createMovements(movements)
+    }
+    const line = {
+      itemId: context.item.id,
+      description: 'Cotton Fabric',
+      quantity: '2',
+      unit: 'meter',
+      rate: '120.00',
+      gstRate: '5.00',
+    }
+
+    await postSalesInvoice(
+      {
+        invoices: context.invoices,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+        parties: context.parties,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        customerId: context.customer.id,
+        customerStateCode: '27',
+        invoiceNumber: 'INV-3001',
+        invoiceDate: '2026-07-11',
+        paymentMode: 'cash',
+        salesAccountId: context.salesAccountId,
+        outputGstAccountId: context.outputGstAccountId,
+        receivableAccountId: context.receivableAccountId,
+        cashAccountId: context.cashAccountId,
+        cogsAccountId: context.salesAccountId,
+        stockAccountId: context.cashAccountId,
+        lines: [line, { ...line, quantity: '3' }],
+      },
+    )
+
+    expect(lookups).toEqual([context.item.id])
+    expect(batches).toEqual([2])
+    expect(
+      await getCurrentStock(context.stock, context.companyId, context.item.id),
+    ).toBe('95')
+  })
+
+  test('rejects selling an item with no stock instead of inventing opening stock', async () => {
+    const context = await seedSalesContext()
+    const unstocked = await createItem(context.items, {
+      companyId: context.companyId,
+      name: 'Silk Blend',
+      hsnCode: '5007',
+      gstRate: '5.00',
+      baseUnit: 'meter',
+      purchaseRate: '200.00',
+      saleRate: '260.00',
+      tracksInventory: true,
+    })
+
+    await expect(
+      postSalesInvoice(
+        {
+          invoices: context.invoices,
+          posting: context.ledgerPosting,
+          stock: context.stock,
+          items: context.items,
+          parties: context.parties,
+        },
+        {
+          companyId: context.companyId,
+          companyStateCode: '27',
+          customerId: context.customer.id,
+          customerStateCode: '27',
+          invoiceNumber: 'INV-2001',
+          invoiceDate: '2026-07-11',
+          paymentMode: 'cash',
+          salesAccountId: context.salesAccountId,
+          outputGstAccountId: context.outputGstAccountId,
+          receivableAccountId: context.receivableAccountId,
+          cashAccountId: context.cashAccountId,
+          lines: [
+            {
+              itemId: unstocked.id,
+              description: 'Silk Blend',
+              quantity: '5',
+              unit: 'meter',
+              rate: '260.00',
+              gstRate: '5.00',
+            },
+          ],
+        },
+      ),
+    ).rejects.toBeInstanceOf(InsufficientStockError)
+
+    const movements = await context.stock.listByCompanyId(context.companyId)
+    expect(
+      movements.filter((movement) => movement.itemId === unstocked.id),
+    ).toEqual([])
+  })
+
   test('posts credit sales invoice for 20 meters at Rs. 120 with 5% GST', async () => {
     const context = await seedSalesContext()
 
@@ -194,6 +306,62 @@ describe('postSalesInvoice', () => {
     expect(gstLine?.credit).toBe('120.00')
     expect(receivableLine?.debit).toBe('2520.00')
     expect(cashLine).toBeUndefined()
+  })
+
+  test('charges no GST when the company is unregistered', async () => {
+    const context = await seedSalesContext()
+
+    const invoice = await postSalesInvoice(
+      {
+        invoices: context.invoices,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+        parties: context.parties,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        companyGstin: null,
+        customerId: context.customer.id,
+        customerStateCode: '27',
+        invoiceNumber: 'INV-1001',
+        invoiceDate: '2026-07-11',
+        paymentMode: 'credit',
+        taxMode: 'inclusive',
+        salesAccountId: context.salesAccountId,
+        outputGstAccountId: context.outputGstAccountId,
+        receivableAccountId: context.receivableAccountId,
+        cashAccountId: context.cashAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity: '20',
+            unit: 'meter',
+            rate: '120.00',
+            gstRate: '5.00',
+          },
+        ],
+      },
+    )
+
+    expect(invoice.taxableAmount).toBe('2400.00')
+    expect(invoice.totalGstAmount).toBe('0.00')
+    expect(invoice.totalAmount).toBe('2400.00')
+    expect(invoice.lines[0].gstRate).toBe('0.00')
+    expect(invoice.lines[0].gstAmount).toBe('0.00')
+
+    const entry = context.ledgerPosting.list()[0]
+    const salesLine = entry.lines.find(
+      (line) => line.ledgerAccountId === context.salesAccountId,
+    )
+    const gstLine = entry.lines.find(
+      (line) => line.ledgerAccountId === context.outputGstAccountId,
+    )
+
+    expect(salesLine?.credit).toBe('2400.00')
+    expect(gstLine?.credit ?? '0.00').toBe('0.00')
   })
 
   test('posts cash sale without creating receivable', async () => {
@@ -450,5 +618,177 @@ describe('cancelSalesInvoice', () => {
         { companyId: context.companyId, invoiceId: invoice.id },
       ),
     ).rejects.toBeInstanceOf(InvoiceAlreadyCancelledError)
+  })
+})
+
+describe('sales cost of goods sold', () => {
+  async function valuedContext() {
+    const context = await seedSalesContext()
+    const ledgerAccounts = new InMemoryLedgerAccountRepository()
+    const chart = await setupDefaultChartOfAccounts(ledgerAccounts, {
+      companyId: context.companyId,
+      businessType: 'wholesale',
+    })
+    const cogsAccountId = chart.find((a) => a.systemKey === 'cogs')!.id
+    const stockAccountId = chart.find(
+      (a) => a.systemKey === 'stock_in_hand',
+    )!.id
+
+    // Bought at Rs. 60 and Rs. 90 while the item master still says Rs. 80.
+    const item = await createItem(context.items, {
+      companyId: context.companyId,
+      name: 'Linen',
+      hsnCode: '5309',
+      gstRate: '5.00',
+      baseUnit: 'meter',
+      purchaseRate: '80.00',
+      saleRate: '150.00',
+      tracksInventory: true,
+    })
+    for (const [referenceId, value] of [
+      ['bill-1', '600.00'],
+      ['bill-2', '900.00'],
+    ]) {
+      await recordStockMovement(context.stock, context.stock, {
+        companyId: context.companyId,
+        itemId: item.id,
+        movementType: 'purchase_in',
+        quantity: '10',
+        unit: 'meter',
+        referenceType: 'purchase_bill',
+        referenceId,
+        occurredOn: '2026-07-01',
+        value,
+      })
+    }
+
+    const deps = {
+      invoices: context.invoices,
+      posting: context.ledgerPosting,
+      stock: context.stock,
+      items: context.items,
+      parties: context.parties,
+    }
+    const input = {
+      companyId: context.companyId,
+      companyStateCode: '27',
+      customerId: context.customer.id,
+      customerStateCode: '27',
+      invoiceNumber: 'INV-3001',
+      invoiceDate: '2026-07-11',
+      paymentMode: 'cash' as const,
+      salesAccountId: context.salesAccountId,
+      outputGstAccountId: context.outputGstAccountId,
+      receivableAccountId: context.receivableAccountId,
+      cashAccountId: context.cashAccountId,
+      cogsAccountId,
+      stockAccountId,
+      lines: [
+        {
+          itemId: item.id,
+          description: 'Linen',
+          quantity: '5',
+          unit: 'meter',
+          rate: '150.00',
+          gstRate: '5.00',
+        },
+      ],
+    }
+
+    return { context, deps, input, item, cogsAccountId, stockAccountId }
+  }
+
+  test('books COGS at the moving average cost, not the item purchase rate', async () => {
+    const { context, deps, input, item, cogsAccountId, stockAccountId } =
+      await valuedContext()
+
+    await postSalesInvoice(deps, input)
+
+    const entry = context.ledgerPosting.list()[0]
+    const cogs = entry.lines.find((l) => l.ledgerAccountId === cogsAccountId)
+    const stock = entry.lines.find((l) => l.ledgerAccountId === stockAccountId)
+    expect(cogs?.debit).toBe('375.00')
+    expect(stock?.credit).toBe('375.00')
+    expect(await context.stock.getValue(context.companyId, item.id)).toBe(
+      '1125.00',
+    )
+  })
+
+  test('omits COGS lines when the stock sold has no recorded cost', async () => {
+    const context = await seedSalesContext()
+    const chart = await setupDefaultChartOfAccounts(
+      new InMemoryLedgerAccountRepository(),
+      { companyId: context.companyId, businessType: 'wholesale' },
+    )
+    const cogsAccountId = chart.find((a) => a.systemKey === 'cogs')!.id
+    const stockAccountId = chart.find(
+      (a) => a.systemKey === 'stock_in_hand',
+    )!.id
+
+    await postSalesInvoice(
+      {
+        invoices: context.invoices,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+        parties: context.parties,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        customerId: context.customer.id,
+        customerStateCode: '27',
+        invoiceNumber: 'INV-3002',
+        invoiceDate: '2026-07-11',
+        paymentMode: 'cash',
+        salesAccountId: context.salesAccountId,
+        outputGstAccountId: context.outputGstAccountId,
+        receivableAccountId: context.receivableAccountId,
+        cashAccountId: context.cashAccountId,
+        cogsAccountId,
+        stockAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity: '5',
+            unit: 'meter',
+            rate: '120.00',
+            gstRate: '5.00',
+          },
+        ],
+      },
+    )
+
+    const entry = context.ledgerPosting.list()[0]
+    expect(entry.lines.some((l) => l.ledgerAccountId === cogsAccountId)).toBe(
+      false,
+    )
+  })
+
+  test('cancelling returns stock at the cost the invoice removed', async () => {
+    const { context, deps, input, item } = await valuedContext()
+    const invoice = await postSalesInvoice(deps, input)
+    // A later purchase moves the average; the cancel must not use it.
+    await recordStockMovement(context.stock, context.stock, {
+      companyId: context.companyId,
+      itemId: item.id,
+      movementType: 'purchase_in',
+      quantity: '5',
+      unit: 'meter',
+      referenceType: 'purchase_bill',
+      referenceId: 'bill-3',
+      occurredOn: '2026-07-12',
+      value: '1000.00',
+    })
+
+    await cancelSalesInvoice(deps, {
+      companyId: context.companyId,
+      invoiceId: invoice.id,
+    })
+
+    expect(await context.stock.getValue(context.companyId, item.id)).toBe(
+      '2500.00',
+    )
   })
 })

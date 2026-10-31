@@ -1,6 +1,5 @@
 import * as React from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { usePostHog } from '@posthog/react'
 import { SendIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -22,7 +21,6 @@ const RATINGS = ['1', '2', '3', '4', '5'] as const
 
 export function LandingFeedback() {
   const trpc = useTRPC()
-  const posthog = usePostHog()
   const guard = useSpamGuard()
   const sendFeedback = useMutation(
     trpc.marketing.sendFeedback.mutationOptions(),
@@ -44,7 +42,6 @@ export function LandingFeedback() {
         email,
         ...guard.payload(),
       })
-      posthog.capture('feedback_submitted', { rating: Number(rating) })
       toast.success(FEEDBACK.success)
       setRating('')
       setMessage('')

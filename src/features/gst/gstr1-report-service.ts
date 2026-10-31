@@ -1,6 +1,10 @@
 import Decimal from 'decimal.js'
 
+import { summarizeHsnByRate } from '#/features/gst/hsn-summary-service.ts'
+
+import type { Gstr1HsnRow } from '#/features/gst/hsn-summary-service.ts'
 import type {
+  GstRateLine,
   GstReportDocument,
   GstReportPeriodInput,
 } from '#/features/gst/gst-report-types.ts'
@@ -17,6 +21,24 @@ export type Gstr1Line = {
   igstAmount: string
   totalGstAmount: string
   totalAmount: string
+  supplyType: GstReportDocument['supplyType']
+  reverseCharge: boolean
+  /** Taxable value and tax per GST rate, as the portal asks for each invoice. */
+  rates: Array<Gstr1RateRow>
+}
+
+export type Gstr1RateRow = {
+  gstRate: string
+  taxableAmount: string
+  cgstAmount: string
+  sgstAmount: string
+  igstAmount: string
+}
+
+/** One GSTR-1 Table 7 row: B2C small supplies for a place of supply and rate. */
+export type Gstr1B2csRow = Gstr1RateRow & {
+  placeOfSupply: string
+  supplyType: GstReportDocument['supplyType']
 }
 
 export type Gstr1Report = {
@@ -24,17 +46,68 @@ export type Gstr1Report = {
   periodStart: string
   periodEnd: string
   b2b: Array<Gstr1Line>
-  creditDebitNotes: Array<Gstr1Line>
+  b2cl: Array<Gstr1Line>
+  b2cs: Array<Gstr1B2csRow>
+  /** Table 9B: credit notes to registered customers. */
+  cdnr: Array<Gstr1Line>
+  /** Table 9B: credit notes to unregistered customers against B2C large invoices. */
+  cdnur: Array<Gstr1Line>
+  /** Table 12: HSN summary of supplies to registered customers. */
+  hsnB2b: Array<Gstr1HsnRow>
+  /** Table 12: HSN summary of supplies to unregistered customers. */
+  hsnB2c: Array<Gstr1HsnRow>
+  /** Table 13: documents issued in the period, one row per series. */
+  documentsIssued: Array<Gstr1DocumentSeries>
   totalTaxableValue: string
+}
+
+export type Gstr1DocumentSeries = {
+  documentType: 'invoice' | 'credit_note'
+  series: string
+  from: string
+  to: string
+  total: number
+  cancelled: number
+}
+
+/** Cancelled invoices are left out of GST documents but still count in Table 13. */
+export type Gstr1ReportInput = GstReportPeriodInput & {
+  cancelledInvoices?: Array<
+    Pick<GstReportDocument, 'companyId' | 'invoiceNumber' | 'documentDate'>
+  >
 }
 
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP })
 
-function inPeriod(document: GstReportDocument, input: GstReportPeriodInput) {
+/**
+ * Inter-state invoices to unregistered buyers above this value go to B2C large
+ * (Table 5). CGST Notification 12/2024 lowered it from ₹2.5 lakh from 1 Aug 2024.
+ */
+function b2cLargeLimit(documentDate: string) {
+  return documentDate >= '2024-08-01' ? 100000 : 250000
+}
+
+function inPeriod(
+  document: Pick<GstReportDocument, 'companyId' | 'documentDate'>,
+  input: GstReportPeriodInput,
+) {
   return (
     document.companyId === input.companyId &&
     document.documentDate >= input.periodStart &&
     document.documentDate <= input.periodEnd
+  )
+}
+
+/** A credit note follows the invoice it was issued against. */
+function isB2cLarge(document: GstReportDocument) {
+  const invoice =
+    document.documentType === 'credit_note'
+      ? document.originalInvoice
+      : document
+  return (
+    invoice !== undefined &&
+    document.supplyType === 'inter_state' &&
+    new Decimal(invoice.totalAmount).gt(b2cLargeLimit(invoice.documentDate))
   )
 }
 
@@ -51,78 +124,347 @@ function toLine(document: GstReportDocument): Gstr1Line {
     igstAmount: document.igstAmount,
     totalGstAmount: document.totalGstAmount,
     totalAmount: document.totalAmount,
+    supplyType: document.supplyType,
+    reverseCharge: document.reverseCharge ?? false,
+    rates: rateLinesOf(document).map((line) =>
+      rateRow(
+        document.supplyType,
+        new Decimal(line.gstRate),
+        new Decimal(line.taxableAmount),
+        new Decimal(line.gstAmount),
+      ),
+    ),
   }
 }
 
-export function buildGstr1Report(input: GstReportPeriodInput): Gstr1Report {
+function rateRow(
+  supplyType: GstReportDocument['supplyType'],
+  gstRate: Decimal,
+  taxable: Decimal,
+  gst: Decimal,
+): Gstr1RateRow {
+  const isIntraState = supplyType === 'intra_state'
+  const half = gst.div(2).toFixed(2)
+  return {
+    gstRate: gstRate.toFixed(2),
+    taxableAmount: taxable.toFixed(2),
+    cgstAmount: isIntraState ? half : '0.00',
+    sgstAmount: isIntraState ? half : '0.00',
+    igstAmount: isIntraState ? '0.00' : gst.toFixed(2),
+  }
+}
+
+/** Falls back to one line at the invoice's effective rate when lines are absent. */
+function rateLinesOf(document: GstReportDocument): Array<GstRateLine> {
+  if (document.rateLines?.length) return document.rateLines
+  const taxable = new Decimal(document.taxableAmount)
+  const rate = taxable.isZero()
+    ? new Decimal(0)
+    : new Decimal(document.totalGstAmount).div(taxable).mul(100)
+  return [
+    {
+      gstRate: rate.toFixed(2),
+      taxableAmount: document.taxableAmount,
+      gstAmount: document.totalGstAmount,
+    },
+  ]
+}
+
+function buildB2cs(documents: Array<GstReportDocument>): Array<Gstr1B2csRow> {
+  const groups = new Map<
+    string,
+    {
+      placeOfSupply: string
+      supplyType: Gstr1B2csRow['supplyType']
+      gstRate: Decimal
+      taxable: Decimal
+      gst: Decimal
+    }
+  >()
+
+  for (const document of documents) {
+    // Credit notes on B2C small sales reduce the same Table 7 row.
+    const sign = document.documentType === 'credit_note' ? -1 : 1
+    for (const line of rateLinesOf(document)) {
+      const gstRate = new Decimal(line.gstRate)
+      const key = `${document.placeOfSupply}|${document.supplyType}|${gstRate.toFixed(2)}`
+      const group = groups.get(key) ?? {
+        placeOfSupply: document.placeOfSupply,
+        supplyType: document.supplyType,
+        gstRate,
+        taxable: new Decimal(0),
+        gst: new Decimal(0),
+      }
+      group.taxable = group.taxable.plus(
+        new Decimal(line.taxableAmount).mul(sign),
+      )
+      group.gst = group.gst.plus(new Decimal(line.gstAmount).mul(sign))
+      groups.set(key, group)
+    }
+  }
+
+  return [...groups.values()]
+    .sort(
+      (left, right) =>
+        left.placeOfSupply.localeCompare(right.placeOfSupply) ||
+        left.gstRate.comparedTo(right.gstRate),
+    )
+    .map((group) => ({
+      placeOfSupply: group.placeOfSupply,
+      supplyType: group.supplyType,
+      ...rateRow(group.supplyType, group.gstRate, group.taxable, group.gst),
+    }))
+}
+
+function sumTaxable(rows: Array<{ taxableAmount: string }>) {
+  return rows.reduce((sum, row) => sum.plus(row.taxableAmount), new Decimal(0))
+}
+
+/** Document numbers are `<series>-<number>`; the series is everything before the last dash. */
+function seriesOf(documentNumber: string) {
+  const dash = documentNumber.lastIndexOf('-')
+  return dash > 0 ? documentNumber.slice(0, dash) : documentNumber
+}
+
+function buildDocumentSeries(
+  documentType: Gstr1DocumentSeries['documentType'],
+  numbers: Array<{ number: string; cancelled: boolean }>,
+): Array<Gstr1DocumentSeries> {
+  const groups = new Map<string, Array<{ number: string; cancelled: boolean }>>()
+  for (const entry of numbers) {
+    const series = seriesOf(entry.number)
+    groups.set(series, [...(groups.get(series) ?? []), entry])
+  }
+  return [...groups.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([series, entries]) => {
+      const sorted = entries
+        .map((entry) => entry.number)
+        .sort((left, right) =>
+          left.localeCompare(right, undefined, { numeric: true }),
+        )
+      return {
+        documentType,
+        series,
+        from: sorted[0],
+        to: sorted[sorted.length - 1],
+        total: entries.length,
+        cancelled: entries.filter((entry) => entry.cancelled).length,
+      }
+    })
+}
+
+export function buildGstr1Report(input: Gstr1ReportInput): Gstr1Report {
   const periodDocs = input.documents.filter((document) =>
     inPeriod(document, input),
   )
-
-  const b2b = periodDocs
-    .filter(
-      (document) =>
-        document.documentType === 'sales_invoice' &&
-        Boolean(document.partyGstin),
-    )
-    .map(toLine)
-
-  const creditDebitNotes = periodDocs
-    .filter(
-      (document) =>
-        document.documentType === 'credit_note' ||
-        document.documentType === 'debit_note',
-    )
-    .map(toLine)
-
-  const invoicesTaxable = b2b.reduce(
-    (sum, line) => sum.plus(line.taxableAmount),
-    new Decimal(0),
+  const sales = periodDocs.filter(
+    (document) => document.documentType === 'sales_invoice',
   )
-  const notesTaxable = creditDebitNotes.reduce(
-    (sum, line) => sum.plus(line.taxableAmount),
-    new Decimal(0),
+  // Debit notes here are purchase returns, which belong to GSTR-3B, not GSTR-1.
+  const creditNotes = periodDocs.filter(
+    (document) => document.documentType === 'credit_note',
   )
+  const b2cSales = sales.filter((document) => !document.partyGstin)
+  const b2cNotes = creditNotes.filter((document) => !document.partyGstin)
+
+  const b2b = sales.filter((document) => document.partyGstin).map(toLine)
+  const b2cl = b2cSales.filter(isB2cLarge).map(toLine)
+  const b2cs = buildB2cs(
+    [...b2cSales, ...b2cNotes].filter((document) => !isB2cLarge(document)),
+  )
+  const cdnr = creditNotes.filter((document) => document.partyGstin).map(toLine)
+  const cdnur = b2cNotes.filter(isB2cLarge).map(toLine)
+
+  const invoicesTaxable = sumTaxable(b2b)
+    .plus(sumTaxable(b2cl))
+    .plus(sumTaxable(b2cs))
 
   return {
     companyId: input.companyId,
     periodStart: input.periodStart,
     periodEnd: input.periodEnd,
     b2b,
-    creditDebitNotes,
-    totalTaxableValue: invoicesTaxable.minus(notesTaxable).toFixed(2),
+    b2cl,
+    b2cs,
+    cdnr,
+    cdnur,
+    hsnB2b: summarizeHsnByRate(sales.filter((document) => document.partyGstin)),
+    hsnB2c: summarizeHsnByRate(b2cSales),
+    documentsIssued: [
+      ...buildDocumentSeries('invoice', [
+        ...sales.map((document) => ({
+          number: document.invoiceNumber,
+          cancelled: false,
+        })),
+        ...(input.cancelledInvoices ?? [])
+          .filter((invoice) => inPeriod(invoice, input))
+          .map((invoice) => ({ number: invoice.invoiceNumber, cancelled: true })),
+      ]),
+      ...buildDocumentSeries(
+        'credit_note',
+        creditNotes.map((document) => ({
+          number: document.invoiceNumber,
+          cancelled: false,
+        })),
+      ),
+    ],
+    totalTaxableValue: invoicesTaxable
+      .minus(sumTaxable(cdnr))
+      .minus(sumTaxable(cdnur))
+      .toFixed(2),
   }
 }
 
-export function buildGstr1Json(report: Gstr1Report): string {
+/** GSTN dates are dd-mm-yyyy. */
+function portalDate(date: string) {
+  const [year, month, day] = date.split('-')
+  return `${day}-${month}-${year}`
+}
+
+function portalItems(line: Gstr1Line, igstOnly = false) {
+  return line.rates.map((rate, index) => ({
+    num: index + 1,
+    itm_det: igstOnly
+      ? {
+          rt: Number(rate.gstRate),
+          txval: Number(rate.taxableAmount),
+          iamt: Number(rate.igstAmount),
+          csamt: 0,
+        }
+      : {
+          rt: Number(rate.gstRate),
+          txval: Number(rate.taxableAmount),
+          iamt: Number(rate.igstAmount),
+          camt: Number(rate.cgstAmount),
+          samt: Number(rate.sgstAmount),
+          csamt: 0,
+        },
+  }))
+}
+
+/** Groups lines under a key, keeping first-seen order. */
+function groupBy<T>(
+  lines: Array<Gstr1Line>,
+  keyOf: (line: Gstr1Line) => string,
+  map: (line: Gstr1Line) => T,
+) {
+  const groups = new Map<string, Array<T>>()
+  for (const line of lines) {
+    const key = keyOf(line)
+    groups.set(key, [...(groups.get(key) ?? []), map(line)])
+  }
+  return [...groups.entries()]
+}
+
+/**
+ * GSTR-1 upload file in the GSTN offline-tool layout (amounts as numbers).
+ * Cess is not tracked, so `csamt` is always 0.
+ */
+export function buildGstr1Json(report: Gstr1Report, gstin: string): string {
   return JSON.stringify(
     {
-      gstin: '',
+      gstin,
       fp: report.periodEnd.slice(5, 7) + report.periodEnd.slice(0, 4),
-      b2b: report.b2b.map((line) => ({
-        inum: line.invoiceNumber,
-        idt: line.documentDate,
-        ctin: line.partyGstin,
-        pos: line.placeOfSupply,
-        val: line.totalAmount,
-        txval: line.taxableAmount,
-        cgst: line.cgstAmount,
-        sgst: line.sgstAmount,
-        igst: line.igstAmount,
+      b2b: groupBy(
+        report.b2b,
+        (line) => line.partyGstin ?? '',
+        (line) => ({
+          inum: line.invoiceNumber,
+          idt: portalDate(line.documentDate),
+          val: Number(line.totalAmount),
+          pos: line.placeOfSupply,
+          rchrg: line.reverseCharge ? 'Y' : 'N',
+          inv_typ: 'R',
+          itms: portalItems(line),
+        }),
+      ).map(([ctin, inv]) => ({ ctin, inv })),
+      b2cl: groupBy(
+        report.b2cl,
+        (line) => line.placeOfSupply,
+        (line) => ({
+          inum: line.invoiceNumber,
+          idt: portalDate(line.documentDate),
+          val: Number(line.totalAmount),
+          itms: portalItems(line, true),
+        }),
+      ).map(([pos, inv]) => ({ pos, inv })),
+      b2cs: report.b2cs.map((row) => ({
+        sply_ty: row.supplyType === 'intra_state' ? 'INTRA' : 'INTER',
+        pos: row.placeOfSupply,
+        typ: 'OE',
+        rt: Number(row.gstRate),
+        txval: Number(row.taxableAmount),
+        iamt: Number(row.igstAmount),
+        camt: Number(row.cgstAmount),
+        samt: Number(row.sgstAmount),
+        csamt: 0,
       })),
-      cdnr: report.creditDebitNotes.map((line) => ({
+      cdnr: groupBy(
+        report.cdnr,
+        (line) => line.partyGstin ?? '',
+        (line) => ({
+          ntty: 'C',
+          nt_num: line.invoiceNumber,
+          nt_dt: portalDate(line.documentDate),
+          pos: line.placeOfSupply,
+          rchrg: line.reverseCharge ? 'Y' : 'N',
+          inv_typ: 'R',
+          val: Number(line.totalAmount),
+          itms: portalItems(line),
+        }),
+      ).map(([ctin, nt]) => ({ ctin, nt })),
+      cdnur: report.cdnur.map((line) => ({
+        typ: 'B2CL',
+        ntty: 'C',
         nt_num: line.invoiceNumber,
-        nt_dt: line.documentDate,
-        ctin: line.partyGstin,
+        nt_dt: portalDate(line.documentDate),
         pos: line.placeOfSupply,
-        val: line.totalAmount,
-        txval: line.taxableAmount,
-        cgst: line.cgstAmount,
-        sgst: line.sgstAmount,
-        igst: line.igstAmount,
+        val: Number(line.totalAmount),
+        itms: portalItems(line, true),
       })),
+      hsn: {
+        hsn_b2b: portalHsn(report.hsnB2b),
+        hsn_b2c: portalHsn(report.hsnB2c),
+      },
+      doc_issue: {
+        doc_det: (['invoice', 'credit_note'] as const)
+          .map((documentType) => ({
+            doc_num: DOC_ISSUE_TYPE[documentType],
+            docs: report.documentsIssued
+              .filter((series) => series.documentType === documentType)
+              .map((series, index) => ({
+                num: index + 1,
+                from: series.from,
+                to: series.to,
+                totnum: series.total,
+                cancel: series.cancelled,
+                net_issue: series.total - series.cancelled,
+              })),
+          }))
+          .filter((detail) => detail.docs.length > 0),
+      },
     },
     null,
     2,
   )
+}
+
+/** Table 13 document type codes: 1 invoices for outward supply, 5 credit notes. */
+const DOC_ISSUE_TYPE = { invoice: 1, credit_note: 5 } as const
+
+function portalHsn(rows: Array<Gstr1HsnRow>) {
+  return rows.map((row, index) => ({
+    num: index + 1,
+    hsn_sc: row.hsnCode,
+    desc: row.description,
+    uqc: row.uqc,
+    qty: Number(row.quantity),
+    rt: Number(row.gstRate),
+    txval: Number(row.taxableAmount),
+    iamt: Number(row.igstAmount),
+    camt: Number(row.cgstAmount),
+    samt: Number(row.sgstAmount),
+    csamt: 0,
+  }))
 }

@@ -36,6 +36,7 @@ Living status vs [BUSY 21](https://busy.in/) wholesale/trading features, trackin
 | Price list auto-rate                         | Done        | Party price list applies on item pick            |
 | Credit limit on party                        | Done        | Blocked on credit sales in service               |
 | CSV + BUSY/EZY native import                 | Done        | Parties/items TSV/CSV; file upload on Import     |
+| Tally XML + Excel import                     | Done        | Tally masters XML (parties, items, opening stock); .xlsx via CSV |
 | Bill attachment + OCR                        | Done        | Upload + `/app/ocr` review; confirm posts bill   |
 | Role-based permissions                       | Partial     | Capability on posting mutations; not every read  |
 | e-Invoice / e-way                            | Stub UI     | Local IRN/EWB generation; no live GSP API        |

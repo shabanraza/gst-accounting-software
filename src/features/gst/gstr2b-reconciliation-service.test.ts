@@ -1,9 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
-import {
-  createGstReconciliationRepository,
-  type GstReconciliationRepository,
-} from '#/features/gst/gst-reconciliation-store.ts'
+import { createGstReconciliationRepository } from '#/features/gst/gst-reconciliation-store.ts'
+import type { GstReconciliationRepository } from '#/features/gst/gst-reconciliation-store.ts'
 import {
   reconcileGstr2b,
   Gstr2bItcDecisionError,
@@ -265,7 +263,8 @@ describe('reconcileGstr2b', () => {
   })
 
   test('persists accepted ITC decisions in summary', async () => {
-    const recon: GstReconciliationRepository = createGstReconciliationRepository()
+    const recon: GstReconciliationRepository =
+      createGstReconciliationRepository()
     const deps = {
       bills: new FakeBills([bill({})]),
       parties: new FakeParties([supplierParty()]),
@@ -296,7 +295,7 @@ describe('reconcileGstr2b', () => {
         companyStateCode: period.companyStateCode,
         periodStart: period.periodStart,
         periodEnd: period.periodEnd,
-        rowKey: initial.rows[0]!.rowKey,
+        rowKey: initial.rows[0].rowKey,
         status: 'accepted',
         portalRows: input.portalRows,
       },
@@ -311,9 +310,7 @@ describe('reconcileGstr2b', () => {
     const report = await reconcileGstr2b(
       {
         bills: new FakeBills([bill({})]),
-        parties: new FakeParties([
-          { ...supplierParty(), gstin: null },
-        ]),
+        parties: new FakeParties([{ ...supplierParty(), gstin: null }]),
       },
       {
         companyId: 'company-1',

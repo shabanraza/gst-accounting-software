@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
@@ -30,7 +31,7 @@ export interface ExpenseRepository {
   listByCompanyId: (companyId: string) => Promise<Array<ExpenseRecord>>
 }
 
-export class InvalidExpenseError extends Error {
+export class InvalidExpenseError extends DomainError {
   constructor(message: string) {
     super(message)
     this.name = 'InvalidExpenseError'

@@ -1,15 +1,8 @@
 import { Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import {
-  CalendarClockIcon,
-  CircleCheckBigIcon,
-  FilePlusIcon,
-  ReceiptIcon,
-  TrendingUpIcon,
-} from 'lucide-react'
-import { useState } from 'react'
+import { TrendingUpIcon } from 'lucide-react'
+import { Suspense, lazy, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts'
 
 import { Button } from '#/components/ui/button.tsx'
 import { cn } from '#/lib/utils.ts'
@@ -20,67 +13,32 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '#/components/ui/chart.tsx'
 import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Skeleton } from '#/components/ui/skeleton.tsx'
-import { Badge } from '#/components/ui/badge.tsx'
-import {
-  AGEING_BUCKET_DISPLAY_LABEL,
-  AGEING_BUCKET_ORDER,
-} from '#/features/accounting/ageing-service.ts'
+import { QuickActionsBar } from '#/features/app-shell/components/quick-actions.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { ActivityCard } from '#/features/dashboard/components/activity-card.tsx'
 import { AttentionQueueCard } from '#/features/dashboard/components/attention-queue-card.tsx'
-import { MoneyPosition } from '#/features/dashboard/components/money-position.tsx'
+import { GstMonthCard } from '#/features/dashboard/components/gst-month-card.tsx'
+import { MoneyTiles } from '#/features/dashboard/components/money-tiles.tsx'
+import { SetupChecklistCard } from '#/features/dashboard/components/setup-checklist-card.tsx'
+import { TopDuesCard } from '#/features/dashboard/components/top-dues-card.tsx'
 import {
   buildMonthCompareView,
-  collapseRangeLabel,
   hasTrendActivity,
   isFirstRun,
-  isQuietDay,
 } from '#/features/dashboard/dashboard-view.ts'
-import { moneyTone } from '#/features/dashboard/money-tone.ts'
-import { computeNetPosition } from '#/features/dashboard/net-position.ts'
+import { buildSetupChecklist } from '#/features/dashboard/setup-checklist.ts'
 import { formatShortDate, localCalendarDate } from '#/lib/calendar-date.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
-import { ageingBucketChartColor } from '#/lib/badge-intent.ts'
-import type { BadgeIntent } from '#/lib/badge-intent.ts'
-import type {
-  MonthFigure,
-  MonthFigureKey,
-} from '#/features/dashboard/dashboard-view.ts'
-
-const trendChartConfig = {
-  sales: {
-    label: 'Sales',
-    color: 'var(--chart-1)',
-  },
-  purchases: {
-    label: 'Purchases',
-    color: 'var(--chart-2)',
-  },
-}
-
-const ageingChartConfig = {
-  amount: {
-    label: 'Outstanding',
-    color: 'var(--warning)',
-  },
-}
-
-const MONTH_FIGURE_TONE: Record<MonthFigureKey, string> = {
-  sales: 'text-money-in',
-  purchases: 'text-money-out',
-  expenses: 'text-money-out',
-}
+// Recharts loads after the dashboard figures, not before them.
+const TrendChart = lazy(() =>
+  import('#/features/dashboard/components/dashboard-charts.tsx').then(
+    (module) => ({ default: module.TrendChart }),
+  ),
+)
 
 function formatDayHeading(date: string) {
   const value = new Date(`${date}T12:00:00`)
@@ -89,15 +47,6 @@ function formatDayHeading(date: string) {
     day: 'numeric',
     month: 'short',
   })
-}
-
-/**
- * Only sales gets a verdict. Purchases and expenses tracking sales upwards is
- * not a failure, so their badges stay neutral and carry the number alone.
- */
-function changeIntent(figure: MonthFigure): BadgeIntent {
-  if (figure.key !== 'sales') return 'secondary'
-  return figure.change?.direction === 'up' ? 'success' : 'destructive'
 }
 
 /** Staggered first-paint reveal for the hero blocks only — dense
@@ -109,61 +58,6 @@ function revealStyle(index: number) {
 const revealClassName =
   'animate-in fade-in-0 slide-in-from-bottom-2 fill-mode-both duration-(--duration-spring) ease-(--ease-spring)'
 
-const figureLabelClassName =
-  'text-[0.625rem] font-medium uppercase tracking-wide text-muted-foreground'
-
-function DayFigure({
-  label,
-  toneClassName,
-  value,
-}: {
-  label: string
-  toneClassName: string
-  value: string
-}) {
-  return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <span className={cn(figureLabelClassName, 'truncate')}>{label}</span>
-      <span
-        className={cn(
-          'truncate text-sm font-medium tabular-nums',
-          moneyTone(value, toneClassName),
-        )}
-      >
-        {formatInr(value)}
-      </span>
-    </div>
-  )
-}
-
-function DayFigureSkeleton() {
-  return (
-    <div className="flex min-w-0 flex-col gap-1.5">
-      <Skeleton className="h-2.5 w-16" />
-      <Skeleton className="h-4 w-24" />
-    </div>
-  )
-}
-
-function DocumentRow({
-  amount,
-  label,
-  toneClassName,
-}: {
-  amount: string
-  label: string
-  toneClassName: string
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <span className="truncate">{label}</span>
-      <span className={cn('shrink-0 tabular-nums', toneClassName)}>
-        {formatInr(amount)}
-      </span>
-    </div>
-  )
-}
-
 /** Hero-surface empty state: duotone mark, one sentence, one way forward. */
 function EmptyBlock({
   action,
@@ -174,7 +68,7 @@ function EmptyBlock({
 }: {
   action?: ReactNode
   className?: string
-  icon: typeof ReceiptIcon
+  icon: typeof TrendingUpIcon
   message: string
   tone: string
 }) {
@@ -221,73 +115,40 @@ export function DashboardContent() {
    * particular would read as "nothing needs you" when nothing was fetched.
    */
   const snapshot = snapshotQuery.data
-  const ageing = snapshot?.ageing
-  const gstMtd = snapshot?.gstMtd
 
   /**
-   * The snapshot withholds ageing and GST from callers without `view_reports`.
-   * Reading the same capability from the workspace — which is already resolved
-   * before this query is enabled — lets the report blocks be absent from the
-   * first paint instead of appearing as skeletons and then vanishing.
+   * The snapshot withholds money, ageing and GST from callers without
+   * `view_reports`. Reading the same capability from the workspace — already
+   * resolved before this query is enabled — keeps those blocks out of the
+   * first paint instead of showing zeros that are not real.
    */
   const canViewReports = capabilities.includes('view_reports')
-  const showGst = canViewReports && (!snapshot || Boolean(gstMtd))
-  const showAgeing = canViewReports && (!snapshot || Boolean(ageing))
   const canPostSales = capabilities.includes('post_sales')
 
-  /** An empty queue leaves nothing else to look at, so the position leads. */
-  const moneyVariant =
-    snapshot && snapshot.attention.length === 0 ? 'focal' : 'strip'
+  const monthView = snapshot
+    ? buildMonthCompareView(snapshot.monthCompare)
+    : null
+  const salesFigure = monthView?.figures.find(
+    (figure) => figure.key === 'sales',
+  )
 
-  const monthCompare = snapshot?.monthCompare
-  const monthView = monthCompare ? buildMonthCompareView(monthCompare) : null
-  const quietDay = snapshot ? isQuietDay(snapshot) : false
+  const checklist =
+    snapshot && company && capabilities.includes('manage_company')
+      ? buildSetupChecklist({ company, setup: snapshot.setup })
+      : null
+
+  /**
+   * A company with nothing on its books would otherwise stack empty cards
+   * down the page, so it gets the setup checklist alone.
+   */
+  const firstRun = snapshot ? isFirstRun(snapshot) : false
+  const onlyChecklist = Boolean(checklist?.show) && firstRun
 
   const newInvoiceAction = canPostSales ? (
     <Button asChild size="sm">
       <Link to="/app/sales/new">New sales invoice</Link>
     </Button>
   ) : undefined
-
-  /**
-   * A company with nothing on its books would otherwise stack five separate
-   * empty states down the page, so it gets one card and the first moves
-   * instead. The standing balances stay: their zeros are real figures.
-   */
-  const firstRun = snapshot ? isFirstRun(snapshot) : false
-
-  const firstRunActions = (
-    <div className="flex flex-wrap items-center justify-center gap-2">
-      {newInvoiceAction}
-      <Button asChild size="sm" variant="outline">
-        <Link to="/app/masters/parties">Add a party</Link>
-      </Button>
-      <Button asChild size="sm" variant="outline">
-        <Link to="/app/masters/items">Add an item</Link>
-      </Button>
-    </div>
-  )
-
-  const receivableAgeingData = ageing
-    ? AGEING_BUCKET_ORDER.map((bucket) => ({
-        bucket: AGEING_BUCKET_DISPLAY_LABEL[bucket],
-        bucketKey: bucket,
-        amount: Number(ageing.receivables[bucket]),
-      }))
-    : []
-
-  const payableAgeingData = ageing
-    ? AGEING_BUCKET_ORDER.map((bucket) => ({
-        bucket: AGEING_BUCKET_DISPLAY_LABEL[bucket],
-        bucketKey: bucket,
-        amount: Number(ageing.payables[bucket]),
-      }))
-    : []
-
-  const hasReceivableAgeing = receivableAgeingData.some(
-    (row) => row.amount !== 0,
-  )
-  const hasPayableAgeing = payableAgeingData.some((row) => row.amount !== 0)
 
   return (
     <WorkspacePage
@@ -316,430 +177,86 @@ export function DashboardContent() {
       description={formatDayHeading(selectedDate)}
       title="Dashboard"
     >
-      <div
-        className={cn('flex flex-col gap-2', revealClassName)}
-        style={revealStyle(0)}
-      >
-        {!isToday ? (
-          <span className={figureLabelClassName}>Live balances, as of now</span>
-        ) : null}
-        <MoneyPosition
-          cashBank={snapshot?.balances.cashBankBalance ?? '0'}
-          isLoading={!snapshot}
-          netPosition={snapshot ? computeNetPosition(snapshot.balances) : '0'}
-          payable={snapshot?.balances.payableTotal ?? '0'}
-          receivable={snapshot?.balances.receivableTotal ?? '0'}
-          variant={moneyVariant}
-        />
+      <div className={revealClassName} style={revealStyle(0)}>
+        <QuickActionsBar capabilities={capabilities} />
       </div>
 
-      {firstRun ? (
+      {canViewReports ? (
         <div className={revealClassName} style={revealStyle(1)}>
-          <Card size="hero">
-            <CardContent>
-              <EmptyBlock
-                action={firstRunActions}
-                icon={FilePlusIcon}
-                message="Nothing recorded yet"
-                tone="var(--money-in)"
-              />
-            </CardContent>
-          </Card>
+          <MoneyTiles sales={salesFigure} snapshot={snapshot} />
         </div>
-      ) : (
-        <>
-          <div className={revealClassName} style={revealStyle(1)}>
+      ) : null}
+
+      {checklist?.show ? (
+        <div className={revealClassName} style={revealStyle(2)}>
+          <SetupChecklistCard
+            doneCount={checklist.doneCount}
+            steps={checklist.steps}
+          />
+        </div>
+      ) : null}
+
+      {onlyChecklist ? null : (
+        <div
+          className={cn(
+            'grid items-start gap-4',
+            canViewReports && 'lg:grid-cols-3',
+          )}
+        >
+          {/* Two independent columns, so a tall side column never leaves a
+              gap under the to-do list. */}
+          <div className="flex min-w-0 flex-col gap-4 lg:col-span-2">
             <AttentionQueueCard
+              companyName={company?.tradeName ?? ''}
               isLoading={!snapshot}
               items={snapshot?.attention ?? []}
             />
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {isToday ? 'Today' : 'On this day'}
-                </CardTitle>
-                <CardDescription>
-                  {formatDayHeading(selectedDate)}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-1 flex-col gap-4">
-                {!snapshot ? (
-                  <div className="grid grid-cols-3 gap-3">
-                    {Array.from({ length: 3 }).map((_, index) => (
-                      <DayFigureSkeleton key={index} />
-                    ))}
-                  </div>
-                ) : quietDay ? (
-                  <EmptyBlock
-                    action={newInvoiceAction}
-                    icon={FilePlusIcon}
-                    message={
-                      isToday
-                        ? 'Nothing recorded today'
-                        : 'Nothing recorded on this day'
-                    }
-                    tone="var(--money-in)"
-                  />
-                ) : (
-                  <>
-                    <div className="grid grid-cols-3 gap-3">
-                      <DayFigure
-                        label="Sales"
-                        toneClassName="text-money-in"
-                        value={snapshot.today.salesTotal}
-                      />
-                      <DayFigure
-                        label="Purchases"
-                        toneClassName="text-money-out"
-                        value={snapshot.today.purchaseTotal}
-                      />
-                      <DayFigure
-                        label="Net cash flow"
-                        toneClassName={
-                          Number(snapshot.today.netCashFlow) < 0
-                            ? 'text-money-out'
-                            : 'text-money-in'
-                        }
-                        value={snapshot.today.netCashFlow}
-                      />
-                    </div>
-
-                    {snapshot.dueToday.receivables.length > 0 ||
-                    snapshot.dueToday.payables.length > 0 ? (
-                      <section className="flex min-w-0 flex-col gap-2 border-t border-border/60 pt-3 text-sm">
-                        <h3 className="flex items-center gap-2 text-xs font-medium">
-                          <CalendarClockIcon className="size-3.5 text-muted-foreground" />
-                          Falls due
-                        </h3>
-                        {snapshot.dueToday.receivables
-                          .slice(0, 4)
-                          .map((row) => (
-                            <DocumentRow
-                              amount={row.amount}
-                              key={row.id}
-                              label={`Collect from ${row.partyName} · ${row.documentNumber}`}
-                              toneClassName="text-money-in"
-                            />
-                          ))}
-                        {snapshot.dueToday.payables.slice(0, 4).map((row) => (
-                          <DocumentRow
-                            amount={row.amount}
-                            key={row.id}
-                            label={`Pay ${row.partyName} · ${row.documentNumber}`}
-                            toneClassName="text-money-out"
-                          />
-                        ))}
-                      </section>
-                    ) : null}
-
-                    {snapshot.todayExpenses.length > 0 ? (
-                      <section className="flex min-w-0 flex-col gap-2 border-t border-border/60 pt-3 text-sm">
-                        <h3 className="flex items-center gap-2 text-xs font-medium">
-                          <ReceiptIcon className="size-3.5 text-muted-foreground" />
-                          Expenses
-                        </h3>
-                        {snapshot.todayExpenses.slice(0, 4).map((expense) => (
-                          <DocumentRow
-                            amount={expense.amount}
-                            key={expense.id}
-                            label={expense.narration}
-                            toneClassName="text-money-out"
-                          />
-                        ))}
-                        <Button
-                          asChild
-                          className="mt-1 self-start"
-                          size="sm"
-                          variant="outline"
-                        >
-                          <Link to="/app/expenses">All expenses</Link>
-                        </Button>
-                      </section>
-                    ) : null}
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">This month so far</CardTitle>
-                <CardDescription>
-                  {monthCompare
-                    ? collapseRangeLabel(monthCompare.currentLabel)
-                    : 'Month to date'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-1 flex-col gap-4">
-                {!monthView ? (
-                  <div className="grid grid-cols-3 gap-3">
-                    {Array.from({ length: 3 }).map((_, index) => (
-                      <DayFigureSkeleton key={index} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    <div className="grid grid-cols-3 gap-3">
-                      {monthView.figures.map((figure) => (
-                        <div
-                          className="flex min-w-0 flex-col items-start gap-1"
-                          key={figure.key}
-                        >
-                          <span
-                            className={cn(figureLabelClassName, 'truncate')}
-                          >
-                            {figure.label}
-                          </span>
-                          <span
-                            className={cn(
-                              'truncate text-sm font-medium tabular-nums',
-                              moneyTone(
-                                figure.value,
-                                MONTH_FIGURE_TONE[figure.key],
-                              ),
-                            )}
-                          >
-                            {formatInr(figure.value)}
-                          </span>
-                          {figure.change ? (
-                            <Badge variant={changeIntent(figure)}>
-                              {figure.change.label}
-                            </Badge>
-                          ) : null}
-                        </div>
-                      ))}
-                    </div>
-                    {monthView.caption ? (
-                      <span className="text-xs text-muted-foreground">
-                        {monthView.caption}
-                      </span>
-                    ) : null}
-                  </div>
-                )}
-
-                {showGst ? (
-                  <div className="mt-auto flex flex-wrap items-end justify-between gap-3 border-t border-border/60 pt-3">
-                    {gstMtd ? (
-                      <>
-                        <div className="flex min-w-0 flex-col gap-1">
-                          <span
-                            className={cn(figureLabelClassName, 'truncate')}
-                          >
-                            GST net payable
-                          </span>
-                          <span
-                            className={cn(
-                              'truncate text-sm font-medium tabular-nums',
-                              moneyTone(
-                                gstMtd.netGstPayable,
-                                Number(gstMtd.netGstPayable) > 0
-                                  ? 'text-money-out'
-                                  : 'text-money-in',
-                              ),
-                            )}
-                          >
-                            {formatInr(gstMtd.netGstPayable)}
-                          </span>
-                        </div>
-                        <Button asChild size="sm" variant="outline">
-                          <Link to="/app/reports">GST reports</Link>
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex flex-col gap-1.5">
-                          <Skeleton className="h-2.5 w-24" />
-                          <Skeleton className="h-4 w-28" />
-                        </div>
-                        <Skeleton className="h-8 w-28" />
-                      </>
-                    )}
-                  </div>
-                ) : null}
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">
-                {isToday
-                  ? 'Last 7 days'
-                  : `7 days to ${formatShortDate(selectedDate)}`}
-              </CardTitle>
-              <CardDescription>Sales vs purchases</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-1 flex-col">
-              {!snapshot ? (
-                <Skeleton className="h-56 w-full" />
-              ) : hasTrendActivity(snapshot.trend) ? (
-                <ChartContainer
-                  className="aspect-auto h-56 w-full"
-                  config={trendChartConfig}
-                >
-                  <BarChart data={snapshot.trend}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis
-                      axisLine={false}
-                      dataKey="date"
-                      tickFormatter={formatShortDate}
-                      tickLine={false}
-                      tickMargin={8}
-                    />
-                    <ChartTooltip
-                      content={
-                        <ChartTooltipContent
-                          formatter={(value, name) => (
-                            <span className="tabular-nums">
-                              {name}: {formatInr(String(value))}
-                            </span>
-                          )}
-                          labelFormatter={(value) =>
-                            formatShortDate(String(value))
-                          }
-                        />
-                      }
-                    />
-                    <ChartLegend content={<ChartLegendContent />} />
-                    <Bar dataKey="sales" fill="var(--color-sales)" radius={4} />
-                    <Bar
-                      dataKey="purchases"
-                      fill="var(--color-purchases)"
-                      radius={4}
-                    />
-                  </BarChart>
-                </ChartContainer>
-              ) : (
-                <EmptyBlock
-                  action={newInvoiceAction}
-                  className="h-56"
-                  icon={TrendingUpIcon}
-                  message="No sales or purchases in these 7 days"
-                  tone="var(--money-in)"
-                />
-              )}
-            </CardContent>
-          </Card>
-
-          {showAgeing ? (
-            <div className="grid gap-4 lg:grid-cols-2">
+            {canViewReports ? (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">
-                    Receivables ageing
+                    {isToday
+                      ? 'Last 7 days'
+                      : `7 days to ${formatShortDate(selectedDate)}`}
                   </CardTitle>
-                  <CardDescription>Outstanding by bucket</CardDescription>
+                  <CardDescription>Sales vs purchases</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-1 flex-col">
-                  {!ageing ? (
-                    <Skeleton className="h-48 w-full" />
-                  ) : !hasReceivableAgeing ? (
+                  {!snapshot ? (
+                    <Skeleton className="h-56 w-full" />
+                  ) : hasTrendActivity(snapshot.trend) ? (
+                    <Suspense fallback={<Skeleton className="h-56 w-full" />}>
+                      <TrendChart data={snapshot.trend} />
+                    </Suspense>
+                  ) : (
                     <EmptyBlock
-                      className="h-48"
-                      icon={CircleCheckBigIcon}
-                      message="Every invoice is settled"
+                      action={newInvoiceAction}
+                      className="h-56"
+                      icon={TrendingUpIcon}
+                      message="No sales or purchases in these 7 days"
                       tone="var(--money-in)"
                     />
-                  ) : (
-                    <ChartContainer
-                      className="aspect-auto h-48 w-full"
-                      config={ageingChartConfig}
-                    >
-                      <BarChart
-                        data={receivableAgeingData}
-                        layout="vertical"
-                        margin={{ left: 8 }}
-                      >
-                        <CartesianGrid horizontal={false} />
-                        <XAxis hide type="number" />
-                        <YAxis
-                          axisLine={false}
-                          dataKey="bucket"
-                          tickLine={false}
-                          type="category"
-                          width={72}
-                        />
-                        <ChartTooltip
-                          content={
-                            <ChartTooltipContent
-                              formatter={(value) => formatInr(String(value))}
-                            />
-                          }
-                        />
-                        <Bar dataKey="amount" radius={4}>
-                          {receivableAgeingData.map((row) => (
-                            <Cell
-                              fill={ageingBucketChartColor(row.bucketKey)}
-                              key={row.bucketKey}
-                            />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ChartContainer>
                   )}
                 </CardContent>
               </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Payables ageing</CardTitle>
-                  <CardDescription>Outstanding by bucket</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-1 flex-col">
-                  {!ageing ? (
-                    <Skeleton className="h-48 w-full" />
-                  ) : !hasPayableAgeing ? (
-                    <EmptyBlock
-                      className="h-48"
-                      icon={CircleCheckBigIcon}
-                      message="No supplier bills outstanding"
-                      tone="var(--money-in)"
-                    />
-                  ) : (
-                    <ChartContainer
-                      className="aspect-auto h-48 w-full"
-                      config={ageingChartConfig}
-                    >
-                      <BarChart
-                        data={payableAgeingData}
-                        layout="vertical"
-                        margin={{ left: 8 }}
-                      >
-                        <CartesianGrid horizontal={false} />
-                        <XAxis hide type="number" />
-                        <YAxis
-                          axisLine={false}
-                          dataKey="bucket"
-                          tickLine={false}
-                          type="category"
-                          width={72}
-                        />
-                        <ChartTooltip
-                          content={
-                            <ChartTooltipContent
-                              formatter={(value) => formatInr(String(value))}
-                            />
-                          }
-                        />
-                        <Bar dataKey="amount" radius={4}>
-                          {payableAgeingData.map((row) => (
-                            <Cell
-                              fill={ageingBucketChartColor(row.bucketKey)}
-                              key={row.bucketKey}
-                            />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ChartContainer>
-                  )}
-                </CardContent>
-              </Card>
+            ) : null}
+          </div>
+          {canViewReports ? (
+            <div className="flex min-w-0 flex-col gap-4">
+              <GstMonthCard asOfDate={selectedDate} gst={snapshot?.gstMtd} />
+              <ActivityCard
+                isToday={isToday}
+                monthView={monthView}
+                selectedDate={selectedDate}
+                snapshot={snapshot}
+              />
+              <TopDuesCard
+                payables={snapshot?.topPayables}
+                receivables={snapshot?.topReceivables}
+              />
             </div>
           ) : null}
-        </>
+        </div>
       )}
     </WorkspacePage>
   )

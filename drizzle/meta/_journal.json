@@ -76,7 +76,28 @@
       "idx": 11,
       "version": "7",
       "when": 1783879000000,
-      "tag": "0011_marketing_submissions",
+      "tag": "0011_stock_value",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1783880000000,
+      "tag": "0012_user_preferences",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1783881000000,
+      "tag": "0013_product_updates_prompt",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1783882000000,
+      "tag": "0014_marketing_submissions",
       "breakpoints": true
     }
   ]

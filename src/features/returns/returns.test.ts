@@ -45,6 +45,7 @@ async function seedReturnsContext() {
     name: 'Noor Retailers',
     partyType: 'customer',
     gstin: '27AABCU9603R1ZM',
+    billingAddress: '12 Market Road, Surat',
     stateCode: '27',
     creditLimit: null,
     paymentTermsDays: 30,
@@ -57,6 +58,7 @@ async function seedReturnsContext() {
     name: 'Textile Mills Ltd',
     partyType: 'supplier',
     gstin: '24AABCU9603R1ZM',
+    billingAddress: '12 Market Road, Surat',
     stateCode: '24',
     creditLimit: null,
     paymentTermsDays: 15,
@@ -84,10 +86,11 @@ async function seedReturnsContext() {
     referenceType: 'opening_stock',
     referenceId: 'opening-1',
     occurredOn: '2026-04-01',
+    value: '7000.00',
   })
 
   const invoice = await postSalesInvoice(
-    { invoices, posting: ledgerPosting, stock, items },
+    { invoices, posting: ledgerPosting, stock, items, parties },
     {
       companyId,
       companyStateCode: '27',
@@ -114,7 +117,7 @@ async function seedReturnsContext() {
   )
 
   const bill = await postPurchaseBill(
-    { bills, posting: ledgerPosting, stock },
+    { bills, posting: ledgerPosting, stock, items, parties },
     {
       companyId,
       companyStateCode: '27',
@@ -157,6 +160,8 @@ async function seedReturnsContext() {
     purchaseAccountId: byKey('purchase'),
     inputGstAccountId: byKey('input_gst'),
     payableAccountId: byKey('supplier_payable'),
+    stockAccountId: byKey('stock_in_hand'),
+    cogsAccountId: byKey('cogs'),
   }
 }
 
@@ -290,5 +295,101 @@ describe('postPurchaseReturn', () => {
     expect(notes[0]?.noteType).toBe('debit')
     expect(notes[0]?.partyId).toBe(context.supplier.id)
     expect(notes[0]?.totalAmount).toBe('840.00')
+  })
+})
+
+describe('return stock value', () => {
+  const lineOf = (
+    entry: {
+      lines: Array<{ ledgerAccountId: string; debit: string; credit: string }>
+    },
+    accountId: string,
+  ) => entry.lines.find((line) => line.ledgerAccountId === accountId)
+
+  test('sales return brings stock back at the cost the invoice removed', async () => {
+    const context = await seedReturnsContext()
+
+    await postSalesReturn(
+      {
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        notes: context.notes,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        customerId: context.customer.id,
+        customerStateCode: '27',
+        salesInvoiceId: context.invoice.id,
+        returnDate: '2026-07-12',
+        salesAccountId: context.salesAccountId,
+        outputGstAccountId: context.outputGstAccountId,
+        receivableAccountId: context.receivableAccountId,
+        stockAccountId: context.stockAccountId,
+        cogsAccountId: context.cogsAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity: '5',
+            unit: 'meter',
+            rate: '120.00',
+            gstRate: '5.00',
+          },
+        ],
+      },
+    )
+
+    // Opening 100 @ 70; invoice took 20 @ 70; bill added 50 @ 80.
+    const entry = context.ledgerPosting.list().at(-1)!
+    expect(lineOf(entry, context.stockAccountId)?.debit).toBe('350.00')
+    expect(lineOf(entry, context.cogsAccountId)?.credit).toBe('350.00')
+    expect(
+      await context.stock.getValue(context.companyId, context.item.id),
+    ).toBe('9950.00')
+  })
+
+  test('purchase return removes stock at average cost and books the price difference to purchases', async () => {
+    const context = await seedReturnsContext()
+
+    await postPurchaseReturn(
+      {
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        notes: context.notes,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        supplierId: context.supplier.id,
+        supplierStateCode: '24',
+        purchaseBillId: context.bill.id,
+        returnDate: '2026-07-12',
+        purchaseAccountId: context.purchaseAccountId,
+        inputGstAccountId: context.inputGstAccountId,
+        payableAccountId: context.payableAccountId,
+        stockAccountId: context.stockAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity: '10',
+            unit: 'meter',
+            rate: '80.00',
+            gstRate: '5.00',
+          },
+        ],
+      },
+    )
+
+    // 130 m worth 9600 → 10 m at average = 738.46.
+    const entry = context.ledgerPosting.list().at(-1)!
+    expect(lineOf(entry, context.payableAccountId)?.debit).toBe('840.00')
+    expect(lineOf(entry, context.inputGstAccountId)?.credit).toBe('40.00')
+    expect(lineOf(entry, context.stockAccountId)?.credit).toBe('738.46')
+    expect(lineOf(entry, context.purchaseAccountId)?.credit).toBe('61.54')
+    expect(
+      await context.stock.getValue(context.companyId, context.item.id),
+    ).toBe('8861.54')
   })
 })

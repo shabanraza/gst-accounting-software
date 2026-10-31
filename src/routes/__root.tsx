@@ -74,7 +74,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <TooltipProvider>{children}</TooltipProvider>
-        <Toaster richColors />
+        <Toaster closeButton position="top-center" />
         <AppDevtools />
         <GoogleAnalyticsPageview />
         <Scripts />

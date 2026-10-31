@@ -52,7 +52,7 @@ export function AuditLogViewer() {
             <TableRow>
               <TableHead>When</TableHead>
               <TableHead>Action</TableHead>
-              <TableHead>Entity</TableHead>
+              <TableHead>Record</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

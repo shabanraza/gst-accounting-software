@@ -38,6 +38,7 @@ export function listSitemapEntries(): Array<SitemapEntry> {
       changefreq: 'monthly' as const,
       priority: '0.6',
     })),
+    { path: '/changelog', changefreq: 'weekly', priority: '0.5' },
     { path: '/contact', changefreq: 'monthly', priority: '0.5' },
     { path: '/privacy', changefreq: 'yearly', priority: '0.3' },
     { path: '/data-deletion', changefreq: 'yearly', priority: '0.3' },

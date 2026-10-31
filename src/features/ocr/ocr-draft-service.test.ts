@@ -3,9 +3,14 @@ import { describe, expect, test } from 'vitest'
 import { setupDefaultChartOfAccounts } from '#/features/accounting/chart-of-accounts.ts'
 import { InMemoryLedgerAccountRepository } from '#/features/accounting/ledger-account-store.ts'
 import { InMemoryLedgerPostingRepository } from '#/features/accounting/ledger-posting-store.ts'
-import { InMemoryItemRepository, InMemoryStockStore  } from '#/features/inventory/inventory-store.ts'
-import { InMemoryPartyRepository } from '#/features/parties/party-store.ts'
 import {
+  InMemoryItemRepository,
+  InMemoryStockStore,
+} from '#/features/inventory/inventory-store.ts'
+import { InMemoryPartyRepository } from '#/features/parties/party-store.ts'
+import { createParty } from '#/features/parties/party-service.ts'
+import {
+  OcrSupplierNotInMastersError,
   confirmOcrDraft,
   createOcrDraft,
   updateOcrDraftFields,
@@ -19,7 +24,10 @@ import type {
   PurchaseBillRepository,
 } from '#/features/purchases/purchase-bill-service.ts'
 
-import type { DocumentAttachmentRepository, DocumentAttachmentRecord  } from '#/features/documents/document-attachment-service.ts'
+import type {
+  DocumentAttachmentRepository,
+  DocumentAttachmentRecord,
+} from '#/features/documents/document-attachment-service.ts'
 
 class InMemoryOcrDraftRepository implements OcrDraftRepository {
   private drafts: Array<OcrDraftRecord> = []
@@ -165,6 +173,18 @@ describe('confirmOcrDraft', () => {
     const stockAccountId = accounts.find(
       (account) => account.systemKey === 'stock_in_hand',
     )!.id
+    await createParty(parties, {
+      companyId,
+      name: 'Textile Mills',
+      partyType: 'supplier',
+      gstin: '24AABCU9603R1ZM',
+      billingAddress: '7 Ring Road, Surat',
+      stateCode: '24',
+      creditLimit: null,
+      paymentTermsDays: 30,
+      payableAccountId,
+      receivableAccountId: null,
+    })
 
     const attachments = new InMemoryAttachmentRepository()
     const draft = await createOcrDraft(repository, attachments, {
@@ -195,5 +215,52 @@ describe('confirmOcrDraft', () => {
     const postedBill = await bills.findById(confirmed.postedPurchaseBillId!)
     expect(postedBill?.supplierBillNumber).toBe('SUP-1001')
     expect(postedBill?.taxableAmount).toBe('8000.00')
+  })
+
+  test('asks for an unknown GST-registered supplier instead of creating one without an address', async () => {
+    const repository = new InMemoryOcrDraftRepository()
+    const parties = new InMemoryPartyRepository()
+    const bills = new InMemoryPurchaseBillRepository()
+    const ledgers = new InMemoryLedgerAccountRepository()
+    const companyId = 'company-1'
+    const accounts = await setupDefaultChartOfAccounts(ledgers, {
+      companyId,
+      businessType: 'wholesale',
+    })
+    const accountId = (key: string) =>
+      accounts.find((account) => account.systemKey === key)!.id
+    const draft = await createOcrDraft(
+      repository,
+      new InMemoryAttachmentRepository(),
+      { companyId, attachmentId: 'att-1', fields: sampleFields },
+    )
+
+    await expect(
+      confirmOcrDraft(
+        repository,
+        {
+          parties,
+          items: new InMemoryItemRepository(),
+          bills,
+          posting: new InMemoryLedgerPostingRepository(),
+          stock: new InMemoryStockStore(),
+          ledgers,
+        },
+        {
+          draftId: draft.id,
+          companyId,
+          reviewedByUserId: 'user-1',
+          companyStateCode: '27',
+          financialYearStart: '2026-04-01',
+          purchaseAccountId: accountId('purchase'),
+          inputGstAccountId: accountId('input_gst'),
+          payableAccountId: accountId('supplier_payable'),
+          stockAccountId: accountId('stock_in_hand'),
+        },
+      ),
+    ).rejects.toBeInstanceOf(OcrSupplierNotInMastersError)
+
+    expect(await parties.listByCompanyId(companyId)).toEqual([])
+    expect(await bills.listByCompanyId(companyId)).toEqual([])
   })
 })

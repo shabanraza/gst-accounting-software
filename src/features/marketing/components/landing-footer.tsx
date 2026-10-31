@@ -1,25 +1,27 @@
 import { Link } from '@tanstack/react-router'
+import type { ReactNode } from 'react'
 
-import { ALTERNATIVE_SLUGS, ALTERNATIVES } from '#/features/marketing/alternatives-content.ts'
+import {
+  ALTERNATIVE_SLUGS,
+  ALTERNATIVES,
+} from '#/features/marketing/alternatives-content.ts'
 import { CONTENT_HUBS } from '#/features/marketing/content-pages.ts'
-import { SITE } from '#/features/marketing/landing-content.ts'
+import { SHOWCASE, SITE } from '#/features/marketing/landing-content.ts'
 import { TOOLS, TOOLS_HUB, TOOL_SLUGS, toolPath } from '#/features/tools/tools-content.ts'
 
-function FooterLinkList({
-  label,
-  links,
+const linkClassName = 'hover:text-foreground'
+
+function FooterColumn({
+  children,
+  title,
 }: {
-  label: string
-  links: ReadonlyArray<{ href: string; label: string }>
+  children: ReactNode
+  title: string
 }) {
   return (
-    <nav aria-label={label} className="flex flex-col gap-2">
-      <p className="font-medium text-foreground">{label}</p>
-      {links.map((link) => (
-        <a key={link.href} className="hover:text-foreground" href={link.href}>
-          {link.label}
-        </a>
-      ))}
+    <nav aria-label={title} className="flex flex-col gap-3">
+      <span className="text-sm font-medium text-foreground">{title}</span>
+      {children}
     </nav>
   )
 }
@@ -34,7 +36,10 @@ const LEARN_LINKS = [
     href: `${CONTENT_HUBS.guides.collection.basePath}/${page.slug}`,
     label: page.label,
   })),
-  { href: CONTENT_HUBS.useCases.collection.basePath, label: CONTENT_HUBS.useCases.collection.hubLabel },
+  {
+    href: CONTENT_HUBS.useCases.collection.basePath,
+    label: CONTENT_HUBS.useCases.collection.hubLabel,
+  },
   ...CONTENT_HUBS.comparisons.collection.pages.map((page) => ({
     href: `${CONTENT_HUBS.comparisons.collection.basePath}/${page.slug}`,
     label: page.label,
@@ -44,48 +49,90 @@ const LEARN_LINKS = [
 export function LandingFooter() {
   return (
     <footer className="border-t border-border/70">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 pt-10 text-sm text-muted-foreground sm:grid-cols-2">
-        <FooterLinkList label="Free GST tools" links={TOOL_LINKS} />
-        <FooterLinkList label="Learn GST" links={LEARN_LINKS} />
-      </div>
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 text-sm text-muted-foreground md:flex-row md:items-start md:justify-between">
-        <p>
-          © {new Date().getFullYear()} {SITE.name}. MIT License.
-        </p>
-        <nav aria-label="Compare" className="flex flex-wrap gap-4">
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-3">
+        <div className="flex max-w-xs flex-col gap-3">
+          <span className="font-heading text-base font-semibold text-foreground">
+            {SITE.name}
+          </span>
+          <p>
+            Free, open-source GST billing and accounting software for Indian
+            businesses.
+          </p>
+        </div>
+
+        <FooterColumn title="Product">
+          {SHOWCASE.items.map((item) => (
+            <a className={linkClassName} href={`/#${item.id}`} key={item.id}>
+              {item.title}
+            </a>
+          ))}
+          <a className={linkClassName} href="/#security">
+            Security
+          </a>
+          <Link className={linkClassName} to="/changelog">
+            Changelog
+          </Link>
+        </FooterColumn>
+
+        <FooterColumn title="Free GST tools">
+          {TOOL_LINKS.map((link) => (
+            <a className={linkClassName} href={link.href} key={link.href}>
+              {link.label}
+            </a>
+          ))}
+        </FooterColumn>
+
+        <FooterColumn title="Learn GST">
+          {LEARN_LINKS.map((link) => (
+            <a className={linkClassName} href={link.href} key={link.href}>
+              {link.label}
+            </a>
+          ))}
+        </FooterColumn>
+
+        <FooterColumn title="Compare">
           {ALTERNATIVE_SLUGS.map((slug) => (
             <Link
+              className={linkClassName}
               key={slug}
-              className="hover:text-foreground"
               params={{ competitor: slug }}
               to="/alternatives/$competitor"
             >
-              vs {ALTERNATIVES[slug].name}
+              {ALTERNATIVES[slug].name} alternative
             </Link>
           ))}
-        </nav>
-        <nav aria-label="Legal" className="flex flex-wrap gap-4">
-          <Link className="hover:text-foreground" to="/contact">
+        </FooterColumn>
+
+        <FooterColumn title="Company">
+          <Link className={linkClassName} to="/contact">
             Contact
           </Link>
-          <a className="hover:text-foreground" href="/#feedback">
+          <a className={linkClassName} href="/#feedback">
             Feedback
           </a>
-          <Link className="hover:text-foreground" to="/privacy">
-            Privacy
-          </Link>
-          <Link className="hover:text-foreground" to="/data-deletion">
-            Data deletion
-          </Link>
           <a
-            className="hover:text-foreground"
+            className={linkClassName}
             href={SITE.githubUrl}
             rel="noreferrer"
             target="_blank"
           >
             GitHub
           </a>
-        </nav>
+          <Link className={linkClassName} to="/privacy">
+            Privacy
+          </Link>
+          <Link className={linkClassName} to="/data-deletion">
+            Data deletion
+          </Link>
+          <a className={linkClassName} href="mailto:support@hisaabkro.in">
+            support@hisaabkro.in
+          </a>
+        </FooterColumn>
+      </div>
+      <div className="border-t border-border/70">
+        <p className="mx-auto max-w-6xl px-4 py-6 text-xs text-muted-foreground">
+          © {new Date().getFullYear()} {SITE.name}. MIT License.
+        </p>
       </div>
     </footer>
   )

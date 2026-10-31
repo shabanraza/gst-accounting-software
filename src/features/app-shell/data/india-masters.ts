@@ -25,12 +25,18 @@ export const indianStates = [
   { code: '22', name: 'Chhattisgarh' },
   { code: '23', name: 'Madhya Pradesh' },
   { code: '24', name: 'Gujarat' },
+  { code: '26', name: 'Dadra and Nagar Haveli and Daman and Diu' },
   { code: '27', name: 'Maharashtra' },
   { code: '29', name: 'Karnataka' },
+  { code: '30', name: 'Goa' },
+  { code: '31', name: 'Lakshadweep' },
   { code: '32', name: 'Kerala' },
   { code: '33', name: 'Tamil Nadu' },
+  { code: '34', name: 'Puducherry' },
+  { code: '35', name: 'Andaman and Nicobar Islands' },
   { code: '36', name: 'Telangana' },
   { code: '37', name: 'Andhra Pradesh' },
+  { code: '38', name: 'Ladakh' },
 ] as const
 
 export const gstRateOptions = [

@@ -28,7 +28,6 @@ import {
   unitOptions,
   uqcForUnit,
 } from '#/features/app-shell/data/india-masters.ts'
-import { godowns as demoGodowns } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
 import { failForm } from '#/lib/form-validation.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
@@ -48,8 +47,8 @@ const emptyForm = {
   saleRate: '',
   mrp: '',
   reorderLevel: '',
-  openingQuantity: '100',
-  openingGodown: demoGodowns[0],
+  openingQuantity: '',
+  openingGodown: '',
   tracksInventory: 'yes',
 }
 
@@ -69,8 +68,7 @@ export function CreateItemDialog({
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const { companyId, isReady, error: workspaceError, godowns } = useWorkspace()
-  const godownNames =
-    godowns.length > 0 ? godowns.map((entry) => entry.name) : demoGodowns
+  const godownNames = godowns.map((entry) => entry.name)
 
   const [internalOpen, setInternalOpen] = React.useState(false)
   const open = controlledOpen ?? internalOpen
@@ -92,7 +90,7 @@ export function CreateItemDialog({
   }
 
   function resetForm() {
-    setForm({ ...emptyForm, openingGodown: godownNames[0] ?? demoGodowns[0] })
+    setForm({ ...emptyForm, openingGodown: godownNames[0] ?? '' })
     setFormError(null)
   }
 
@@ -161,9 +159,9 @@ export function CreateItemDialog({
   const dialog = (
     <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
       <DialogHeader>
-        <DialogTitle>Item master</DialogTitle>
+        <DialogTitle>New item</DialogTitle>
         <DialogDescription>
-          Group, HSN, tax slab, units, rates, and optional opening stock.
+          HSN, GST rate, units, rates and any stock you already have.
         </DialogDescription>
       </DialogHeader>
       <form className="flex flex-col gap-4" onSubmit={handleCreate}>

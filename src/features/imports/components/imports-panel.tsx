@@ -2,7 +2,6 @@ import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-import { Badge } from '#/components/ui/badge.tsx'
 import { Button } from '#/components/ui/button.tsx'
 import {
   Card,
@@ -22,10 +21,18 @@ import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { requireTrimmed, requireWorkspace } from '#/lib/form-validation.ts'
 import { parseBusyExport } from '#/features/imports/busy-format-parser.ts'
 import { parseCsvRows } from '#/features/imports/csv-parser.ts'
+import { readImportFile } from '#/features/imports/import-file-reader.ts'
+import { parseTallyMasters } from '#/features/imports/tally-xml-parser.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 import { UploadIcon } from 'lucide-react'
 
 type ImportMode = 'parties' | 'stock' | 'items' | 'openingBalances'
+type ImportFormat = 'tally' | 'csv' | 'busy' | 'json'
+
+const sampleTally = `<ENVELOPE>
+  <LEDGER NAME="Party name"><PARENT>Sundry Debtors</PARENT></LEDGER>
+  <STOCKITEM NAME="Item name"><BASEUNITS>Nos</BASEUNITS></STOCKITEM>
+</ENVELOPE>`
 
 const sampleParties = `[
   { "name": "Imported Retail", "partyType": "customer", "gstin": "27AAAAA0000A1Z5", "stateCode": "27" },
@@ -65,19 +72,36 @@ Imported Yarn\t5205\t120.00\tKg`
 export function ImportsPanel() {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
-  const { companyId, ledgerBySystemKey } = useWorkspace()
+  const { company, companyId, ledgerBySystemKey } = useWorkspace()
   const [mode, setMode] = React.useState<ImportMode>('parties')
-  const [format, setFormat] = React.useState<'json' | 'csv' | 'busy'>('json')
-  const [jsonText, setJsonText] = React.useState(sampleParties)
+  const [format, setFormat] = React.useState<ImportFormat>('tally')
+  const [jsonText, setJsonText] = React.useState('')
   const [result, setResult] = React.useState<string | null>(null)
   const [dryRunComplete, setDryRunComplete] = React.useState(false)
+  const companyStateCode = company?.stateCode ?? '27'
 
   function parseRows(text: string): Array<Record<string, unknown>> {
+    if (format === 'tally') {
+      if (mode === 'openingBalances') {
+        throw new Error('Tally import covers parties, items and opening stock')
+      }
+      const masters = parseTallyMasters(text, companyStateCode)
+      return mode === 'parties'
+        ? masters.parties
+        : mode === 'items'
+          ? masters.items
+          : masters.stock
+    }
     if (format === 'busy') {
       if (mode !== 'parties' && mode !== 'items') {
         throw new Error('BUSY format supports parties and items only')
       }
-      return parseBusyExport(text, mode)
+      return parseBusyExport(text, mode, companyStateCode)
+    }
+    // Excel and CSV party or item sheets rarely use our exact column names,
+    // so match common headers (Tally templates, BUSY, plain CSV).
+    if (format === 'csv' && (mode === 'parties' || mode === 'items')) {
+      return parseBusyExport(text, mode, companyStateCode)
     }
     if (format === 'csv') {
       return parseCsvRows(text)
@@ -85,10 +109,8 @@ export function ImportsPanel() {
     return JSON.parse(text) as Array<Record<string, unknown>>
   }
 
-  function sampleTextFor(
-    nextMode: ImportMode,
-    nextFormat: 'json' | 'csv' | 'busy',
-  ) {
+  function sampleTextFor(nextMode: ImportMode, nextFormat: ImportFormat) {
+    if (nextFormat === 'tally') return sampleTally
     if (nextFormat === 'busy') {
       if (nextMode === 'parties') return sampleBusyParties
       if (nextMode === 'items') return sampleBusyItems
@@ -135,8 +157,9 @@ export function ImportsPanel() {
     setResult(null)
     setDryRunComplete(false)
     try {
-      const text = await file.text()
-      setJsonText(text)
+      setJsonText(await readImportFile(file))
+      if (/\.xml$/i.test(file.name)) setFormat('tally')
+      else if (/\.xlsx$/i.test(file.name) && format !== 'busy') setFormat('csv')
     } catch {
       toast.error('Could not read the selected file')
     } finally {
@@ -159,25 +182,38 @@ export function ImportsPanel() {
               ? await dryRunItems.mutateAsync({ rows: rows as never })
               : await dryRunOpeningBalances.mutateAsync({ rows: rows as never })
       setDryRunComplete(true)
+      const rowErrors = report.errors
+        .slice(0, 5)
+        .map((error) =>
+          error.rowNumber > 0
+            ? `Row ${error.rowNumber}: ${error.messages.join('; ')}`
+            : error.messages.join('; '),
+        )
+      if (report.errors.length > 5) {
+        rowErrors.push(`…and ${report.errors.length - 5} more rows`)
+      }
       setResult(
-        `Dry-run: ${report.validCount} valid, ${report.errors.length} errors, wroteData=${report.wroteData}`,
+        [
+          `${report.validCount} rows ready, ${report.errors.length} with problems. Nothing is saved yet.`,
+          ...rowErrors,
+        ].join('\n'),
       )
       if (report.errors.length > 0) {
         toast.error(
-          `Dry-run found ${report.errors.length} error(s). Fix them before commit.`,
+          `${report.errors.length} row(s) have problems. Fix them before importing.`,
         )
       } else {
-        toast.success('Dry-run passed. You can commit the import.')
+        toast.success('File looks good. You can import it now.')
       }
     } catch (err) {
-      toastActionError(err, 'Invalid rows / dry-run failed')
+      toastActionError(err, 'Could not check the file')
     }
   }
 
   async function handleCommit() {
     if (!requireWorkspace(companyId)) return
     if (!dryRunComplete) {
-      toast.error('Run dry-run and fix errors before committing.')
+      toast.error('Check the file and fix any problems before importing.')
       return
     }
     if (!requireTrimmed(jsonText, 'Import data')) return
@@ -189,7 +225,7 @@ export function ImportsPanel() {
           !ledgerBySystemKey.customer_receivable ||
           !ledgerBySystemKey.supplier_payable
         ) {
-          toast.error('Receivable and payable ledger mappings are required.')
+          toast.error('Set up default accounts in Chart of accounts first.')
           return
         }
         const report = await commitParties.mutateAsync({
@@ -202,7 +238,7 @@ export function ImportsPanel() {
           queryKey: trpc.parties.list.queryKey({ companyId }),
         })
         setResult(
-          `Committed ${report.createdCount} parties (${report.errors.length} errors)`,
+          `Imported ${report.createdCount} parties (${report.errors.length} rows with problems)`,
         )
         toast.success(`Imported ${report.createdCount} parties.`)
       } else if (mode === 'stock') {
@@ -218,7 +254,7 @@ export function ImportsPanel() {
           queryKey: trpc.inventory.listStockBalances.queryKey({ companyId }),
         })
         setResult(
-          `Committed ${report.createdCount} opening stock rows (${report.errors.length} errors)`,
+          `Imported ${report.createdCount} opening stock rows (${report.errors.length} rows with problems)`,
         )
         toast.success(`Imported ${report.createdCount} opening stock rows.`)
       } else if (mode === 'items') {
@@ -230,7 +266,7 @@ export function ImportsPanel() {
           queryKey: trpc.inventory.listItems.queryKey({ companyId }),
         })
         setResult(
-          `Committed ${report.createdCount} items (${report.errors.length} errors)`,
+          `Imported ${report.createdCount} items (${report.errors.length} rows with problems)`,
         )
         toast.success(`Imported ${report.createdCount} items.`)
       } else {
@@ -240,19 +276,19 @@ export function ImportsPanel() {
           rows: rows as never,
         })
         setResult(
-          `Committed ${report.createdCount} opening balances (${report.errors.length} errors)`,
+          `Imported ${report.createdCount} opening balances (${report.errors.length} rows with problems)`,
         )
         toast.success(`Imported ${report.createdCount} opening balances.`)
       }
       setDryRunComplete(false)
     } catch (err) {
-      toastActionError(err, 'Commit failed')
+      toastActionError(err, 'Import failed')
     }
   }
 
   return (
     <WorkspacePage
-      description="Dry-run then commit masters, stock, items, and opening balances."
+      description="Bring in parties, items, opening stock and opening balances from a file."
       title="Import"
     >
       <Card>
@@ -260,10 +296,10 @@ export function ImportsPanel() {
           <div className="flex flex-col gap-1">
             <CardTitle className="flex items-center gap-2 text-base">
               <UploadIcon className="size-4 text-muted-foreground" />
-              Opening import
+              Import opening data
             </CardTitle>
             <CardDescription>
-              Validate first — commit only writes after a clean dry-run path
+              Check the file first. Nothing is saved until you import.
             </CardDescription>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -271,7 +307,6 @@ export function ImportsPanel() {
               onValueChange={(value) => {
                 const next = value as ImportMode
                 setMode(next)
-                setJsonText(sampleTextFor(next, format))
                 setResult(null)
                 setDryRunComplete(false)
               }}
@@ -288,17 +323,17 @@ export function ImportsPanel() {
             </Tabs>
             <Tabs
               onValueChange={(value) => {
-                const next = value as 'json' | 'csv' | 'busy'
-                setFormat(next)
-                setJsonText(sampleTextFor(mode, next))
+                setFormat(value as ImportFormat)
                 setResult(null)
+                setDryRunComplete(false)
               }}
               value={format}
             >
               <ScrollableTabsList>
-                <TabsTrigger value="json">JSON</TabsTrigger>
-                <TabsTrigger value="csv">CSV</TabsTrigger>
+                <TabsTrigger value="tally">Tally XML</TabsTrigger>
+                <TabsTrigger value="csv">Excel / CSV</TabsTrigger>
                 <TabsTrigger value="busy">BUSY/EZY</TabsTrigger>
+                <TabsTrigger value="json">JSON</TabsTrigger>
               </ScrollableTabsList>
             </Tabs>
           </div>
@@ -307,43 +342,33 @@ export function ImportsPanel() {
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="import-file">Import file</Label>
             <Input
-              accept=".csv,.tsv,.txt,.json"
+              accept=".xml,.xlsx,.csv,.tsv,.txt,.json"
               id="import-file"
               onChange={handleFileUpload}
               type="file"
             />
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">
-              {format === 'busy'
-                ? 'BUSY/EZY export'
-                : format === 'csv'
-                  ? 'CSV rows'
-                  : 'JSON rows'}
-            </Badge>
-          </div>
           <Textarea
             className="min-h-48 font-mono text-xs"
-            onChange={(event) => setJsonText(event.target.value)}
+            onChange={(event) => {
+              setJsonText(event.target.value)
+              setDryRunComplete(false)
+            }}
+            placeholder={sampleTextFor(mode, format)}
             value={jsonText}
           />
           <div className="flex flex-wrap gap-2">
             <Button onClick={handleDryRun} type="button" variant="outline">
-              Dry-run
+              Check file
             </Button>
             <Button disabled={!companyId} onClick={handleCommit} type="button">
-              Commit
+              Import
             </Button>
-            <Badge variant="outline">
-              {format === 'busy'
-                ? 'BUSY/EZY'
-                : format === 'csv'
-                  ? 'CSV'
-                  : 'JSON'}
-            </Badge>
           </div>
           {result ? (
-            <p className="text-sm text-muted-foreground">{result}</p>
+            <p className="text-sm whitespace-pre-line text-muted-foreground">
+              {result}
+            </p>
           ) : null}
         </CardContent>
       </Card>

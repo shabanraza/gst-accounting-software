@@ -1,6 +1,5 @@
 import * as React from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { usePostHog } from '@posthog/react'
 import { MailIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -13,7 +12,6 @@ import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function WaitlistForm() {
   const trpc = useTRPC()
-  const posthog = usePostHog()
   const guard = useSpamGuard()
   const subscribe = useMutation(trpc.marketing.subscribe.mutationOptions())
   const [email, setEmail] = React.useState('')
@@ -22,7 +20,6 @@ export function WaitlistForm() {
     event.preventDefault()
     try {
       await subscribe.mutateAsync({ email, ...guard.payload() })
-      posthog.capture('waitlist_submitted')
       toast.success(WAITLIST.success)
       setEmail('')
       guard.reset()

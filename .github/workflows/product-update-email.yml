@@ -1,0 +1,55 @@
+# Sends release notes to users who opted in to product updates, through a
+# Resend Broadcast. Releases (and the monthly digest) are scheduled to send
+# after PRODUCT_UPDATES_SEND_AT (default "in 1 hour"), so there is time to
+# cancel in Resend. Manual runs create a draft. Set the variable to "draft" to
+# always create drafts.
+# Setup: docs/release-process.md#product-update-emails
+name: Product update email
+
+on:
+  release:
+    types: [published]
+  schedule:
+    # 1st of each month, 09:30 IST. Only runs when PRODUCT_UPDATES_CADENCE=monthly.
+    - cron: '0 4 1 * *'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release tag, e.g. v0.3.0'
+        required: false
+      month:
+        description: 'Digest month YYYY-MM (or "previous"), instead of a version'
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  broadcast:
+    if: >-
+      (github.event_name == 'release' && !github.event.release.prerelease && vars.PRODUCT_UPDATES_CADENCE != 'monthly') ||
+      (github.event_name == 'schedule' && vars.PRODUCT_UPDATES_CADENCE == 'monthly') ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || github.ref }}
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Create broadcast
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_AUDIENCE_ID: ${{ vars.RESEND_AUDIENCE_ID }}
+          PRODUCT_UPDATES_FROM: ${{ vars.PRODUCT_UPDATES_FROM }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.version }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+          DIGEST_MONTH: ${{ github.event_name == 'schedule' && 'previous' || inputs.month }}
+          SEND_AT: ${{ github.event_name != 'workflow_dispatch' && (vars.PRODUCT_UPDATES_SEND_AT || 'in 1 hour') || 'draft' }}
+        run: |
+          if [ -n "$DIGEST_MONTH" ]; then
+            bun scripts/create-release-broadcast.ts --month "$DIGEST_MONTH" --send-at "$SEND_AT"
+          else
+            bun scripts/create-release-broadcast.ts --version "$RELEASE_TAG" --send-at "$SEND_AT"
+          fi

@@ -1,12 +1,7 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import {
-  EyeIcon,
-  PlusIcon,
-  PrinterIcon,
-  TruckIcon,
-} from 'lucide-react'
+import { EyeIcon, PlusIcon, PrinterIcon, TruckIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
 import { paymentStatusBadgeIntent } from '#/lib/badge-intent.ts'
@@ -44,7 +39,7 @@ import { ActiveFilterChip } from '#/features/app-shell/components/active-filter-
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { resolveListFilter } from '#/features/app-shell/list-filter.ts'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function PurchasesPanel({
@@ -201,7 +196,7 @@ export function PurchasesPanel({
                     className="py-10 text-center text-muted-foreground"
                     colSpan={9}
                   >
-                    No purchases yet. Create a purchase voucher.
+                    No purchase bills yet.
                   </TableCell>
                 </TableRow>
               ) : (

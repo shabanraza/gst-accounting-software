@@ -6,12 +6,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import {
-  BanIcon,
-  EyeIcon,
-  PlusIcon,
-  PrinterIcon,
-} from 'lucide-react'
+import { BanIcon, EyeIcon, PlusIcon, PrinterIcon } from 'lucide-react'
 
 import {
   AlertDialog,
@@ -52,7 +47,7 @@ import { WorkspacePage } from '#/features/app-shell/components/workspace-page.ts
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { resolveListFilter } from '#/features/app-shell/list-filter.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { invoiceStatusBadgeIntent } from '#/lib/badge-intent.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
@@ -145,7 +140,7 @@ export function SalesPanel({
         <Button asChild>
           <Link to="/app/sales/new">
             <PlusIcon data-icon="inline-start" />
-            New sales bill
+            New sales invoice
           </Link>
         </Button>
       }
@@ -212,7 +207,7 @@ export function SalesPanel({
                   className="py-10 text-center text-muted-foreground"
                   colSpan={8}
                 >
-                  No sales yet. Create a sales voucher.
+                  No sales invoices yet.
                 </TableCell>
               </TableRow>
             ) : (
@@ -331,7 +326,7 @@ export function SalesPanel({
               Cancel invoice {cancelTarget?.invoiceNumber}?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This reverses the ledger and stock postings and cannot be undone.
+              Stock and account balances will be reversed. This can't be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

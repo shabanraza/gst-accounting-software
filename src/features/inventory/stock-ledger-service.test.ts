@@ -24,6 +24,7 @@ describe('buildStockLedger', () => {
       referenceId: 'item-1',
       occurredOn: '2026-01-01',
       godownName: null,
+      value: '0.00',
       createdAt: new Date('2026-01-01T00:00:00Z'),
     })
     await stock.createMovement({
@@ -38,6 +39,7 @@ describe('buildStockLedger', () => {
       referenceId: 'inv-1',
       occurredOn: '2026-01-05',
       godownName: null,
+      value: '0.00',
       createdAt: new Date('2026-01-05T00:00:00Z'),
     })
 
@@ -76,7 +78,7 @@ describe('buildStockSummary', () => {
       tracksInventory: true,
       createdAt: new Date(),
     })
-    await stock.setBalance('company-1', 'item-1', '25')
+    await stock.setBalance('company-1', 'item-1', '25', '2500.00')
 
     const summary = await buildStockSummary(
       { balances: stock, items },

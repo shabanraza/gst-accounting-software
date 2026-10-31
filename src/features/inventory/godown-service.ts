@@ -1,3 +1,5 @@
+import { DomainError } from '#/lib/domain-error.ts'
+
 export type GodownRecord = {
   id: string
   companyId: string
@@ -31,28 +33,28 @@ export interface GodownRepository {
   listByCompanyId: (companyId: string) => Promise<Array<GodownRecord>>
 }
 
-export class DuplicateGodownNameError extends Error {
+export class DuplicateGodownNameError extends DomainError {
   constructor(name: string) {
     super(`Godown already exists for this company: ${name}`)
     this.name = 'DuplicateGodownNameError'
   }
 }
 
-export class GodownNotFoundError extends Error {
+export class GodownNotFoundError extends DomainError {
   constructor() {
     super('Godown not found')
     this.name = 'GodownNotFoundError'
   }
 }
 
-export class CannotDeleteDefaultGodownError extends Error {
+export class CannotDeleteDefaultGodownError extends DomainError {
   constructor() {
     super('Cannot delete the default godown')
     this.name = 'CannotDeleteDefaultGodownError'
   }
 }
 
-export class GodownInUseError extends Error {
+export class GodownInUseError extends DomainError {
   constructor(name: string) {
     super(
       `Godown is referenced by stock movements and cannot be deleted: ${name}`,
@@ -61,7 +63,7 @@ export class GodownInUseError extends Error {
   }
 }
 
-export class CannotDeleteLastGodownError extends Error {
+export class CannotDeleteLastGodownError extends DomainError {
   constructor() {
     super('Cannot delete the only godown for this company')
     this.name = 'CannotDeleteLastGodownError'
@@ -101,7 +103,7 @@ export async function createGodown(
   })
 }
 
-export class InvalidGodownError extends Error {
+export class InvalidGodownError extends DomainError {
   constructor(message: string) {
     super(message)
     this.name = 'InvalidGodownError'

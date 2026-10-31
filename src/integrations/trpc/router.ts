@@ -5,6 +5,7 @@ import { auditLogRepository } from '#/features/audit/audit-store.ts'
 import { createAccountingRouter } from '#/features/accounting/accounting-router.ts'
 import { ledgerAccountRepository } from '#/features/accounting/ledger-account-store.ts'
 import { ledgerPostingRepository } from '#/features/accounting/ledger-posting-store.ts'
+import { createPostingTransaction } from '#/features/accounting/posting-transaction.ts'
 import { createCompaniesRouter } from '#/features/companies/company-router.ts'
 import { companyRepository } from '#/features/companies/company-store.ts'
 import { createFinancialYearRepository } from '#/features/companies/financial-year-store.ts'
@@ -47,11 +48,27 @@ import { userDirectory } from '#/features/team/user-directory.ts'
 import { createSalesDocumentsRouter } from '#/features/sales-documents/sales-documents-router.ts'
 import { salesDocumentRepository } from '#/features/sales-documents/sales-document-store.ts'
 import { salesInvoiceRepository } from '#/features/sales/sales-invoice-store.ts'
+import { createSupportRouter } from '#/features/support/support-router.ts'
+import { preferenceStore } from '#/features/product-updates/preference-store.ts'
+import { createPreferencesRouter } from '#/features/product-updates/preferences-router.ts'
+import { createProductUpdatesService } from '#/features/product-updates/product-updates-service.ts'
+import { createResendAudience } from '#/features/product-updates/resend-audience.ts'
+import { sendEmail } from '#/lib/email.ts'
 
 import { createTRPCRouter, publicProcedure } from './init'
 
 const financialYearRepository = createFinancialYearRepository()
 const membershipRepository = createMembershipRepository()
+const postingTransaction = createPostingTransaction({
+  invoices: salesInvoiceRepository,
+  bills: purchaseBillRepository,
+  posting: ledgerPostingRepository,
+  stock: stockStore,
+  items: itemRepository,
+  parties: partyRepository,
+  dashboard: dashboardSummaryRepository,
+  sequences: documentSequenceRepository,
+})
 
 export const trpcRouter = createTRPCRouter({
   health: {
@@ -66,9 +83,6 @@ export const trpcRouter = createTRPCRouter({
     memberships: membershipRepository,
     audit: auditLogRepository,
     godowns: godownRepository,
-    parties: partyRepository,
-    items: itemRepository,
-    stock: stockStore,
   }),
   accounting: createAccountingRouter(
     ledgerAccountRepository,
@@ -80,15 +94,10 @@ export const trpcRouter = createTRPCRouter({
     stockStore,
     godownRepository,
     priceListRepository,
+    ledgerAccountRepository,
+    postingTransaction,
   ),
-  purchases: createPurchasesRouter(
-    purchaseBillRepository,
-    ledgerPostingRepository,
-    stockStore,
-    dashboardSummaryRepository,
-    itemRepository,
-    partyRepository,
-  ),
+  purchases: createPurchasesRouter(purchaseBillRepository, postingTransaction),
   purchaseOrders: createPurchaseOrdersRouter(purchaseOrderRepository),
   purchaseGrns: createGrnRouter(
     grnRepository,
@@ -96,19 +105,8 @@ export const trpcRouter = createTRPCRouter({
     stockStore,
     itemRepository,
   ),
-  sales: createSalesRouter(
-    salesInvoiceRepository,
-    ledgerPostingRepository,
-    stockStore,
-    dashboardSummaryRepository,
-    partyRepository,
-    itemRepository,
-  ),
-  payments: createPaymentsRouter(
-    salesInvoiceRepository,
-    purchaseBillRepository,
-    ledgerPostingRepository,
-  ),
+  sales: createSalesRouter(salesInvoiceRepository, postingTransaction),
+  payments: createPaymentsRouter(postingTransaction),
   banking: createBankingRouter(
     bankReconciliationRepository,
     ledgerPostingRepository,
@@ -141,6 +139,7 @@ export const trpcRouter = createTRPCRouter({
     ledgers: ledgerAccountRepository,
     items: itemRepository,
     stockBalances: stockStore,
+    notes: creditDebitNoteRepository,
   }),
   documents: createDocumentsRouter(
     documentSequenceRepository,
@@ -150,27 +149,36 @@ export const trpcRouter = createTRPCRouter({
   imports: createImportsRouter(
     partyRepository,
     itemRepository,
-    stockStore,
     ledgerAccountRepository,
     ledgerPostingRepository,
+    postingTransaction,
   ),
   salesDocuments: createSalesDocumentsRouter(
     salesDocumentRepository,
     itemRepository,
+    documentSequenceRepository,
   ),
-  ocr: createOcrRouter(ocrDraftRepository, documentAttachmentRepository, {
-    parties: partyRepository,
-    items: itemRepository,
-    bills: purchaseBillRepository,
-    posting: ledgerPostingRepository,
-    stock: stockStore,
-    ledgers: ledgerAccountRepository,
-  }),
+  ocr: createOcrRouter(
+    ocrDraftRepository,
+    documentAttachmentRepository,
+    ledgerAccountRepository,
+    postingTransaction,
+  ),
   team: createTeamRouter({
     memberships: membershipRepository,
     invitations: invitationRepository,
     companies: companyRepository,
     users: userDirectory,
   }),
+  support: createSupportRouter({ send: sendEmail }),
+  preferences: createPreferencesRouter(
+    createProductUpdatesService({
+      store: preferenceStore,
+      audience: createResendAudience({
+        apiKey: process.env.RESEND_API_KEY,
+        audienceId: process.env.RESEND_AUDIENCE_ID,
+      }),
+    }),
+  ),
 })
 export type TRPCRouter = typeof trpcRouter

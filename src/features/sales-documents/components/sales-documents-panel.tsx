@@ -35,7 +35,7 @@ import {
 import { FieldGroup } from '#/features/app-shell/components/field-label.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import {
   requirePositiveQuantity,
@@ -50,6 +50,11 @@ const documentTypeLabels = {
   quotation: 'Quotation',
   sales_order: 'Sales order',
   delivery_challan: 'Delivery challan',
+} as const
+
+const documentStatusLabels = {
+  open: 'Open',
+  converted: 'Converted',
 } as const
 
 type SalesDocumentLineDraft = {
@@ -71,7 +76,7 @@ function createEmptySalesDocumentLine(): SalesDocumentLineDraft {
 export function SalesDocumentsPanel() {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
-  const { companyId, isReady } = useWorkspace()
+  const { activeFinancialYearId, companyId, isReady } = useWorkspace()
   const [documentType, setDocumentType] =
     React.useState<keyof typeof documentTypeLabels>('quotation')
   const [documentNumber, setDocumentNumber] = React.useState('')
@@ -125,8 +130,8 @@ export function SalesDocumentsPanel() {
         index === 0
           ? {
               ...line,
-              itemId: items[0]!.id,
-              rate: items[0]!.saleRate,
+              itemId: items[0].id,
+              rate: items[0].saleRate,
             }
           : line,
       )
@@ -142,7 +147,7 @@ export function SalesDocumentsPanel() {
   }
 
   function addLine() {
-    const nextItem = items[0]
+    const nextItem = items.at(0)
     setLines((current) => [
       ...current,
       {
@@ -195,9 +200,8 @@ export function SalesDocumentsPanel() {
       await createDocument.mutateAsync({
         companyId,
         documentType,
-        documentNumber:
-          documentNumber.trim() ||
-          `${documentType.toUpperCase()}-${Date.now()}`,
+        documentNumber,
+        financialYearId: activeFinancialYearId ?? undefined,
         documentDate,
         customerId: selectedCustomerId,
         lines: payloadLines,
@@ -222,14 +226,14 @@ export function SalesDocumentsPanel() {
   return (
     <WorkspacePage
       description="Quotations, sales orders, and delivery challans before invoicing."
-      title="Sales documents"
+      title="Quotations & orders"
     >
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">New document</CardTitle>
             <CardDescription>
-              Non-posting sales paperwork. Convert open documents to invoices.
+              Convert to a sales invoice when you bill.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -365,9 +369,7 @@ export function SalesDocumentsPanel() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Documents</CardTitle>
-            <CardDescription>
-              Open documents for the active company.
-            </CardDescription>
+            <CardDescription>Not yet converted to an invoice.</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -395,7 +397,7 @@ export function SalesDocumentsPanel() {
                       <Badge
                         variant={documentStatusBadgeIntent(document.status)}
                       >
-                        {document.status}
+                        {documentStatusLabels[document.status]}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">

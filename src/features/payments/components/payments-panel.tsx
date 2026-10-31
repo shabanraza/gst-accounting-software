@@ -43,7 +43,7 @@ import { ScrollableTabsList } from '#/components/ui/scrollable-tabs-list.tsx'
 import { Tabs, TabsTrigger } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import {
   requireAmountNotExceeding,
@@ -55,11 +55,17 @@ import { useTRPC } from '#/integrations/trpc/react.ts'
 
 import { paymentStatusBadgeIntent } from '#/lib/badge-intent.ts'
 
-export function PaymentsPanel() {
+export function PaymentsPanel({
+  initialMode,
+}: {
+  initialMode?: 'receipts' | 'payments'
+}) {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const { companyId, ledgerBySystemKey, isReady } = useWorkspace()
-  const [mode, setMode] = React.useState<'receipts' | 'payments'>('receipts')
+  const [mode, setMode] = React.useState<'receipts' | 'payments'>(
+    initialMode ?? 'receipts',
+  )
   const [open, setOpen] = React.useState(false)
   const [documentId, setDocumentId] = React.useState('')
   const [amount, setAmount] = React.useState('')
@@ -159,7 +165,11 @@ export function PaymentsPanel() {
           queryClient.setQueryData(queryKey, (rows) =>
             rows?.map((row) =>
               row.id === selectedDocumentId
-                ? { ...row, outstandingAmount: nextOutstanding, paymentStatus: nextStatus }
+                ? {
+                    ...row,
+                    outstandingAmount: nextOutstanding,
+                    paymentStatus: nextStatus,
+                  }
                 : row,
             ),
           )
@@ -188,7 +198,11 @@ export function PaymentsPanel() {
           queryClient.setQueryData(queryKey, (rows) =>
             rows?.map((row) =>
               row.id === selectedDocumentId
-                ? { ...row, outstandingAmount: nextOutstanding, paymentStatus: nextStatus }
+                ? {
+                    ...row,
+                    outstandingAmount: nextOutstanding,
+                    paymentStatus: nextStatus,
+                  }
                 : row,
             ),
           )
@@ -232,7 +246,7 @@ export function PaymentsPanel() {
                 {mode === 'receipts' ? 'Customer receipt' : 'Supplier payment'}
               </DialogTitle>
               <DialogDescription>
-                Allocate amount against an open document and post to ledger.
+                Adjust the amount against an open invoice or bill.
               </DialogDescription>
             </DialogHeader>
             <form className="flex flex-col gap-4" onSubmit={handleAllocate}>
@@ -302,7 +316,7 @@ export function PaymentsPanel() {
                   }
                   type="submit"
                 >
-                  Post allocation
+                  {mode === 'receipts' ? 'Save receipt' : 'Save payment'}
                 </Button>
               </DialogFooter>
             </form>
@@ -310,7 +324,7 @@ export function PaymentsPanel() {
         </Dialog>
       }
       description="Customer receipts and supplier payments against open invoices and bills."
-      title="Payments"
+      title="Receipts & payments"
     >
       <Card>
         <CardHeader className="gap-3">
@@ -320,7 +334,7 @@ export function PaymentsPanel() {
               Open balances
             </CardTitle>
             <CardDescription>
-              Allocate receipts and payments to update Paid / Part paid status
+              Invoices and bills with an amount still due
             </CardDescription>
           </div>
           <Tabs

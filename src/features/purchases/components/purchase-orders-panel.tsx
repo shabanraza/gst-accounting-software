@@ -1,7 +1,12 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ClipboardListIcon, PackageCheckIcon, PlusIcon, Trash2Icon } from 'lucide-react'
+import {
+  ClipboardListIcon,
+  PackageCheckIcon,
+  PlusIcon,
+  Trash2Icon,
+} from 'lucide-react'
 
 import { toast } from 'sonner'
 
@@ -35,7 +40,7 @@ import {
 import { FieldGroup } from '#/features/app-shell/components/field-label.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import {
   requirePositiveQuantity,
@@ -119,18 +124,15 @@ export function PurchaseOrdersPanel() {
         index === 0
           ? {
               ...line,
-              itemId: items[0]!.id,
-              rate: items[0]!.purchaseRate,
+              itemId: items[0].id,
+              rate: items[0].purchaseRate,
             }
           : line,
       )
     })
   }, [items])
 
-  function updateLine(
-    index: number,
-    patch: Partial<PurchaseOrderLineDraft>,
-  ) {
+  function updateLine(index: number, patch: Partial<PurchaseOrderLineDraft>) {
     setLines((current) =>
       current.map((line, lineIndex) =>
         lineIndex === index ? { ...line, ...patch } : line,
@@ -139,7 +141,7 @@ export function PurchaseOrdersPanel() {
   }
 
   function addLine() {
-    const nextItem = items[0]
+    const nextItem = items.at(0)
     setLines((current) => [
       ...current,
       {
@@ -243,7 +245,7 @@ export function PurchaseOrdersPanel() {
 
   return (
     <WorkspacePage
-      description="Purchase orders without ledger posting or stock movement."
+      description="Orders placed with suppliers. Stock and accounts change only when you make the bill."
       title="Purchase orders"
     >
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
@@ -251,8 +253,7 @@ export function PurchaseOrdersPanel() {
           <CardHeader>
             <CardTitle className="text-base">New purchase order</CardTitle>
             <CardDescription>
-              Commitment to supplier — convert to purchase bill when goods
-              arrive.
+              Convert to a purchase bill when the goods arrive.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -265,10 +266,7 @@ export function PurchaseOrdersPanel() {
                 />
               </FieldGroup>
               <FieldGroup label="Order date">
-                <DatePicker
-                  onChange={setOrderDate}
-                  value={orderDate}
-                />
+                <DatePicker onChange={setOrderDate} value={orderDate} />
               </FieldGroup>
               <FieldGroup label="Supplier">
                 <Select onValueChange={setSupplierId} value={supplierId}>

@@ -98,6 +98,7 @@ async function seedPurchaseContext() {
     name: 'Textile Mills Ltd',
     partyType: 'supplier',
     gstin: '24AABCU9603R1ZM',
+    billingAddress: '12 Market Road, Surat',
     stateCode: '24',
     creditLimit: null,
     paymentTermsDays: 15,
@@ -128,6 +129,8 @@ async function seedPurchaseContext() {
     ledgerPosting,
     stock,
     bills,
+    items,
+    parties,
   }
 }
 
@@ -140,6 +143,8 @@ describe('postPurchaseBill', () => {
         bills: context.bills,
         posting: context.ledgerPosting,
         stock: context.stock,
+        items: context.items,
+        parties: context.parties,
       },
       {
         companyId: context.companyId,
@@ -222,6 +227,8 @@ describe('postPurchaseBill', () => {
         bills: context.bills,
         posting: context.ledgerPosting,
         stock: context.stock,
+        items: context.items,
+        parties: context.parties,
       },
       input,
     )
@@ -232,9 +239,79 @@ describe('postPurchaseBill', () => {
           bills: context.bills,
           posting: context.ledgerPosting,
           stock: context.stock,
+          items: context.items,
+          parties: context.parties,
         },
         input,
       ),
     ).rejects.toBeInstanceOf(DuplicateSupplierBillError)
+  })
+})
+
+describe('purchase bill stock value', () => {
+  test('values received stock at its share of taxable value plus charges', async () => {
+    const context = await seedPurchaseContext()
+    const service = await createItem(context.items, {
+      companyId: context.companyId,
+      name: 'Loading charges',
+      hsnCode: '9967',
+      gstRate: '18.00',
+      baseUnit: 'job',
+      purchaseRate: '0.00',
+      saleRate: '0.00',
+      tracksInventory: false,
+    })
+
+    await postPurchaseBill(
+      {
+        bills: context.bills,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+        parties: context.parties,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        financialYearStart: '2026-04-01',
+        supplierId: context.supplier.id,
+        supplierBillNumber: 'SUP-2001',
+        billDate: '2026-07-11',
+        dueDate: '2026-07-26',
+        purchaseAccountId: context.purchaseAccountId,
+        inputGstAccountId: context.inputGstAccountId,
+        payableAccountId: context.payableAccountId,
+        stockAccountId: context.stockAccountId,
+        freight: '100.00',
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity: '10',
+            unit: 'meter',
+            rate: '75.00',
+            gstRate: '5.00',
+          },
+          {
+            itemId: service.id,
+            description: 'Loading charges',
+            quantity: '1',
+            unit: 'job',
+            rate: '250.00',
+            gstRate: '18.00',
+          },
+        ],
+      },
+    )
+
+    // Freight 100 split 750 : 250 → 75 to the fabric, 25 to the service.
+    expect(
+      await context.stock.getValue(context.companyId, context.item.id),
+    ).toBe('825.00')
+    const entry = context.ledgerPosting.list()[0]
+    const debitOf = (accountId: string) =>
+      entry.lines.find((line) => line.ledgerAccountId === accountId)?.debit
+    expect(debitOf(context.stockAccountId)).toBe('825.00')
+    expect(debitOf(context.purchaseAccountId)).toBe('275.00')
   })
 })

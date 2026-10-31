@@ -19,6 +19,7 @@ import {
 import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
 import { InMemoryPurchaseBillRepository } from '#/features/purchases/purchase-bill-store.ts'
 import { InMemoryPartyRepository } from '#/features/parties/party-store.ts'
+import { InMemoryCreditDebitNoteRepository } from '#/features/returns/credit-debit-note-store.ts'
 import { InMemorySalesInvoiceRepository } from '#/features/sales/sales-invoice-store.ts'
 
 import type { AgeingRow } from '#/features/accounting/ageing-service.ts'
@@ -362,6 +363,7 @@ describe('getOwnerDashboardSnapshot', () => {
         ledgers,
         items: new InMemoryItemRepository(),
         stockBalances: new InMemoryStockStore(),
+        notes: new InMemoryCreditDebitNoteRepository(),
       },
       companyId,
       asOfDate,
@@ -425,6 +427,7 @@ describe('getOwnerDashboardSnapshot', () => {
         ledgers: new InMemoryLedgerAccountRepository(),
         items: new InMemoryItemRepository(),
         stockBalances: new InMemoryStockStore(),
+        notes: new InMemoryCreditDebitNoteRepository(),
       },
       companyId,
       asOfDate,
@@ -499,6 +502,7 @@ describe('getOwnerDashboardSnapshot', () => {
         ledgers: new InMemoryLedgerAccountRepository(),
         items: new InMemoryItemRepository(),
         stockBalances: new InMemoryStockStore(),
+        notes: new InMemoryCreditDebitNoteRepository(),
       },
       companyId,
       asOfDate,
@@ -550,6 +554,7 @@ describe('getOwnerDashboardSnapshot', () => {
         ledgers: new InMemoryLedgerAccountRepository(),
         items: new InMemoryItemRepository(),
         stockBalances: new InMemoryStockStore(),
+        notes: new InMemoryCreditDebitNoteRepository(),
       },
       companyId,
       '2026-07-14',
@@ -608,6 +613,7 @@ describe('getOwnerDashboardSnapshot', () => {
         ledgers: new InMemoryLedgerAccountRepository(),
         items: new InMemoryItemRepository(),
         stockBalances: new InMemoryStockStore(),
+        notes: new InMemoryCreditDebitNoteRepository(),
       },
       companyId,
       asOfDate,
@@ -628,8 +634,12 @@ describe('getOwnerDashboardSnapshot', () => {
     expect(snapshot.balances).toEqual({
       cashBankBalance: '0.00',
       receivableTotal: '0.00',
+      receivableOverdue: '0.00',
       payableTotal: '0.00',
+      payableDueThisWeek: '0.00',
     })
+    expect(snapshot.topReceivables).toEqual([])
+    expect(snapshot.topPayables).toEqual([])
     expect(snapshot.dueToday).toEqual({ receivables: [], payables: [] })
     expect(snapshot.todayExpenses).toEqual([])
     expect(snapshot.overdue).toEqual({ invoiceCount: 0, billCount: 0 })
@@ -670,6 +680,7 @@ describe('getOwnerDashboardSnapshot', () => {
         ledgers: new InMemoryLedgerAccountRepository(),
         items: new InMemoryItemRepository(),
         stockBalances: new InMemoryStockStore(),
+        notes: new InMemoryCreditDebitNoteRepository(),
       },
       companyId,
       '2026-07-14',
@@ -731,6 +742,7 @@ describe('getOwnerDashboardSnapshot low stock', () => {
         ledgers: new InMemoryLedgerAccountRepository(),
         items,
         stockBalances: stock,
+        notes: new InMemoryCreditDebitNoteRepository(),
       },
       companyId,
       asOfDate,
@@ -819,5 +831,149 @@ describe('getOwnerDashboardSnapshot low stock', () => {
     expect(snapshot.gstMtd).toBeUndefined()
     expect(snapshot.attention.map((item) => item.kind)).toEqual(['low-stock'])
     expect(snapshot.attention[0].actionable).toBe(true)
+  })
+})
+
+describe('getOwnerDashboardSnapshot money position and setup', () => {
+  const companyId = 'company-1'
+  const asOfDate = '2026-07-14'
+
+  async function party(
+    parties: InMemoryPartyRepository,
+    id: string,
+    name: string,
+    partyType: 'customer' | 'supplier',
+    contactPhone = '',
+  ) {
+    await parties.create({
+      id,
+      companyId,
+      name,
+      partyType,
+      gstin: null,
+      stateCode: '24',
+      creditLimit: null,
+      paymentTermsDays: 0,
+      receivableAccountId: partyType === 'customer' ? 'recv-1' : null,
+      payableAccountId: partyType === 'supplier' ? 'pay-1' : null,
+      contactPhone,
+      createdAt: new Date(),
+    })
+  }
+
+  async function snapshot(
+    deps: {
+      invoices?: InMemorySalesInvoiceRepository
+      bills?: InMemoryPurchaseBillRepository
+      parties?: InMemoryPartyRepository
+      items?: InMemoryItemRepository
+    },
+    includeReports = true,
+  ) {
+    return getOwnerDashboardSnapshot(
+      {
+        summaries: new InMemoryDashboardSummaryRepository(),
+        invoices: deps.invoices ?? new InMemorySalesInvoiceRepository(),
+        bills: deps.bills ?? new InMemoryPurchaseBillRepository(),
+        parties: deps.parties ?? new InMemoryPartyRepository(),
+        expenses: new InMemoryExpenseRepository(),
+        postings: new InMemoryLedgerPostingRepository(),
+        ledgers: new InMemoryLedgerAccountRepository(),
+        items: deps.items ?? new InMemoryItemRepository(),
+        stockBalances: new InMemoryStockStore(),
+        notes: new InMemoryCreditDebitNoteRepository(),
+      },
+      companyId,
+      asOfDate,
+      '24',
+      {
+        includeReports,
+        capabilities: includeReports
+          ? ['view', 'view_reports', 'post_payment']
+          : ['view'],
+      },
+    )
+  }
+
+  test('splits receivables into overdue and payables into due within 7 days', async () => {
+    const invoices = new InMemorySalesInvoiceRepository()
+    const bills = new InMemoryPurchaseBillRepository()
+    await invoices.create(
+      baseInvoice({ id: 'late', dueDate: '2026-07-10', outstandingAmount: '300.00' }),
+    )
+    await invoices.create(
+      baseInvoice({ id: 'later', invoiceNumber: 'INV-2', dueDate: '2026-07-30', outstandingAmount: '700.00' }),
+    )
+    await bills.create(
+      baseBill({ id: 'overdue-bill', dueDate: '2026-07-01', outstandingAmount: '100.00' }),
+    )
+    await bills.create(
+      baseBill({ id: 'this-week', supplierBillNumber: 'PB-2', dueDate: '2026-07-20', outstandingAmount: '200.00' }),
+    )
+    await bills.create(
+      baseBill({ id: 'next-week', supplierBillNumber: 'PB-3', dueDate: '2026-07-21', outstandingAmount: '400.00' }),
+    )
+
+    const result = await snapshot({ invoices, bills })
+
+    expect(result.balances.receivableTotal).toBe('1000.00')
+    expect(result.balances.receivableOverdue).toBe('300.00')
+    expect(result.balances.payableTotal).toBe('700.00')
+    expect(result.balances.payableDueThisWeek).toBe('300.00')
+  })
+
+  test('lists the top parties by outstanding, with their overdue part', async () => {
+    const invoices = new InMemorySalesInvoiceRepository()
+    const parties = new InMemoryPartyRepository()
+    await party(parties, 'small', 'Small Customer', 'customer')
+    await party(parties, 'big', 'Big Customer', 'customer')
+    await invoices.create(
+      baseInvoice({ id: 'a', customerId: 'small', outstandingAmount: '100.00', dueDate: '2026-07-30' }),
+    )
+    await invoices.create(
+      baseInvoice({ id: 'b', invoiceNumber: 'INV-2', customerId: 'big', outstandingAmount: '500.00', dueDate: '2026-07-01' }),
+    )
+    await invoices.create(
+      baseInvoice({ id: 'c', invoiceNumber: 'INV-3', customerId: 'big', outstandingAmount: '250.00', dueDate: '2026-07-30' }),
+    )
+
+    const result = await snapshot({ invoices, parties })
+
+    expect(result.topReceivables).toEqual([
+      { partyId: 'big', partyName: 'Big Customer', outstandingAmount: '750.00', overdueAmount: '500.00' },
+      { partyId: 'small', partyName: 'Small Customer', outstandingAmount: '100.00', overdueAmount: '0.00' },
+    ])
+    expect(result.topPayables).toEqual([])
+  })
+
+  test('carries the party phone on overdue rows for reminders', async () => {
+    const invoices = new InMemorySalesInvoiceRepository()
+    const parties = new InMemoryPartyRepository()
+    await party(parties, 'party-1', 'Acme Traders', 'customer', '98765 43210')
+    await invoices.create(baseInvoice({ dueDate: '2026-07-01' }))
+
+    const result = await snapshot({ invoices, parties })
+
+    const row = result.attention.find((item) => item.kind === 'overdue-receivable')
+    expect(row?.contactPhone).toBe('98765 43210')
+  })
+
+  test('reports setup progress from real records only', async () => {
+    const empty = await snapshot({}, false)
+    expect(empty.setup).toEqual({ hasParty: false, hasItem: false, hasSale: false })
+
+    const parties = new InMemoryPartyRepository()
+    const items = new InMemoryItemRepository()
+    const invoices = new InMemorySalesInvoiceRepository()
+    await party(parties, 'party-1', 'Acme Traders', 'customer')
+    await items.create(baseItem())
+    await invoices.create(baseInvoice({ status: 'cancelled' }))
+
+    const partial = await snapshot({ parties, items, invoices }, false)
+    expect(partial.setup).toEqual({ hasParty: true, hasItem: true, hasSale: false })
+
+    await invoices.create(baseInvoice({ id: 'inv-2', invoiceNumber: 'INV-2' }))
+    const done = await snapshot({ parties, items, invoices })
+    expect(done.setup).toEqual({ hasParty: true, hasItem: true, hasSale: true })
   })
 })

@@ -11,6 +11,7 @@ import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { DocumentAttachmentRepository } from '#/features/documents/document-attachment-service.ts'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
+import type { PostingTransaction } from '#/features/accounting/posting-transaction.ts'
 import type {
   OcrConfirmDependencies,
   OcrDraftRepository,
@@ -69,10 +70,8 @@ const updateOcrDraftInputSchema = z.object({
 export const createOcrRouter = (
   repository: OcrDraftRepository,
   attachments: DocumentAttachmentRepository,
-  deps: Pick<
-    OcrConfirmDependencies,
-    'parties' | 'items' | 'bills' | 'posting' | 'stock' | 'ledgers'
-  >,
+  ledgers: LedgerAccountRepository,
+  transaction: PostingTransaction,
 ) =>
   ({
     list: capabilityProcedure('view')
@@ -95,20 +94,22 @@ export const createOcrRouter = (
     confirm: capabilityProcedure('post_purchase')
       .input(confirmOcrDraftInputSchema)
       .mutation(({ input, ctx }) =>
-        confirmOcrDraft(
-          repository,
-          { ...deps },
-          {
-            draftId: input.draftId,
-            companyId: input.companyId,
-            reviewedByUserId: ctx.userId,
-            companyStateCode: input.companyStateCode,
-            financialYearStart: input.financialYearStart,
-            purchaseAccountId: input.purchaseAccountId,
-            inputGstAccountId: input.inputGstAccountId,
-            payableAccountId: input.payableAccountId,
-            stockAccountId: input.stockAccountId,
-          },
+        transaction((tx) =>
+          confirmOcrDraft(
+            repository,
+            { ...tx, ledgers },
+            {
+              draftId: input.draftId,
+              companyId: input.companyId,
+              reviewedByUserId: ctx.userId,
+              companyStateCode: input.companyStateCode,
+              financialYearStart: input.financialYearStart,
+              purchaseAccountId: input.purchaseAccountId,
+              inputGstAccountId: input.inputGstAccountId,
+              payableAccountId: input.payableAccountId,
+              stockAccountId: input.stockAccountId,
+            },
+          ),
         ),
       ),
   }) satisfies TRPCRouterRecord

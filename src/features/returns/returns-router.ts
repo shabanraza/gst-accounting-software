@@ -31,6 +31,8 @@ const salesReturnInputSchema = z.object({
   salesAccountId: z.string().uuid(),
   outputGstAccountId: z.string().uuid(),
   receivableAccountId: z.string().uuid(),
+  stockAccountId: z.string().uuid().optional(),
+  cogsAccountId: z.string().uuid().optional(),
   lines: z.array(returnLineSchema).min(1),
 })
 
@@ -44,6 +46,7 @@ const purchaseReturnInputSchema = z.object({
   purchaseAccountId: z.string().uuid(),
   inputGstAccountId: z.string().uuid(),
   payableAccountId: z.string().uuid(),
+  stockAccountId: z.string().uuid().optional(),
   lines: z.array(returnLineSchema).min(1),
 })
 

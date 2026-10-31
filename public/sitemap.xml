@@ -666,6 +666,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://hisaabkro.in/changelog</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
     <loc>https://hisaabkro.in/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>

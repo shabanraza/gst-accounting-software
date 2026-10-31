@@ -1,8 +1,11 @@
 import * as React from 'react'
+import { useMutation } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 
 import { Button } from '#/components/ui/button.tsx'
+import { Checkbox } from '#/components/ui/checkbox.tsx'
 import { Input } from '#/components/ui/input.tsx'
+import { Label } from '#/components/ui/label.tsx'
 import {
   AuthDivider,
   AuthFieldGroup,
@@ -12,6 +15,7 @@ import {
 } from '#/features/auth/components/auth-form-layout.tsx'
 import { GoogleSignInButton } from '#/features/auth/components/google-sign-in-button.tsx'
 import { SHOW_GOOGLE_AUTH } from '#/features/auth/google-auth.ts'
+import { useTRPC } from '#/integrations/trpc/react.ts'
 import { authClient } from '#/lib/auth-client.ts'
 
 function signupErrorMessage(error: { message?: string }) {
@@ -28,11 +32,14 @@ function signupErrorMessage(error: { message?: string }) {
 
 export function SignupForm() {
   const navigate = useNavigate()
+  const trpc = useTRPC()
   const [name, setName] = React.useState('')
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
+  const [productUpdates, setProductUpdates] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const optIn = useMutation(trpc.preferences.setProductUpdates.mutationOptions())
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -45,13 +52,17 @@ export function SignupForm() {
       password,
     })
 
-    setIsSubmitting(false)
-
     if (result.error) {
+      setIsSubmitting(false)
       setError(signupErrorMessage(result.error))
       return
     }
 
+    if (productUpdates) {
+      // The account exists either way; the in-app prompt asks again if this fails.
+      await optIn.mutateAsync({ enabled: true }).catch(() => undefined)
+    }
+    setIsSubmitting(false)
     void navigate({ to: '/onboarding' })
   }
 
@@ -94,6 +105,16 @@ export function SignupForm() {
             value={password}
           />
         </AuthFieldGroup>
+        <div className="flex items-center gap-2">
+          <Checkbox
+            checked={productUpdates}
+            id="signup-product-updates"
+            onCheckedChange={(checked) => setProductUpdates(checked === true)}
+          />
+          <Label className="font-normal" htmlFor="signup-product-updates">
+            Email me product updates (new features and fixes)
+          </Label>
+        </div>
         {error ? (
           <p className="text-xs text-destructive" role="alert">
             {error}

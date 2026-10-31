@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 
 import {
   ChartAlreadySetupError,
+  ensureSystemLedgers,
   setupDefaultChartOfAccounts,
 } from '#/features/accounting/chart-of-accounts.ts'
 import type {
@@ -38,6 +39,7 @@ const tradingRequiredNames = [
   'Stock In Hand',
   'Expenses',
   'Cost of Goods Sold',
+  'Opening Balance',
 ] as const
 
 describe('setupDefaultChartOfAccounts', () => {
@@ -124,5 +126,77 @@ describe('setupDefaultChartOfAccounts', () => {
     ).toBe(true)
     expect(companyOne).toHaveLength(tradingRequiredNames.length)
     expect(companyTwo).toHaveLength(tradingRequiredNames.length)
+  })
+})
+
+describe('ensureSystemLedgers', () => {
+  test('adds system ledgers an existing company is missing', async () => {
+    const repository = new InMemoryLedgerAccountRepository()
+    const existing = await setupDefaultChartOfAccounts(repository, {
+      companyId: 'company-1',
+      businessType: 'wholesale',
+    })
+    // A company set up before the Opening Balance ledger existed.
+    const legacy = new InMemoryLedgerAccountRepository()
+    await legacy.createMany(
+      existing.filter((account) => account.systemKey !== 'opening_balance'),
+    )
+
+    const accounts = await ensureSystemLedgers(legacy, {
+      companyId: 'company-1',
+      businessType: 'wholesale',
+    })
+
+    const opening = accounts.find(
+      (account) => account.systemKey === 'opening_balance',
+    )
+    expect(opening).toMatchObject({
+      name: 'Opening Balance',
+      accountType: 'equity',
+      code: '3000',
+      isSystem: true,
+    })
+    expect(legacy.list()).toHaveLength(existing.length)
+  })
+
+  test('is a no-op when every system ledger exists', async () => {
+    const repository = new InMemoryLedgerAccountRepository()
+    const existing = await setupDefaultChartOfAccounts(repository, {
+      companyId: 'company-1',
+      businessType: 'wholesale',
+    })
+
+    const accounts = await ensureSystemLedgers(repository, {
+      companyId: 'company-1',
+      businessType: 'wholesale',
+    })
+
+    expect(accounts).toHaveLength(existing.length)
+    expect(repository.list()).toHaveLength(existing.length)
+  })
+
+  test('picks a free code when a user ledger already uses the default', async () => {
+    const repository = new InMemoryLedgerAccountRepository()
+    await repository.createMany([
+      {
+        id: 'user-ledger',
+        companyId: 'company-1',
+        code: '3000',
+        name: 'Partner Capital',
+        accountType: 'equity',
+        systemKey: null,
+        isSystem: false,
+        createdAt: new Date(),
+      },
+    ])
+
+    const accounts = await ensureSystemLedgers(repository, {
+      companyId: 'company-1',
+      businessType: 'services',
+    })
+
+    expect(
+      accounts.find((account) => account.systemKey === 'opening_balance')?.code,
+    ).toBe('3001')
   })
 })

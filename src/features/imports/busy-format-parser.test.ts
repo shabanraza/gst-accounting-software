@@ -67,3 +67,63 @@ Mill Supplies\t24BBBBB0000B1Z5\tGujarat\tSupplier`
     expect(rows[1]?.partyType).toBe('supplier')
   })
 })
+
+describe('BUSY party state', () => {
+  test('knows every state name, not just a few', () => {
+    expect(mapBusyPartyRow({ 'Account Name': 'A', State: 'Kerala' }).stateCode).toBe('32')
+    expect(mapBusyPartyRow({ 'Account Name': 'A', State: 'goa' }).stateCode).toBe('30')
+  })
+
+  test("falls back to the company's state, not Maharashtra", () => {
+    expect(mapBusyPartyRow({ 'Account Name': 'A' }, '09').stateCode).toBe('09')
+  })
+})
+
+// Column names from Tally's own Excel import templates and plain CSV.
+describe('column matching for Excel and CSV files', () => {
+  test('reads Tally template party columns', () => {
+    expect(
+      mapBusyPartyRow({
+        'Customer Name': 'Asha Traders',
+        GSTIN: '27AAAAA0000A1Z5',
+        'Registeration Type': 'Regular',
+      }),
+    ).toEqual({
+      name: 'Asha Traders',
+      partyType: 'customer',
+      gstin: '27AAAAA0000A1Z5',
+      stateCode: '27',
+    })
+    expect(mapBusyPartyRow({ 'Supplier Name': 'Mill Co' }).partyType).toBe(
+      'supplier',
+    )
+  })
+
+  test('reads the exact field names and keeps "both"', () => {
+    expect(
+      mapBusyPartyRow({
+        name: 'Asha Traders',
+        partyType: 'both',
+        gstin: '',
+        stateCode: '24',
+      }),
+    ).toEqual({
+      name: 'Asha Traders',
+      partyType: 'both',
+      gstin: null,
+      stateCode: '24',
+    })
+  })
+
+  test('reads Tally template item columns including the IGST rate', () => {
+    expect(
+      mapBusyItemRow({ 'Stock Item': 'Ball Pen', UOM: 'Nos', IGST: '12', SGST: '6' }),
+    ).toEqual({
+      name: 'Ball Pen',
+      hsn: '',
+      rate: '0.00',
+      unit: 'Nos',
+      gstRate: '12',
+    })
+  })
+})

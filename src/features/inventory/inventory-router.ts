@@ -20,13 +20,17 @@ import {
   resolveItemRateForVoucher,
   setPriceListItemRate,
 } from '#/features/inventory/price-list-service.ts'
+import { needsRestock } from '#/features/inventory/low-stock.ts'
 import {
   getCurrentStock,
   recordStockMovement,
 } from '#/features/inventory/stock-movement-service.ts'
+import { averageRate } from '#/features/inventory/stock-valuation-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
+import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
+import type { PostingTransaction } from '#/features/accounting/posting-transaction.ts'
 import type { GodownRepository } from '#/features/inventory/godown-service.ts'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
 import type {
@@ -150,6 +154,8 @@ export const createInventoryRouter = (
   stockStore: StockMovementRepository & StockBalanceRepository,
   godownRepository: GodownRepository,
   priceListRepository: PriceListRepository & PriceListItemRepository,
+  ledgerAccountRepository: LedgerAccountRepository,
+  postingTransaction: PostingTransaction,
 ) =>
   ({
     listGodowns: capabilityProcedure('view')
@@ -245,7 +251,12 @@ export const createInventoryRouter = (
     createItemWithOpening: capabilityProcedure('manage_inventory')
       .input(createItemWithOpeningInputSchema)
       .mutation(({ input }) => {
-        return createItemWithOpening(itemRepository, stockStore, input)
+        return postingTransaction(({ items, stock, posting }) =>
+          createItemWithOpening(
+            { items, stock, posting, ledgers: ledgerAccountRepository },
+            input,
+          ),
+        )
       }),
     updateItem: capabilityProcedure('manage_inventory')
       .input(updateItemInputSchema)
@@ -273,13 +284,19 @@ export const createInventoryRouter = (
 
         return balances.map((balance) => {
           const item = itemById.get(balance.itemId)
+          const tracksInventory = item?.tracksInventory ?? true
           return {
             itemId: balance.itemId,
             itemName: item?.name ?? 'Unknown item',
             unit: item?.baseUnit ?? '',
             quantity: balance.quantity,
-            avgRate: item?.purchaseRate ?? '0.00',
-            tracksInventory: item?.tracksInventory ?? true,
+            avgRate: averageRate(balance),
+            tracksInventory,
+            isLow: needsRestock({
+              quantity: balance.quantity,
+              reorderLevel: item?.reorderLevel,
+              tracksInventory,
+            }),
           }
         })
       }),

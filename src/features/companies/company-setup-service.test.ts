@@ -35,9 +35,6 @@ describe('createCompanyWithSetup', () => {
         memberships,
         audit,
         godowns,
-        parties,
-        items,
-        stock,
       },
       {
         accountId: 'account-1',
@@ -59,8 +56,13 @@ describe('createCompanyWithSetup', () => {
     expect(result.ledgerAccounts.map((account) => account.name)).toContain(
       'Stock In Hand',
     )
-    expect(result.starterData.parties.length).toBeGreaterThan(0)
-    expect(result.starterData.items.length).toBeGreaterThan(0)
+    expect(await parties.listByCompanyId(result.company.id)).toEqual([])
+    expect(await items.listByCompanyId(result.company.id)).toEqual([])
+    expect(await stock.listBalancesByCompany(result.company.id)).toEqual([])
+    const godownNames = (await godowns.listByCompanyId(result.company.id)).map(
+      (godown) => godown.name,
+    )
+    expect(godownNames).toEqual(['Main Godown'])
 
     const accounts = await setupDefaultChartOfAccounts(ledgers, {
       companyId: result.company.id,

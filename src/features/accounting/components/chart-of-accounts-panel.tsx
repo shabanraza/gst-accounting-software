@@ -204,7 +204,7 @@ export function ChartOfAccountsPanel() {
                     <TableHead className="w-28 pl-6">Code</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead className="w-36">Type</TableHead>
-                    <TableHead className="w-28 pr-6">System</TableHead>
+                    <TableHead className="w-28 pr-6">Built-in</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -225,7 +225,7 @@ export function ChartOfAccountsPanel() {
                       </TableCell>
                       <TableCell className="pr-6">
                         {account.isSystem ? (
-                          <Badge variant="neutral">System</Badge>
+                          <Badge variant="neutral">Built-in</Badge>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}

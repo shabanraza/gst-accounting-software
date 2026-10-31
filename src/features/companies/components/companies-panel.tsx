@@ -135,7 +135,7 @@ export function CompaniesPanel() {
             <DialogHeader>
               <DialogTitle>New company</DialogTitle>
               <DialogDescription>
-                Creates firm profile and seeds chart of accounts automatically.
+                Ledgers and the financial year are set up for you.
               </DialogDescription>
             </DialogHeader>
             <form className="flex flex-col gap-4" onSubmit={handleCreate}>
@@ -212,7 +212,7 @@ export function CompaniesPanel() {
                           Distribution
                         </SelectItem>
                         <SelectItem value="manufacturing_light">
-                          Manufacturing light
+                          Small manufacturing
                         </SelectItem>
                         <SelectItem value="custom">Custom</SelectItem>
                       </SelectGroup>
@@ -244,7 +244,7 @@ export function CompaniesPanel() {
           </DialogContent>
         </Dialog>
       }
-      description="Multi-company profiles wired to the companies API."
+      description="All the businesses you keep books for."
       title="Companies"
     >
       <Card>

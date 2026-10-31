@@ -71,6 +71,18 @@ export const verification = pgTable('verification', {
   updatedAt: timestamp('updated_at').defaultNow(),
 })
 
+/** Per-user email consent. Not company data, so keyed by user only. */
+export const userPreferences = pgTable('user_preferences', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  productUpdates: boolean('product_updates').notNull().default(false),
+  productUpdatesConsentedAt: timestamp('product_updates_consented_at'),
+  productUpdatesWithdrawnAt: timestamp('product_updates_withdrawn_at'),
+  productUpdatesPromptedAt: timestamp('product_updates_prompted_at'),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+})
+
 export const companies = pgTable(
   'companies',
   {
@@ -304,6 +316,8 @@ export const stockMovements = pgTable(
     referenceType: text('reference_type').notNull(),
     referenceId: text('reference_id').notNull(),
     occurredOn: text('occurred_on').notNull(),
+    /** Cost moved, at moving average for outbound. Null on legacy rows. */
+    value: text('value'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
@@ -326,6 +340,8 @@ export const stockBalances = pgTable(
       .notNull()
       .references(() => items.id),
     quantity: text('quantity').notNull(),
+    /** Moving-average stock value. Null until valued (legacy rows). */
+    value: text('value'),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (table) => [
