@@ -62,6 +62,7 @@ import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { clearAppAccess } from '#/features/app-shell/app-access.ts'
 import { useQuickActionShortcuts } from '#/features/app-shell/components/quick-actions.tsx'
 import { HelpMenu } from '#/features/support/components/help-menu.tsx'
+import { useAskAiShortcut } from '#/features/assistant/components/use-ask-ai-shortcut.ts'
 import { authClient } from '#/lib/auth-client.ts'
 
 function NavItemButton({
@@ -175,6 +176,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const displayCompany = company ?? lastCompanyRef.current
   const { isDark, toggle, mounted: themeMounted } = useTheme()
   const [paletteOpen, setPaletteOpen] = React.useState(false)
+  useAskAiShortcut()
   const displayUser = session?.user ?? lastSessionRef.current?.user
   const userName = displayUser?.name ?? (isSessionPending ? '…' : 'Guest')
   const userEmail =

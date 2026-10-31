@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { ReportsPanel } from '#/features/gst/components/reports-panel.tsx'
 
 const searchSchema = z.object({
-  tab: z.enum(['gstr3b', 'ageing']).optional().catch(undefined),
+  tab: z.enum(['gstr3b', 'ageing', 'stock', 'trial']).optional().catch(undefined),
 })
 
 export const Route = createFileRoute('/app/reports')({

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { appNav } from '#/features/app-shell/data/app-shell-nav.ts'
+import { appNav, filterAppNav } from '#/features/app-shell/data/app-shell-nav.ts'
 import type { AppNavSection } from '#/features/app-shell/data/app-shell-nav.ts'
 
 /** Every icon in the sidebar, labelled by where it is rendered. */
@@ -45,5 +45,19 @@ describe('appNav icons', () => {
       )
 
     expect(collisions).toEqual([])
+  })
+})
+
+describe('Ask AI entry', () => {
+  test('sits at the top of the sidebar for members who can view reports', () => {
+    expect(filterAppNav(appNav, ['view_reports'])[0]).toMatchObject({
+      label: 'Ask AI',
+      path: '/app/assistant',
+    })
+    expect(
+      filterAppNav(appNav, ['post_sales']).some(
+        (section) => section.kind === 'link' && section.path === '/app/assistant',
+      ),
+    ).toBe(false)
   })
 })

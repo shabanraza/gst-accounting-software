@@ -15,6 +15,7 @@ built. Never include customer names, balances or other real data.
 
 ### Added
 
+- Ask your books: type a question in Hindi or English, such as "how much does a customer owe?", "GST payable this month?" or "top items sold in October", and get the figure from your own data with a link to the matching report. Open Ask AI at the top of the sidebar (or press Alt+A) for a chat that keeps your conversation while you work. It only reads your books and never changes them. Each company can ask up to 20 questions a day.
 - The GSTR-1 report now includes sales to unregistered customers: B2C large invoices (other-state sales above ₹1 lakh) and B2C small totals by place of supply and GST rate. These are also in the GSTR-1 JSON export.
 - You can upload the GSTR-1 file downloaded from the GST portal to compare it with your sales invoices, instead of pasting it.
 - GSTR-1 now includes credit notes from sales returns: notes to registered customers and notes against B2C large invoices each have their own section, and other returns from unregistered customers reduce the B2C small totals. GSTR-3B and the dashboard GST card count the same credit notes, and purchase returns now reduce input GST.

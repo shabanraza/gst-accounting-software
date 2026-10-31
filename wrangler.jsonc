@@ -8,6 +8,8 @@
   // variables added in the Cloudflare dashboard. Secrets (RESEND_API_KEY,
   // DATABASE_URL, BETTER_AUTH_SECRET) are set as Secrets and survive deploys.
   // Local dev: override these in .env.local.
+  // Workers AI for "Ask your books" (free daily Neuron allowance).
+  "ai": { "binding": "AI" },
   "vars": {
     "EMAIL_FROM": "HisaabKro <support@hisaabkro.in>",
     // Resend segment for opt-in product-update emails.

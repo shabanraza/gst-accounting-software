@@ -14,6 +14,7 @@ import {
 const SHORTCUTS = [
   { keys: ['Ctrl', 'K'], action: 'Search pages, parties and items' },
   { keys: ['Ctrl', 'B'], action: 'Show or hide the sidebar' },
+  { keys: ['Alt', 'A'], action: 'Open Ask AI' },
   { keys: ['Alt', 'S'], action: 'New sales invoice' },
   { keys: ['Alt', 'P'], action: 'New purchase bill' },
   { keys: ['Alt', 'R'], action: 'Record a customer receipt' },

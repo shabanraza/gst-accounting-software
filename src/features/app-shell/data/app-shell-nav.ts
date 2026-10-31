@@ -23,6 +23,7 @@ import {
   ScanTextIcon,
   Settings2Icon,
   ShoppingCartIcon,
+  SparklesIcon,
   TrendingUpIcon,
   Undo2Icon,
   UploadIcon,
@@ -36,6 +37,7 @@ import type { Capability } from '#/features/companies/membership-service.ts'
 
 export type AppNavPath =
   | '/app/dashboard'
+  | '/app/assistant'
   | '/app/masters/chart-of-accounts'
   | '/app/masters/companies'
   | '/app/masters/company-profile'
@@ -75,6 +77,13 @@ export type AppNavSection =
     }
 
 export const appNav: Array<AppNavSection> = [
+  {
+    kind: 'link',
+    label: 'Ask AI',
+    path: '/app/assistant',
+    icon: SparklesIcon,
+    requiredCapability: 'view_reports',
+  },
   {
     kind: 'link',
     label: 'Dashboard',

@@ -1,3 +1,6 @@
+import { createAssistantRouter } from '#/features/assistant/assistant-router.ts'
+import { assistantUsageRepository } from '#/features/assistant/assistant-usage-store.ts'
+import { getWorkersAi } from '#/features/assistant/workers-ai-binding.ts'
 import { createAuditRouter } from '#/features/audit/audit-router.ts'
 import { createBankingRouter } from '#/features/banking/banking-router.ts'
 import { bankReconciliationRepository } from '#/features/banking/bank-reconciliation-store.ts'
@@ -130,6 +133,18 @@ export const trpcRouter = createTRPCRouter({
     stockMovements: stockStore,
     stockBalances: stockStore,
     items: itemRepository,
+  }),
+  assistant: createAssistantRouter({
+    parties: partyRepository,
+    invoices: salesInvoiceRepository,
+    bills: purchaseBillRepository,
+    notes: creditDebitNoteRepository,
+    items: itemRepository,
+    stockBalances: stockStore,
+    ledgers: ledgerAccountRepository,
+    postings: ledgerPostingRepository,
+    usage: assistantUsageRepository,
+    getAi: getWorkersAi,
   }),
   dashboard: createDashboardRouter(dashboardSummaryRepository, {
     summaries: dashboardSummaryRepository,
