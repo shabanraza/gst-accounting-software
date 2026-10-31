@@ -291,9 +291,9 @@ export function CreatePartyDialog({
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5 sm:col-span-2">
-            <label className="text-sm font-medium" htmlFor="party-name">
+            <Label className="text-sm" htmlFor="party-name">
               Name
-            </label>
+            </Label>
             <Input
               id="party-name"
               onChange={(event) => setName(event.target.value)}
@@ -340,9 +340,9 @@ export function CreatePartyDialog({
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="party-gstin">
+            <Label className="text-sm" htmlFor="party-gstin">
               GSTIN
-            </label>
+            </Label>
             <Input
               id="party-gstin"
               onChange={(event) => setGstin(event.target.value)}
@@ -351,9 +351,9 @@ export function CreatePartyDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="party-pan">
+            <Label className="text-sm" htmlFor="party-pan">
               PAN
-            </label>
+            </Label>
             <Input
               id="party-pan"
               onChange={(event) => setPan(event.target.value)}
@@ -367,9 +367,9 @@ export function CreatePartyDialog({
           <p className="text-sm font-medium">Billing address</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <label className="text-sm font-medium" htmlFor="party-addr1">
+              <Label className="text-sm" htmlFor="party-addr1">
                 Address line 1
-              </label>
+              </Label>
               <Input
                 id="party-addr1"
                 onChange={(event) => setAddressLine1(event.target.value)}
@@ -378,9 +378,9 @@ export function CreatePartyDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <label className="text-sm font-medium" htmlFor="party-addr2">
+              <Label className="text-sm" htmlFor="party-addr2">
                 Address line 2
-              </label>
+              </Label>
               <Input
                 id="party-addr2"
                 onChange={(event) => setAddressLine2(event.target.value)}
@@ -389,9 +389,9 @@ export function CreatePartyDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium" htmlFor="party-city">
+              <Label className="text-sm" htmlFor="party-city">
                 City
-              </label>
+              </Label>
               <Input
                 id="party-city"
                 onChange={(event) => setCity(event.target.value)}
@@ -399,9 +399,9 @@ export function CreatePartyDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium" htmlFor="party-pincode">
+              <Label className="text-sm" htmlFor="party-pincode">
                 PIN code
-              </label>
+              </Label>
               <Input
                 id="party-pincode"
                 onChange={(event) => setPincode(event.target.value)}
@@ -413,9 +413,9 @@ export function CreatePartyDialog({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="party-phone">
+            <Label className="text-sm" htmlFor="party-phone">
               Phone
-            </label>
+            </Label>
             <Input
               id="party-phone"
               onChange={(event) => setContactPhone(event.target.value)}
@@ -423,9 +423,9 @@ export function CreatePartyDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="party-email">
+            <Label className="text-sm" htmlFor="party-email">
               Email
-            </label>
+            </Label>
             <Input
               id="party-email"
               onChange={(event) => setContactEmail(event.target.value)}
@@ -448,9 +448,9 @@ export function CreatePartyDialog({
           </div>
           {!shipSameAsBilling ? (
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium" htmlFor="party-ship">
+              <Label className="text-sm" htmlFor="party-ship">
                 Shipping address
-              </label>
+              </Label>
               <Textarea
                 id="party-ship"
                 onChange={(event) => setShippingAddress(event.target.value)}
@@ -484,9 +484,9 @@ export function CreatePartyDialog({
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="party-credit">
+            <Label className="text-sm" htmlFor="party-credit">
               Credit limit
-            </label>
+            </Label>
             <Input
               id="party-credit"
               onChange={(event) => setCreditLimit(event.target.value)}

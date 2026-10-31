@@ -17,6 +17,7 @@ import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
 import { formatMediumDate } from '#/lib/calendar-date.ts'
 import { currentFinancialYearStart } from '#/lib/gst-period.ts'
+import { Label } from '#/components/ui/label.tsx'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group.tsx'
 import {
   Select,
@@ -132,9 +133,9 @@ export function CreateCompanyPanel() {
           {step === 0 ? (
             <>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium" htmlFor="ob-legal">
+                <Label className="text-sm" htmlFor="ob-legal">
                   Legal name
-                </label>
+                </Label>
                 <Input
                   id="ob-legal"
                   onChange={(event) => setLegalName(event.target.value)}
@@ -143,9 +144,9 @@ export function CreateCompanyPanel() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium" htmlFor="ob-trade">
+                <Label className="text-sm" htmlFor="ob-trade">
                   Trade name
-                </label>
+                </Label>
                 <Input
                   id="ob-trade"
                   onChange={(event) => setTradeName(event.target.value)}
@@ -159,9 +160,9 @@ export function CreateCompanyPanel() {
           {step === 1 ? (
             <>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium" htmlFor="ob-gstin">
+                <Label className="text-sm" htmlFor="ob-gstin">
                   GSTIN (optional)
-                </label>
+                </Label>
                 <Input
                   id="ob-gstin"
                   onChange={(event) => handleGstinChange(event.target.value)}
@@ -187,11 +188,11 @@ export function CreateCompanyPanel() {
                 </Select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium" htmlFor="ob-address">
+                <Label className="text-sm" htmlFor="ob-address">
                   {hasGstin
                     ? 'Business address'
                     : 'Business address (optional)'}
-                </label>
+                </Label>
                 <Input
                   autoComplete="address-line1"
                   id="ob-address"
@@ -202,9 +203,9 @@ export function CreateCompanyPanel() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium" htmlFor="ob-city">
+                  <Label className="text-sm" htmlFor="ob-city">
                     City
-                  </label>
+                  </Label>
                   <Input
                     autoComplete="address-level2"
                     id="ob-city"
@@ -213,9 +214,9 @@ export function CreateCompanyPanel() {
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium" htmlFor="ob-pincode">
+                  <Label className="text-sm" htmlFor="ob-pincode">
                     PIN code
-                  </label>
+                  </Label>
                   <Input
                     autoComplete="postal-code"
                     id="ob-pincode"
@@ -227,9 +228,9 @@ export function CreateCompanyPanel() {
                 </div>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium" htmlFor="ob-fy">
+                <Label className="text-sm" htmlFor="ob-fy">
                   Financial year start
-                </label>
+                </Label>
                 <DatePicker
                   formatValue={formatMediumDate}
                   id="ob-fy"

@@ -18,6 +18,7 @@ import {
 } from '#/components/ui/card.tsx'
 import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
+import { Label } from '#/components/ui/label.tsx'
 import {
   Select,
   SelectContent,
@@ -298,9 +299,9 @@ export function ReturnsPanel() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium" htmlFor="ret-qty">
+                <Label className="text-sm" htmlFor="ret-qty">
                   Return qty (first line)
-                </label>
+                </Label>
                 <Input
                   id="ret-qty"
                   onChange={(event) => setQuantity(event.target.value)}
@@ -309,9 +310,9 @@ export function ReturnsPanel() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium" htmlFor="ret-date">
+                <Label className="text-sm" htmlFor="ret-date">
                   Return date
-                </label>
+                </Label>
                 <DatePicker
                   id="ret-date"
                   onChange={setReturnDate}

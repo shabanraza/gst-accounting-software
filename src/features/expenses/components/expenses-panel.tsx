@@ -27,6 +27,7 @@ import {
 } from '#/components/ui/dialog.tsx'
 import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
+import { Label } from '#/components/ui/label.tsx'
 import {
   Select,
   SelectContent,
@@ -143,9 +144,9 @@ export function ExpensesPanel() {
             </DialogHeader>
             <form className="flex flex-col gap-4" onSubmit={handleCreate}>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium" htmlFor="exp-narr">
+                <Label className="text-sm" htmlFor="exp-narr">
                   Narration
-                </label>
+                </Label>
                 <Input
                   id="exp-narr"
                   onChange={(event) => setNarration(event.target.value)}
@@ -155,9 +156,9 @@ export function ExpensesPanel() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium" htmlFor="exp-amt">
+                  <Label className="text-sm" htmlFor="exp-amt">
                     Amount
-                  </label>
+                  </Label>
                   <Input
                     id="exp-amt"
                     onChange={(event) => setAmount(event.target.value)}
@@ -166,9 +167,9 @@ export function ExpensesPanel() {
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium" htmlFor="exp-date">
+                  <Label className="text-sm" htmlFor="exp-date">
                     Date
-                  </label>
+                  </Label>
                   <DatePicker
                     id="exp-date"
                     onChange={setExpenseDate}

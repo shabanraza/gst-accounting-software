@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from '#/components/ui/card.tsx'
 import { Input } from '#/components/ui/input.tsx'
+import { Label } from '#/components/ui/label.tsx'
 import { Textarea } from '#/components/ui/textarea.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
@@ -140,12 +141,12 @@ export function CompanyProfilePanel() {
             }
             key={field.key}
           >
-            <label
-              className="text-sm font-medium"
+            <Label
+              className="text-sm"
               htmlFor={`company-${field.key}`}
             >
               {field.label}
-            </label>
+            </Label>
             {field.key === 'invoiceTerms' ? (
               <Textarea
                 id={`company-${field.key}`}

@@ -18,6 +18,7 @@ import {
 } from '#/components/ui/collapsible.tsx'
 import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
+import { Label } from '#/components/ui/label.tsx'
 import {
   Select,
   SelectContent,
@@ -997,12 +998,12 @@ function VoucherEntryForm({
                 </div>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs text-muted-foreground"
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
                       htmlFor="vch-date"
                     >
                       Date
-                    </label>
+                    </Label>
                     <DatePicker
                       id="vch-date"
                       onChange={setVoucherDate}
@@ -1035,12 +1036,12 @@ function VoucherEntryForm({
                   </div>
                   {paymentMode === 'credit' ? (
                     <div className="flex flex-col gap-1.5">
-                      <label
-                        className="text-xs text-muted-foreground"
+                      <Label
+                        className="text-xs font-normal text-muted-foreground"
                         htmlFor="sales-due-date"
                       >
                         Due date
-                      </label>
+                      </Label>
                       <DatePicker
                         id="sales-due-date"
                         onChange={setDueDate}
@@ -1099,12 +1100,12 @@ function VoucherEntryForm({
                 </div>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs text-muted-foreground"
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
                       htmlFor="vch-date"
                     >
                       Date
-                    </label>
+                    </Label>
                     <DatePicker
                       id="vch-date"
                       onChange={setVoucherDate}
@@ -1123,12 +1124,12 @@ function VoucherEntryForm({
                     </Badge>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs text-muted-foreground"
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
                       htmlFor="sup-bill"
                     >
                       Supplier bill no.
-                    </label>
+                    </Label>
                     <Input
                       id="sup-bill"
                       onChange={(event) =>
@@ -1371,12 +1372,12 @@ function VoucherEntryForm({
                     </div>
                   ) : null}
                   <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs text-muted-foreground"
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
                       htmlFor="due-date"
                     >
                       Due date
-                    </label>
+                    </Label>
                     <DatePicker
                       id="due-date"
                       onChange={setDueDate}
@@ -1384,12 +1385,12 @@ function VoucherEntryForm({
                     />
                   </div>
                   <div className="flex flex-col gap-1.5 sm:col-span-2">
-                    <label
-                      className="text-xs text-muted-foreground"
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
                       htmlFor="bill-attachment"
                     >
                       Bill attachment
-                    </label>
+                    </Label>
                     <Input
                       accept="image/*,.pdf"
                       id="bill-attachment"
@@ -1419,12 +1420,12 @@ function VoucherEntryForm({
             <CollapsibleContent>
               <section className="grid gap-3 pt-2 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="flex flex-col gap-1.5">
-                  <label
-                    className="text-xs text-muted-foreground"
+                  <Label
+                    className="text-xs font-normal text-muted-foreground"
                     htmlFor="po-ref"
                   >
                     PO / order ref
-                  </label>
+                  </Label>
                   <Input
                     id="po-ref"
                     onChange={(event) => setPoReference(event.target.value)}
@@ -1432,12 +1433,12 @@ function VoucherEntryForm({
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label
-                    className="text-xs text-muted-foreground"
+                  <Label
+                    className="text-xs font-normal text-muted-foreground"
                     htmlFor="challan-ref"
                   >
                     Challan ref
-                  </label>
+                  </Label>
                   <Input
                     id="challan-ref"
                     onChange={(event) => setChallanRef(event.target.value)}
@@ -1445,12 +1446,12 @@ function VoucherEntryForm({
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label
-                    className="text-xs text-muted-foreground"
+                  <Label
+                    className="text-xs font-normal text-muted-foreground"
                     htmlFor="transport-mode"
                   >
                     Transport
-                  </label>
+                  </Label>
                   <Input
                     id="transport-mode"
                     onChange={(event) => setTransportMode(event.target.value)}
@@ -1459,12 +1460,12 @@ function VoucherEntryForm({
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label
-                    className="text-xs text-muted-foreground"
+                  <Label
+                    className="text-xs font-normal text-muted-foreground"
                     htmlFor="vehicle-no"
                   >
                     Vehicle no.
-                  </label>
+                  </Label>
                   <Input
                     id="vehicle-no"
                     onChange={(event) => setVehicleNo(event.target.value)}
@@ -1472,12 +1473,12 @@ function VoucherEntryForm({
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label
-                    className="text-xs text-muted-foreground"
+                  <Label
+                    className="text-xs font-normal text-muted-foreground"
                     htmlFor="lr-number"
                   >
                     LR / AWB
-                  </label>
+                  </Label>
                   <Input
                     id="lr-number"
                     onChange={(event) => setLrNumber(event.target.value)}
@@ -1689,12 +1690,12 @@ function VoucherEntryForm({
               <CollapsibleContent>
                 <section className="grid gap-3 pt-2 sm:grid-cols-2 lg:grid-cols-3">
                   <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs text-muted-foreground"
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
                       htmlFor="freight"
                     >
                       Freight
-                    </label>
+                    </Label>
                     <Input
                       id="freight"
                       onChange={(event) => setFreight(event.target.value)}
@@ -1702,12 +1703,12 @@ function VoucherEntryForm({
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs text-muted-foreground"
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
                       htmlFor="packing"
                     >
                       Packing
-                    </label>
+                    </Label>
                     <Input
                       id="packing"
                       onChange={(event) => setPacking(event.target.value)}
@@ -1715,12 +1716,12 @@ function VoucherEntryForm({
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs text-muted-foreground"
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
                       htmlFor="roundoff"
                     >
                       Round off
-                    </label>
+                    </Label>
                     <Input
                       id="roundoff"
                       onChange={(event) => setRoundOff(event.target.value)}
@@ -1728,12 +1729,12 @@ function VoucherEntryForm({
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs text-muted-foreground"
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
                       htmlFor="bill-discount"
                     >
                       Bill discount
-                    </label>
+                    </Label>
                     <Input
                       id="bill-discount"
                       onChange={(event) => setBillDiscount(event.target.value)}
@@ -1741,12 +1742,12 @@ function VoucherEntryForm({
                     />
                   </div>
                   <div className="flex flex-col gap-1.5 sm:col-span-2">
-                    <label
-                      className="text-xs text-muted-foreground"
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
                       htmlFor="narration"
                     >
                       Narration
-                    </label>
+                    </Label>
                     <Textarea
                       id="narration"
                       onChange={(event) => setNarration(event.target.value)}

@@ -7,6 +7,7 @@ import {
   ReceiptIndianRupeeIcon,
 } from 'lucide-react'
 
+import { Badge } from '#/components/ui/badge.tsx'
 import { Button } from '#/components/ui/button.tsx'
 import { APP_VERSION } from '#/features/changelog/releases.ts'
 import { AppScreenshot } from '#/features/marketing/components/app-screenshot.tsx'
@@ -43,9 +44,7 @@ export function LandingHero() {
             className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-(--elevation-1) transition-colors hover:text-foreground"
             to="/changelog"
           >
-            <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] text-primary-foreground">
-              New
-            </span>
+            <Badge className="h-auto px-1.5 text-[10px]">New</Badge>
             What's new in v{APP_VERSION}
             <ArrowRightIcon className="size-3" />
           </Link>
