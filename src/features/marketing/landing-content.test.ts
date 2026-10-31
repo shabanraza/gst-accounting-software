@@ -62,6 +62,7 @@ describe('landing content', () => {
       'components/landing-header.tsx',
       'components/landing-hero.tsx',
       'components/app-screenshot.tsx',
+      'components/ask-ai-demo.tsx',
       'components/trust-strip.tsx',
       'components/feature-showcase.tsx',
       'components/pathway-cards.tsx',
@@ -100,7 +101,9 @@ describe('landing content', () => {
   test('every screenshot is a sized WebP with descriptive alt text', () => {
     for (const shot of [
       HERO_SCREENSHOT,
-      ...SHOWCASE.items.map((item) => item.screenshot),
+      ...SHOWCASE.items.flatMap((item) =>
+        'screenshot' in item ? [item.screenshot] : [],
+      ),
     ]) {
       expect(shot.src).toMatch(/^\/screenshots\/[a-z0-9-]+\.webp$/)
       expect(shot.width).toBeGreaterThan(0)

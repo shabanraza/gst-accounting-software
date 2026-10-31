@@ -132,7 +132,10 @@ How the current set (October 2026) was made:
 6. Delete the Neon branch afterwards.
 
 Current files: `dashboard` (hero), `sales-invoice` (printed tax invoice),
-`inventory`, `ageing`, `hsn-summary`.
+`inventory`, `ageing`, `hsn-summary`. The Ask AI section is not a screenshot: `AskAiDemo`
+replays the real chat components with the sample company's figures from
+`ASK_AI_DEMO` in `landing-content.ts`, and shows the finished answer for
+reduced motion.
 
 ### Performance
 
