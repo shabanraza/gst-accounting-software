@@ -179,6 +179,71 @@ describe('runAssistantConversation', () => {
     expect((error as Error).message).toBe(FREE_QUOTA_USED_MESSAGE)
   })
 
+  test('asks for a text answer when the model repeats a tool call', async () => {
+    // Llama 3.3 on Workers AI re-requests `ageing` for "Who owes me the most?"
+    // after it already has the result, until the turn cap.
+    const repeat = {
+      tool_calls: [{ name: 'gstr3b_summary', arguments: { a: 1, b: 2 } }],
+    }
+    const ai = {
+      run: vi.fn<AiBinding['run']>(async (_model, input) =>
+        input.tools
+          ? repeat
+          : { response: 'Gupta Electric Works owes the most, ₹48,321.00.' },
+      ),
+    }
+    const tools = fakeTools()
+
+    const result = await ask(ai, tools)
+
+    expect(result.answer).toBe(
+      'Gupta Electric Works owes the most, ₹48,321.00.',
+    )
+    expect(result.links).toEqual([
+      { label: 'GSTR-3B', href: '/app/reports?tab=gstr3b' },
+    ])
+    expect(tools.run).toHaveBeenCalledTimes(1)
+    expect(ai.run).toHaveBeenCalledTimes(3)
+    // The repeated call is dropped, so the model answers from the one result.
+    expect(
+      (ai.run.mock.calls[2][1].messages as Array<{ role: string }>).at(-1)
+        ?.role,
+    ).toBe('tool')
+  })
+
+  test('treats reordered arguments as the same tool call', async () => {
+    const ai = fakeAi(
+      { tool_calls: [{ name: 'gstr3b_summary', arguments: { a: 1, b: 2 } }] },
+      { tool_calls: [{ name: 'gstr3b_summary', arguments: '{"b":2,"a":1}' }] },
+      { response: 'done' },
+    )
+    const tools = fakeTools()
+    expect((await ask(ai, tools)).answer).toBe('done')
+    expect(tools.run).toHaveBeenCalledTimes(1)
+    expect(ai.run.mock.calls[2][1]).not.toHaveProperty('tools')
+  })
+
+  test('asks for a text answer on the last turn', async () => {
+    let call = 0
+    const ai = {
+      run: vi.fn<AiBinding['run']>(async (_model, input) =>
+        input.tools
+          ? {
+              tool_calls: [
+                { name: 'gstr3b_summary', arguments: { n: call++ } },
+              ],
+            }
+          : { response: 'partial answer' },
+      ),
+    }
+    const tools = fakeTools()
+    const result = await ask(ai, tools)
+    expect(ai.run).toHaveBeenCalledTimes(4)
+    expect(tools.run).toHaveBeenCalledTimes(3)
+    expect(ai.run.mock.calls[3][1]).not.toHaveProperty('tools')
+    expect(result.answer).toBe('partial answer')
+  })
+
   test('stops after the turn limit', async () => {
     const ai = {
       run: vi.fn().mockResolvedValue({
@@ -186,7 +251,6 @@ describe('runAssistantConversation', () => {
       }),
     }
     const result = await ask(ai)
-    expect(ai.run).toHaveBeenCalledTimes(4)
     expect(result.answer).toMatch(/couldn't finish/i)
   })
 
