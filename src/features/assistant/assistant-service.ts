@@ -127,6 +127,21 @@ function readOutput(output: unknown): {
   return { text: typeof text === 'string' ? text.trim() : '', toolCalls }
 }
 
+/** Stable JSON with sorted object keys, to spot a repeated tool call. */
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`
+  if (value && typeof value === 'object') {
+    return `{${Object.entries(value)
+      .sort(([left], [right]) => (left < right ? -1 : 1))
+      .map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`)
+      .join(',')}}`
+  }
+  return JSON.stringify(value)
+}
+
+const callKey = (call: ToolCall) =>
+  `${call.name}:${canonicalJson(call.arguments)}`
+
 export async function runAssistantConversation(input: {
   ai: AiBinding
   tools: AssistantToolset
@@ -146,25 +161,42 @@ export async function runAssistantConversation(input: {
     function: definition,
   }))
   const links = new Map<string, AssistantLink>()
+  const seenCalls = new Set<string>()
+  let mustAnswer = false
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
+    // Without tools the model has to answer from the results it already has.
+    const answerNow = mustAnswer || turn === MAX_TURNS - 1
     let output: unknown
     try {
       output = await input.ai.run(ASSISTANT_MODEL, {
         messages,
-        tools,
+        ...(answerNow ? {} : { tools }),
         max_tokens: 400,
       })
     } catch (error) {
       throw classifyAiError(error) ?? error
     }
 
-    const { text, toolCalls } = readOutput(output)
-    if (toolCalls.length === 0) {
+    const { text, toolCalls: requested } = readOutput(output)
+    if (requested.length === 0) {
       return {
         answer: text || "Sorry, I couldn't answer that.",
         links: [...links.values()],
       }
+    }
+    if (answerNow) break
+
+    // Llama re-requests calls it already has results for; drop the repeats.
+    const toolCalls = requested.filter((call) => {
+      const key = callKey(call)
+      if (seenCalls.has(key)) return false
+      seenCalls.add(key)
+      return true
+    })
+    if (toolCalls.length === 0) {
+      mustAnswer = true
+      continue
     }
 
     const withIds = toolCalls.filter(
