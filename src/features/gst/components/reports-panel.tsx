@@ -18,7 +18,6 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
-import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
 import { Textarea } from '#/components/ui/textarea.tsx'
 import {
@@ -39,6 +38,8 @@ import { formatInr } from '#/lib/format-inr.ts'
 import { Label } from '#/components/ui/label.tsx'
 import { currentGstMonthPeriod } from '#/lib/gst-period.ts'
 import { Gstr1Sections } from '#/features/gst/components/gstr1-sections.tsx'
+import { Gstr3bSections } from '#/features/gst/components/gstr3b-sections.tsx'
+import { ReturnPeriodFields } from '#/features/gst/components/return-period-fields.tsx'
 import { parseGstr1PortalJson } from '#/features/gst/gstr1-portal-parser.ts'
 import type { Gstr1ReconciliationReport } from '#/features/gst/gstr1-reconciliation-service.ts'
 import { parseGstr2bPortalJson } from '#/features/gst/gstr2b-portal-parser.ts'
@@ -93,8 +94,8 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
     ...trpc.reports.gstr3b.queryOptions({
       companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
       companyStateCode: company?.stateCode ?? '27',
-      periodStart,
-      periodEnd,
+      periodStart: reconPeriodStart,
+      periodEnd: reconPeriodEnd,
     }),
     enabled: Boolean(companyId) && isReady && tab === 'gstr3b',
   })
@@ -362,22 +363,12 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-wrap items-end gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Period start</Label>
-                    <DatePicker
-                      onChange={setReconPeriodStart}
-                      value={reconPeriodStart}
-                      variant="toolbar"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Period end</Label>
-                    <DatePicker
-                      onChange={setReconPeriodEnd}
-                      value={reconPeriodEnd}
-                      variant="toolbar"
-                    />
-                  </div>
+                  <ReturnPeriodFields
+                    onPeriodEndChange={setReconPeriodEnd}
+                    onPeriodStartChange={setReconPeriodStart}
+                    periodEnd={reconPeriodEnd}
+                    periodStart={reconPeriodStart}
+                  />
                   <Button
                     disabled={!gstr1Query.data}
                     onClick={downloadGstr1Json}
@@ -514,7 +505,27 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
           )}
         </TabsContent>
 
-        <TabsContent className="mt-4" value="gstr3b">
+        <TabsContent className="mt-4 flex flex-col gap-4" value="gstr3b">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <FileBarChartIcon className="size-4 text-muted-foreground" />
+                GSTR-3B summary
+              </CardTitle>
+              <CardDescription>
+                Net payable {formatInr(gstr3bQuery.data?.netGstPayable ?? 0)}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap items-end gap-3">
+              <ReturnPeriodFields
+                onPeriodEndChange={setReconPeriodEnd}
+                onPeriodStartChange={setReconPeriodStart}
+                periodEnd={reconPeriodEnd}
+                periodStart={reconPeriodStart}
+              />
+            </CardContent>
+          </Card>
+          <Gstr3bSections report={gstr3bQuery.data} />
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader className="pb-2">
@@ -541,8 +552,10 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
               </CardHeader>
             </Card>
           </div>
-          {gstr3bWorking ? (
-            <div className="mt-4 grid gap-4 md:grid-cols-4">
+          {gstr3bWorking &&
+          gstr3bWorking.periodStart === reconPeriodStart &&
+          gstr3bWorking.periodEnd === reconPeriodEnd ? (
+            <div className="grid gap-4 md:grid-cols-4">
               <Card>
                 <CardHeader className="pb-2">
                   <CardDescription>Accepted ITC (2B)</CardDescription>
@@ -1141,22 +1154,12 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="flex flex-wrap items-end gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <Label>Period start</Label>
-                  <DatePicker
-                    onChange={setReconPeriodStart}
-                    value={reconPeriodStart}
-                    variant="toolbar"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label>Period end</Label>
-                  <DatePicker
-                    onChange={setReconPeriodEnd}
-                    value={reconPeriodEnd}
-                    variant="toolbar"
-                  />
-                </div>
+                <ReturnPeriodFields
+                  onPeriodEndChange={setReconPeriodEnd}
+                  onPeriodStartChange={setReconPeriodStart}
+                  periodEnd={reconPeriodEnd}
+                  periodStart={reconPeriodStart}
+                />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="gstr2b-file">Portal file</Label>

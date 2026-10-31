@@ -75,12 +75,28 @@ export function ReturnsPanel() {
     trpc.returns.postPurchaseReturn.mutationOptions(),
   )
 
-  const selectedSales = (salesQuery.data ?? []).find(
-    (row) => row.id === documentId,
-  )
-  const selectedPurchase = (purchasesQuery.data ?? []).find(
-    (row) => row.id === documentId,
-  )
+  // The lists come without line items, so load the selected document in full.
+  const selectedSalesQuery = useQuery({
+    ...trpc.sales.getById.queryOptions({
+      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
+      id: documentId,
+    }),
+    enabled:
+      mode === 'sales' && Boolean(documentId) && Boolean(companyId) && isReady,
+  })
+  const selectedPurchaseQuery = useQuery({
+    ...trpc.purchases.getById.queryOptions({
+      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
+      id: documentId,
+    }),
+    enabled:
+      mode === 'purchase' &&
+      Boolean(documentId) &&
+      Boolean(companyId) &&
+      isReady,
+  })
+  const selectedSales = selectedSalesQuery.data
+  const selectedPurchase = selectedPurchaseQuery.data
 
   async function handleReturn(event: React.FormEvent) {
     event.preventDefault()

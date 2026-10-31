@@ -250,6 +250,90 @@ describe('buildGstr3bReport', () => {
     expect(report.inputGst).toBe('400.00')
     expect(report.netGstPayable).toBe('-310.00')
   })
+
+  test('splits Table 3.1(a) outward supplies and ITC by IGST, CGST and SGST', () => {
+    const interStateInvoice: GstReportDocument = {
+      ...outwardInvoice,
+      id: 'inv-2',
+      invoiceNumber: 'INV-1002',
+      placeOfSupply: '24',
+      supplyType: 'inter_state',
+      taxableAmount: '1000.00',
+      cgstAmount: '0.00',
+      sgstAmount: '0.00',
+      igstAmount: '180.00',
+      totalGstAmount: '180.00',
+      totalAmount: '1180.00',
+    }
+    const purchaseReturn: GstReportDocument = {
+      ...purchaseBill,
+      id: 'dn-1',
+      documentType: 'debit_note',
+      invoiceNumber: 'DN-1001',
+      taxableAmount: '1000.00',
+      igstAmount: '50.00',
+      totalGstAmount: '50.00',
+      totalAmount: '1050.00',
+    }
+    const intraStateBill: GstReportDocument = {
+      ...purchaseBill,
+      id: 'bill-2',
+      invoiceNumber: 'SUP-1002',
+      partyGstin: '27AABCU9603R1ZM',
+      placeOfSupply: '27',
+      supplyType: 'intra_state',
+      taxableAmount: '500.00',
+      cgstAmount: '45.00',
+      sgstAmount: '45.00',
+      igstAmount: '0.00',
+      totalGstAmount: '90.00',
+      totalAmount: '590.00',
+    }
+    const report = buildGstr3bReport({
+      companyId: 'company-1',
+      periodStart: '2026-07-01',
+      periodEnd: '2026-07-31',
+      documents: [
+        outwardInvoice,
+        interStateInvoice,
+        creditNote,
+        purchaseBill,
+        purchaseReturn,
+        intraStateBill,
+      ],
+    })
+
+    expect(report.outwardTaxableSupplies).toEqual({
+      taxableValue: '2800.00',
+      igst: '180.00',
+      cgst: '45.00',
+      sgst: '45.00',
+    })
+    expect(report.eligibleItc).toEqual({
+      igst: '350.00',
+      cgst: '45.00',
+      sgst: '45.00',
+    })
+    expect(report.outputGst).toBe('270.00')
+    expect(report.inputGst).toBe('440.00')
+  })
+
+  test('leaves out documents outside the return period', () => {
+    const report = buildGstr3bReport({
+      companyId: 'company-1',
+      periodStart: '2026-08-01',
+      periodEnd: '2026-08-31',
+      documents: [outwardInvoice, creditNote, purchaseBill],
+    })
+
+    expect(report.outwardTaxableSupplies).toEqual({
+      taxableValue: '0.00',
+      igst: '0.00',
+      cgst: '0.00',
+      sgst: '0.00',
+    })
+    expect(report.netGstPayable).toBe('0.00')
+  })
 })
 
 function b2cInvoice(overrides: Partial<GstReportDocument>): GstReportDocument {
