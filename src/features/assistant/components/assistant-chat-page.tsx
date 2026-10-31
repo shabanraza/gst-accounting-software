@@ -4,14 +4,30 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import {
   ArrowUpIcon,
   ArrowUpRightIcon,
-  Loader2Icon,
   SparklesIcon,
   SquarePenIcon,
 } from 'lucide-react'
 
+import { Avatar, AvatarFallback } from '#/components/ui/avatar.tsx'
 import { Button } from '#/components/ui/button.tsx'
+import {
+  Empty,
+  EmptyContent,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '#/components/ui/empty.tsx'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupText,
+  InputGroupTextarea,
+} from '#/components/ui/input-group.tsx'
+import { Kbd } from '#/components/ui/kbd.tsx'
+import { ScrollArea } from '#/components/ui/scroll-area.tsx'
 import { Skeleton } from '#/components/ui/skeleton.tsx'
-import { Textarea } from '#/components/ui/textarea.tsx'
+import { Spinner } from '#/components/ui/spinner.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
@@ -40,7 +56,7 @@ const WORKING_STEPS = [
 /** Server messages are user-facing; bare tRPC codes (e.g. FORBIDDEN) are not. */
 function friendlyError(message: string) {
   return /^[A-Z_]+$/.test(message)
-    ? "Sorry, something went wrong. Please try again."
+    ? 'Sorry, something went wrong. Please try again.'
     : message
 }
 
@@ -65,7 +81,11 @@ function saveTurns(companyId: string | null, turns: Array<Turn>) {
   }
 }
 
-export function AssistantChatPage({ initialQuestion }: { initialQuestion?: string }) {
+export function AssistantChatPage({
+  initialQuestion,
+}: {
+  initialQuestion?: string
+}) {
   const trpc = useTRPC()
   const navigate = useNavigate()
   const { companyId, company } = useWorkspace()
@@ -85,8 +105,15 @@ export function AssistantChatPage({ initialQuestion }: { initialQuestion?: strin
 
   React.useEffect(() => {
     saveTurns(companyId, turns)
-    threadEndRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
-  }, [companyId, turns, ask.isPending])
+  }, [companyId, turns])
+
+  // The thread renders only once status has loaded, so scroll after that too.
+  React.useEffect(() => {
+    const viewport = threadEndRef.current?.closest(
+      '[data-slot=scroll-area-viewport]',
+    )
+    viewport?.scrollTo({ top: viewport.scrollHeight })
+  }, [turns, ask.isPending, status.isSuccess])
 
   function submit(text: string) {
     const question = text.trim()
@@ -113,7 +140,11 @@ export function AssistantChatPage({ initialQuestion }: { initialQuestion?: strin
         onError: (error) =>
           setTurns((current) => [
             ...current,
-            { role: 'assistant', content: friendlyError(error.message), failed: true },
+            {
+              role: 'assistant',
+              content: friendlyError(error.message),
+              failed: true,
+            },
           ]),
       },
     )
@@ -136,9 +167,14 @@ export function AssistantChatPage({ initialQuestion }: { initialQuestion?: strin
 
   const configured = status.data?.configured
   const empty = turns.length === 0 && !ask.isPending
+  const companyName =
+    company?.tradeName || company?.legalName || 'your business'
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    // The shell grows with its content, so the chat sets its own height
+    // (viewport minus the 2.75rem app header and, from md, the inset margin)
+    // to keep the composer pinned and scroll only the thread.
+    <div className="flex h-[calc(100svh-2.75rem)] min-h-0 flex-col md:h-[calc(100svh-3.75rem)]">
       <div
         className="flex h-11 shrink-0 items-center justify-between gap-2 px-3 sm:px-4"
         data-ui="chrome"
@@ -160,7 +196,7 @@ export function AssistantChatPage({ initialQuestion }: { initialQuestion?: strin
         ) : null}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <ScrollArea className="min-h-0 flex-1">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-3 py-4 sm:px-4">
           {status.isPending ? (
             <div className="flex flex-col gap-2">
@@ -168,10 +204,10 @@ export function AssistantChatPage({ initialQuestion }: { initialQuestion?: strin
               <Skeleton className="h-4 w-1/2" />
             </div>
           ) : !configured ? (
-            <EmptyState title="Ask AI is not set up yet" />
+            <Welcome title="Ask AI is not set up yet" />
           ) : empty ? (
-            <EmptyState
-              title={`What would you like to know about ${company?.tradeName || company?.legalName || 'your business'}?`}
+            <Welcome
+              title={`What would you like to know about ${companyName}?`}
             >
               <div className="flex flex-wrap justify-center gap-2">
                 {STARTERS.map((starter) => (
@@ -184,7 +220,7 @@ export function AssistantChatPage({ initialQuestion }: { initialQuestion?: strin
                   </Button>
                 ))}
               </div>
-            </EmptyState>
+            </Welcome>
           ) : (
             turns.map((turn, index) =>
               turn.role === 'user' ? (
@@ -202,21 +238,21 @@ export function AssistantChatPage({ initialQuestion }: { initialQuestion?: strin
           {ask.isPending ? <WorkingMessage /> : null}
           <div ref={threadEndRef} />
         </div>
-      </div>
+      </ScrollArea>
 
       {configured ? (
-        <div className="shrink-0 px-3 pb-3 sm:px-4 sm:pb-4">
-          <form
-            className="mx-auto flex w-full max-w-3xl items-end gap-2 rounded-2xl border bg-background p-2 shadow-(--elevation-1) focus-within:ring-1 focus-within:ring-ring"
-            onSubmit={(event) => {
-              event.preventDefault()
-              submit(draft)
-            }}
-          >
-            <Textarea
+        <form
+          className="mx-auto w-full max-w-3xl shrink-0 px-3 pb-3 sm:px-4 sm:pb-4"
+          onSubmit={(event) => {
+            event.preventDefault()
+            submit(draft)
+          }}
+        >
+          <InputGroup className="rounded-2xl bg-background">
+            <InputGroupTextarea
               aria-label="Ask a question about your books"
               autoFocus
-              className="max-h-40 min-h-9 flex-1 resize-none border-0 bg-transparent px-2 py-1.5 shadow-none focus-visible:ring-0"
+              className="max-h-40 min-h-12"
               maxLength={500}
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={(event) => {
@@ -229,23 +265,30 @@ export function AssistantChatPage({ initialQuestion }: { initialQuestion?: strin
               rows={1}
               value={draft}
             />
-            <Button
-              aria-label="Send"
-              className="rounded-full"
-              disabled={!draft.trim() || ask.isPending}
-              size="icon"
-              type="submit"
-            >
-              <ArrowUpIcon />
-            </Button>
-          </form>
-        </div>
+            <InputGroupAddon align="block-end">
+              <InputGroupText className="hidden gap-1 sm:flex">
+                <Kbd>Enter</Kbd> to send, <Kbd>Shift</Kbd>+<Kbd>Enter</Kbd> for
+                a new line
+              </InputGroupText>
+              <InputGroupButton
+                aria-label="Send"
+                className="ml-auto rounded-full"
+                disabled={!draft.trim() || ask.isPending}
+                size="icon-sm"
+                type="submit"
+                variant="default"
+              >
+                {ask.isPending ? <Spinner /> : <ArrowUpIcon />}
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
+        </form>
       ) : null}
     </div>
   )
 }
 
-function EmptyState({
+function Welcome({
   title,
   children,
 }: {
@@ -253,27 +296,30 @@ function EmptyState({
   children?: React.ReactNode
 }) {
   return (
-    <div
-      className="flex flex-col items-center gap-4 py-10 text-center sm:py-16"
-      data-hero-surface=""
-      data-ui="chrome"
-    >
-      <span className="icon-duotone flex size-12 items-center justify-center rounded-full">
-        <SparklesIcon className="size-6" />
-      </span>
-      <h2 className="max-w-md text-lg font-semibold tracking-tight text-balance">
-        {title}
-      </h2>
-      {children}
-    </div>
+    <Empty className="py-10 sm:py-16" data-hero-surface="" data-ui="chrome">
+      <EmptyHeader>
+        <EmptyMedia
+          className="icon-duotone size-12 rounded-full"
+          variant="icon"
+        >
+          <SparklesIcon className="size-6" />
+        </EmptyMedia>
+        <EmptyTitle className="text-lg">{title}</EmptyTitle>
+      </EmptyHeader>
+      {children ? (
+        <EmptyContent className="max-w-xl">{children}</EmptyContent>
+      ) : null}
+    </Empty>
   )
 }
 
 function AssistantAvatar() {
   return (
-    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted">
-      <SparklesIcon className="size-3.5" />
-    </span>
+    <Avatar size="sm">
+      <AvatarFallback>
+        <SparklesIcon className="size-3" />
+      </AvatarFallback>
+    </Avatar>
   )
 }
 
@@ -281,7 +327,7 @@ function AssistantMessage({ turn }: { turn: Turn }) {
   return (
     <div className="flex max-w-[95%] gap-2.5 self-start">
       <AssistantAvatar />
-      <div className="flex min-w-0 flex-col gap-2 pt-1 text-sm">
+      <div className="flex min-w-0 flex-col gap-2 pt-0.5 text-sm">
         <p
           className={
             turn.failed
@@ -312,7 +358,8 @@ function WorkingMessage() {
   const [step, setStep] = React.useState(0)
   React.useEffect(() => {
     const timer = window.setInterval(
-      () => setStep((current) => Math.min(current + 1, WORKING_STEPS.length - 1)),
+      () =>
+        setStep((current) => Math.min(current + 1, WORKING_STEPS.length - 1)),
       1800,
     )
     return () => window.clearInterval(timer)
@@ -321,7 +368,7 @@ function WorkingMessage() {
     <div className="flex items-center gap-2.5 self-start" role="status">
       <AssistantAvatar />
       <span className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2Icon className="size-3.5 animate-spin" />
+        <Spinner className="size-3.5" />
         {WORKING_STEPS[step]}
       </span>
     </div>

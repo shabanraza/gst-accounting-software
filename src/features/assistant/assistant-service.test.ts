@@ -155,9 +155,13 @@ describe('runAssistantConversation', () => {
       }),
     )
     expect(result.links).toEqual([])
-    expect(
-      (ai.run.mock.calls[1][1].messages as Array<unknown>).at(-1),
-    ).toEqual({ role: 'tool', name: 'run_sql', content: 'Error: Unknown tool: run_sql' })
+    expect((ai.run.mock.calls[1][1].messages as Array<unknown>).at(-1)).toEqual(
+      {
+        role: 'tool',
+        name: 'run_sql',
+        content: 'Error: Unknown tool: run_sql',
+      },
+    )
   })
 
   test('maps the free daily allocation error to a friendly message', async () => {
@@ -199,7 +203,9 @@ describe('runAssistantConversation', () => {
       context,
       today: '2026-10-31',
     })
-    expect((ai.run.mock.calls[0][1].messages as Array<unknown>).slice(1)).toEqual([
+    expect(
+      (ai.run.mock.calls[0][1].messages as Array<unknown>).slice(1),
+    ).toEqual([
       { role: 'user', content: 'GST this month?' },
       { role: 'assistant', content: '₹90' },
       { role: 'user', content: 'and last month?' },

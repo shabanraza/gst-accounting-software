@@ -127,9 +127,12 @@ describe('assistant router', () => {
     for (let index = 0; index < ASSISTANT_DAILY_LIMIT; index++) {
       await caller.assistant.ask(question(companyId))
     }
-    await expect(caller.assistant.ask(question(companyId))).rejects.toMatchObject(
-      { code: 'TOO_MANY_REQUESTS', message: DAILY_LIMIT_MESSAGE },
-    )
+    await expect(
+      caller.assistant.ask(question(companyId)),
+    ).rejects.toMatchObject({
+      code: 'TOO_MANY_REQUESTS',
+      message: DAILY_LIMIT_MESSAGE,
+    })
     expect(ai.run).toHaveBeenCalledTimes(ASSISTANT_DAILY_LIMIT)
   })
 

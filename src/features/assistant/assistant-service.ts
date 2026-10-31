@@ -74,7 +74,9 @@ export class AssistantUnavailableError extends Error {
  * Maps Workers AI errors to friendly ones: 3036 is the daily free Neuron
  * allocation running out, 3040 (or a bare 429) is a capacity limit.
  */
-export function classifyAiError(error: unknown): AssistantUnavailableError | null {
+export function classifyAiError(
+  error: unknown,
+): AssistantUnavailableError | null {
   const message = error instanceof Error ? error.message : String(error)
   if (/\b3036\b|daily free allocation|neurons/i.test(message)) {
     return new AssistantUnavailableError(FREE_QUOTA_USED_MESSAGE, 'free_quota')
@@ -95,7 +97,10 @@ function parseArguments(value: unknown): unknown {
 }
 
 /** Accepts both the native (`response`/`tool_calls`) and OpenAI-style output. */
-function readOutput(output: unknown): { text: string; toolCalls: Array<ToolCall> } {
+function readOutput(output: unknown): {
+  text: string
+  toolCalls: Array<ToolCall>
+} {
   const record = (output ?? {}) as {
     response?: unknown
     tool_calls?: Array<{
@@ -108,9 +113,9 @@ function readOutput(output: unknown): { text: string; toolCalls: Array<ToolCall>
   }
   const message = record.choices?.[0]?.message
   // Prefer the OpenAI-style calls: only they carry the ids results must echo.
-  const rawCalls = (message?.tool_calls ?? record.tool_calls ?? []) as NonNullable<
-    typeof record.tool_calls
-  >
+  const rawCalls = (message?.tool_calls ??
+    record.tool_calls ??
+    []) as NonNullable<typeof record.tool_calls>
   const toolCalls = rawCalls
     .map((call) => ({
       id: call.id,
@@ -172,7 +177,10 @@ export async function runAssistantConversation(input: {
         tool_calls: withIds.map((call) => ({
           id: call.id,
           type: 'function',
-          function: { name: call.name, arguments: JSON.stringify(call.arguments) },
+          function: {
+            name: call.name,
+            arguments: JSON.stringify(call.arguments),
+          },
         })),
       })
     }

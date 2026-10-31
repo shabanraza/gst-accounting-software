@@ -105,7 +105,9 @@ const definitions: Array<AssistantToolDefinition> = [
       'Receivables or payables ageing: totals by overdue bucket and the parties with the largest outstanding.',
     parameters: {
       type: 'object',
-      properties: { kind: { type: 'string', enum: ['receivables', 'payables'] } },
+      properties: {
+        kind: { type: 'string', enum: ['receivables', 'payables'] },
+      },
       required: ['kind'],
     },
   },
@@ -167,7 +169,9 @@ function topGroups(
     }))
 }
 
-export function createAssistantTools(deps: AssistantToolDeps): AssistantToolset {
+export function createAssistantTools(
+  deps: AssistantToolDeps,
+): AssistantToolset {
   const handlers: {
     [Name in ToolName]: (
       input: z.infer<(typeof schemas)[Name]>,
@@ -305,7 +309,9 @@ export function createAssistantTools(deps: AssistantToolDeps): AssistantToolset 
         }
       }
       const total = (pick: (row: (typeof inPeriod)[number]) => string) =>
-        money(inPeriod.reduce((sum, row) => sum.plus(pick(row)), new Decimal(0)))
+        money(
+          inPeriod.reduce((sum, row) => sum.plus(pick(row)), new Decimal(0)),
+        )
       return {
         data: {
           kind: input.kind,

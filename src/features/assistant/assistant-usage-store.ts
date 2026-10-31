@@ -30,7 +30,10 @@ class DrizzleAssistantUsageRepository implements AssistantUsageRepository {
       .insert(schema.assistantUsage)
       .values({ companyId, usageDate, questionCount: 1 })
       .onConflictDoUpdate({
-        target: [schema.assistantUsage.companyId, schema.assistantUsage.usageDate],
+        target: [
+          schema.assistantUsage.companyId,
+          schema.assistantUsage.usageDate,
+        ],
         set: {
           questionCount: sql`${schema.assistantUsage.questionCount} + 1`,
           updatedAt: new Date(),

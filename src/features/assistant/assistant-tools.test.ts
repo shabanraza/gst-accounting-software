@@ -321,7 +321,11 @@ describe('assistant tools', () => {
 
   test('stock_on_hand filters by item name within the company', async () => {
     const tools = createAssistantTools(buildDeps())
-    const result = await tools.run('stock_on_hand', { itemName: 'rice' }, context)
+    const result = await tools.run(
+      'stock_on_hand',
+      { itemName: 'rice' },
+      context,
+    )
     expect(result.data).toEqual({
       items: [{ name: 'Rice', quantity: '40', unit: 'kg' }],
     })
