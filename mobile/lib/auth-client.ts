@@ -42,7 +42,7 @@ export const authClient = createAuthClient({
         return
       }
 
-      const url = String(ctx.request?.url ?? '')
+      const url = String(ctx.request.url)
       if (url.includes('sign-out')) {
         lastAuthToken = null
         await clearSessionToken()

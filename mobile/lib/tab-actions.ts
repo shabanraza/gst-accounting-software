@@ -1,5 +1,5 @@
 import type { ActionGridItem } from '@/components/dashboard/action-grid'
-import { Ionicons } from '@expo/vector-icons'
+import type { Ionicons } from '@expo/vector-icons'
 
 export const SALES_TAB_ACTIONS: Array<ActionGridItem> = [
   {
@@ -90,14 +90,14 @@ export const STOCK_TAB_ACTIONS: Array<ActionGridItem> = [
   },
 ]
 
-export const TAB_HUB_CONFIG: Record<
+export const TAB_HUB_CONFIG: Partial<Record<
   string,
   {
     actions: Array<ActionGridItem>
     listTitle: string
     listIcon: keyof typeof Ionicons.glyphMap
   }
-> = {
+>> = {
   sales: {
     actions: SALES_TAB_ACTIONS,
     listTitle: 'Sales invoices',

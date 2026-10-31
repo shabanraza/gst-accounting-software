@@ -22,9 +22,10 @@ import {
   buildCreateItemInput,
   buildUpdateItemInput,
   createInitialItemForm,
-  validateItemForm,
-  type ItemFormDraft,
+  validateItemForm
+  
 } from '@/lib/item-form'
+import type {ItemFormDraft} from '@/lib/item-form';
 import { trpcClient } from '@/lib/trpc-client'
 import { View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'

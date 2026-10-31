@@ -23,7 +23,7 @@ function ocrFieldValue(
     return fallback
   }
 
-  const value = (fields as Record<string, { value?: unknown }>)[key]?.value
+  const value = (fields as Record<string, { value?: unknown } | undefined>)[key]?.value
   return typeof value === 'string' && value.trim() ? value : fallback
 }
 

@@ -1,3 +1,5 @@
+import type * as ReactNative from 'react-native'
+
 export function isExpoWeb() {
   return process.env.EXPO_OS === 'web'
 }
@@ -12,7 +14,7 @@ export function isAndroidEmulator() {
   }
 
   try {
-    const { Platform } = require('react-native') as typeof import('react-native')
+    const { Platform } = require('react-native') as typeof ReactNative
     const Constants = require('expo-constants').default as {
       isDevice: boolean
     }

@@ -1,3 +1,5 @@
+import { randomId } from './random-id.ts'
+
 export type SupplyRegion = 'local' | 'central'
 export type TaxMode = 'exclusive' | 'inclusive'
 export type PaymentMode = 'credit' | 'cash'
@@ -135,8 +137,6 @@ export function filterCustomerParties(parties: Array<SalesPartyLike>) {
     (party) => party.partyType === 'customer' || party.partyType === 'both',
   )
 }
-
-import { randomId } from './random-id.ts'
 
 export const DEFAULT_SALES_SERIES = 'INV'
 

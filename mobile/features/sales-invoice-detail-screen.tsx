@@ -35,7 +35,7 @@ export function SalesInvoiceDetailScreen() {
     queryFn: () =>
       trpcClient.sales.getById.query({
         companyId: companyId!,
-        id: id!,
+        id: id,
       }),
   })
 
