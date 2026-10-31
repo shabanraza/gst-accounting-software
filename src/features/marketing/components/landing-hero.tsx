@@ -2,9 +2,9 @@ import { Link } from '@tanstack/react-router'
 import {
   ArrowRightIcon,
   GitBranchIcon,
-  MessageCircleIcon,
   PackageCheckIcon,
   ReceiptIndianRupeeIcon,
+  SparklesIcon,
 } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
@@ -19,7 +19,7 @@ import {
 import { cn } from '#/lib/utils.ts'
 
 const CALLOUT_ICON = {
-  whatsapp: MessageCircleIcon,
+  ai: SparklesIcon,
   gst: ReceiptIndianRupeeIcon,
   stock: PackageCheckIcon,
 } as const

@@ -39,9 +39,10 @@ export const NAV_LINKS: ReadonlyArray<NavLink> = [
 ]
 
 export const HERO = {
-  headline: 'Free GST billing and accounting software for Indian businesses',
+  headline:
+    'AI-powered GST billing and accounting software for Indian businesses',
   subhead:
-    'GST invoices, inventory, khata and GST returns on real double-entry books. Fast at the counter, and moving from Tally takes minutes.',
+    'GST invoices, inventory, khata and GST returns on real double-entry books. Ask your books a question in Hindi or English, and move from Tally in minutes.',
   primaryCta: { label: 'Start free', to: '/signup' as const },
   secondaryCta: { label: 'View on GitHub', href: SITE.githubUrl },
   reassurance: 'Free to use · No credit card · Open source (MIT)',
@@ -59,11 +60,11 @@ export const HERO_SCREENSHOT: Screenshot = {
   src: '/screenshots/dashboard.webp',
   width: 1920,
   height: 1109,
-  alt: "HisaabKro dashboard showing sales this month, amounts to collect and pay, a to-do list with payment reminders and this month's GST",
+  alt: "HisaabKro dashboard with Ask AI in the sidebar, sales this month, amounts to collect and pay, a to-do list of overdue bills and invoices, and this month's GST",
 }
 
 export const HERO_CALLOUTS = [
-  { icon: 'whatsapp', label: 'Payment reminder on WhatsApp' },
+  { icon: 'ai', label: 'Ask AI about your books' },
   { icon: 'gst', label: 'GSTR-3B net payable' },
   { icon: 'stock', label: 'Stock matches the books' },
 ] as const
@@ -158,7 +159,7 @@ export const SHOWCASE = {
       title: 'Ask your books a question',
       body: 'Type a question in Hindi or English and get the answer from your own invoices, bills and payments, with the figures it is based on.',
       points: [
-        '"Who owes me the most?", "GST payable this month?", "Cash aur bank mein kitna hai?"',
+        '"Which customers owe me money?", "GST payable this month?", "Cash aur bank mein kitna hai?"',
         'Every answer links to the report it came from, so you can check it',
         'Only reads your books: it never posts or changes an entry',
         'Open Ask AI from the sidebar, or press Alt+A',
@@ -182,34 +183,30 @@ export type AskAiDemoScenario = {
  */
 export const ASK_AI_DEMO = {
   label:
-    'Ask AI answering "Who owes me the most?" with the amount each customer owes, then "GST payable this month?" with output GST, input tax credit and the net payable.',
+    'Ask AI answering "Which customers owe me money?" with the amount each customer owes, then "GST payable this month?" with output GST, input tax credit and the net payable.',
   workingSteps: ['Reading your books…', 'Checking the reports…'],
   scenarios: [
     {
-      question: 'Who owes me the most?',
-      answer: 'Patil Constructions owes you the most. Your top dues:',
+      question: 'Which customers owe me money?',
+      answer: 'Gupta Electric Works owes you the most: ₹48,321.00.',
       figures: [
-        { label: 'Patil Constructions', amount: '₹67,142' },
         {
           label: 'Gupta Electric Works',
-          amount: '₹50,150',
-          note: '₹38,645 overdue',
+          amount: '₹48,321',
+          note: '₹27,435 overdue',
         },
-        {
-          label: 'Sharma Electricals',
-          amount: '₹17,523',
-          note: 'overdue',
-        },
+        { label: 'Patil Constructions', amount: '₹42,186' },
+        { label: 'Sharma Electricals', amount: '₹18,880', note: 'overdue' },
       ],
       link: 'Ageing report',
     },
     {
       question: 'GST payable this month?',
-      answer: 'Your net GST payable for October is ₹24,264:',
+      answer: "₹19,098.00 is this month's net GST payable.",
       figures: [
-        { label: 'Output GST', amount: '₹38,034' },
-        { label: 'Input tax credit', amount: '₹13,770' },
-        { label: 'Net payable', amount: '₹24,264' },
+        { label: 'Output GST', amount: '₹22,788' },
+        { label: 'Input tax credit', amount: '₹3,690' },
+        { label: 'Net payable', amount: '₹19,098' },
       ],
       link: 'GSTR-3B',
     },
