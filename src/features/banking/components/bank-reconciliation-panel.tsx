@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { CheckIcon, UploadIcon, WandSparklesIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -58,12 +63,11 @@ export function BankReconciliationPanel() {
   const today = localCalendarDate()
   const monthStart = `${today.slice(0, 7)}-01`
 
-  const ledgersQuery = useQuery({
-    ...trpc.accounting.listLedgerAccounts.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const ledgersQuery = useQuery(
+    trpc.accounting.listLedgerAccounts.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const bankAccounts = React.useMemo(
     () =>
@@ -86,26 +90,20 @@ export function BankReconciliationPanel() {
     }
   }, [bankAccounts, ledgerAccountId])
 
-  const resolvedCompanyId = companyId ?? ''
-  const queryEnabled = Boolean(companyId) && isReady && Boolean(ledgerAccountId)
-
   const reconciliationQuery = useQuery({
-    ...trpc.banking.getReconciliation.queryOptions({
-      companyId: resolvedCompanyId,
-      ledgerAccountId,
-      periodStart,
-      periodEnd,
-      statementId,
-    }),
-    enabled: queryEnabled,
+    ...trpc.banking.getReconciliation.queryOptions(
+      companyId && isReady
+        ? { companyId, ledgerAccountId, periodStart, periodEnd, statementId }
+        : skipToken,
+    ),
+    enabled: Boolean(ledgerAccountId),
   })
 
-  const statementsQuery = useQuery({
-    ...trpc.banking.listStatements.queryOptions({
-      companyId: resolvedCompanyId,
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const statementsQuery = useQuery(
+    trpc.banking.listStatements.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const importMutation = useMutation({
     ...trpc.banking.importStatement.mutationOptions(),

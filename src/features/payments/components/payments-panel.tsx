@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { BanknoteIcon, PlusIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -71,24 +76,21 @@ export function PaymentsPanel({
   const [amount, setAmount] = React.useState('')
   const [date, setDate] = React.useState(new Date().toISOString().slice(0, 10))
 
-  const salesQuery = useQuery({
-    ...trpc.sales.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
-  const purchasesQuery = useQuery({
-    ...trpc.purchases.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
-  const partiesQuery = useQuery({
-    ...trpc.parties.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const salesQuery = useQuery(
+    trpc.sales.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
+  const purchasesQuery = useQuery(
+    trpc.purchases.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
+  const partiesQuery = useQuery(
+    trpc.parties.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const allocateReceipt = useMutation(
     trpc.payments.allocateCustomerReceipt.mutationOptions(),

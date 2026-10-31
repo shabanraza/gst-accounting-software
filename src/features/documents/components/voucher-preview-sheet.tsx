@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
+import { skipToken, useQuery } from '@tanstack/react-query'
 import { CheckCircle2Icon } from 'lucide-react'
 
 import { Button } from '#/components/ui/button.tsx'
@@ -48,40 +48,38 @@ export function VoucherPreviewSheet({
   const { companyId, company, isReady } = useWorkspace()
 
   const salesQuery = useQuery({
-    ...trpc.sales.getById.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      id: target?.id ?? '',
-    }),
-    enabled:
-      open &&
-      target?.kind === 'sales' &&
-      Boolean(target.id) &&
-      Boolean(companyId) &&
-      isReady,
+    ...trpc.sales.getById.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            id: target?.id ?? '',
+          }
+        : skipToken,
+    ),
+    enabled: open && target?.kind === 'sales' && Boolean(target.id),
   })
   const purchaseQuery = useQuery({
-    ...trpc.purchases.getById.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      id: target?.id ?? '',
-    }),
-    enabled:
-      open &&
-      target?.kind === 'purchase' &&
-      Boolean(target.id) &&
-      Boolean(companyId) &&
-      isReady,
+    ...trpc.purchases.getById.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            id: target?.id ?? '',
+          }
+        : skipToken,
+    ),
+    enabled: open && target?.kind === 'purchase' && Boolean(target.id),
   })
   const partiesQuery = useQuery({
-    ...trpc.parties.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady && open,
+    ...trpc.parties.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+    enabled: open,
   })
   const itemsQuery = useQuery({
-    ...trpc.inventory.listItems.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady && open,
+    ...trpc.inventory.listItems.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+    enabled: open,
   })
 
   const itemById = React.useMemo(

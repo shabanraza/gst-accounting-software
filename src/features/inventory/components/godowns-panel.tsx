@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import {
   PencilIcon,
   PlusIcon,
@@ -42,12 +47,11 @@ export function GodownsPanel() {
   const [editGodown, setEditGodown] = React.useState<GodownRecord | null>(null)
   const [name, setName] = React.useState('')
 
-  const godownsQuery = useQuery({
-    ...trpc.inventory.listGodowns.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const godownsQuery = useQuery(
+    trpc.inventory.listGodowns.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const createMutation = useMutation(
     trpc.inventory.createGodown.mutationOptions({

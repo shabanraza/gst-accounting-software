@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
+import { skipToken, useQuery } from '@tanstack/react-query'
 import { TrendingUpIcon } from 'lucide-react'
 import { Suspense, lazy, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
@@ -97,17 +97,17 @@ export function DashboardContent() {
   const todayDate = localCalendarDate()
   const [selectedDate, setSelectedDate] = useState(todayDate)
   const isToday = selectedDate === todayDate
-  const companyInput = companyId ?? '00000000-0000-4000-8000-000000000099'
-  const queryEnabled = Boolean(companyId) && isReady
-
-  const snapshotQuery = useQuery({
-    ...trpc.dashboard.getOwnerSnapshot.queryOptions({
-      companyId: companyInput,
-      asOfDate: selectedDate,
-      companyStateCode: company?.stateCode ?? '27',
-    }),
-    enabled: queryEnabled,
-  })
+  const snapshotQuery = useQuery(
+    trpc.dashboard.getOwnerSnapshot.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            asOfDate: selectedDate,
+            companyStateCode: company?.stateCode ?? '27',
+          }
+        : skipToken,
+    ),
+  )
 
   /**
    * `snapshot` is absent while the query is pending and also when it fails, and

@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { Undo2Icon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -49,24 +54,21 @@ export function ReturnsPanel() {
   )
   const [message, setMessage] = React.useState<string | null>(null)
 
-  const salesQuery = useQuery({
-    ...trpc.sales.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
-  const purchasesQuery = useQuery({
-    ...trpc.purchases.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
-  const partiesQuery = useQuery({
-    ...trpc.parties.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const salesQuery = useQuery(
+    trpc.sales.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
+  const purchasesQuery = useQuery(
+    trpc.purchases.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
+  const partiesQuery = useQuery(
+    trpc.parties.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const postSalesReturn = useMutation(
     trpc.returns.postSalesReturn.mutationOptions(),
@@ -77,23 +79,26 @@ export function ReturnsPanel() {
 
   // The lists come without line items, so load the selected document in full.
   const selectedSalesQuery = useQuery({
-    ...trpc.sales.getById.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      id: documentId,
-    }),
-    enabled:
-      mode === 'sales' && Boolean(documentId) && Boolean(companyId) && isReady,
+    ...trpc.sales.getById.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            id: documentId,
+          }
+        : skipToken,
+    ),
+    enabled: mode === 'sales' && Boolean(documentId),
   })
   const selectedPurchaseQuery = useQuery({
-    ...trpc.purchases.getById.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      id: documentId,
-    }),
-    enabled:
-      mode === 'purchase' &&
-      Boolean(documentId) &&
-      Boolean(companyId) &&
-      isReady,
+    ...trpc.purchases.getById.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            id: documentId,
+          }
+        : skipToken,
+    ),
+    enabled: mode === 'purchase' && Boolean(documentId),
   })
   const selectedSales = selectedSalesQuery.data
   const selectedPurchase = selectedPurchaseQuery.data

@@ -1,6 +1,11 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import {
   ClipboardListIcon,
   PackageCheckIcon,
@@ -79,24 +84,21 @@ export function PurchaseOrdersPanel() {
     createEmptyPurchaseOrderLine(),
   ])
 
-  const ordersQuery = useQuery({
-    ...trpc.purchaseOrders.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
-  const partiesQuery = useQuery({
-    ...trpc.parties.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
-  const itemsQuery = useQuery({
-    ...trpc.inventory.listItems.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const ordersQuery = useQuery(
+    trpc.purchaseOrders.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
+  const partiesQuery = useQuery(
+    trpc.parties.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
+  const itemsQuery = useQuery(
+    trpc.inventory.listItems.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const createOrder = useMutation(trpc.purchaseOrders.create.mutationOptions())
   const receiveFromPo = useMutation(
