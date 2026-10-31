@@ -13,6 +13,10 @@ built. Never include customer names, balances or other real data.
 
 ## [Unreleased]
 
+### Changed
+
+- The home page now shows Ask AI in action: a question being typed, then the answer and the figures behind it.
+
 ## [0.4.0] - 2026-10-31
 
 ### Added

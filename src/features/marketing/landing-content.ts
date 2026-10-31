@@ -152,8 +152,73 @@ export const SHOWCASE = {
         alt: 'HisaabKro HSN summary report with taxable value and GST for each HSN code',
       },
     },
+    {
+      id: 'ask-ai',
+      eyebrow: 'Ask AI',
+      title: 'Ask your books a question',
+      body: 'Type a question in Hindi or English and get the answer from your own invoices, bills and payments, with the figures it is based on.',
+      points: [
+        '"Who owes me the most?", "GST payable this month?", "Cash aur bank mein kitna hai?"',
+        'Every answer links to the report it came from, so you can check it',
+        'Only reads your books: it never posts or changes an entry',
+        'Open Ask AI from the sidebar, or press Alt+A',
+      ],
+      demo: 'ask-ai',
+    },
   ],
 } as const
+
+export type AskAiDemoScenario = {
+  question: string
+  answer: string
+  /** The figures the answer is based on, as they read in the reply. */
+  figures: ReadonlyArray<{ label: string; amount: string; note?: string }>
+  link: string
+}
+
+/**
+ * Replays the real Ask AI chat with the sample company's figures (the same
+ * ones as the dashboard screenshot). Never put real customer data here.
+ */
+export const ASK_AI_DEMO = {
+  label:
+    'Ask AI answering "Who owes me the most?" with the amount each customer owes, then "GST payable this month?" with output GST, input tax credit and the net payable.',
+  workingSteps: ['Reading your books…', 'Checking the reports…'],
+  scenarios: [
+    {
+      question: 'Who owes me the most?',
+      answer: 'Patil Constructions owes you the most. Your top dues:',
+      figures: [
+        { label: 'Patil Constructions', amount: '₹67,142' },
+        {
+          label: 'Gupta Electric Works',
+          amount: '₹50,150',
+          note: '₹38,645 overdue',
+        },
+        {
+          label: 'Sharma Electricals',
+          amount: '₹17,523',
+          note: 'overdue',
+        },
+      ],
+      link: 'Ageing report',
+    },
+    {
+      question: 'GST payable this month?',
+      answer: 'Your net GST payable for October is ₹24,264:',
+      figures: [
+        { label: 'Output GST', amount: '₹38,034' },
+        { label: 'Input tax credit', amount: '₹13,770' },
+        { label: 'Net payable', amount: '₹24,264' },
+      ],
+      link: 'GSTR-3B',
+    },
+  ],
+} as const satisfies {
+  label: string
+  workingSteps: ReadonlyArray<string>
+  scenarios: ReadonlyArray<AskAiDemoScenario>
+}
 
 export const PATHWAYS = [
   {
