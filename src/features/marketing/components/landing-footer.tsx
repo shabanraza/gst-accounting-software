@@ -26,25 +26,7 @@ function FooterColumn({
   )
 }
 
-const TOOL_LINKS = [
-  ...TOOL_SLUGS.map((slug) => ({ href: toolPath(slug), label: TOOLS[slug].name })),
-  { href: TOOLS_HUB.path, label: 'All free tools' },
-]
-
-const LEARN_LINKS = [
-  ...CONTENT_HUBS.guides.collection.pages.map((page) => ({
-    href: `${CONTENT_HUBS.guides.collection.basePath}/${page.slug}`,
-    label: page.label,
-  })),
-  {
-    href: CONTENT_HUBS.useCases.collection.basePath,
-    label: CONTENT_HUBS.useCases.collection.hubLabel,
-  },
-  ...CONTENT_HUBS.comparisons.collection.pages.map((page) => ({
-    href: `${CONTENT_HUBS.comparisons.collection.basePath}/${page.slug}`,
-    label: page.label,
-  })),
-]
+const { guides, useCases, comparisons } = CONTENT_HUBS
 
 export function LandingFooter() {
   return (
@@ -62,31 +44,52 @@ export function LandingFooter() {
 
         <FooterColumn title="Product">
           {SHOWCASE.items.map((item) => (
-            <a className={linkClassName} href={`/#${item.id}`} key={item.id}>
+            <Link className={linkClassName} hash={item.id} key={item.id} to="/">
               {item.title}
-            </a>
+            </Link>
           ))}
-          <a className={linkClassName} href="/#security">
+          <Link className={linkClassName} hash="security" to="/">
             Security
-          </a>
+          </Link>
           <Link className={linkClassName} to="/changelog">
             Changelog
           </Link>
         </FooterColumn>
 
         <FooterColumn title="Free GST tools">
-          {TOOL_LINKS.map((link) => (
-            <a className={linkClassName} href={link.href} key={link.href}>
-              {link.label}
-            </a>
+          {TOOL_SLUGS.map((slug) => (
+            <Link className={linkClassName} key={slug} to={toolPath(slug)}>
+              {TOOLS[slug].name}
+            </Link>
           ))}
+          <Link className={linkClassName} to={TOOLS_HUB.path}>
+            All free tools
+          </Link>
         </FooterColumn>
 
         <FooterColumn title="Learn GST">
-          {LEARN_LINKS.map((link) => (
-            <a className={linkClassName} href={link.href} key={link.href}>
-              {link.label}
-            </a>
+          {guides.collection.pages.map((page) => (
+            <Link
+              className={linkClassName}
+              key={page.slug}
+              params={{ slug: page.slug }}
+              to={guides.collection.pageRoute}
+            >
+              {page.label}
+            </Link>
+          ))}
+          <Link className={linkClassName} to={useCases.collection.basePath}>
+            {useCases.collection.hubLabel}
+          </Link>
+          {comparisons.collection.pages.map((page) => (
+            <Link
+              className={linkClassName}
+              key={page.slug}
+              params={{ slug: page.slug }}
+              to={comparisons.collection.pageRoute}
+            >
+              {page.label}
+            </Link>
           ))}
         </FooterColumn>
 
@@ -107,9 +110,9 @@ export function LandingFooter() {
           <Link className={linkClassName} to="/contact">
             Contact
           </Link>
-          <a className={linkClassName} href="/#feedback">
+          <Link className={linkClassName} hash="feedback" to="/">
             Feedback
-          </a>
+          </Link>
           <a
             className={linkClassName}
             href={SITE.githubUrl}

@@ -20,13 +20,16 @@ export type ContentPage = {
 }
 
 export type ContentCollection = {
-  basePath: string
+  basePath: '/guides' | '/gst-billing-software-for' | '/compare'
+  /** Router path for one page in this collection, used by `Link` with `params`. */
+  pageRoute: '/guides/$slug' | '/gst-billing-software-for/$slug' | '/compare/$slug'
   hubLabel: string
   pages: ReadonlyArray<ContentPage>
 }
 
 export const GUIDES: ContentCollection = {
   basePath: '/guides',
+  pageRoute: '/guides/$slug',
   hubLabel: 'GST guides',
   pages: [
     {
@@ -207,6 +210,7 @@ export const GUIDES: ContentCollection = {
 
 export const USE_CASES: ContentCollection = {
   basePath: '/gst-billing-software-for',
+  pageRoute: '/gst-billing-software-for/$slug',
   hubLabel: 'GST billing by business',
   pages: [
     {
@@ -411,6 +415,7 @@ export const USE_CASES: ContentCollection = {
 
 export const COMPARISONS: ContentCollection = {
   basePath: '/compare',
+  pageRoute: '/compare/$slug',
   hubLabel: 'Compare',
   pages: [
     {
