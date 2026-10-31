@@ -48,6 +48,7 @@ import { Route as AppImportsRouteImport } from './routes/app/imports'
 import { Route as AppExpensesRouteImport } from './routes/app/expenses'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 import { Route as AppBankReconciliationRouteImport } from './routes/app/bank-reconciliation'
+import { Route as AppAssistantRouteImport } from './routes/app/assistant'
 import { Route as AlternativesCompetitorRouteImport } from './routes/alternatives/$competitor'
 import { Route as ToolsHsnCodeFinderIndexRouteImport } from './routes/tools/hsn-code-finder.index'
 import { Route as ToolsGstCalculatorIndexRouteImport } from './routes/tools/gst-calculator.index'
@@ -270,6 +271,11 @@ const AppBankReconciliationRoute = AppBankReconciliationRouteImport.update({
   path: '/bank-reconciliation',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAssistantRoute = AppAssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
+  getParentRoute: () => AppRoute,
+} as any)
 const AlternativesCompetitorRoute = AlternativesCompetitorRouteImport.update({
   id: '/alternatives/$competitor',
   path: '/alternatives/$competitor',
@@ -398,6 +404,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/alternatives/$competitor': typeof AlternativesCompetitorRoute
+  '/app/assistant': typeof AppAssistantRoute
   '/app/bank-reconciliation': typeof AppBankReconciliationRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/expenses': typeof AppExpensesRoute
@@ -461,6 +468,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/alternatives/$competitor': typeof AlternativesCompetitorRoute
+  '/app/assistant': typeof AppAssistantRoute
   '/app/bank-reconciliation': typeof AppBankReconciliationRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/expenses': typeof AppExpensesRoute
@@ -523,6 +531,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/alternatives/$competitor': typeof AlternativesCompetitorRoute
+  '/app/assistant': typeof AppAssistantRoute
   '/app/bank-reconciliation': typeof AppBankReconciliationRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/expenses': typeof AppExpensesRoute
@@ -588,6 +597,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/alternatives/$competitor'
+    | '/app/assistant'
     | '/app/bank-reconciliation'
     | '/app/dashboard'
     | '/app/expenses'
@@ -651,6 +661,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/alternatives/$competitor'
+    | '/app/assistant'
     | '/app/bank-reconciliation'
     | '/app/dashboard'
     | '/app/expenses'
@@ -712,6 +723,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/alternatives/$competitor'
+    | '/app/assistant'
     | '/app/bank-reconciliation'
     | '/app/dashboard'
     | '/app/expenses'
@@ -1072,6 +1084,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBankReconciliationRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/assistant': {
+      id: '/app/assistant'
+      path: '/assistant'
+      fullPath: '/app/assistant'
+      preLoaderRoute: typeof AppAssistantRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/alternatives/$competitor': {
       id: '/alternatives/$competitor'
       path: '/alternatives/$competitor'
@@ -1264,6 +1283,7 @@ const AppSalesRouteWithChildren = AppSalesRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
+  AppAssistantRoute: typeof AppAssistantRoute
   AppBankReconciliationRoute: typeof AppBankReconciliationRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppExpensesRoute: typeof AppExpensesRoute
@@ -1288,6 +1308,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAssistantRoute: AppAssistantRoute,
   AppBankReconciliationRoute: AppBankReconciliationRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppExpensesRoute: AppExpensesRoute,

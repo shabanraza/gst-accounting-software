@@ -47,8 +47,7 @@ an AI model answers from that company's own books.
   (`capabilityProcedure('view_reports')`), daily limit, friendly errors.
 - `assistant-usage-store.ts` + `drizzle/0015_assistant_usage.sql`: the
   per-company daily counter (in-memory version for tests).
-- UI: `components/ask-books-sheet.tsx`, a shadcn `Sheet` from the header
-  "Ask" button or `Alt+A`. Chat history lives in component state only.
+- UI: `components/assistant-chat-page.tsx` at `/app/assistant`, a full chat page ("Ask AI" at the top of the sidebar, `Alt+A`): scrolling thread, working state, composer pinned at the bottom (Enter sends, Shift+Enter adds a line), starter chips, `?q=` to open with a question. The conversation is kept per company in sessionStorage.
 
 ## Safety
 
