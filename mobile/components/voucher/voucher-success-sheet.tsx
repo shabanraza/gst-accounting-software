@@ -5,9 +5,10 @@ import { BottomSheet } from '@/components/ui/dialog'
 import { PrimaryButton, SecondaryButton } from '@/components/ui/button'
 import {
   openVoucherPrintPage,
-  shareVoucherOnWhatsApp,
-  type VoucherShareKind,
+  shareVoucherOnWhatsApp
+  
 } from '@/lib/voucher-share'
+import type {VoucherShareKind} from '@/lib/voucher-share';
 import { Text, View } from '@/tw'
 
 export type VoucherSuccessTarget = {
@@ -115,7 +116,7 @@ export function VoucherSuccessSheet({
           onPress={() => {
             if (busyAction !== null) return
             onOpenChange(false)
-            router.replace(detailRoute as never)
+            router.replace(detailRoute)
           }}
         />
         <SecondaryButton
@@ -123,7 +124,7 @@ export function VoucherSuccessSheet({
           onPress={() => {
             if (busyAction !== null) return
             onOpenChange(false)
-            router.replace(createAnotherRoute as never)
+            router.replace(createAnotherRoute)
           }}
         />
       </View>

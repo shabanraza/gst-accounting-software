@@ -29,11 +29,12 @@ import {
   createEmptySalesDocumentLine,
   createInitialSalesDocumentForm,
   filterCustomerParties,
-  validateSalesDocumentForm,
-  type SalesDocumentFormDraft,
-  type SalesDocumentLineDraft,
-  type SalesDocumentType,
+  validateSalesDocumentForm
+  
+  
+  
 } from '@/lib/sales-document-form'
+import type {SalesDocumentFormDraft, SalesDocumentLineDraft, SalesDocumentType} from '@/lib/sales-document-form';
 import {
   useFormPickerCoordination,
 } from '@/lib/form-picker-coordination'

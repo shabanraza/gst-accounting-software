@@ -11,10 +11,12 @@ import { WorkspaceProvider } from '#/features/app-shell/workspace-context.tsx'
 import { trpcClient } from '#/integrations/tanstack-query/root-provider.tsx'
 import { ensureAppAccess } from '#/features/app-shell/app-access.ts'
 import { authClient } from '#/lib/auth-client.ts'
+import { noindexHead } from '#/lib/seo.ts'
 
 import type { AppAccess } from '#/features/app-shell/app-access.ts'
 
 export const Route = createFileRoute('/app')({
+  head: noindexHead,
   beforeLoad: async ({ location, context }) => {
     if (location.pathname === '/app' || location.pathname === '/app/') {
       throw redirect({

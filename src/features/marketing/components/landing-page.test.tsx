@@ -6,11 +6,20 @@ import {
   createRoute,
   createRouter,
 } from '@tanstack/react-router'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import { LandingPage } from '#/features/marketing/components/landing-page.tsx'
-import { HERO, SITE } from '#/features/marketing/landing-content.ts'
+import {
+  CONTACT,
+  FEEDBACK,
+  HERO,
+  SITE,
+  WAITLIST,
+} from '#/features/marketing/landing-content.ts'
+
+vi.mock('#/integrations/trpc/react.ts', () => import('./marketing-trpc.mock.ts'))
 
 vi.mock('#/lib/auth-client.ts', () => ({
   authClient: {
@@ -45,6 +54,11 @@ function renderLanding() {
     path: '/data-deletion',
     component: () => null,
   })
+  const contactRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/contact',
+    component: () => null,
+  })
   const dashboardRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/app/dashboard',
@@ -58,12 +72,17 @@ function renderLanding() {
       loginRoute,
       privacyRoute,
       dataDeletionRoute,
+      contactRoute,
       dashboardRoute,
     ]),
     history: createMemoryHistory({ initialEntries: ['/'] }),
   })
 
-  return render(<RouterProvider router={router} />)
+  return render(
+    <QueryClientProvider client={new QueryClient()}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  )
 }
 
 afterEach(() => {
@@ -81,6 +100,16 @@ describe('LandingPage', () => {
     const startLinks = screen.getAllByRole('link', { name: /start free/i })
     expect(startLinks.length).toBeGreaterThan(0)
     expect(startLinks[0]?.getAttribute('href')).toBe('/signup')
+
+    expect(
+      screen.getByRole('heading', { level: 2, name: CONTACT.title }),
+    ).toBeTruthy()
+    expect(
+      screen.getByRole('heading', { level: 2, name: FEEDBACK.title }),
+    ).toBeTruthy()
+    expect(
+      screen.getByRole('textbox', { name: WAITLIST.label }),
+    ).toBeTruthy()
 
     const githubLinks = screen.getAllByRole('link', { name: /github/i })
     expect(

@@ -229,6 +229,60 @@ describe('postSalesReturn', () => {
     expect(notes[0]?.partyId).toBe(context.customer.id)
     expect(notes[0]?.totalAmount).toBe('630.00')
   })
+
+  test('posts a 0% return without an output GST line', async () => {
+    const context = await seedReturnsContext()
+
+    const salesReturn = await postSalesReturn(
+      {
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        notes: context.notes,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        customerId: context.customer.id,
+        customerStateCode: '27',
+        salesInvoiceId: context.invoice.id,
+        returnDate: '2026-07-12',
+        salesAccountId: context.salesAccountId,
+        outputGstAccountId: context.outputGstAccountId,
+        receivableAccountId: context.receivableAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity: '5',
+            unit: 'meter',
+            rate: '120.00',
+            gstRate: '0.00',
+          },
+        ],
+      },
+    )
+
+    expect(salesReturn.totalGstAmount).toBe('0.00')
+    expect(salesReturn.totalAmount).toBe('600.00')
+
+    const entry = context.ledgerPosting.list().at(-1)!
+    expect(entry.lines).toHaveLength(2)
+    expect(
+      entry.lines.find(
+        (line) => line.ledgerAccountId === context.salesAccountId,
+      )?.debit,
+    ).toBe('600.00')
+    expect(
+      entry.lines.find(
+        (line) => line.ledgerAccountId === context.receivableAccountId,
+      )?.credit,
+    ).toBe('600.00')
+
+    const notes = await context.notes.listByCompanyId(context.companyId)
+    expect(notes).toHaveLength(1)
+    expect(notes[0]?.totalGstAmount).toBe('0.00')
+    expect(notes[0]?.totalAmount).toBe('600.00')
+  })
 })
 
 describe('postPurchaseReturn', () => {
@@ -295,6 +349,47 @@ describe('postPurchaseReturn', () => {
     expect(notes[0]?.noteType).toBe('debit')
     expect(notes[0]?.partyId).toBe(context.supplier.id)
     expect(notes[0]?.totalAmount).toBe('840.00')
+  })
+
+  test('posts a 0% return without an input GST line', async () => {
+    const context = await seedReturnsContext()
+
+    const purchaseReturn = await postPurchaseReturn(
+      {
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        notes: context.notes,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        supplierId: context.supplier.id,
+        supplierStateCode: '24',
+        purchaseBillId: context.bill.id,
+        returnDate: '2026-07-12',
+        purchaseAccountId: context.purchaseAccountId,
+        inputGstAccountId: context.inputGstAccountId,
+        payableAccountId: context.payableAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity: '10',
+            unit: 'meter',
+            rate: '80.00',
+            gstRate: '0.00',
+          },
+        ],
+      },
+    )
+
+    expect(purchaseReturn.totalAmount).toBe('800.00')
+    const entry = context.ledgerPosting.list().at(-1)!
+    expect(
+      entry.lines.some(
+        (line) => line.ledgerAccountId === context.inputGstAccountId,
+      ),
+    ).toBe(false)
   })
 })
 

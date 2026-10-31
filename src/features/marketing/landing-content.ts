@@ -20,12 +20,15 @@ export function buildSocialImageMeta(imageUrl: string = SITE.ogImage) {
   ] as const
 }
 
+/** Root-relative so the header works from /contact and /alternatives too. */
 export const NAV_LINKS = [
   { href: '/#features', label: 'Features' },
   { href: '/#security', label: 'Security' },
   { href: '/#compare', label: 'Compare' },
   { href: '/#faq', label: 'FAQ' },
+  { href: '/tools', label: 'Free tools' },
   { href: '/changelog', label: 'Changelog' },
+  { href: '/contact', label: 'Contact' },
 ] as const
 
 export const HERO = {
@@ -234,23 +237,56 @@ export const COMPARISON = {
   title: 'How HisaabKro compares',
   subtitle:
     'Stable facts only — pricing model and how the software is delivered. Feature checklists go stale; these do not.',
-  columns: ['', 'HisaabKro', 'Tally', 'Busy', 'Vyapar', 'Zoho Books'] as const,
+  columns: [
+    '',
+    'HisaabKro',
+    'Tally',
+    'Busy',
+    'Vyapar',
+    'Zoho Books',
+    'Marg',
+    'myBillBook',
+  ] as const,
   rows: [
     {
       label: 'Runs in a browser',
-      values: ['Yes', 'Desktop app', 'Desktop app', 'App / web', 'Yes'],
+      values: [
+        'Yes',
+        'Desktop app',
+        'Desktop app',
+        'App / web',
+        'Yes',
+        'Desktop app',
+        'App / web',
+      ],
     },
     {
       label: 'Source code available',
-      values: ['Yes (MIT)', 'No', 'No', 'No', 'No'],
+      values: ['Yes (MIT)', 'No', 'No', 'No', 'No', 'No', 'No'],
     },
     {
       label: 'Self-hostable',
-      values: ['Yes', 'On-prem install', 'On-prem install', 'No', 'No'],
+      values: [
+        'Yes',
+        'On-prem install',
+        'On-prem install',
+        'No',
+        'No',
+        'On-prem install',
+        'No',
+      ],
     },
     {
       label: 'Multi-company',
-      values: ['Yes', 'Yes', 'Yes', 'Plan-dependent', 'Plan-dependent'],
+      values: [
+        'Yes',
+        'Yes',
+        'Yes',
+        'Plan-dependent',
+        'Plan-dependent',
+        'Yes',
+        'Plan-dependent',
+      ],
     },
     {
       label: 'Pricing model',
@@ -259,6 +295,8 @@ export const COMPARISON = {
         'Paid license',
         'Paid license',
         'Subscription',
+        'Subscription',
+        'Paid license',
         'Subscription',
       ],
     },
@@ -346,6 +384,45 @@ export function buildSoftwareJsonLd() {
     image: SITE.ogImage,
   }
 }
+
+export const WAITLIST = {
+  label: 'Email for product updates',
+  placeholder: 'you@business.com',
+  button: 'Get updates',
+  success: "You're on the list. We'll email you when new features ship.",
+} as const
+
+export const FEEDBACK = {
+  id: 'feedback',
+  title: 'Tell us what to build next',
+  subtitle:
+    'Missing a report, a GST workflow, or a BUSY feature you rely on? We read every note.',
+  ratingLabel: 'How useful is HisaabKro for your business?',
+  messageLabel: 'Your feedback',
+  messagePlaceholder: 'e.g. I need WhatsApp invoice sharing with a UPI QR code.',
+  emailLabel: 'Email (optional, if you want a reply)',
+  button: 'Send feedback',
+  success: 'Thanks — your feedback reached the team.',
+} as const
+
+export const CONTACT = {
+  id: 'contact',
+  title: 'Talk to us',
+  subtitle:
+    'Questions about migrating from Tally or BUSY, GST setup, or self-hosting — send a message and a person replies.',
+  pageTitle: 'Contact HisaabKro',
+  pageDescription:
+    'Contact the HisaabKro team about GST billing, migrating from Tally or BUSY, self-hosting, or partnerships.',
+  responseTime: 'We reply within one business day.',
+  topics: [
+    { value: 'sales', label: 'Pricing & plans' },
+    { value: 'support', label: 'Support' },
+    { value: 'partnership', label: 'Partnership / CA firm' },
+    { value: 'other', label: 'Something else' },
+  ],
+  button: 'Send message',
+  success: "Message sent. We'll get back to you within one business day.",
+} as const
 
 export function buildOrganizationJsonLd() {
   return {

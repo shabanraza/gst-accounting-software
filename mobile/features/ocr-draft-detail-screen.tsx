@@ -14,7 +14,8 @@ import { DateField } from '@/components/ui/date-field'
 import { FormField } from '@/components/ui/form-field'
 import { FormFieldGroup } from '@/components/ui/form-label'
 import { formatInr } from '@/lib/format-inr'
-import { withEditedOcrField, type OcrFieldsDraft } from '@/lib/ocr-fields'
+import { withEditedOcrField  } from '@/lib/ocr-fields'
+import type {OcrFieldsDraft} from '@/lib/ocr-fields';
 import {
   buildOcrConfirmInput,
   buildOcrUpdateDraftInput,
@@ -130,8 +131,8 @@ export function OcrDraftDetailScreen() {
     },
   })
 
-  function updateField<Key extends keyof OcrFieldsDraft>(
-    key: Key,
+  function updateField<TKey extends keyof OcrFieldsDraft>(
+    key: TKey,
     value: string,
   ) {
     setFields((current) => {

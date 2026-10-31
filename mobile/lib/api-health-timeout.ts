@@ -1,4 +1,5 @@
-import { checkApiHealth, type ApiHealthResult } from './api-health.ts'
+import { checkApiHealth  } from './api-health.ts'
+import type {ApiHealthResult} from './api-health.ts';
 import { getApiReachabilityHint } from './env.ts'
 
 export const API_HEALTH_CHECK_TIMEOUT_MS = 10_000

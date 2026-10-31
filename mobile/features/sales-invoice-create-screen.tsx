@@ -16,9 +16,10 @@ import { PickerField } from '@/components/ui/picker-field'
 import { PickerModal } from '@/components/ui/picker-modal'
 import { StepPills } from '@/components/ui/step-pills'
 import {
-  VoucherSuccessSheet,
-  type VoucherSuccessTarget,
+  VoucherSuccessSheet
+  
 } from '@/components/voucher/voucher-success-sheet'
+import type {VoucherSuccessTarget} from '@/components/voucher/voucher-success-sheet';
 import { AddLineButton } from '@/components/voucher/add-line-button'
 import {
   RecentPartyChips,
@@ -44,13 +45,14 @@ import {
   formRequiresInventoryLedgers,
   resolvePlaceOfSupply,
   validateLedgerMappings,
-  validateSalesInvoiceForm,
-  type PaymentMode,
-  type SalesInvoiceFormDraft,
-  type SalesInvoiceLineDraft,
-  type TaxMode,
-  type SupplyRegion,
+  validateSalesInvoiceForm
+  
+  
+  
+  
+  
 } from '@/lib/sales-invoice-form'
+import type {PaymentMode, SalesInvoiceFormDraft, SalesInvoiceLineDraft, TaxMode, SupplyRegion} from '@/lib/sales-invoice-form';
 import { supplyRegionLabel } from '@/lib/supply-region'
 import { applySalesDocumentDraft } from '@/lib/voucher-prefill'
 import {
@@ -439,7 +441,7 @@ export function SalesInvoiceCreateScreen({
               <SecondaryButton
                 label="Back"
                 onPress={() =>
-                  setStep(step === 'lines' ? 'customer' : 'lines')
+                  setStep('customer')
                 }
               />
             </View>

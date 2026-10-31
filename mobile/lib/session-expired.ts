@@ -2,7 +2,7 @@ import { authClient } from './auth-client.ts'
 import { clearSessionToken } from './auth-storage.ts'
 
 let sessionExpired = false
-let sessionExpiredListeners = new Set<() => void>()
+const sessionExpiredListeners = new Set<() => void>()
 
 export function isSessionExpired() {
   return sessionExpired

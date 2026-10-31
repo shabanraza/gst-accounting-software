@@ -2,7 +2,7 @@ import Decimal from 'decimal.js'
 
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP })
 
-const GST_STATE_NAMES: Record<string, string> = {
+export const GST_STATE_NAMES: Record<string, string> = {
   '01': 'Jammu and Kashmir',
   '02': 'Himachal Pradesh',
   '03': 'Punjab',

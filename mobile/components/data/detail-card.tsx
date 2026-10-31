@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons'
+import type { Ionicons } from '@expo/vector-icons'
 import * as React from 'react'
 
 import { SectionHeader } from '@/components/layout/section-header'

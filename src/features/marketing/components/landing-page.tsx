@@ -1,7 +1,9 @@
 import { ComparisonTable } from '#/features/marketing/components/comparison-table.tsx'
 import { FeatureShowcase } from '#/features/marketing/components/feature-showcase.tsx'
+import { LandingContact } from '#/features/marketing/components/landing-contact.tsx'
 import { LandingCta } from '#/features/marketing/components/landing-cta.tsx'
 import { LandingFaq } from '#/features/marketing/components/landing-faq.tsx'
+import { LandingFeedback } from '#/features/marketing/components/landing-feedback.tsx'
 import { LandingFooter } from '#/features/marketing/components/landing-footer.tsx'
 import { LandingHeader } from '#/features/marketing/components/landing-header.tsx'
 import { LandingHero } from '#/features/marketing/components/landing-hero.tsx'
@@ -20,7 +22,9 @@ export function LandingPage() {
         <PathwayCards />
         <SecuritySection />
         <ComparisonTable />
+        <LandingFeedback />
         <LandingFaq />
+        <LandingContact />
         <LandingCta />
       </main>
       <LandingFooter />

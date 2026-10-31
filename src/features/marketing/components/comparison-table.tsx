@@ -18,6 +18,8 @@ const ALTERNATIVE_SLUG_BY_COLUMN: Partial<Record<string, AlternativeSlug>> = {
   Busy: 'busy',
   Vyapar: 'vyapar',
   'Zoho Books': 'zoho-books',
+  Marg: 'marg',
+  myBillBook: 'mybillbook',
 }
 
 type CellKind = 'yes' | 'no' | 'text'
@@ -84,7 +86,7 @@ export function ComparisonTable() {
       </div>
 
       <div className="mt-12 overflow-x-auto rounded-[var(--radius-hero)] bg-card shadow-(--elevation-2)">
-        <Table className="min-w-[58rem] text-base">
+        <Table className="min-w-[72rem] text-base">
           <TableHeader>
             <TableRow className="border-border/40 hover:bg-transparent">
               {COMPARISON.columns.map((column, index) => {

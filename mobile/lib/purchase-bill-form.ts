@@ -1,10 +1,13 @@
 import {
   isValidStateCode,
   partyStateForRegion,
-  resolvePlaceOfSupply,
-  type SupplyRegion,
-  type TaxMode,
+  resolvePlaceOfSupply
+  
+  
 } from './sales-invoice-form.ts'
+import type {SupplyRegion, TaxMode} from './sales-invoice-form.ts';
+
+import { randomId } from './random-id.ts'
 
 export type { SupplyRegion, TaxMode }
 
@@ -101,8 +104,6 @@ export function filterSupplierParties(parties: Array<PurchasePartyLike>) {
     (party) => party.partyType === 'supplier' || party.partyType === 'both',
   )
 }
-
-import { randomId } from './random-id.ts'
 
 export const DEFAULT_PURCHASE_SERIES = 'PUR'
 

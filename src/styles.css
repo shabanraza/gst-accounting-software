@@ -566,3 +566,21 @@ body {
     min-width: 42rem;
   }
 }
+
+/* Free invoice generator: print only the invoice paper, not the page around it. */
+@media print {
+  body:has([data-print-root]) * {
+    visibility: hidden;
+  }
+
+  [data-print-root],
+  [data-print-root] * {
+    visibility: visible;
+  }
+
+  [data-print-root] {
+    position: absolute;
+    inset: 0 0 auto 0;
+    box-shadow: none;
+  }
+}

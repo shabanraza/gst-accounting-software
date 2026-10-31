@@ -6,11 +6,14 @@ import {
   createRoute,
   createRouter,
 } from '@tanstack/react-router'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import { AlternativePage } from '#/features/marketing/components/alternative-page.tsx'
 import { ALTERNATIVES, ALTERNATIVE_SLUGS } from '#/features/marketing/alternatives-content.ts'
+
+vi.mock('#/integrations/trpc/react.ts', () => import('./marketing-trpc.mock.ts'))
 
 vi.mock('#/lib/auth-client.ts', () => ({
   authClient: {
@@ -63,7 +66,11 @@ function renderAlternative(slug: (typeof ALTERNATIVE_SLUGS)[number]) {
     history: createMemoryHistory({ initialEntries: [`/alternatives/${slug}`] }),
   })
 
-  return render(<RouterProvider router={router} />)
+  return render(
+    <QueryClientProvider client={new QueryClient()}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  )
 }
 
 afterEach(() => {
