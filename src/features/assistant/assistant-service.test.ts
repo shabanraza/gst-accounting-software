@@ -86,11 +86,17 @@ describe('runAssistantConversation', () => {
   test('accepts OpenAI-style tool calls with string arguments', async () => {
     const ai = fakeAi(
       {
+        // Workers AI also adds a normalised copy without ids at the top level.
+        tool_calls: [
+          { name: 'gstr3b_summary', arguments: { periodStart: '2026-10-01' } },
+        ],
         choices: [
           {
             message: {
               tool_calls: [
                 {
+                  id: 'call-1',
+                  type: 'function',
                   function: {
                     name: 'gstr3b_summary',
                     arguments: '{"periodStart":"2026-10-01"}',
@@ -110,6 +116,31 @@ describe('runAssistantConversation', () => {
       { periodStart: '2026-10-01' },
       context,
     )
+    // The model must see its own call and the matching result, or it repeats it.
+    expect(
+      (ai.run.mock.calls[1][1].messages as Array<unknown>).slice(-2),
+    ).toEqual([
+      {
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function',
+            function: {
+              name: 'gstr3b_summary',
+              arguments: '{"periodStart":"2026-10-01"}',
+            },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        tool_call_id: 'call-1',
+        name: 'gstr3b_summary',
+        content: JSON.stringify({ netGstPayable: '90.00' }),
+      },
+    ])
   })
 
   test('reports tool failures back to the model', async () => {

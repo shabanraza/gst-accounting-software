@@ -37,6 +37,13 @@ const WORKING_STEPS = [
   'Working out the figures…',
 ]
 
+/** Server messages are user-facing; bare tRPC codes (e.g. FORBIDDEN) are not. */
+function friendlyError(message: string) {
+  return /^[A-Z_]+$/.test(message)
+    ? "Sorry, something went wrong. Please try again."
+    : message
+}
+
 const storageKey = (companyId: string) => `hisaabkro:assistant:${companyId}`
 
 function loadTurns(companyId: string | null): Array<Turn> {
@@ -106,7 +113,7 @@ export function AssistantChatPage({ initialQuestion }: { initialQuestion?: strin
         onError: (error) =>
           setTurns((current) => [
             ...current,
-            { role: 'assistant', content: error.message, failed: true },
+            { role: 'assistant', content: friendlyError(error.message), failed: true },
           ]),
       },
     )
