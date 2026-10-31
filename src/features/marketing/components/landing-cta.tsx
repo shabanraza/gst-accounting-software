@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { ArrowRightIcon, GitBranchIcon } from 'lucide-react'
 
 import { Button } from '#/components/ui/button.tsx'
+import { WaitlistForm } from '#/features/marketing/components/waitlist-form.tsx'
 import { CLOSING_CTA } from '#/features/marketing/landing-content.ts'
 
 export function LandingCta() {
@@ -16,6 +17,9 @@ export function LandingCta() {
             {CLOSING_CTA.title}
           </h2>
           <p className="text-sm text-primary-foreground/80">{CLOSING_CTA.body}</p>
+          <div className="mt-2">
+            <WaitlistForm />
+          </div>
         </div>
         <div className="flex flex-wrap gap-3">
           <Button asChild size="lg" variant="secondary">

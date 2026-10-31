@@ -28,7 +28,7 @@ export function LandingHeader() {
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
         <a
           className="font-heading text-base font-semibold tracking-tight text-foreground"
-          href="#top"
+          href="/#top"
         >
           {SITE.name}
         </a>

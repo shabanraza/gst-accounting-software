@@ -39,6 +39,7 @@
     "db:apply-0007": "bun scripts/apply-migration-0007.ts",
     "db:apply-0008": "bun scripts/apply-migration-0008.ts",
     "db:apply-0009": "bun scripts/apply-migration-0009.ts",
+    "db:apply-0011": "bun scripts/apply-migration-0011.ts",
     "db:reconcile": "bun scripts/reconcile-drizzle-migrations.ts",
     "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
