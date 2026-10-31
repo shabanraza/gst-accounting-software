@@ -60,6 +60,9 @@ export function CompaniesPanel() {
   const [tradeName, setTradeName] = React.useState('')
   const [gstin, setGstin] = React.useState('')
   const [stateCode, setStateCode] = React.useState('27')
+  const [addressLine1, setAddressLine1] = React.useState('')
+  const [city, setCity] = React.useState('')
+  const [pincode, setPincode] = React.useState('')
   const [businessType, setBusinessType] =
     React.useState<BusinessType>('wholesale')
   const [financialYearStart, setFinancialYearStart] =
@@ -72,12 +75,16 @@ export function CompaniesPanel() {
   )
 
   const companies = companiesQuery.data ?? workspaceCompanies
+  const hasGstin = Boolean(gstin.trim())
 
   function resetForm() {
     setLegalName('')
     setTradeName('')
     setGstin('')
     setStateCode('27')
+    setAddressLine1('')
+    setCity('')
+    setPincode('')
     setBusinessType('wholesale')
     setFinancialYearStart('2026-04-01')
     setFormError(null)
@@ -92,6 +99,12 @@ export function CompaniesPanel() {
       return failForm(setFormError, 'Trade name is required.')
     }
     if (!requireStateCode(stateCode, 'State')) return
+    if (hasGstin && !(addressLine1.trim() && city.trim() && pincode.trim())) {
+      return failForm(
+        setFormError,
+        'Address, city and PIN code are required for a GST-registered company.',
+      )
+    }
 
     setFormError(null)
     try {
@@ -102,6 +115,9 @@ export function CompaniesPanel() {
         stateCode,
         businessType,
         financialYearStart,
+        addressLine1: addressLine1.trim(),
+        city: city.trim(),
+        pincode: pincode.trim(),
       })
       await queryClient.invalidateQueries({
         queryKey: trpc.companies.list.queryKey(),
@@ -188,6 +204,49 @@ export function CompaniesPanel() {
                       </SelectGroup>
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium" htmlFor="co-address">
+                  {hasGstin
+                    ? 'Business address'
+                    : 'Business address (optional)'}
+                </label>
+                <Input
+                  autoComplete="address-line1"
+                  id="co-address"
+                  onChange={(event) => setAddressLine1(event.target.value)}
+                  placeholder="Shop / building, street"
+                  required={hasGstin}
+                  value={addressLine1}
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium" htmlFor="co-city">
+                    City
+                  </label>
+                  <Input
+                    autoComplete="address-level2"
+                    id="co-city"
+                    onChange={(event) => setCity(event.target.value)}
+                    required={hasGstin}
+                    value={city}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium" htmlFor="co-pincode">
+                    PIN code
+                  </label>
+                  <Input
+                    autoComplete="postal-code"
+                    id="co-pincode"
+                    inputMode="numeric"
+                    maxLength={6}
+                    onChange={(event) => setPincode(event.target.value)}
+                    required={hasGstin}
+                    value={pincode}
+                  />
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">

@@ -37,6 +37,7 @@ built. Never include customer names, balances or other real data.
 
 ### Fixed
 
+- You can add another company from Masters → Companies again. The New company window now asks for the business address, city and PIN code, which are required when you enter a GSTIN.
 - Sales and purchase returns can be posted from the Returns screen again. Before, posting stopped with a message that the selected invoice or bill had no line items.
 - The New item window no longer fills in an opening stock of 100. Opening stock stays empty, and no stock is added unless you type a quantity.
 - Cancelled sales invoices are no longer counted in GSTR-1, GSTR-3B or the GST card on the dashboard.
