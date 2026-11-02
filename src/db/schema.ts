@@ -246,6 +246,7 @@ export const items = pgTable(
       .references(() => companies.id),
     name: text('name').notNull(),
     alias: text('alias').notNull().default(''),
+    barcode: text('barcode').notNull().default(''),
     itemGroup: text('item_group').notNull().default(''),
     hsnCode: text('hsn_code').notNull(),
     gstRate: text('gst_rate').notNull(),
@@ -261,6 +262,9 @@ export const items = pgTable(
   },
   (table) => [
     uniqueIndex('items_company_name_idx').on(table.companyId, table.name),
+    uniqueIndex('items_company_barcode_idx')
+      .on(table.companyId, table.barcode)
+      .where(sql`${table.barcode} <> ''`),
   ],
 )
 

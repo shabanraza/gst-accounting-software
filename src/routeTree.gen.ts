@@ -62,6 +62,7 @@ import { Route as AppSalesDocumentsRouteImport } from './routes/app/sales/docume
 import { Route as AppPurchasesNewRouteImport } from './routes/app/purchases/new'
 import { Route as AppMastersPartiesRouteImport } from './routes/app/masters/parties'
 import { Route as AppMastersItemsRouteImport } from './routes/app/masters/items'
+import { Route as AppMastersItemLabelsRouteImport } from './routes/app/masters/item-labels'
 import { Route as AppMastersGodownsRouteImport } from './routes/app/masters/godowns'
 import { Route as AppMastersCompanyProfileRouteImport } from './routes/app/masters/company-profile'
 import { Route as AppMastersCompaniesRouteImport } from './routes/app/masters/companies'
@@ -342,6 +343,11 @@ const AppMastersItemsRoute = AppMastersItemsRouteImport.update({
   path: '/masters/items',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMastersItemLabelsRoute = AppMastersItemLabelsRouteImport.update({
+  id: '/masters/item-labels',
+  path: '/masters/item-labels',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMastersGodownsRoute = AppMastersGodownsRouteImport.update({
   id: '/masters/godowns',
   path: '/masters/godowns',
@@ -439,6 +445,7 @@ export interface FileRoutesByFullPath {
   '/app/masters/companies': typeof AppMastersCompaniesRoute
   '/app/masters/company-profile': typeof AppMastersCompanyProfileRoute
   '/app/masters/godowns': typeof AppMastersGodownsRoute
+  '/app/masters/item-labels': typeof AppMastersItemLabelsRoute
   '/app/masters/items': typeof AppMastersItemsRoute
   '/app/masters/parties': typeof AppMastersPartiesRoute
   '/app/purchases/new': typeof AppPurchasesNewRoute
@@ -501,6 +508,7 @@ export interface FileRoutesByTo {
   '/app/masters/companies': typeof AppMastersCompaniesRoute
   '/app/masters/company-profile': typeof AppMastersCompanyProfileRoute
   '/app/masters/godowns': typeof AppMastersGodownsRoute
+  '/app/masters/item-labels': typeof AppMastersItemLabelsRoute
   '/app/masters/items': typeof AppMastersItemsRoute
   '/app/masters/parties': typeof AppMastersPartiesRoute
   '/app/purchases/new': typeof AppPurchasesNewRoute
@@ -566,6 +574,7 @@ export interface FileRoutesById {
   '/app/masters/companies': typeof AppMastersCompaniesRoute
   '/app/masters/company-profile': typeof AppMastersCompanyProfileRoute
   '/app/masters/godowns': typeof AppMastersGodownsRoute
+  '/app/masters/item-labels': typeof AppMastersItemLabelsRoute
   '/app/masters/items': typeof AppMastersItemsRoute
   '/app/masters/parties': typeof AppMastersPartiesRoute
   '/app/purchases/new': typeof AppPurchasesNewRoute
@@ -632,6 +641,7 @@ export interface FileRouteTypes {
     | '/app/masters/companies'
     | '/app/masters/company-profile'
     | '/app/masters/godowns'
+    | '/app/masters/item-labels'
     | '/app/masters/items'
     | '/app/masters/parties'
     | '/app/purchases/new'
@@ -694,6 +704,7 @@ export interface FileRouteTypes {
     | '/app/masters/companies'
     | '/app/masters/company-profile'
     | '/app/masters/godowns'
+    | '/app/masters/item-labels'
     | '/app/masters/items'
     | '/app/masters/parties'
     | '/app/purchases/new'
@@ -758,6 +769,7 @@ export interface FileRouteTypes {
     | '/app/masters/companies'
     | '/app/masters/company-profile'
     | '/app/masters/godowns'
+    | '/app/masters/item-labels'
     | '/app/masters/items'
     | '/app/masters/parties'
     | '/app/purchases/new'
@@ -1182,6 +1194,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMastersItemsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/masters/item-labels': {
+      id: '/app/masters/item-labels'
+      path: '/masters/item-labels'
+      fullPath: '/app/masters/item-labels'
+      preLoaderRoute: typeof AppMastersItemLabelsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/masters/godowns': {
       id: '/app/masters/godowns'
       path: '/masters/godowns'
@@ -1303,6 +1322,7 @@ interface AppRouteChildren {
   AppMastersCompaniesRoute: typeof AppMastersCompaniesRoute
   AppMastersCompanyProfileRoute: typeof AppMastersCompanyProfileRoute
   AppMastersGodownsRoute: typeof AppMastersGodownsRoute
+  AppMastersItemLabelsRoute: typeof AppMastersItemLabelsRoute
   AppMastersItemsRoute: typeof AppMastersItemsRoute
   AppMastersPartiesRoute: typeof AppMastersPartiesRoute
 }
@@ -1328,6 +1348,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppMastersCompaniesRoute: AppMastersCompaniesRoute,
   AppMastersCompanyProfileRoute: AppMastersCompanyProfileRoute,
   AppMastersGodownsRoute: AppMastersGodownsRoute,
+  AppMastersItemLabelsRoute: AppMastersItemLabelsRoute,
   AppMastersItemsRoute: AppMastersItemsRoute,
   AppMastersPartiesRoute: AppMastersPartiesRoute,
 }

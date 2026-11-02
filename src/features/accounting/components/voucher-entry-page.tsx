@@ -910,7 +910,7 @@ function VoucherEntryForm({
   const itemOptions = items.map((entry) => ({
     value: entry.id,
     label: entry.name,
-    keywords: entry.hsnCode,
+    keywords: `${entry.hsnCode} ${entry.barcode ?? ''}`.trim(),
     description: `HSN ${entry.hsnCode} · ${entry.gstRate}% · ${entry.baseUnit}`,
   }))
 
@@ -1541,7 +1541,7 @@ function VoucherEntryForm({
                             }
                             options={itemOptions}
                             placeholder="Select item"
-                            searchPlaceholder="Search name / HSN"
+                            searchPlaceholder="Search name / HSN / barcode"
                             title="Item lookup"
                             value={line.itemId}
                           />

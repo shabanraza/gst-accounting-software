@@ -1,5 +1,6 @@
 import * as React from 'react'
-import { PackageIcon, PlusIcon } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { BarcodeIcon, PackageIcon, PlusIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
 import { itemTrackingBadgeIntent } from '#/lib/badge-intent.ts'
@@ -34,21 +35,30 @@ export function ItemsPanel() {
 
   const items = itemsQuery.data
   const filtered = items.filter((item) => {
-    const haystack = `${item.name} ${item.hsnCode}`.toLowerCase()
+    const haystack =
+      `${item.name} ${item.hsnCode} ${item.barcode ?? ''}`.toLowerCase()
     return haystack.includes(query.trim().toLowerCase())
   })
 
   return (
     <WorkspacePage
       actions={
-        <CreateItemDialog
-          trigger={
-            <Button>
-              <PlusIcon data-icon="inline-start" />
-              New item
-            </Button>
-          }
-        />
+        <>
+          <Button asChild variant="outline">
+            <Link to="/app/masters/item-labels">
+              <BarcodeIcon data-icon="inline-start" />
+              Print labels
+            </Link>
+          </Button>
+          <CreateItemDialog
+            trigger={
+              <Button>
+                <PlusIcon data-icon="inline-start" />
+                New item
+              </Button>
+            }
+          />
+        </>
       }
       description="The goods and services you buy and sell, with HSN, GST rate, units and rates."
       title="Items"
@@ -70,7 +80,7 @@ export function ItemsPanel() {
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <SearchInput
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search name or HSN"
+              placeholder="Search name, HSN or barcode"
               value={query}
               wrapperClassName="w-full max-w-sm"
             />
