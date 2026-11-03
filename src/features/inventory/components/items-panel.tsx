@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
-import { BarcodeIcon, PackageIcon, PlusIcon } from 'lucide-react'
+import { BarcodeIcon, PackageIcon, PencilIcon, PlusIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
 import { itemTrackingBadgeIntent } from '#/lib/badge-intent.ts'
@@ -26,10 +26,12 @@ import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { formatInr } from '#/lib/format-inr.ts'
 import { CreateItemDialog } from '#/features/inventory/components/create-item-dialog.tsx'
 import { useItemsList } from '#/features/masters/use-master-data.ts'
+import type { ItemRecord } from '#/features/inventory/item-service.ts'
 
 export function ItemsPanel() {
   const { error: workspaceError } = useWorkspace()
   const [query, setQuery] = React.useState('')
+  const [editingItem, setEditingItem] = React.useState<ItemRecord | null>(null)
 
   const itemsQuery = useItemsList()
 
@@ -66,6 +68,16 @@ export function ItemsPanel() {
       {workspaceError ? (
         <p className="text-sm text-destructive">{workspaceError}</p>
       ) : null}
+      {editingItem ? (
+        <CreateItemDialog
+          item={editingItem}
+          key={editingItem.id}
+          onOpenChange={(open) => {
+            if (!open) setEditingItem(null)
+          }}
+          open
+        />
+      ) : null}
       <Card>
         <CardHeader className="gap-3">
           <div className="flex flex-col gap-1">
@@ -98,6 +110,7 @@ export function ItemsPanel() {
                 <TableHead>Purchase</TableHead>
                 <TableHead>Sale</TableHead>
                 <TableHead>Stock</TableHead>
+                <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -105,7 +118,7 @@ export function ItemsPanel() {
                 <TableRow>
                   <TableCell
                     className="py-10 text-center text-muted-foreground"
-                    colSpan={8}
+                    colSpan={9}
                   >
                     Loading items…
                   </TableCell>
@@ -114,7 +127,7 @@ export function ItemsPanel() {
                 <TableRow>
                   <TableCell
                     className="py-10 text-center text-muted-foreground"
-                    colSpan={8}
+                    colSpan={9}
                   >
                     {query.trim()
                       ? 'No items match your search.'
@@ -141,6 +154,17 @@ export function ItemsPanel() {
                       >
                         {item.tracksInventory ? 'Tracked' : 'Service'}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        aria-label={`Edit ${item.name}`}
+                        onClick={() => setEditingItem(item)}
+                        size="icon"
+                        type="button"
+                        variant="ghost"
+                      >
+                        <PencilIcon />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))

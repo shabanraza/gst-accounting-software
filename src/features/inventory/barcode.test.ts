@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest'
 import {
   ean13CheckDigit,
   encodeEan13,
+  findItemByBarcode,
   generateInStoreEan13,
   isValidEan13,
   normalizeBarcode,
@@ -106,5 +107,27 @@ describe('encodeEan13', () => {
 
   test('refuses an invalid code', () => {
     expect(() => encodeEan13('5901234123458')).toThrow()
+  })
+})
+
+describe('findItemByBarcode', () => {
+  const items = [
+    { id: 'pack', barcode: '4006381333931' },
+    { id: 'upc', barcode: '0036000291452' },
+    { id: 'none', barcode: '' },
+  ]
+
+  test('finds the item with the scanned EAN-13', () => {
+    expect(findItemByBarcode(items, ' 4006381333931 ')?.id).toBe('pack')
+  })
+
+  test('matches a 12-digit UPC scan to its stored EAN-13', () => {
+    expect(findItemByBarcode(items, '036000291452')?.id).toBe('upc')
+  })
+
+  test('returns nothing for an unknown, invalid or blank code', () => {
+    expect(findItemByBarcode(items, '5901234123457')).toBeUndefined()
+    expect(findItemByBarcode(items, '12345')).toBeUndefined()
+    expect(findItemByBarcode(items, '')).toBeUndefined()
   })
 })

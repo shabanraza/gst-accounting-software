@@ -205,6 +205,43 @@ export function emptyVoucherLine(defaultGodown = ''): VoucherLineDraft {
   }
 }
 
+/**
+ * Puts a scanned item on the bill: one more of it when a line for the same
+ * item, unit and godown is already there, otherwise a new line of 1.
+ */
+export function addScannedItem(
+  lines: Array<VoucherLineDraft>,
+  scanned: Omit<VoucherLineDraft, 'key' | 'quantity' | 'discountPercent'>,
+): Array<VoucherLineDraft> {
+  const existing = lines.find(
+    (line) =>
+      line.itemId === scanned.itemId &&
+      line.unit === scanned.unit &&
+      line.godownName === scanned.godownName,
+  )
+  if (existing) {
+    return lines.map((line) =>
+      line === existing
+        ? {
+            ...line,
+            quantity: new Decimal(line.quantity || '0').plus(1).toString(),
+          }
+        : line,
+    )
+  }
+
+  const emptyIndex = lines.findIndex((line) => !line.itemId)
+  if (emptyIndex === -1) {
+    return [
+      ...lines,
+      { ...emptyVoucherLine(scanned.godownName), ...scanned, quantity: '1' },
+    ]
+  }
+  return lines.map((line, index) =>
+    index === emptyIndex ? { ...line, ...scanned, quantity: '1' } : line,
+  )
+}
+
 export function createEmptyVoucherLines(
   count = 1,
   defaultGodown = '',

@@ -54,11 +54,34 @@ const emptyForm = {
   tracksInventory: 'yes',
 }
 
+function formFromItem(item: ItemRecord): typeof emptyForm {
+  return {
+    ...emptyForm,
+    name: item.name,
+    alias: item.alias,
+    barcode: item.barcode ?? '',
+    group: item.itemGroup,
+    hsnCode: item.hsnCode,
+    gstRate: item.gstRate,
+    baseUnit: item.baseUnit,
+    uqc: uqcForUnit(item.baseUnit),
+    altUnit: item.alternateUnit || 'none',
+    conversionFactor: item.alternateUnit ? item.conversionFactor : '',
+    purchaseRate: item.purchaseRate,
+    saleRate: item.saleRate,
+    mrp: item.mrp,
+    reorderLevel: item.reorderLevel,
+    tracksInventory: item.tracksInventory ? 'yes' : 'no',
+  }
+}
+
 type CreateItemDialogProps = {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   trigger?: React.ReactNode
   onCreated?: (item: ItemRecord) => void
+  /** Edits this item instead of creating a new one. */
+  item?: ItemRecord
 }
 
 export function CreateItemDialog({
@@ -66,6 +89,7 @@ export function CreateItemDialog({
   onOpenChange: controlledOnOpenChange,
   trigger,
   onCreated,
+  item,
 }: CreateItemDialogProps) {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
@@ -76,12 +100,16 @@ export function CreateItemDialog({
   const open = controlledOpen ?? internalOpen
   const setOpen = controlledOnOpenChange ?? setInternalOpen
 
-  const [form, setForm] = React.useState(emptyForm)
+  const [form, setForm] = React.useState(() =>
+    item ? formFromItem(item) : emptyForm,
+  )
   const [formError, setFormError] = React.useState<string | null>(null)
 
   const createItem = useMutation(
     trpc.inventory.createItemWithOpening.mutationOptions(),
   )
+  const updateItem = useMutation(trpc.inventory.updateItem.mutationOptions())
+  const isSaving = createItem.isPending || updateItem.isPending
 
   function updateForm(field: string, value: string) {
     setForm((current) => {
@@ -92,7 +120,11 @@ export function CreateItemDialog({
   }
 
   function resetForm() {
-    setForm({ ...emptyForm, openingGodown: godownNames[0] ?? '' })
+    setForm(
+      item
+        ? formFromItem(item)
+        : { ...emptyForm, openingGodown: godownNames[0] ?? '' },
+    )
     setFormError(null)
   }
 
@@ -120,30 +152,38 @@ export function CreateItemDialog({
     }
 
     setFormError(null)
+    const details = {
+      companyId,
+      name: form.name.trim(),
+      alias: form.alias.trim(),
+      barcode: form.barcode.trim(),
+      itemGroup: form.group,
+      hsnCode: form.hsnCode.trim(),
+      gstRate: form.gstRate,
+      baseUnit: form.baseUnit,
+      alternateUnit: form.altUnit === 'none' ? '' : form.altUnit,
+      conversionFactor:
+        form.altUnit === 'none' ? '1' : form.conversionFactor || '1',
+      mrp: form.mrp || '0.00',
+      reorderLevel: form.reorderLevel || '0',
+      purchaseRate: form.purchaseRate || '0.00',
+      saleRate: form.saleRate || '0.00',
+      tracksInventory: form.tracksInventory === 'yes',
+    }
     try {
-      const result = await createItem.mutateAsync({
-        companyId,
-        name: form.name.trim(),
-        alias: form.alias.trim(),
-        barcode: form.barcode.trim(),
-        itemGroup: form.group,
-        hsnCode: form.hsnCode.trim(),
-        gstRate: form.gstRate,
-        baseUnit: form.baseUnit,
-        alternateUnit: form.altUnit === 'none' ? '' : form.altUnit,
-        conversionFactor:
-          form.altUnit === 'none' ? '1' : form.conversionFactor || '1',
-        mrp: form.mrp || '0.00',
-        reorderLevel: form.reorderLevel || '0',
-        purchaseRate: form.purchaseRate || '0.00',
-        saleRate: form.saleRate || '0.00',
-        tracksInventory: form.tracksInventory === 'yes',
-        openingQuantity:
-          form.tracksInventory === 'yes' && form.openingQuantity.trim()
-            ? form.openingQuantity.trim()
-            : null,
-        openingOccurredOn: new Date().toISOString().slice(0, 10),
-      })
+      if (item) {
+        await updateItem.mutateAsync({ ...details, itemId: item.id })
+      } else {
+        const result = await createItem.mutateAsync({
+          ...details,
+          openingQuantity:
+            form.tracksInventory === 'yes' && form.openingQuantity.trim()
+              ? form.openingQuantity.trim()
+              : null,
+          openingOccurredOn: new Date().toISOString().slice(0, 10),
+        })
+        onCreated?.(result.item)
+      }
       await queryClient.invalidateQueries({
         queryKey: trpc.inventory.listItems.queryKey({ companyId }),
       })
@@ -152,8 +192,7 @@ export function CreateItemDialog({
       })
       resetForm()
       setOpen(false)
-      toast.success('Item created.')
-      onCreated?.(result.item)
+      toast.success(item ? 'Item updated.' : 'Item created.')
     } catch (error) {
       setFormError(getFormErrorMessage(error))
     }
@@ -162,9 +201,11 @@ export function CreateItemDialog({
   const dialog = (
     <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
       <DialogHeader>
-        <DialogTitle>New item</DialogTitle>
+        <DialogTitle>{item ? 'Edit item' : 'New item'}</DialogTitle>
         <DialogDescription>
-          HSN, GST rate, units, rates and any stock you already have.
+          {item
+            ? 'Barcode, HSN, GST rate, units and rates.'
+            : 'HSN, GST rate, units, rates and any stock you already have.'}
         </DialogDescription>
       </DialogHeader>
       <form className="flex flex-col gap-4" onSubmit={handleCreate}>
@@ -381,48 +422,52 @@ export function CreateItemDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-sm" htmlFor="item-open">
-              Opening stock qty
-            </Label>
-            <Input
-              disabled={form.tracksInventory !== 'yes'}
-              id="item-open"
-              onChange={(event) =>
-                updateForm('openingQuantity', event.target.value)
-              }
-              placeholder="Optional"
-              value={form.openingQuantity}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium">Opening godown</span>
-            <Select
-              disabled={form.tracksInventory !== 'yes'}
-              onValueChange={(value) => updateForm('openingGodown', value)}
-              value={form.openingGodown}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {godownNames.map((godown) => (
-                    <SelectItem key={godown} value={godown}>
-                      {godown}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
+          {item ? null : (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-sm" htmlFor="item-open">
+                  Opening stock qty
+                </Label>
+                <Input
+                  disabled={form.tracksInventory !== 'yes'}
+                  id="item-open"
+                  onChange={(event) =>
+                    updateForm('openingQuantity', event.target.value)
+                  }
+                  placeholder="Optional"
+                  value={form.openingQuantity}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium">Opening godown</span>
+                <Select
+                  disabled={form.tracksInventory !== 'yes'}
+                  onValueChange={(value) => updateForm('openingGodown', value)}
+                  value={form.openingGodown}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {godownNames.map((godown) => (
+                        <SelectItem key={godown} value={godown}>
+                          {godown}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
         </div>
         {formError ? (
           <p className="text-sm text-destructive">{formError}</p>
         ) : null}
         <DialogFooter>
-          <Button disabled={createItem.isPending} type="submit">
-            {createItem.isPending ? 'Saving…' : 'Save item'}
+          <Button disabled={isSaving} type="submit">
+            {isSaving ? 'Saving…' : 'Save item'}
           </Button>
         </DialogFooter>
       </form>
