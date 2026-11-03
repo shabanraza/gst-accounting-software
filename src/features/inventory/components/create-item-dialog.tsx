@@ -37,6 +37,7 @@ import type { ItemRecord } from '#/features/inventory/item-service.ts'
 const emptyForm = {
   name: '',
   alias: '',
+  barcode: '',
   group: 'Fabrics',
   hsnCode: '',
   gstRate: '5.00',
@@ -124,6 +125,7 @@ export function CreateItemDialog({
         companyId,
         name: form.name.trim(),
         alias: form.alias.trim(),
+        barcode: form.barcode.trim(),
         itemGroup: form.group,
         hsnCode: form.hsnCode.trim(),
         gstRate: form.gstRate,
@@ -186,6 +188,22 @@ export function CreateItemDialog({
               id="item-alias"
               onChange={(event) => updateForm('alias', event.target.value)}
               value={form.alias}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-sm" htmlFor="item-barcode">
+              Barcode (EAN / UPC)
+            </Label>
+            <Input
+              id="item-barcode"
+              inputMode="numeric"
+              onChange={(event) => updateForm('barcode', event.target.value)}
+              onKeyDown={(event) => {
+                // Scanners end with Enter; keep it from submitting the form.
+                if (event.key === 'Enter') event.preventDefault()
+              }}
+              placeholder="Optional"
+              value={form.barcode}
             />
           </div>
           <div className="flex flex-col gap-1.5">

@@ -13,6 +13,10 @@ built. Never include customer names, balances or other real data.
 
 ## [Unreleased]
 
+### Added
+
+- Barcode labels for retail shops: open Items → Print labels, pick items and how many labels each, and print on an A4 label sheet or a 50 × 25 mm label roll. Labels show the item name, MRP and sale price. Items without a barcode get their own store code, and you can enter a product's existing EAN/UPC barcode when adding an item. Scan a label into the item search on a sale or purchase to pick that item.
+
 ### Changed
 
 - The home page now shows Ask AI in action: a question being typed, then the answer and the figures behind it.

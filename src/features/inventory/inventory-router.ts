@@ -9,6 +9,7 @@ import {
   updateGodown,
 } from '#/features/inventory/godown-service.ts'
 import {
+  assignMissingBarcodes,
   createItem,
   listItemsByCompany,
   updateItem,
@@ -46,6 +47,7 @@ const createItemInputSchema = z.object({
   companyId: z.string().uuid(),
   name: z.string().min(1),
   alias: z.string().optional(),
+  barcode: z.string().optional(),
   itemGroup: z.string().optional(),
   hsnCode: z.string().min(1),
   gstRate: z.string().min(1),
@@ -66,6 +68,11 @@ const createItemWithOpeningInputSchema = createItemInputSchema.extend({
 
 const updateItemInputSchema = createItemInputSchema.extend({
   itemId: z.string().uuid(),
+})
+
+const assignBarcodesInputSchema = z.object({
+  companyId: z.string().uuid(),
+  itemIds: z.array(z.string().uuid()).min(1).max(500),
 })
 
 const stockMovementInputSchema = z.object({
@@ -262,6 +269,11 @@ export const createInventoryRouter = (
       .input(updateItemInputSchema)
       .mutation(({ input }) => {
         return updateItem(itemRepository, input)
+      }),
+    assignBarcodes: capabilityProcedure('manage_inventory')
+      .input(assignBarcodesInputSchema)
+      .mutation(({ input }) => {
+        return assignMissingBarcodes(itemRepository, input)
       }),
     recordStockMovement: capabilityProcedure('manage_inventory')
       .input(stockMovementInputSchema)

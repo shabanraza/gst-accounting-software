@@ -137,6 +137,7 @@ function mapRowToItemRecord(row: ItemRow): ItemRecord {
     companyId: row.companyId,
     name: row.name,
     alias: row.alias,
+    barcode: row.barcode,
     itemGroup: row.itemGroup,
     hsnCode: row.hsnCode,
     gstRate: row.gstRate,
@@ -183,6 +184,7 @@ export class DrizzleItemRepository implements ItemRepository {
         companyId: item.companyId,
         name: item.name,
         alias: item.alias,
+        barcode: item.barcode ?? '',
         itemGroup: item.itemGroup,
         hsnCode: item.hsnCode,
         gstRate: item.gstRate,
@@ -207,6 +209,7 @@ export class DrizzleItemRepository implements ItemRepository {
       .set({
         name: item.name,
         alias: item.alias,
+        barcode: item.barcode ?? '',
         itemGroup: item.itemGroup,
         hsnCode: item.hsnCode,
         gstRate: item.gstRate,

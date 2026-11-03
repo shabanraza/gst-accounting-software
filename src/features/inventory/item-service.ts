@@ -1,9 +1,15 @@
+import {
+  generateInStoreEan13,
+  normalizeBarcode,
+} from '#/features/inventory/barcode.ts'
 import { DomainError } from '#/lib/domain-error.ts'
 
 export type CreateItemInput = {
   companyId: string
   name: string
   alias?: string
+  /** EAN-13 (a 12-digit UPC-A is stored as EAN-13). Blank for none. */
+  barcode?: string
   itemGroup?: string
   hsnCode: string
   gstRate: string
@@ -57,6 +63,32 @@ function normalizeName(name: string) {
   return name.trim().replace(/\s+/g, ' ')
 }
 
+async function resolveBarcode(
+  repository: ItemRepository,
+  companyId: string,
+  raw: string | undefined,
+  itemId?: string,
+) {
+  const barcode = normalizeBarcode(raw)
+  if (barcode === null) {
+    throw new InvalidItemError(
+      'Barcode must be a 13-digit EAN or 12-digit UPC with a valid check digit',
+    )
+  }
+  if (!barcode) return ''
+
+  const items = await repository.listByCompanyId(companyId)
+  const owner = items.find(
+    (item) => item.barcode === barcode && item.id !== itemId,
+  )
+  if (owner) {
+    throw new InvalidItemError(
+      `Barcode ${barcode} is already used by ${owner.name}`,
+    )
+  }
+  return barcode
+}
+
 export async function createItem(
   repository: ItemRepository,
   input: CreateItemInput,
@@ -71,10 +103,17 @@ export async function createItem(
     throw new InvalidItemError('HSN/SAC code is required')
   }
 
+  const barcode = await resolveBarcode(
+    repository,
+    input.companyId,
+    input.barcode,
+  )
+
   return repository.create({
     ...input,
     name,
     alias: input.alias?.trim() ?? '',
+    barcode,
     itemGroup: input.itemGroup?.trim() ?? '',
     hsnCode: input.hsnCode.trim(),
     gstRate: input.gstRate,
@@ -109,10 +148,21 @@ export async function updateItem(
     throw new InvalidItemError('HSN/SAC code is required')
   }
 
+  const barcode =
+    input.barcode === undefined
+      ? (existing.barcode ?? '')
+      : await resolveBarcode(
+          repository,
+          input.companyId,
+          input.barcode,
+          existing.id,
+        )
+
   return repository.update({
     ...existing,
     name,
     alias: input.alias?.trim() ?? '',
+    barcode,
     itemGroup: input.itemGroup?.trim() ?? '',
     hsnCode: input.hsnCode.trim(),
     gstRate: input.gstRate,
@@ -132,4 +182,33 @@ export async function listItemsByCompany(
   companyId: string,
 ): Promise<Array<ItemRecord>> {
   return repository.listByCompanyId(companyId)
+}
+
+/**
+ * Gives each listed item without a barcode an in-store EAN-13 so its label can
+ * be printed and scanned at billing. Returns the listed items.
+ */
+export async function assignMissingBarcodes(
+  repository: ItemRepository,
+  input: { companyId: string; itemIds: Array<string> },
+): Promise<Array<ItemRecord>> {
+  const companyItems = await repository.listByCompanyId(input.companyId)
+  const byId = new Map(companyItems.map((item) => [item.id, item]))
+  const taken = new Set(
+    companyItems.map((item) => item.barcode ?? '').filter(Boolean),
+  )
+
+  const result: Array<ItemRecord> = []
+  for (const itemId of input.itemIds) {
+    const item = byId.get(itemId)
+    if (!item) throw new ItemNotFoundError(itemId)
+    if (item.barcode) {
+      result.push(item)
+      continue
+    }
+    const barcode = generateInStoreEan13(taken)
+    taken.add(barcode)
+    result.push(await repository.update({ ...item, barcode }))
+  }
+  return result
 }
