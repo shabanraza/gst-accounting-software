@@ -84,6 +84,16 @@ export function normalizeBarcode(raw: string | undefined): string | null {
   return isValidEan13(ean) ? ean : null
 }
 
+/** The item whose barcode matches a scanned or typed code, if any. */
+export function findItemByBarcode<T extends { barcode?: string }>(
+  items: ReadonlyArray<T>,
+  raw: string,
+): T | undefined {
+  const code = normalizeBarcode(raw)
+  if (!code) return undefined
+  return items.find((item) => item.barcode === code)
+}
+
 /** A random in-store EAN-13 that is not in `taken`. */
 export function generateInStoreEan13(
   taken: ReadonlySet<string>,

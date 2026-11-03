@@ -6,7 +6,12 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { ChevronDownIcon, PlusIcon, Trash2Icon } from 'lucide-react'
+import {
+  ChevronDownIcon,
+  PlusIcon,
+  ScanBarcodeIcon,
+  Trash2Icon,
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Badge } from '#/components/ui/badge.tsx'
@@ -18,6 +23,11 @@ import {
 } from '#/components/ui/collapsible.tsx'
 import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '#/components/ui/input-group.tsx'
 import { Label } from '#/components/ui/label.tsx'
 import {
   Select,
@@ -48,6 +58,7 @@ import {
 } from '#/features/app-shell/data/india-masters.ts'
 import { formatInr } from '#/lib/format-inr.ts'
 import {
+  addScannedItem,
   computeVoucherLine,
   computeVoucherTotals,
   createEmptyVoucherLines,
@@ -68,6 +79,7 @@ import { VoucherPreviewSheet } from '#/features/documents/components/voucher-pre
 import { useProductUpdatesPrompt } from '#/features/product-updates/use-product-updates-prompt.ts'
 import type { VoucherPreviewTarget } from '#/features/documents/components/voucher-preview-sheet.tsx'
 import { CreateItemDialog } from '#/features/inventory/components/create-item-dialog.tsx'
+import { findItemByBarcode } from '#/features/inventory/barcode.ts'
 import { CreatePartyDialog } from '#/features/parties/components/create-party-dialog.tsx'
 import {
   RecentPartyChips,
@@ -248,6 +260,7 @@ function VoucherEntryForm({
   const [attachmentFile, setAttachmentFile] = React.useState<File | null>(null)
   const [partyCreateOpen, setPartyCreateOpen] = React.useState(false)
   const [itemCreateOpen, setItemCreateOpen] = React.useState(false)
+  const [scanCode, setScanCode] = React.useState('')
   const [itemCreateLineKey, setItemCreateLineKey] = React.useState<
     string | null
   >(null)
@@ -579,20 +592,35 @@ function VoucherEntryForm({
     }
   }
 
-  function applyItemToLine(key: string, item: ItemRecord) {
+  function itemLineFields(item: ItemRecord) {
     const listRate = activePriceListId ? priceListRates[item.id] : undefined
-    const rate = listRate ?? (isSales ? item.saleRate : item.purchaseRate)
-
-    updateLine(key, {
+    return {
       itemId: item.id,
       itemName: item.name,
       hsnCode: item.hsnCode,
       gstRate: item.gstRate,
       unit: item.baseUnit,
       uqc: uqcForUnit(item.baseUnit),
-      rate,
+      rate: listRate ?? (isSales ? item.saleRate : item.purchaseRate),
       godownName: godown,
-    })
+    }
+  }
+
+  function applyItemToLine(key: string, item: ItemRecord) {
+    updateLine(key, itemLineFields(item))
+  }
+
+  /** Adds the item with this barcode to the bill; false when none has it. */
+  function addScannedBarcode(code: string) {
+    const item = findItemByBarcode(items, code)
+    if (!item) {
+      toast.error(`No item has barcode ${code.trim()}.`)
+      return false
+    }
+    setLines((current) =>
+      ensureTrailingEmptyRows(addScannedItem(current, itemLineFields(item))),
+    )
+    return true
   }
 
   function selectItem(key: string, itemId: string) {
@@ -1490,12 +1518,34 @@ function VoucherEntryForm({
           </Collapsible>
 
           <section className="flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-sm font-medium">Line items</h2>
-              <Button onClick={addLine} size="sm" type="button">
-                <PlusIcon data-icon="inline-start" />
-                Add row
-              </Button>
+              <div className="flex flex-1 items-center justify-end gap-2">
+                <InputGroup className="max-w-56">
+                  <InputGroupAddon>
+                    <ScanBarcodeIcon />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    aria-label="Scan barcode"
+                    inputMode="numeric"
+                    onChange={(event) => setScanCode(event.target.value)}
+                    onKeyDown={(event) => {
+                      // Scanners type the code and press Enter.
+                      if (event.key !== 'Enter') return
+                      event.preventDefault()
+                      if (!scanCode.trim()) return
+                      if (addScannedBarcode(scanCode)) setScanCode('')
+                      else event.currentTarget.select()
+                    }}
+                    placeholder="Scan barcode"
+                    value={scanCode}
+                  />
+                </InputGroup>
+                <Button onClick={addLine} size="sm" type="button">
+                  <PlusIcon data-icon="inline-start" />
+                  Add row
+                </Button>
+              </div>
             </div>
             <div
               className="overflow-x-auto rounded-md border border-border"

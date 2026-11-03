@@ -40,7 +40,8 @@ Living status vs [BUSY 21](https://busy.in/) wholesale/trading features, trackin
 | Bill attachment + OCR                        | Done        | Upload + `/app/ocr` review; confirm posts bill   |
 | Role-based permissions                       | Partial     | Capability on posting mutations; not every read  |
 | e-Invoice / e-way                            | Stub UI     | Local IRN/EWB generation; no live GSP API        |
-| POS / barcode / BOM                          | Not started | Later                                            |
+| Barcode                                      | Done        | Item barcodes, labels, scan-to-bill on sales and purchases |
+| POS / BOM                                    | Not started | Later                                            |
 
 ## Still open (priority)
 
@@ -57,7 +58,7 @@ _All four P1 workflow items are complete (Jul 2026)._
 ### P3 — Later BUSY parity
 
 8. OCR draft UI on purchase — **done** (`/app/ocr`)
-9. POS / barcode / BOM — not started
+9. Barcode — **done** (labels, scan-to-bill); POS / BOM — not started
 10. Live e-invoice / e-way GSP integrations — **stub** (pseudo IRN/EWB; wire real NIC/GSP later)
 
 ## What not to rebuild

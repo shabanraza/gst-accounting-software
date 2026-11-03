@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
 import {
+  addScannedItem,
   computeVoucherLine,
   computeVoucherTotals,
   emptyVoucherLine,
@@ -129,5 +130,66 @@ describe('voucher math', () => {
     expect(resolveStateCode('', '2', '27')).toBe('27')
     expect(isValidStateCode('27')).toBe(true)
     expect(isValidStateCode('')).toBe(false)
+  })
+})
+
+describe('addScannedItem', () => {
+  const scanned = {
+    itemId: 'item-1',
+    itemName: 'Biscuits',
+    hsnCode: '1905',
+    gstRate: '18.00',
+    unit: 'Nos',
+    uqc: 'NOS',
+    rate: '10.00',
+    godownName: 'Main',
+  }
+
+  test('fills the first empty line with one of the scanned item', () => {
+    const lines = createEmptyVoucherLines(1, 'Main')
+
+    const next = addScannedItem(lines, scanned)
+
+    expect(next).toHaveLength(1)
+    expect(next[0]).toMatchObject({ ...scanned, quantity: '1' })
+    expect(next[0]?.key).toBe(lines[0]?.key)
+  })
+
+  test('adds one to the quantity when the item is already on the bill', () => {
+    const lines = addScannedItem(createEmptyVoucherLines(1, 'Main'), scanned)
+
+    const next = addScannedItem(addScannedItem(lines, scanned), scanned)
+
+    expect(next).toHaveLength(1)
+    expect(next[0]?.quantity).toBe('3')
+  })
+
+  test('adds a new line for a different item', () => {
+    const lines = addScannedItem(createEmptyVoucherLines(1, 'Main'), scanned)
+
+    const next = addScannedItem(lines, {
+      ...scanned,
+      itemId: 'item-2',
+      itemName: 'Tea',
+    })
+
+    expect(next.map((line) => [line.itemId, line.quantity])).toEqual([
+      ['item-1', '1'],
+      ['item-2', '1'],
+    ])
+  })
+
+  test('keeps a line with a different unit separate', () => {
+    const lines = addScannedItem(createEmptyVoucherLines(1, 'Main'), {
+      ...scanned,
+      unit: 'Box',
+    })
+
+    const next = addScannedItem(lines, scanned)
+
+    expect(next.map((line) => [line.unit, line.quantity])).toEqual([
+      ['Box', '1'],
+      ['Nos', '1'],
+    ])
   })
 })
