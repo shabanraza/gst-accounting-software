@@ -22,7 +22,10 @@ Use it at no cost. Fork it, self-host it, or contribute back.
 | Tally ERP GST alternative | Ledger, chart of accounts, day book |
 | Marg / Vyapar style billing | Sales bill, purchase bill, stock |
 | Inventory with GST | Items, godowns, stock ledger, GRN |
-| GSTR-1 / GSTR-2B / GST return help | HSN summary, GSTR reports, 2B reconciliation |
+| Barcode billing software | Item barcodes, label printing, scan-to-bill |
+| GSTR-1 / GSTR-2B / GST return help | GSTR-1 portal JSON, GSTR-3B, HSN summary, 2B reconciliation |
+| Tally to cloud migration | Import Tally masters XML, Excel and BUSY files |
+| AI accounting assistant | Ask your books questions in Hindi or English |
 | Party ledger software | Customer & supplier balances, ageing |
 | Free GST software | 100% free & open source — no license fee |
 
@@ -30,15 +33,22 @@ Use it at no cost. Fork it, self-host it, or contribute back.
 
 ## Features
 
-- **GST invoicing** — Tax invoices, place of supply, intra/inter-state GST split
-- **Sales & purchases** — Invoices, bills, orders, goods receipt (GRN), returns
-- **Inventory** — Items, HSN codes, godowns, stock movements
-- **Accounting** — Double-entry ledger, chart of accounts, journal entries
-- **Parties** — Customers & suppliers with GSTIN, ledger, ageing
-- **Payments** — Receipts, payments, bank/cash book
-- **GST reports** — HSN summary, GSTR-style reports, GSTR-2B reconciliation
+- **GST invoicing** — Tax invoices, place of supply, intra/inter-state GST split; Bill of Supply for companies without a GSTIN
+- **Sales & purchases** — Invoices, bills, quotations, orders, delivery challans, goods receipt (GRN), returns with credit/debit notes; keyboard-first entry
+- **Gap-free numbering** — Invoices, notes and sales documents run in their own series per financial year (INV-0001, CN-0001, DN-0001, QT-0001…)
+- **Inventory** — Items, HSN codes, godowns, stock movements, reorder levels and low-stock alerts, moving weighted-average stock value
+- **Barcodes** — Enter a product's EAN/UPC or get an in-store code, print labels (A4 sheet or label roll), and scan onto sales and purchase bills
+- **Accounting** — Double-entry ledger, chart of accounts, journal entries, opening balances
+- **Parties** — Customers & suppliers with GSTIN, ledger, ageing, WhatsApp payment reminders
+- **Payments** — Receipts, payments, bank/cash book, bank reconciliation
+- **GST returns** — GSTR-1 laid out as on the portal (B2B, B2C large/small, credit notes, HSN summary, documents issued) with JSON download and portal-file comparison; GSTR-3B by return period; GSTR-2B reconciliation
+- **Ask your books (AI)** — Ask in Hindi or English ("GST payable this month?") and get the figure from your own data with a link to the report
+- **Dashboard** — Sales, receivables, payables, cash and bank, GST card with filing dates, top dues, setup checklist
+- **Import** — Tally masters XML, Excel (.xlsx), CSV and BUSY files for parties, items and opening stock
 - **Team & companies** — Multi-company, invites, roles
 - **Modern UI** — Fast web app, mobile-friendly, light theme default
+
+See [CHANGELOG.md](./CHANGELOG.md) for what changed in each release.
 
 ---
 
@@ -268,7 +278,7 @@ This project is **free and open source**. Anyone can:
 
 ## Search keywords
 
-GST accounting software India · GST billing software · free GST invoice software · Busy alternative · Zoho Books alternative · Tally GST alternative · Marg ERP alternative · Vyapar alternative · inventory accounting GST · GSTR-1 software · GSTR-2B reconciliation · HSN summary · tax invoice generator India · purchase bill software · sales invoice software · small business accounting India · open source accounting software · cloud GST software · billing software India
+GST accounting software India · GST billing software · free GST invoice software · barcode billing software · GSTR-1 JSON · Busy alternative · Zoho Books alternative · Tally GST alternative · Marg ERP alternative · Vyapar alternative · inventory accounting GST · GSTR-1 software · GSTR-2B reconciliation · HSN summary · tax invoice generator India · purchase bill software · sales invoice software · small business accounting India · open source accounting software · cloud GST software · billing software India
 
 ---
 
