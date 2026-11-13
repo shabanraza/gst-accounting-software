@@ -120,3 +120,22 @@ export function toolCheckBadgeIntent(
   if (outcome === 'fail') return 'destructive'
   return 'info'
 }
+
+/** Bank reconciliation line: matched, in the books only, or on the statement only. */
+export function bankReconciliationBadgeIntent(status: string): BadgeIntent {
+  if (status === 'matched') return 'success'
+  if (status === 'unmatched_book') return 'warning'
+  return 'secondary'
+}
+
+/**
+ * Period-over-period change chip. A rise reads green and a fall red only when
+ * the figure is judged (more is better); otherwise it stays neutral.
+ */
+export function periodChangeBadgeIntent(input: {
+  direction: 'up' | 'down'
+  judged?: boolean
+}): BadgeIntent {
+  if (input.judged === false) return 'secondary'
+  return input.direction === 'up' ? 'success' : 'destructive'
+}
