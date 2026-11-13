@@ -80,7 +80,7 @@ export function OcrReviewPanel() {
         queryKey: trpc.ocr.list.queryKey({ companyId }),
       })
       await queryClient.invalidateQueries({
-        queryKey: trpc.purchases.list.queryKey(),
+        queryKey: trpc.purchases.list.pathKey(),
       })
       toast.success('Purchase bill saved from the scanned bill.')
     } catch (err) {
