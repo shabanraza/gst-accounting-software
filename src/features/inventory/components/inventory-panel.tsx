@@ -145,10 +145,10 @@ export function InventoryPanel({
             <TableHeader>
               <TableRow>
                 <TableHead>Item</TableHead>
-                <TableHead>Qty</TableHead>
+                <TableHead className="text-right">Qty</TableHead>
                 <TableHead>Unit</TableHead>
-                <TableHead>Avg rate</TableHead>
-                <TableHead>Value</TableHead>
+                <TableHead className="text-right">Avg rate</TableHead>
+                <TableHead className="text-right">Value</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -180,12 +180,12 @@ export function InventoryPanel({
                       <TableCell className="font-medium">
                         {row.itemName}
                       </TableCell>
-                      <TableCell className="tabular-nums">
+                      <TableCell className="text-right">
                         {row.quantity}
                       </TableCell>
                       <TableCell>{row.unit}</TableCell>
-                      <TableCell>{formatInr(row.avgRate)}</TableCell>
-                      <TableCell>{formatInr(value)}</TableCell>
+                      <TableCell className="text-right">{formatInr(row.avgRate)}</TableCell>
+                      <TableCell className="text-right">{formatInr(value)}</TableCell>
                       <TableCell>
                         <Badge
                           variant={stockStatusBadgeIntent({

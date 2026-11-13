@@ -184,9 +184,9 @@ export function SalesPanel({
               <TableHead>Invoice</TableHead>
               <TableHead>Party</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead>Taxable</TableHead>
-              <TableHead>Tax</TableHead>
-              <TableHead>Total</TableHead>
+              <TableHead className="text-right">Taxable</TableHead>
+              <TableHead className="text-right">Tax</TableHead>
+              <TableHead className="text-right">Total</TableHead>
               <TableHead>Status</TableHead>
               <TableHead />
             </TableRow>
@@ -218,9 +218,9 @@ export function SalesPanel({
                   </TableCell>
                   <TableCell>{partyName(row.customerId)}</TableCell>
                   <TableCell>{row.invoiceDate}</TableCell>
-                  <TableCell>{formatInr(row.taxableAmount)}</TableCell>
-                  <TableCell>{formatInr(row.totalGstAmount)}</TableCell>
-                  <TableCell className="font-medium text-money-in">
+                  <TableCell className="text-right">{formatInr(row.taxableAmount)}</TableCell>
+                  <TableCell className="text-right">{formatInr(row.totalGstAmount)}</TableCell>
+                  <TableCell className="text-right font-medium text-money-in">
                     {formatInr(row.totalAmount)}
                   </TableCell>
                   <TableCell>
