@@ -278,6 +278,14 @@ function VoucherEntryForm({
     }
     focusedOnOpenRef.current = focusVoucherCell('party')
   })
+  // Once the user touches the form, stop trying to auto-focus the party
+  // field. Otherwise a retry on a later re-render moves focus out of an open
+  // date picker, select or lookup, which dismisses it, so the picker seemed
+  // to need a second click. React focus and pointer events bubble through
+  // portals, so this also covers picker content rendered outside the form.
+  function stopAutoFocus() {
+    focusedOnOpenRef.current = true
+  }
   const companyState = resolveStateCode(company?.stateCode)
   const party = parties.find((item) => item.id === partyId)
   const { recentIds, rememberParty } = useRecentParties(
@@ -977,6 +985,8 @@ function VoucherEntryForm({
     >
       <form
         className="flex flex-col gap-4 pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] sm:pb-24"
+        onFocusCapture={stopAutoFocus}
+        onPointerDownCapture={stopAutoFocus}
         onSubmit={handleSave}
         ref={formRef}
       >
