@@ -621,9 +621,6 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Trial balance</CardTitle>
-              <CardDescription>
-                Chart of accounts skeleton (balances filled as books deepen)
-              </CardDescription>
             </CardHeader>
             <CardContent className="px-0">
               <Table>
