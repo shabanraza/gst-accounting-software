@@ -22,6 +22,7 @@ built. Never include customer names, balances or other real data.
 ### Changed
 
 - The home page now shows Ask AI in action: a question being typed, then the answer and the figures behind it.
+- Amounts in sales, purchases, payments, expenses, stock and GST report tables now line up on the right so figures are easier to compare, long forms in pop-up windows scroll on phones, and invoice previews use the full screen width on phones.
 
 ## [0.4.0] - 2026-10-31
 
