@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest'
 import {
   ageingBucketBadgeIntent,
   ageingBucketChartColor,
+  auditActionBadgeIntent,
   paymentStatusBadgeIntent,
   toolCheckBadgeIntent,
 } from '#/lib/badge-intent.ts'
@@ -57,5 +58,14 @@ describe('toolCheckBadgeIntent', () => {
     expect(toolCheckBadgeIntent('action')).toBe('warning')
     expect(toolCheckBadgeIntent('fail')).toBe('destructive')
     expect(toolCheckBadgeIntent('info')).toBe('info')
+  })
+})
+
+describe('auditActionBadgeIntent', () => {
+  test('cancellations and removals are destructive, everything else neutral', () => {
+    expect(auditActionBadgeIntent('sales_invoice.cancelled')).toBe('destructive')
+    expect(auditActionBadgeIntent('team_member.removed')).toBe('destructive')
+    expect(auditActionBadgeIntent('party.updated')).toBe('neutral')
+    expect(auditActionBadgeIntent('sales_invoice.posted')).toBe('neutral')
   })
 })

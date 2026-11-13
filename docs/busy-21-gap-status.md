@@ -26,7 +26,7 @@ Living status vs [BUSY 21](https://busy.in/) wholesale/trading features, trackin
 | Item master (HSN, units, MRP, opening stock) | Done        |                                                  |
 | Godowns + price lists                        | Done        | Service + masters                                |
 | Invoice cancel                               | Done        | Sales list                                       |
-| Audit trail viewer                           | Partial     | Settings: document post/cancel only              |
+| Audit trail viewer                           | Done        | Settings: documents, masters, team; filters, CSV |
 | Journal / contra UI                          | Done        | `/app/accounting/journal`                        |
 | Sales documents (quote/order/challan)        | Done        | `/app/sales/documents`                           |
 | Purchase orders                              | Done        | `/app/purchase-orders`                           |

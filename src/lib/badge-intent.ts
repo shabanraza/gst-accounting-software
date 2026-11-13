@@ -120,3 +120,11 @@ export function toolCheckBadgeIntent(
   if (outcome === 'fail') return 'destructive'
   return 'info'
 }
+
+/** Audit log action: undoing or removing something stands out, the rest stay quiet. */
+export function auditActionBadgeIntent(action: string): BadgeIntent {
+  if (action.endsWith('.cancelled') || action.endsWith('.removed')) {
+    return 'destructive'
+  }
+  return 'neutral'
+}
