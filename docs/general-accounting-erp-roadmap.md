@@ -52,7 +52,7 @@ See also `docs/busy-21-gap-status.md` for BUSY 21 parity detail.
 | Aging            | Done                                                          |
 | Stock valuation  | Partial (movements; no dedicated valuation report)            |
 | Bill attachments | Partial (metadata; R2 upload stub)                            |
-| Audit log        | Done                                                          |
+| Audit log        | Partial (documents posted/cancelled; not master edits, team, imports) |
 | Role permissions | Partial (`mutatingProcedure` on key mutations; not universal) |
 
 | Later (explicitly out of MVP) | Not started |

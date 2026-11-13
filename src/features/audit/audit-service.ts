@@ -14,6 +14,27 @@ export interface AuditLogRepository {
   listByCompanyId: (companyId: string) => Promise<Array<AuditEventRecord>>
 }
 
+export type DocumentAuditInput = {
+  companyId: string
+  actorUserId: string
+  action: string
+  entityType: string
+  entityId: string
+  documentNumber: string
+  amount: string
+}
+
+/** Records who posted or cancelled a document, with its number and amount. */
+export function recordDocumentEvent(
+  repository: AuditLogRepository,
+  { documentNumber, amount, ...event }: DocumentAuditInput,
+) {
+  return recordAuditEvent(repository, {
+    ...event,
+    metadata: { documentNumber, amount },
+  })
+}
+
 export async function recordAuditEvent(
   repository: AuditLogRepository,
   input: Omit<AuditEventRecord, 'id' | 'createdAt'>,

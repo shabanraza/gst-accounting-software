@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { recordDocumentEvent } from '#/features/audit/audit-service.ts'
 import { recordSalesSummary } from '#/features/dashboard/dashboard-summary-service.ts'
 import {
   cancelSalesInvoice,
@@ -154,7 +155,7 @@ export const createSalesRouter = (
       }),
     postInvoice: capabilityProcedure('post_sales')
       .input(postSalesInvoiceInputSchema)
-      .mutation(({ input }) =>
+      .mutation(({ ctx, input }) =>
         transaction(async (tx) => {
           const invoiceNumber =
             input.invoiceNumber ?? (await allocateInvoiceNumber(tx, input))
@@ -173,19 +174,38 @@ export const createSalesRouter = (
             receivableAmount: invoice.outstandingAmount,
             stockOutQuantity,
           })
+          await recordDocumentEvent(tx.audit, {
+            companyId: invoice.companyId,
+            actorUserId: ctx.userId,
+            action: 'sales_invoice.posted',
+            entityType: 'sales_invoice',
+            entityId: invoice.id,
+            documentNumber: invoice.invoiceNumber,
+            amount: invoice.totalAmount,
+          })
 
           return invoice
         }),
       ),
     cancelInvoice: capabilityProcedure('post_sales')
       .input(cancelSalesInvoiceInputSchema)
-      .mutation(({ input }) =>
-        transaction((tx) =>
-          cancelSalesInvoice(tx, {
+      .mutation(({ ctx, input }) =>
+        transaction(async (tx) => {
+          const invoice = await cancelSalesInvoice(tx, {
             companyId: input.companyId,
             invoiceId: input.id,
-          }),
-        ),
+          })
+          await recordDocumentEvent(tx.audit, {
+            companyId: invoice.companyId,
+            actorUserId: ctx.userId,
+            action: 'sales_invoice.cancelled',
+            entityType: 'sales_invoice',
+            entityId: invoice.id,
+            documentNumber: invoice.invoiceNumber,
+            amount: invoice.totalAmount,
+          })
+          return invoice
+        }),
       ),
     emailInvoice: capabilityProcedure('post_sales')
       .input(emailInvoiceInputSchema)
