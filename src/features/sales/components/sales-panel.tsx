@@ -109,7 +109,7 @@ export function SalesPanel({
     ...trpc.sales.cancelInvoice.mutationOptions(),
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: trpc.sales.list.queryKey(),
+        queryKey: trpc.sales.list.pathKey(),
       })
     },
     onError: (error) => {

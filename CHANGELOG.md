@@ -24,6 +24,11 @@ built. Never include customer names, balances or other real data.
 - The home page now shows Ask AI in action: a question being typed, then the answer and the figures behind it.
 - Amounts in sales, purchases, payments, expenses, stock and GST report tables now line up on the right so figures are easier to compare, long forms in pop-up windows scroll on phones, and invoice previews use the full screen width on phones.
 
+### Fixed
+
+- New sales invoices and purchase bills for a party in another state now set the place of supply to that party's state, so they save without the "place of supply outside your company state" error. This also works for a party you add from the invoice form.
+- Sales and purchase registers update straight away after you cancel an invoice, save a bill or scanned bill, or record a receipt or payment, instead of showing the old status until you reload.
+
 ## [0.4.0] - 2026-10-31
 
 ### Added

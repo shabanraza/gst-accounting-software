@@ -186,7 +186,9 @@ export function PaymentsPanel({
             cashAccountId: ledgerBySystemKey.cash,
             receivableAccountId: ledgerBySystemKey.customer_receivable,
           })
-          await queryClient.invalidateQueries({ queryKey })
+          await queryClient.invalidateQueries({
+            queryKey: trpc.sales.list.pathKey(),
+          })
         } catch (err) {
           queryClient.setQueryData(queryKey, previousRows)
           throw err
@@ -219,7 +221,9 @@ export function PaymentsPanel({
             cashAccountId: ledgerBySystemKey.cash,
             payableAccountId: ledgerBySystemKey.supplier_payable,
           })
-          await queryClient.invalidateQueries({ queryKey })
+          await queryClient.invalidateQueries({
+            queryKey: trpc.purchases.list.pathKey(),
+          })
         } catch (err) {
           queryClient.setQueryData(queryKey, previousRows)
           throw err
