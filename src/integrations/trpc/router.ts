@@ -93,7 +93,7 @@ export const trpcRouter = createTRPCRouter({
     ledgerPostingRepository,
     auditLogRepository,
   ),
-  parties: createPartiesRouter(partyRepository),
+  parties: createPartiesRouter(partyRepository, auditLogRepository),
   inventory: createInventoryRouter(
     itemRepository,
     stockStore,
@@ -101,6 +101,7 @@ export const trpcRouter = createTRPCRouter({
     priceListRepository,
     ledgerAccountRepository,
     postingTransaction,
+    auditLogRepository,
   ),
   purchases: createPurchasesRouter(purchaseBillRepository, postingTransaction),
   purchaseOrders: createPurchaseOrdersRouter(purchaseOrderRepository),
@@ -176,6 +177,7 @@ export const trpcRouter = createTRPCRouter({
     ledgerAccountRepository,
     ledgerPostingRepository,
     postingTransaction,
+    auditLogRepository,
   ),
   salesDocuments: createSalesDocumentsRouter(
     salesDocumentRepository,
@@ -193,6 +195,7 @@ export const trpcRouter = createTRPCRouter({
     invitations: invitationRepository,
     companies: companyRepository,
     users: userDirectory,
+    audit: auditLogRepository,
   }),
   support: createSupportRouter({ send: sendEmail }),
   preferences: createPreferencesRouter(

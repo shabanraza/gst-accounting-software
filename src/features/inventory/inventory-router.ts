@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { diffFields, recordMasterEvent } from '#/features/audit/audit-service.ts'
 import { createItemWithOpening } from '#/features/inventory/create-item-with-opening.ts'
 import {
   createGodown,
@@ -32,8 +33,12 @@ import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 import type { PostingTransaction } from '#/features/accounting/posting-transaction.ts'
+import type { AuditLogRepository } from '#/features/audit/audit-service.ts'
 import type { GodownRepository } from '#/features/inventory/godown-service.ts'
-import type { ItemRepository } from '#/features/inventory/item-service.ts'
+import type {
+  ItemRecord,
+  ItemRepository,
+} from '#/features/inventory/item-service.ts'
 import type {
   PriceListItemRepository,
   PriceListRepository,
@@ -156,6 +161,23 @@ async function assertPriceListForCompany(
   }
 }
 
+const auditedItemFields = [
+  'name',
+  'alias',
+  'barcode',
+  'itemGroup',
+  'hsnCode',
+  'gstRate',
+  'baseUnit',
+  'alternateUnit',
+  'conversionFactor',
+  'mrp',
+  'reorderLevel',
+  'purchaseRate',
+  'saleRate',
+  'tracksInventory',
+] as const satisfies ReadonlyArray<keyof ItemRecord>
+
 export const createInventoryRouter = (
   itemRepository: ItemRepository,
   stockStore: StockMovementRepository & StockBalanceRepository,
@@ -163,6 +185,7 @@ export const createInventoryRouter = (
   priceListRepository: PriceListRepository & PriceListItemRepository,
   ledgerAccountRepository: LedgerAccountRepository,
   postingTransaction: PostingTransaction,
+  audit: AuditLogRepository,
 ) =>
   ({
     listGodowns: capabilityProcedure('view')
@@ -172,13 +195,35 @@ export const createInventoryRouter = (
       }),
     createGodown: capabilityProcedure('manage_inventory')
       .input(createGodownInputSchema)
-      .mutation(({ input }) => {
-        return createGodown(godownRepository, input)
+      .mutation(async ({ ctx, input }) => {
+        const godown = await createGodown(godownRepository, input)
+        await recordMasterEvent(audit, {
+          companyId: godown.companyId,
+          actorUserId: ctx.userId,
+          action: 'godown.created',
+          entityType: 'godown',
+          entityId: godown.id,
+          label: godown.name,
+        })
+        return godown
       }),
     updateGodown: capabilityProcedure('manage_inventory')
       .input(updateGodownInputSchema)
-      .mutation(({ input }) => {
-        return updateGodown(godownRepository, input)
+      .mutation(async ({ ctx, input }) => {
+        const before = await godownRepository.findById(input.godownId)
+        const godown = await updateGodown(godownRepository, input)
+        if (before) {
+          await recordMasterEvent(audit, {
+            companyId: godown.companyId,
+            actorUserId: ctx.userId,
+            action: 'godown.updated',
+            entityType: 'godown',
+            entityId: godown.id,
+            label: godown.name,
+            changes: diffFields(before, godown, ['name']),
+          })
+        }
+        return godown
       }),
     deleteGodown: capabilityProcedure('manage_inventory')
       .input(godownIdInputSchema)
@@ -252,23 +297,71 @@ export const createInventoryRouter = (
       }),
     createItem: capabilityProcedure('manage_inventory')
       .input(createItemInputSchema)
-      .mutation(({ input }) => {
-        return createItem(itemRepository, input)
+      .mutation(async ({ ctx, input }) => {
+        const item = await createItem(itemRepository, input)
+        await recordMasterEvent(audit, {
+          companyId: item.companyId,
+          actorUserId: ctx.userId,
+          action: 'item.created',
+          entityType: 'item',
+          entityId: item.id,
+          label: item.name,
+        })
+        return item
       }),
     createItemWithOpening: capabilityProcedure('manage_inventory')
       .input(createItemWithOpeningInputSchema)
-      .mutation(({ input }) => {
-        return postingTransaction(({ items, stock, posting }) =>
-          createItemWithOpening(
-            { items, stock, posting, ledgers: ledgerAccountRepository },
+      .mutation(({ ctx, input }) => {
+        return postingTransaction(async (tx) => {
+          const result = await createItemWithOpening(
+            {
+              items: tx.items,
+              stock: tx.stock,
+              posting: tx.posting,
+              ledgers: ledgerAccountRepository,
+            },
             input,
-          ),
-        )
+          )
+          const { item, openingMovement } = result
+          const event = {
+            companyId: item.companyId,
+            actorUserId: ctx.userId,
+            entityType: 'item',
+            entityId: item.id,
+            label: item.name,
+          }
+          await recordMasterEvent(tx.audit, { ...event, action: 'item.created' })
+          if (openingMovement) {
+            await recordMasterEvent(tx.audit, {
+              ...event,
+              action: 'opening_stock.posted',
+              details: {
+                quantity: openingMovement.quantity,
+                unit: openingMovement.unit,
+                amount: openingMovement.value,
+              },
+            })
+          }
+          return result
+        })
       }),
     updateItem: capabilityProcedure('manage_inventory')
       .input(updateItemInputSchema)
-      .mutation(({ input }) => {
-        return updateItem(itemRepository, input)
+      .mutation(async ({ ctx, input }) => {
+        const before = await itemRepository.findById(input.itemId)
+        const item = await updateItem(itemRepository, input)
+        if (before) {
+          await recordMasterEvent(audit, {
+            companyId: item.companyId,
+            actorUserId: ctx.userId,
+            action: 'item.updated',
+            entityType: 'item',
+            entityId: item.id,
+            label: item.name,
+            changes: diffFields(before, item, auditedItemFields),
+          })
+        }
+        return item
       }),
     assignBarcodes: capabilityProcedure('manage_inventory')
       .input(assignBarcodesInputSchema)
