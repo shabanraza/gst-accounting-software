@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { recordDocumentEvent } from '#/features/audit/audit-service.ts'
 import { recordPurchaseSummary } from '#/features/dashboard/dashboard-summary-service.ts'
 import { postPurchaseBill } from '#/features/purchases/purchase-bill-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
@@ -108,7 +109,7 @@ export const createPurchasesRouter = (
       }),
     postBill: capabilityProcedure('post_purchase')
       .input(postPurchaseBillInputSchema)
-      .mutation(({ input }) =>
+      .mutation(({ ctx, input }) =>
         transaction(async (tx) => {
           const bill = await postPurchaseBill(tx, input)
           const stockInQuantity = bill.lines
@@ -121,6 +122,15 @@ export const createPurchasesRouter = (
             purchaseAmount: bill.totalAmount,
             payableAmount: bill.outstandingAmount,
             stockInQuantity,
+          })
+          await recordDocumentEvent(tx.audit, {
+            companyId: bill.companyId,
+            actorUserId: ctx.userId,
+            action: 'purchase_bill.posted',
+            entityType: 'purchase_bill',
+            entityId: bill.id,
+            documentNumber: bill.supplierBillNumber,
+            amount: bill.totalAmount,
           })
 
           return bill

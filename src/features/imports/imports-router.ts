@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { recordMasterEvent } from '#/features/audit/audit-service.ts'
 import {
   dryRunImportItems,
   dryRunImportOpeningBalances,
@@ -19,6 +20,8 @@ import type { TRPCRouterRecord } from '@trpc/server'
 import type { PostingTransaction } from '#/features/accounting/posting-transaction.ts'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
+import type { AuditLogRepository } from '#/features/audit/audit-service.ts'
+import type { CommitImportResult } from '#/features/imports/import-commit-service.ts'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
 
@@ -52,12 +55,43 @@ const openingBalanceRowSchema = z.object({
   openingCredit: z.string(),
 })
 
+const importLabels = {
+  party_import: 'Parties',
+  item_import: 'Items',
+  opening_stock_import: 'Opening stock',
+  opening_balance_import: 'Opening balances',
+} as const
+
+/** Records a committed import with its row counts. */
+async function recordImport(
+  audit: AuditLogRepository,
+  kind: keyof typeof importLabels,
+  { companyId, actorUserId }: { companyId: string; actorUserId: string },
+  result: CommitImportResult,
+) {
+  await recordMasterEvent(audit, {
+    companyId,
+    actorUserId,
+    action: `${kind}.committed`,
+    entityType: 'import',
+    entityId: crypto.randomUUID(),
+    label: importLabels[kind],
+    details: {
+      createdCount: result.createdCount,
+      skippedCount: result.skippedCount,
+      errorCount: result.errors.length,
+    },
+  })
+  return result
+}
+
 export const createImportsRouter = (
   parties: PartyRepository,
   items: ItemRepository,
   ledgers: LedgerAccountRepository,
   postings: LedgerPostingRepository,
   postingTransaction: PostingTransaction,
+  audit: AuditLogRepository,
 ) =>
   ({
     dryRunParties: protectedProcedure
@@ -72,7 +106,14 @@ export const createImportsRouter = (
           payableAccountId: z.string().uuid(),
         }),
       )
-      .mutation(({ input }) => commitImportParties(parties, input)),
+      .mutation(async ({ ctx, input }) =>
+        recordImport(
+          audit,
+          'party_import',
+          { companyId: input.companyId, actorUserId: ctx.userId },
+          await commitImportParties(parties, input),
+        ),
+      ),
     dryRunOpeningStock: protectedProcedure
       .input(z.object({ rows: z.array(stockRowSchema) }))
       .mutation(({ input }) => dryRunImportOpeningStock(input.rows)),
@@ -84,11 +125,16 @@ export const createImportsRouter = (
           occurredOn: z.string().min(1),
         }),
       )
-      .mutation(({ input }) =>
-        postingTransaction((tx) =>
-          commitImportOpeningStock(
-            { items: tx.items, stock: tx.stock, posting: tx.posting, ledgers },
-            input,
+      .mutation(({ ctx, input }) =>
+        postingTransaction(async (tx) =>
+          recordImport(
+            tx.audit,
+            'opening_stock_import',
+            { companyId: input.companyId, actorUserId: ctx.userId },
+            await commitImportOpeningStock(
+              { items: tx.items, stock: tx.stock, posting: tx.posting, ledgers },
+              input,
+            ),
           ),
         ),
       ),
@@ -102,7 +148,14 @@ export const createImportsRouter = (
           rows: z.array(itemRowSchema),
         }),
       )
-      .mutation(({ input }) => commitImportItems(items, input)),
+      .mutation(async ({ ctx, input }) =>
+        recordImport(
+          audit,
+          'item_import',
+          { companyId: input.companyId, actorUserId: ctx.userId },
+          await commitImportItems(items, input),
+        ),
+      ),
     dryRunOpeningBalances: protectedProcedure
       .input(z.object({ rows: z.array(openingBalanceRowSchema) }))
       .mutation(({ input }) => dryRunImportOpeningBalances(input.rows)),
@@ -114,7 +167,12 @@ export const createImportsRouter = (
           rows: z.array(openingBalanceRowSchema),
         }),
       )
-      .mutation(({ input }) =>
-        commitImportOpeningBalances(ledgers, postings, input),
+      .mutation(async ({ ctx, input }) =>
+        recordImport(
+          audit,
+          'opening_balance_import',
+          { companyId: input.companyId, actorUserId: ctx.userId },
+          await commitImportOpeningBalances(ledgers, postings, input),
+        ),
       ),
   }) satisfies TRPCRouterRecord

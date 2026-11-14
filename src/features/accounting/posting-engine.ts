@@ -43,6 +43,12 @@ export interface LedgerPostingRepository {
   sumByAccount?: (
     companyId: string,
   ) => Promise<Map<string, { debit: string; credit: string }>>
+  /** Entries (with all their lines) that touch one account, up to `endDate`. */
+  listEntriesByAccount?: (
+    companyId: string,
+    ledgerAccountId: string,
+    options: { endDate: string },
+  ) => Promise<Array<LedgerEntryRecord>>
 }
 
 export class UnbalancedLedgerEntryError extends DomainError {

@@ -45,6 +45,7 @@ import { currentGstMonthPeriod } from '#/lib/gst-period.ts'
 import { Gstr1Sections } from '#/features/gst/components/gstr1-sections.tsx'
 import { Gstr3bSections } from '#/features/gst/components/gstr3b-sections.tsx'
 import { ReturnPeriodFields } from '#/features/gst/components/return-period-fields.tsx'
+import { SalesAnalysisPanel } from '#/features/reports-analysis/components/sales-analysis-panel.tsx'
 import { parseGstr1PortalJson } from '#/features/gst/gstr1-portal-parser.ts'
 import type { Gstr1ReconciliationReport } from '#/features/gst/gstr1-reconciliation-service.ts'
 import { parseGstr2bPortalJson } from '#/features/gst/gstr2b-portal-parser.ts'
@@ -56,6 +57,7 @@ import type {
 } from '#/features/gst/gstr2b-reconciliation-service.ts'
 import type { Gstr3bWorkingReport } from '#/features/gst/gstr3b-working-service.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
+import { TallyExportButton } from '#/features/exports/components/tally-export-button.tsx'
 
 export function ReportsPanel({ initialTab }: { initialTab?: string }) {
   const trpc = useTRPC()
@@ -349,6 +351,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
           <TabsTrigger value="gstr3b">GSTR-3B</TabsTrigger>
           <TabsTrigger value="trial">Trial balance</TabsTrigger>
           <TabsTrigger value="pl">Profit &amp; loss</TabsTrigger>
+          <TabsTrigger value="sales">Sales &amp; profit</TabsTrigger>
           <TabsTrigger value="bs">Balance sheet</TabsTrigger>
           <TabsTrigger value="ageing">Ageing</TabsTrigger>
           <TabsTrigger value="stock">Stock summary</TabsTrigger>
@@ -1114,6 +1117,10 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
           </Card>
         </TabsContent>
 
+        <TabsContent className="mt-4" value="sales">
+          {tab === 'sales' ? <SalesAnalysisPanel /> : null}
+        </TabsContent>
+
         <TabsContent className="mt-4" value="hsn">
           <Card>
             <CardHeader>
@@ -1431,6 +1438,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
               </Button>
             </CardContent>
           </Card>
+          <TallyExportButton />
         </TabsContent>
       </Tabs>
     </WorkspacePage>

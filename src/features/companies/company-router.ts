@@ -1,11 +1,13 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 
+import { diffFields, recordMasterEvent } from '#/features/audit/audit-service.ts'
 import {
   ensureSystemLedgers,
   listLedgerAccountsByCompany,
 } from '#/features/accounting/chart-of-accounts.ts'
 import {
+  emptyCompanyProfile,
   listCompaniesByIds,
   updateCompanyProfile,
 } from '#/features/companies/company-service.ts'
@@ -82,6 +84,10 @@ const updateProfileInputSchema = z.object({
 
 export type CompaniesRouterDependencies = CompanySetupDependencies
 
+const profileFields = Object.keys(emptyCompanyProfile) as Array<
+  keyof typeof emptyCompanyProfile
+>
+
 async function listCompaniesForUser(
   deps: CompaniesRouterDependencies,
   userId: string,
@@ -98,9 +104,32 @@ export const createCompaniesRouter = (deps: CompaniesRouterDependencies) =>
     }),
     updateProfile: capabilityProcedure('manage_company')
       .input(updateProfileInputSchema)
-      .mutation(({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const { companyId, ...profile } = input
-        return updateCompanyProfile(deps.companies, companyId, profile)
+        const existing = (
+          await listCompaniesByIds(deps.companies, [companyId])
+        ).at(0)
+        // Copied: the in-memory repository updates the record in place.
+        const before = existing ? { ...existing } : undefined
+        const company = await updateCompanyProfile(
+          deps.companies,
+          companyId,
+          profile,
+        )
+        if (before && company) {
+          await recordMasterEvent(deps.audit, {
+            companyId,
+            actorUserId: ctx.userId,
+            action: 'company.profile_updated',
+            entityType: 'company',
+            entityId: companyId,
+            label: company.tradeName,
+            changes: diffFields(before, company, profileFields, {
+              hidden: ['bankAccountNumber', 'logoUrl'],
+            }),
+          })
+        }
+        return company
       }),
     createWithSetup: protectedProcedure
       .input(createCompanyInputSchema)

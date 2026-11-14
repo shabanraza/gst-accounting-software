@@ -73,6 +73,7 @@ import { Route as ApiTrpcSplatRouteImport } from './routes/api.trpc.$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AppSalesInvoiceIdPrintRouteImport } from './routes/app/sales/$invoiceId.print'
 import { Route as AppPurchasesBillIdPrintRouteImport } from './routes/app/purchases/$billId.print'
+import { Route as AppPaymentsVoucherIdPrintRouteImport } from './routes/app/payments_.$voucherId.print'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -401,6 +402,12 @@ const AppPurchasesBillIdPrintRoute = AppPurchasesBillIdPrintRouteImport.update({
   path: '/$billId/print',
   getParentRoute: () => AppPurchasesRoute,
 } as any)
+const AppPaymentsVoucherIdPrintRoute =
+  AppPaymentsVoucherIdPrintRouteImport.update({
+    id: '/payments_/$voucherId/print',
+    path: '/payments/$voucherId/print',
+    getParentRoute: () => AppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -465,6 +472,7 @@ export interface FileRoutesByFullPath {
   '/app/sales/': typeof AppSalesIndexRoute
   '/tools/gst-calculator/': typeof ToolsGstCalculatorIndexRoute
   '/tools/hsn-code-finder/': typeof ToolsHsnCodeFinderIndexRoute
+  '/app/payments/$voucherId/print': typeof AppPaymentsVoucherIdPrintRoute
   '/app/purchases/$billId/print': typeof AppPurchasesBillIdPrintRoute
   '/app/sales/$invoiceId/print': typeof AppSalesInvoiceIdPrintRoute
 }
@@ -529,6 +537,7 @@ export interface FileRoutesByTo {
   '/app/sales': typeof AppSalesIndexRoute
   '/tools/gst-calculator': typeof ToolsGstCalculatorIndexRoute
   '/tools/hsn-code-finder': typeof ToolsHsnCodeFinderIndexRoute
+  '/app/payments/$voucherId/print': typeof AppPaymentsVoucherIdPrintRoute
   '/app/purchases/$billId/print': typeof AppPurchasesBillIdPrintRoute
   '/app/sales/$invoiceId/print': typeof AppSalesInvoiceIdPrintRoute
 }
@@ -596,6 +605,7 @@ export interface FileRoutesById {
   '/app/sales/': typeof AppSalesIndexRoute
   '/tools/gst-calculator/': typeof ToolsGstCalculatorIndexRoute
   '/tools/hsn-code-finder/': typeof ToolsHsnCodeFinderIndexRoute
+  '/app/payments_/$voucherId/print': typeof AppPaymentsVoucherIdPrintRoute
   '/app/purchases/$billId/print': typeof AppPurchasesBillIdPrintRoute
   '/app/sales/$invoiceId/print': typeof AppSalesInvoiceIdPrintRoute
 }
@@ -664,6 +674,7 @@ export interface FileRouteTypes {
     | '/app/sales/'
     | '/tools/gst-calculator/'
     | '/tools/hsn-code-finder/'
+    | '/app/payments/$voucherId/print'
     | '/app/purchases/$billId/print'
     | '/app/sales/$invoiceId/print'
   fileRoutesByTo: FileRoutesByTo
@@ -728,6 +739,7 @@ export interface FileRouteTypes {
     | '/app/sales'
     | '/tools/gst-calculator'
     | '/tools/hsn-code-finder'
+    | '/app/payments/$voucherId/print'
     | '/app/purchases/$billId/print'
     | '/app/sales/$invoiceId/print'
   id:
@@ -794,6 +806,7 @@ export interface FileRouteTypes {
     | '/app/sales/'
     | '/tools/gst-calculator/'
     | '/tools/hsn-code-finder/'
+    | '/app/payments_/$voucherId/print'
     | '/app/purchases/$billId/print'
     | '/app/sales/$invoiceId/print'
   fileRoutesById: FileRoutesById
@@ -1284,6 +1297,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPurchasesBillIdPrintRouteImport
       parentRoute: typeof AppPurchasesRoute
     }
+    '/app/payments_/$voucherId/print': {
+      id: '/app/payments_/$voucherId/print'
+      path: '/payments/$voucherId/print'
+      fullPath: '/app/payments/$voucherId/print'
+      preLoaderRoute: typeof AppPaymentsVoucherIdPrintRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -1345,6 +1365,7 @@ interface AppRouteChildren {
   AppMastersItemLabelsRoute: typeof AppMastersItemLabelsRoute
   AppMastersItemsRoute: typeof AppMastersItemsRoute
   AppMastersPartiesRoute: typeof AppMastersPartiesRoute
+  AppPaymentsVoucherIdPrintRoute: typeof AppPaymentsVoucherIdPrintRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -1371,6 +1392,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppMastersItemLabelsRoute: AppMastersItemLabelsRoute,
   AppMastersItemsRoute: AppMastersItemsRoute,
   AppMastersPartiesRoute: AppMastersPartiesRoute,
+  AppPaymentsVoucherIdPrintRoute: AppPaymentsVoucherIdPrintRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

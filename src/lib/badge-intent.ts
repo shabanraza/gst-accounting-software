@@ -15,6 +15,10 @@ export function paymentStatusBadgeIntent(status: string): BadgeIntent {
   return 'warning'
 }
 
+export function paymentVoucherStatusBadgeIntent(status: string): BadgeIntent {
+  return status === 'cancelled' ? 'destructive' : 'success'
+}
+
 export function invoiceStatusBadgeIntent(input: {
   cancelled?: boolean
   paymentStatus: string
@@ -119,6 +123,14 @@ export function toolCheckBadgeIntent(
   if (outcome === 'action') return 'warning'
   if (outcome === 'fail') return 'destructive'
   return 'info'
+}
+
+/** Audit log action: undoing or removing something stands out, the rest stay quiet. */
+export function auditActionBadgeIntent(action: string): BadgeIntent {
+  if (action.endsWith('.cancelled') || action.endsWith('.removed')) {
+    return 'destructive'
+  }
+  return 'neutral'
 }
 
 /** Bank reconciliation line: matched, in the books only, or on the statement only. */

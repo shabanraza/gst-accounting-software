@@ -5,9 +5,26 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { BanknoteIcon, PlusIcon } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import {
+  BanknoteIcon,
+  BookOpenIcon,
+  PlusIcon,
+  PrinterIcon,
+  XIcon,
+} from 'lucide-react'
 import { toast } from 'sonner'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '#/components/ui/alert-dialog.tsx'
 import { Badge } from '#/components/ui/badge.tsx'
 import { Button } from '#/components/ui/button.tsx'
 import {
@@ -17,26 +34,6 @@ import {
   CardHeader,
   CardTitle,
 } from '#/components/ui/card.tsx'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '#/components/ui/dialog.tsx'
-import { DatePicker } from '#/components/ui/date-picker.tsx'
-import { Input } from '#/components/ui/input.tsx'
-import { Label } from '#/components/ui/label.tsx'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '#/components/ui/select.tsx'
 import {
   Table,
   TableBody,
@@ -48,18 +45,21 @@ import {
 import { ScrollableTabsList } from '#/components/ui/scrollable-tabs-list.tsx'
 import { Tabs, TabsTrigger } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
-import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { formatInr } from '#/lib/format-inr.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
+import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
+import { formatIndianDate } from '#/features/documents/gst-invoice-format.ts'
 import {
-  requireAmountNotExceeding,
-  requirePositiveAmount,
-  requireSelection,
-  requireWorkspace,
-} from '#/lib/form-validation.ts'
+  MODE_LABELS,
+  PaymentVoucherSheet,
+} from '#/features/payments/components/payment-voucher-sheet.tsx'
+import { formatInr } from '#/lib/format-inr.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
+import {
+  paymentStatusBadgeIntent,
+  paymentVoucherStatusBadgeIntent,
+} from '#/lib/badge-intent.ts'
 
-import { paymentStatusBadgeIntent } from '#/lib/badge-intent.ts'
+type CancelTarget = { id: string; voucherNumber: string }
 
 export function PaymentsPanel({
   initialMode,
@@ -68,36 +68,56 @@ export function PaymentsPanel({
 }) {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
-  const { companyId, ledgerBySystemKey, isReady } = useWorkspace()
+  const { companyId, isReady } = useWorkspace()
   const [mode, setMode] = React.useState<'receipts' | 'payments'>(
     initialMode ?? 'receipts',
   )
-  const [open, setOpen] = React.useState(false)
-  const [documentId, setDocumentId] = React.useState('')
-  const [amount, setAmount] = React.useState('')
-  const [date, setDate] = React.useState(new Date().toISOString().slice(0, 10))
+  const [sheetOpen, setSheetOpen] = React.useState(false)
+  const [cancelTarget, setCancelTarget] = React.useState<CancelTarget | null>(
+    null,
+  )
+  const kind = mode === 'receipts' ? 'receipt' : 'payment'
+  const enabled = Boolean(companyId && isReady)
 
+  const vouchersQuery = useQuery(
+    trpc.payments.list.queryOptions(
+      enabled && companyId ? { companyId, kind } : skipToken,
+    ),
+  )
   const salesQuery = useQuery(
     trpc.sales.list.queryOptions(
-      companyId && isReady ? { companyId } : skipToken,
+      enabled && companyId ? { companyId } : skipToken,
     ),
   )
   const purchasesQuery = useQuery(
     trpc.purchases.list.queryOptions(
-      companyId && isReady ? { companyId } : skipToken,
+      enabled && companyId ? { companyId } : skipToken,
     ),
   )
   const partiesQuery = useQuery(
     trpc.parties.list.queryOptions(
-      companyId && isReady ? { companyId } : skipToken,
+      enabled && companyId ? { companyId } : skipToken,
     ),
   )
 
-  const allocateReceipt = useMutation(
-    trpc.payments.allocateCustomerReceipt.mutationOptions(),
-  )
-  const allocatePayment = useMutation(
-    trpc.payments.allocateSupplierPayment.mutationOptions(),
+  const cancelVoucher = useMutation(
+    trpc.payments.cancel.mutationOptions({
+      onSuccess: async (voucher) => {
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.payments.list.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.sales.list.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.purchases.list.pathKey(),
+          }),
+        ])
+        toast.success(`${voucher.voucherNumber} cancelled`)
+      },
+      onError: (error) => toastActionError(error, 'Cancel failed'),
+    }),
   )
 
   const partyName = React.useMemo(() => {
@@ -107,252 +127,175 @@ export function PaymentsPanel({
     return (id: string) => map.get(id) ?? id.slice(0, 8)
   }, [partiesQuery.data])
 
+  const vouchers = vouchersQuery.data ?? []
   const openSales = (salesQuery.data ?? []).filter(
-    (row) => row.paymentStatus !== 'Paid',
+    (row) => row.status !== 'cancelled' && row.paymentStatus !== 'Paid',
   )
   const openPurchases = (purchasesQuery.data ?? []).filter(
     (row) => row.paymentStatus !== 'Paid',
   )
-
-  async function handleAllocate(event: React.FormEvent) {
-    event.preventDefault()
-    if (!requireWorkspace(companyId, isReady)) return
-
-    const selectedDocumentId = requireSelection(documentId, 'a document')
-    if (!selectedDocumentId) return
-
-    const paymentAmount = requirePositiveAmount(amount, 'Amount')
-    if (!paymentAmount) return
-
-    const selectedDoc =
-      mode === 'receipts'
-        ? openSales.find((row) => row.id === selectedDocumentId)
-        : openPurchases.find((row) => row.id === selectedDocumentId)
-    if (
-      selectedDoc &&
-      !requireAmountNotExceeding(
-        paymentAmount,
-        selectedDoc.outstandingAmount,
-        mode === 'receipts' ? 'Receipt' : 'Payment',
-      )
-    ) {
-      return
-    }
-
-    // Optimistic UI: reflect the allocation in the list immediately so the
-    // dialog can close without waiting on the round-trip. Rolled back on
-    // error; reconciled with the server via invalidateQueries on success.
-    let nextOutstanding = ''
-    let nextStatus: 'Paid' | 'Part paid' | 'Pending' = 'Pending'
-    if (selectedDoc) {
-      nextOutstanding = (
-        Number(selectedDoc.outstandingAmount) - Number(paymentAmount)
-      ).toFixed(2)
-      nextStatus =
-        Number(nextOutstanding) <= 0
-          ? 'Paid'
-          : nextOutstanding === selectedDoc.totalAmount
-            ? 'Pending'
-            : 'Part paid'
-    }
-    setOpen(false)
-
-    try {
-      if (mode === 'receipts') {
-        if (!ledgerBySystemKey.cash || !ledgerBySystemKey.customer_receivable) {
-          throw new Error('Cash / receivable ledgers missing')
-        }
-        const queryKey = trpc.sales.list.queryKey({ companyId })
-        const previousRows = queryClient.getQueryData(queryKey)
-        if (selectedDoc) {
-          queryClient.setQueryData(queryKey, (rows) =>
-            rows?.map((row) =>
-              row.id === selectedDocumentId
-                ? {
-                    ...row,
-                    outstandingAmount: nextOutstanding,
-                    paymentStatus: nextStatus,
-                  }
-                : row,
-            ),
-          )
-        }
-        try {
-          await allocateReceipt.mutateAsync({
-            companyId,
-            invoiceId: selectedDocumentId,
-            amount: paymentAmount,
-            receiptDate: date,
-            cashAccountId: ledgerBySystemKey.cash,
-            receivableAccountId: ledgerBySystemKey.customer_receivable,
-          })
-          await queryClient.invalidateQueries({
-            queryKey: trpc.sales.list.pathKey(),
-          })
-        } catch (err) {
-          queryClient.setQueryData(queryKey, previousRows)
-          throw err
-        }
-      } else {
-        if (!ledgerBySystemKey.cash || !ledgerBySystemKey.supplier_payable) {
-          throw new Error('Cash / payable ledgers missing')
-        }
-        const queryKey = trpc.purchases.list.queryKey({ companyId })
-        const previousRows = queryClient.getQueryData(queryKey)
-        if (selectedDoc) {
-          queryClient.setQueryData(queryKey, (rows) =>
-            rows?.map((row) =>
-              row.id === selectedDocumentId
-                ? {
-                    ...row,
-                    outstandingAmount: nextOutstanding,
-                    paymentStatus: nextStatus,
-                  }
-                : row,
-            ),
-          )
-        }
-        try {
-          await allocatePayment.mutateAsync({
-            companyId,
-            purchaseBillId: selectedDocumentId,
-            amount: paymentAmount,
-            paymentDate: date,
-            cashAccountId: ledgerBySystemKey.cash,
-            payableAccountId: ledgerBySystemKey.supplier_payable,
-          })
-          await queryClient.invalidateQueries({
-            queryKey: trpc.purchases.list.pathKey(),
-          })
-        } catch (err) {
-          queryClient.setQueryData(queryKey, previousRows)
-          throw err
-        }
-      }
-      setDocumentId('')
-      setAmount('')
-      toast.success(mode === 'receipts' ? 'Receipt posted' : 'Payment posted')
-    } catch (err) {
-      toastActionError(err, 'Allocation failed')
-    }
-  }
+  const amountTone = mode === 'receipts' ? 'text-money-in' : 'text-money-out'
 
   return (
     <WorkspacePage
       actions={
-        <Dialog onOpenChange={setOpen} open={open}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusIcon data-icon="inline-start" />
-              {mode === 'receipts' ? 'Receive payment' : 'Make payment'}
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {mode === 'receipts' ? 'Customer receipt' : 'Supplier payment'}
-              </DialogTitle>
-              <DialogDescription>
-                Adjust the amount against an open invoice or bill.
-              </DialogDescription>
-            </DialogHeader>
-            <form className="flex flex-col gap-4" onSubmit={handleAllocate}>
-              <div className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium">Document</span>
-                {(mode === 'receipts' ? openSales : openPurchases).length ===
-                0 ? (
-                  <p className="rounded-md border border-dashed bg-muted/30 px-3 py-2.5 text-sm text-muted-foreground">
-                    {mode === 'receipts'
-                      ? 'No open credit invoices. Create a credit sale first.'
-                      : 'No open purchase bills with balance due.'}
-                  </p>
-                ) : (
-                  <Select onValueChange={setDocumentId} value={documentId}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select document" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {mode === 'receipts'
-                          ? openSales.map((row) => (
-                              <SelectItem key={row.id} value={row.id}>
-                                {row.invoiceNumber} · due{' '}
-                                {formatInr(row.outstandingAmount)}
-                              </SelectItem>
-                            ))
-                          : openPurchases.map((row) => (
-                              <SelectItem key={row.id} value={row.id}>
-                                {row.supplierBillNumber} · due{' '}
-                                {formatInr(row.outstandingAmount)}
-                              </SelectItem>
-                            ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-sm" htmlFor="pay-amt">
-                    Amount
-                  </Label>
-                  <Input
-                    id="pay-amt"
-                    onChange={(event) => setAmount(event.target.value)}
-                    required
-                    value={amount}
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-sm" htmlFor="pay-date">
-                    Date
-                  </Label>
-                  <DatePicker
-                    id="pay-date"
-                    onChange={setDate}
-                    required
-                    value={date}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  disabled={
-                    (mode === 'receipts' ? openSales : openPurchases).length ===
-                    0
-                  }
-                  type="submit"
-                >
-                  {mode === 'receipts' ? 'Save receipt' : 'Save payment'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={() => setSheetOpen(true)}>
+          <PlusIcon data-icon="inline-start" />
+          {mode === 'receipts' ? 'New receipt' : 'New payment'}
+        </Button>
       }
-      description="Customer receipts and supplier payments against open invoices and bills."
+      description="Customer receipts and supplier payments, by cash, bank, UPI or cheque."
       title="Receipts & payments"
     >
-      <Card>
-        <CardHeader className="gap-3">
-          <div className="flex flex-col gap-1">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <BanknoteIcon className="size-4 text-muted-foreground" />
-              Open balances
-            </CardTitle>
-            <CardDescription>
-              Invoices and bills with an amount still due
-            </CardDescription>
-          </div>
-          <Tabs
-            onValueChange={(value) => setMode(value as 'receipts' | 'payments')}
-            value={mode}
-          >
-            <ScrollableTabsList>
-              <TabsTrigger value="receipts">Receipts</TabsTrigger>
-              <TabsTrigger value="payments">Payments</TabsTrigger>
-            </ScrollableTabsList>
-          </Tabs>
+      <Tabs
+        onValueChange={(value) => setMode(value as 'receipts' | 'payments')}
+        value={mode}
+      >
+        <ScrollableTabsList>
+          <TabsTrigger value="receipts">Receipts</TabsTrigger>
+          <TabsTrigger value="payments">Payments</TabsTrigger>
+        </ScrollableTabsList>
+      </Tabs>
+
+      <Card data-ui="data">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <BookOpenIcon className="size-4 text-muted-foreground" />
+            {mode === 'receipts' ? 'Receipt register' : 'Payment register'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Number</TableHead>
+                <TableHead className="hidden sm:table-cell">Date</TableHead>
+                <TableHead>Party</TableHead>
+                <TableHead className="hidden md:table-cell">Mode</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="hidden text-right md:table-cell">
+                  Advance
+                </TableHead>
+                <TableHead className="hidden sm:table-cell">Status</TableHead>
+                <TableHead className="w-0">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {vouchers.map((voucher) => {
+                const cancelled = voucher.status === 'cancelled'
+                return (
+                  <TableRow key={voucher.id}>
+                    <TableCell className="font-mono font-medium">
+                      {voucher.voucherNumber}
+                      <span className="block font-sans text-xs font-normal text-muted-foreground sm:hidden">
+                        {formatIndianDate(voucher.voucherDate)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      {formatIndianDate(voucher.voucherDate)}
+                    </TableCell>
+                    <TableCell className="max-w-40 truncate">
+                      {partyName(voucher.partyId)}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {MODE_LABELS[voucher.mode]}
+                      {voucher.reference ? (
+                        <span className="text-muted-foreground">
+                          {' '}
+                          · {voucher.reference}
+                        </span>
+                      ) : null}
+                    </TableCell>
+                    <TableCell
+                      className={`text-right font-mono tabular-nums ${cancelled ? 'text-muted-foreground line-through' : amountTone}`}
+                    >
+                      {formatInr(voucher.amount)}
+                    </TableCell>
+                    <TableCell className="hidden text-right font-mono tabular-nums md:table-cell">
+                      {Number(voucher.unallocatedAmount) > 0 && !cancelled
+                        ? formatInr(voucher.unallocatedAmount)
+                        : '—'}
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <Badge
+                        variant={paymentVoucherStatusBadgeIntent(
+                          voucher.status,
+                        )}
+                      >
+                        {cancelled ? 'Cancelled' : 'Posted'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          asChild
+                          size="icon-sm"
+                          title="Print"
+                          variant="ghost"
+                        >
+                          <Link
+                            params={{ voucherId: voucher.id }}
+                            to="/app/payments/$voucherId/print"
+                          >
+                            <PrinterIcon />
+                            <span className="sr-only">
+                              Print {voucher.voucherNumber}
+                            </span>
+                          </Link>
+                        </Button>
+                        {cancelled ? null : (
+                          <Button
+                            onClick={() =>
+                              setCancelTarget({
+                                id: voucher.id,
+                                voucherNumber: voucher.voucherNumber,
+                              })
+                            }
+                            size="icon-sm"
+                            title="Cancel"
+                            variant="ghost"
+                          >
+                            <XIcon />
+                            <span className="sr-only">
+                              Cancel {voucher.voucherNumber}
+                            </span>
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+              {vouchers.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    className="py-10 text-center text-muted-foreground"
+                    colSpan={8}
+                  >
+                    {mode === 'receipts'
+                      ? 'No receipts yet.'
+                      : 'No payments yet.'}
+                  </TableCell>
+                </TableRow>
+              ) : null}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card data-ui="data">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <BanknoteIcon className="size-4 text-muted-foreground" />
+            Open balances
+          </CardTitle>
+          <CardDescription>
+            {mode === 'receipts'
+              ? 'Invoices with an amount still due'
+              : 'Bills with an amount still due'}
+          </CardDescription>
         </CardHeader>
         <CardContent className="px-0">
           <Table>
@@ -360,51 +303,52 @@ export function PaymentsPanel({
               <TableRow>
                 <TableHead>Document</TableHead>
                 <TableHead>Party</TableHead>
-                <TableHead className="text-right">Total</TableHead>
+                <TableHead className="hidden text-right sm:table-cell">
+                  Total
+                </TableHead>
                 <TableHead className="text-right">Outstanding</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="hidden sm:table-cell">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mode === 'receipts'
-                ? openSales.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell className="font-medium">
-                        {row.invoiceNumber}
-                      </TableCell>
-                      <TableCell>{partyName(row.customerId)}</TableCell>
-                      <TableCell className="text-right">{formatInr(row.totalAmount)}</TableCell>
-                      <TableCell className="text-right font-medium text-money-in">
-                        {formatInr(row.outstandingAmount)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={paymentStatusBadgeIntent(row.paymentStatus)}
-                        >
-                          {row.paymentStatus}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                : openPurchases.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell className="font-medium">
-                        {row.supplierBillNumber}
-                      </TableCell>
-                      <TableCell>{partyName(row.supplierId)}</TableCell>
-                      <TableCell className="text-right">{formatInr(row.totalAmount)}</TableCell>
-                      <TableCell className="text-right font-medium text-money-out">
-                        {formatInr(row.outstandingAmount)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={paymentStatusBadgeIntent(row.paymentStatus)}
-                        >
-                          {row.paymentStatus}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+              {(mode === 'receipts'
+                ? openSales.map((row) => ({
+                    id: row.id,
+                    number: row.invoiceNumber,
+                    partyId: row.customerId,
+                    total: row.totalAmount,
+                    outstanding: row.outstandingAmount,
+                    status: row.paymentStatus,
+                  }))
+                : openPurchases.map((row) => ({
+                    id: row.id,
+                    number: row.supplierBillNumber,
+                    partyId: row.supplierId,
+                    total: row.totalAmount,
+                    outstanding: row.outstandingAmount,
+                    status: row.paymentStatus,
+                  }))
+              ).map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell className="font-medium">{row.number}</TableCell>
+                  <TableCell className="max-w-40 truncate">
+                    {partyName(row.partyId)}
+                  </TableCell>
+                  <TableCell className="hidden text-right font-mono tabular-nums sm:table-cell">
+                    {formatInr(row.total)}
+                  </TableCell>
+                  <TableCell
+                    className={`text-right font-mono font-medium tabular-nums ${amountTone}`}
+                  >
+                    {formatInr(row.outstanding)}
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    <Badge variant={paymentStatusBadgeIntent(row.status)}>
+                      {row.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
               {(mode === 'receipts' ? openSales : openPurchases).length ===
               0 ? (
                 <TableRow>
@@ -420,6 +364,45 @@ export function PaymentsPanel({
           </Table>
         </CardContent>
       </Card>
+
+      <PaymentVoucherSheet
+        key={kind}
+        kind={kind}
+        onOpenChange={setSheetOpen}
+        open={sheetOpen}
+      />
+
+      <AlertDialog
+        onOpenChange={(open) => {
+          if (!open) setCancelTarget(null)
+        }}
+        open={cancelTarget !== null}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Cancel {cancelTarget?.voucherNumber}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              The entry is reversed and adjusted bills get their balance back.
+              This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep voucher</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (cancelTarget && companyId) {
+                  cancelVoucher.mutate({ companyId, id: cancelTarget.id })
+                }
+                setCancelTarget(null)
+              }}
+            >
+              Cancel voucher
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </WorkspacePage>
   )
 }

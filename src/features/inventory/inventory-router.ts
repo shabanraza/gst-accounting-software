@@ -1,7 +1,9 @@
 import { z } from 'zod'
 
+import { diffFields, recordMasterEvent } from '#/features/audit/audit-service.ts'
 import { createItemWithOpening } from '#/features/inventory/create-item-with-opening.ts'
 import {
+  DEFAULT_GODOWN_NAME,
   createGodown,
   deleteGodown,
   listGodownsByCompany,
@@ -22,6 +24,12 @@ import {
   setPriceListItemRate,
 } from '#/features/inventory/price-list-service.ts'
 import { needsRestock } from '#/features/inventory/low-stock.ts'
+import { foldGodownStock } from '#/features/inventory/godown-stock-service.ts'
+import {
+  postGodownTransfer,
+  postStockAdjustment,
+} from '#/features/inventory/stock-journal-service.ts'
+import { buildStockLedger } from '#/features/inventory/stock-ledger-service.ts'
 import {
   getCurrentStock,
   recordStockMovement,
@@ -32,8 +40,13 @@ import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 import type { PostingTransaction } from '#/features/accounting/posting-transaction.ts'
+import type { AuditLogRepository } from '#/features/audit/audit-service.ts'
+import type { FinancialYearRepository } from '#/features/companies/financial-year-service.ts'
 import type { GodownRepository } from '#/features/inventory/godown-service.ts'
-import type { ItemRepository } from '#/features/inventory/item-service.ts'
+import type {
+  ItemRecord,
+  ItemRepository,
+} from '#/features/inventory/item-service.ts'
 import type {
   PriceListItemRepository,
   PriceListRepository,
@@ -98,6 +111,33 @@ const stockBalanceInputSchema = z.object({
   itemId: z.string().uuid(),
 })
 
+const stockJournalLinesSchema = z
+  .array(
+    z.object({
+      itemId: z.string().uuid(),
+      quantity: z.string().min(1),
+    }),
+  )
+  .min(1)
+  .max(200)
+
+const stockAdjustmentInputSchema = z.object({
+  companyId: z.string().uuid(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  godownName: z.string().min(1),
+  reason: z.enum(['physical_count', 'damage', 'shrinkage', 'other']),
+  narration: z.string().max(500).optional(),
+  lines: stockJournalLinesSchema,
+})
+
+const godownTransferInputSchema = z.object({
+  companyId: z.string().uuid(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  fromGodown: z.string().min(1),
+  toGodown: z.string().min(1),
+  lines: stockJournalLinesSchema,
+})
+
 const listByCompanyInputSchema = z.object({
   companyId: z.string().uuid(),
 })
@@ -156,6 +196,23 @@ async function assertPriceListForCompany(
   }
 }
 
+const auditedItemFields = [
+  'name',
+  'alias',
+  'barcode',
+  'itemGroup',
+  'hsnCode',
+  'gstRate',
+  'baseUnit',
+  'alternateUnit',
+  'conversionFactor',
+  'mrp',
+  'reorderLevel',
+  'purchaseRate',
+  'saleRate',
+  'tracksInventory',
+] as const satisfies ReadonlyArray<keyof ItemRecord>
+
 export const createInventoryRouter = (
   itemRepository: ItemRepository,
   stockStore: StockMovementRepository & StockBalanceRepository,
@@ -163,6 +220,8 @@ export const createInventoryRouter = (
   priceListRepository: PriceListRepository & PriceListItemRepository,
   ledgerAccountRepository: LedgerAccountRepository,
   postingTransaction: PostingTransaction,
+  financialYearRepository: FinancialYearRepository,
+  audit: AuditLogRepository,
 ) =>
   ({
     listGodowns: capabilityProcedure('view')
@@ -172,13 +231,35 @@ export const createInventoryRouter = (
       }),
     createGodown: capabilityProcedure('manage_inventory')
       .input(createGodownInputSchema)
-      .mutation(({ input }) => {
-        return createGodown(godownRepository, input)
+      .mutation(async ({ ctx, input }) => {
+        const godown = await createGodown(godownRepository, input)
+        await recordMasterEvent(audit, {
+          companyId: godown.companyId,
+          actorUserId: ctx.userId,
+          action: 'godown.created',
+          entityType: 'godown',
+          entityId: godown.id,
+          label: godown.name,
+        })
+        return godown
       }),
     updateGodown: capabilityProcedure('manage_inventory')
       .input(updateGodownInputSchema)
-      .mutation(({ input }) => {
-        return updateGodown(godownRepository, input)
+      .mutation(async ({ ctx, input }) => {
+        const before = await godownRepository.findById(input.godownId)
+        const godown = await updateGodown(godownRepository, input)
+        if (before) {
+          await recordMasterEvent(audit, {
+            companyId: godown.companyId,
+            actorUserId: ctx.userId,
+            action: 'godown.updated',
+            entityType: 'godown',
+            entityId: godown.id,
+            label: godown.name,
+            changes: diffFields(before, godown, ['name']),
+          })
+        }
+        return godown
       }),
     deleteGodown: capabilityProcedure('manage_inventory')
       .input(godownIdInputSchema)
@@ -252,23 +333,71 @@ export const createInventoryRouter = (
       }),
     createItem: capabilityProcedure('manage_inventory')
       .input(createItemInputSchema)
-      .mutation(({ input }) => {
-        return createItem(itemRepository, input)
+      .mutation(async ({ ctx, input }) => {
+        const item = await createItem(itemRepository, input)
+        await recordMasterEvent(audit, {
+          companyId: item.companyId,
+          actorUserId: ctx.userId,
+          action: 'item.created',
+          entityType: 'item',
+          entityId: item.id,
+          label: item.name,
+        })
+        return item
       }),
     createItemWithOpening: capabilityProcedure('manage_inventory')
       .input(createItemWithOpeningInputSchema)
-      .mutation(({ input }) => {
-        return postingTransaction(({ items, stock, posting }) =>
-          createItemWithOpening(
-            { items, stock, posting, ledgers: ledgerAccountRepository },
+      .mutation(({ ctx, input }) => {
+        return postingTransaction(async (tx) => {
+          const result = await createItemWithOpening(
+            {
+              items: tx.items,
+              stock: tx.stock,
+              posting: tx.posting,
+              ledgers: ledgerAccountRepository,
+            },
             input,
-          ),
-        )
+          )
+          const { item, openingMovement } = result
+          const event = {
+            companyId: item.companyId,
+            actorUserId: ctx.userId,
+            entityType: 'item',
+            entityId: item.id,
+            label: item.name,
+          }
+          await recordMasterEvent(tx.audit, { ...event, action: 'item.created' })
+          if (openingMovement) {
+            await recordMasterEvent(tx.audit, {
+              ...event,
+              action: 'opening_stock.posted',
+              details: {
+                quantity: openingMovement.quantity,
+                unit: openingMovement.unit,
+                amount: openingMovement.value,
+              },
+            })
+          }
+          return result
+        })
       }),
     updateItem: capabilityProcedure('manage_inventory')
       .input(updateItemInputSchema)
-      .mutation(({ input }) => {
-        return updateItem(itemRepository, input)
+      .mutation(async ({ ctx, input }) => {
+        const before = await itemRepository.findById(input.itemId)
+        const item = await updateItem(itemRepository, input)
+        if (before) {
+          await recordMasterEvent(audit, {
+            companyId: item.companyId,
+            actorUserId: ctx.userId,
+            action: 'item.updated',
+            entityType: 'item',
+            entityId: item.id,
+            label: item.name,
+            changes: diffFields(before, item, auditedItemFields),
+          })
+        }
+        return item
       }),
     assignBarcodes: capabilityProcedure('manage_inventory')
       .input(assignBarcodesInputSchema)
@@ -279,6 +408,68 @@ export const createInventoryRouter = (
       .input(stockMovementInputSchema)
       .mutation(({ input }) => {
         return recordStockMovement(stockStore, stockStore, input)
+      }),
+    postStockAdjustment: capabilityProcedure('manage_inventory')
+      .input(stockAdjustmentInputSchema)
+      .mutation(({ input }) => {
+        return postingTransaction(({ stock, posting, sequences, items }) =>
+          postStockAdjustment(
+            {
+              stock,
+              posting,
+              sequences,
+              items,
+              ledgers: ledgerAccountRepository,
+              financialYears: financialYearRepository,
+              godowns: godownRepository,
+            },
+            input,
+          ),
+        )
+      }),
+    postGodownTransfer: capabilityProcedure('manage_inventory')
+      .input(godownTransferInputSchema)
+      .mutation(({ input }) => {
+        return postingTransaction(({ stock, sequences, items }) =>
+          postGodownTransfer(
+            {
+              stock,
+              sequences,
+              items,
+              financialYears: financialYearRepository,
+              godowns: godownRepository,
+            },
+            input,
+          ),
+        )
+      }),
+    godownStock: capabilityProcedure('view')
+      .input(listByCompanyInputSchema)
+      .query(async ({ input }) => {
+        const [items, movements, godowns] = await Promise.all([
+          listItemsByCompany(itemRepository, input.companyId),
+          stockStore.listByCompanyId(input.companyId),
+          listGodownsByCompany(godownRepository, input.companyId),
+        ])
+        const defaultGodownName =
+          (godowns.find((godown) => godown.isDefault) ?? godowns.at(0))?.name ??
+          DEFAULT_GODOWN_NAME
+        const itemById = new Map(items.map((item) => [item.id, item]))
+
+        return foldGodownStock(movements, defaultGodownName).map((row) => ({
+          ...row,
+          itemName: itemById.get(row.itemId)?.name ?? 'Unknown item',
+          unit: itemById.get(row.itemId)?.baseUnit ?? '',
+        }))
+      }),
+    itemStockHistory: capabilityProcedure('view')
+      .input(stockBalanceInputSchema)
+      .query(({ input }) => {
+        return buildStockLedger(
+          { movements: stockStore },
+          input.companyId,
+          input.itemId,
+        )
       }),
     getCurrentStock: capabilityProcedure('view')
       .input(stockBalanceInputSchema)
