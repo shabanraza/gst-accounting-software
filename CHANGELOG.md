@@ -18,6 +18,8 @@ built. Never include customer names, balances or other real data.
 - Barcode labels for retail shops: open Items → Print labels, pick items and how many labels each, and print on an A4 label sheet or a 50 × 25 mm label roll. Labels show the item name, MRP and sale price. Items without a barcode get their own store code, and you can enter a product's existing EAN/UPC barcode when adding an item. Scan a label into the item search on a sale or purchase to pick that item.
 - Edit items from the Items page: change the barcode, name, HSN, GST rate, units or rates of an item you already have.
 - A Scan barcode box on sales and purchase bills: each scan adds the item as a new line, and scanning it again adds one more to that line.
+- The audit log in Settings now records every sales invoice saved or cancelled, purchase bill, confirmed scanned bill, receipt, payment, credit and debit note, expense and journal voucher, showing who did it, when, the document number and the amount.
+- The audit log in Settings also records parties, items and godowns added or edited, opening stock, company profile edits, team invites, role changes and removals, and data imports with how many rows were added. For an edit, open the row to see exactly what changed, from what to what. Filter the log by type, person and dates, and download it as a CSV file.
 
 ### Changed
 
