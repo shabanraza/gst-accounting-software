@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { diffFields, recordMasterEvent } from '#/features/audit/audit-service.ts'
 import {
   createParty,
   listPartiesByCompany,
@@ -8,7 +9,11 @@ import {
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
-import type { PartyRepository } from '#/features/parties/party-service.ts'
+import type { AuditLogRepository } from '#/features/audit/audit-service.ts'
+import type {
+  PartyRecord,
+  PartyRepository,
+} from '#/features/parties/party-service.ts'
 
 const partyContactFieldsSchema = {
   pan: z.string().optional().default(''),
@@ -59,19 +64,62 @@ const listPartiesInputSchema = z.object({
   companyId: z.string().uuid(),
 })
 
-export const createPartiesRouter = (repository: PartyRepository) =>
+// Billing/shipping addresses are built from the address fields, so skip them.
+const auditedPartyFields = [
+  'name',
+  'partyType',
+  'gstin',
+  'stateCode',
+  'creditLimit',
+  'paymentTermsDays',
+  'priceListId',
+  'pan',
+  'addressLine1',
+  'addressLine2',
+  'city',
+  'pincode',
+  'contactPhone',
+  'contactEmail',
+] as const satisfies ReadonlyArray<keyof PartyRecord>
+
+export const createPartiesRouter = (
+  repository: PartyRepository,
+  audit: AuditLogRepository,
+) =>
   ({
     list: capabilityProcedure('view').input(listPartiesInputSchema).query(({ input }) => {
       return listPartiesByCompany(repository, input.companyId)
     }),
     create: capabilityProcedure('manage_masters')
       .input(createPartyInputSchema)
-      .mutation(({ input }) => {
-        return createParty(repository, input)
+      .mutation(async ({ ctx, input }) => {
+        const party = await createParty(repository, input)
+        await recordMasterEvent(audit, {
+          companyId: party.companyId,
+          actorUserId: ctx.userId,
+          action: 'party.created',
+          entityType: 'party',
+          entityId: party.id,
+          label: party.name,
+        })
+        return party
       }),
     update: capabilityProcedure('manage_masters')
       .input(updatePartyInputSchema)
-      .mutation(({ input }) => {
-        return updateParty(repository, input)
+      .mutation(async ({ ctx, input }) => {
+        const before = await repository.findById(input.id)
+        const party = await updateParty(repository, input)
+        if (before) {
+          await recordMasterEvent(audit, {
+            companyId: party.companyId,
+            actorUserId: ctx.userId,
+            action: 'party.updated',
+            entityType: 'party',
+            entityId: party.id,
+            label: party.name,
+            changes: diffFields(before, party, auditedPartyFields),
+          })
+        }
+        return party
       }),
   }) satisfies TRPCRouterRecord

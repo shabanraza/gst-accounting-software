@@ -42,6 +42,8 @@ import { grnRepository } from '#/features/purchases/grn-store.ts'
 import { createPurchasesRouter } from '#/features/purchases/purchase-router.ts'
 import { purchaseBillRepository } from '#/features/purchases/purchase-bill-store.ts'
 import { createReportsRouter } from '#/features/gst/reports-router.ts'
+import { createSalesAnalysisRouter } from '#/features/reports-analysis/sales-analysis-router.ts'
+import { createSalesAnalysisRepository } from '#/features/reports-analysis/sales-analysis-store.ts'
 import { creditDebitNoteRepository } from '#/features/returns/credit-debit-note-store.ts'
 import { createReturnsRouter } from '#/features/returns/returns-router.ts'
 import { createSalesRouter } from '#/features/sales/sales-router.ts'
@@ -71,13 +73,14 @@ const postingTransaction = createPostingTransaction({
   parties: partyRepository,
   dashboard: dashboardSummaryRepository,
   sequences: documentSequenceRepository,
+  audit: auditLogRepository,
 })
 
 export const trpcRouter = createTRPCRouter({
   health: {
     ping: publicProcedure.query(() => ({ ok: true })),
   },
-  audit: createAuditRouter(auditLogRepository),
+  audit: createAuditRouter(auditLogRepository, userDirectory),
   marketing: createMarketingRouter(submissionRepository),
   companies: createCompaniesRouter({
     companies: companyRepository,
@@ -90,8 +93,9 @@ export const trpcRouter = createTRPCRouter({
   accounting: createAccountingRouter(
     ledgerAccountRepository,
     ledgerPostingRepository,
+    auditLogRepository,
   ),
-  parties: createPartiesRouter(partyRepository),
+  parties: createPartiesRouter(partyRepository, auditLogRepository),
   inventory: createInventoryRouter(
     itemRepository,
     stockStore,
@@ -99,6 +103,8 @@ export const trpcRouter = createTRPCRouter({
     priceListRepository,
     ledgerAccountRepository,
     postingTransaction,
+    financialYearRepository,
+    auditLogRepository,
   ),
   purchases: createPurchasesRouter(purchaseBillRepository, postingTransaction),
   purchaseOrders: createPurchaseOrdersRouter(purchaseOrderRepository),
@@ -121,8 +127,13 @@ export const trpcRouter = createTRPCRouter({
     creditDebitNoteRepository,
     documentSequenceRepository,
     financialYearRepository,
+    auditLogRepository,
   ),
-  expenses: createExpensesRouter(expenseRepository, ledgerPostingRepository),
+  expenses: createExpensesRouter(
+    expenseRepository,
+    ledgerPostingRepository,
+    auditLogRepository,
+  ),
   reports: createReportsRouter({
     invoices: salesInvoiceRepository,
     bills: purchaseBillRepository,
@@ -134,6 +145,15 @@ export const trpcRouter = createTRPCRouter({
     stockBalances: stockStore,
     items: itemRepository,
   }),
+  analysis: createSalesAnalysisRouter(
+    createSalesAnalysisRepository({
+      invoices: salesInvoiceRepository,
+      stock: stockStore,
+      notes: creditDebitNoteRepository,
+      items: itemRepository,
+      parties: partyRepository,
+    }),
+  ),
   assistant: createAssistantRouter({
     parties: partyRepository,
     invoices: salesInvoiceRepository,
@@ -169,6 +189,7 @@ export const trpcRouter = createTRPCRouter({
     ledgerAccountRepository,
     ledgerPostingRepository,
     postingTransaction,
+    auditLogRepository,
   ),
   salesDocuments: createSalesDocumentsRouter(
     salesDocumentRepository,
@@ -186,6 +207,7 @@ export const trpcRouter = createTRPCRouter({
     invitations: invitationRepository,
     companies: companyRepository,
     users: userDirectory,
+    audit: auditLogRepository,
   }),
   support: createSupportRouter({ send: sendEmail }),
   preferences: createPreferencesRouter(

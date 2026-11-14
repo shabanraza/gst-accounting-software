@@ -8,6 +8,9 @@ export type StockMovementType =
   | 'purchase_return_out'
   | 'sales_return_in'
   | 'adjustment'
+  | 'adjustment_out'
+  | 'transfer_out'
+  | 'transfer_in'
 
 export type StockMovementDirection = 'in' | 'out'
 
@@ -109,10 +112,18 @@ const inboundTypes: Array<StockMovementType> = [
   'purchase_in',
   'sales_return_in',
   'adjustment',
+  'transfer_in',
+]
+
+const outboundTypes: Array<StockMovementType> = [
+  'sale_out',
+  'purchase_return_out',
+  'adjustment_out',
+  'transfer_out',
 ]
 
 function directionFor(movementType: StockMovementType): StockMovementDirection {
-  if (movementType === 'sale_out' || movementType === 'purchase_return_out') {
+  if (outboundTypes.includes(movementType)) {
     return 'out'
   }
 
