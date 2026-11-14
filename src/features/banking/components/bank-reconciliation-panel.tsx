@@ -39,16 +39,11 @@ import {
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { formatInr } from '#/lib/format-inr.ts'
+import { bankReconciliationBadgeIntent } from '#/lib/badge-intent.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { requireWorkspace } from '#/lib/form-validation.ts'
 import { localCalendarDate } from '#/lib/calendar-date.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
-
-function statusBadge(status: string) {
-  if (status === 'matched') return 'success' as const
-  if (status === 'unmatched_book') return 'warning' as const
-  return 'secondary' as const
-}
 
 function statusLabel(status: string) {
   if (status === 'matched') return 'Matched'
@@ -322,7 +317,7 @@ export function BankReconciliationPanel() {
                     return (
                       <TableRow key={`${row.matchId ?? 'row'}-${index}`}>
                         <TableCell>
-                          <Badge variant={statusBadge(row.status)}>
+                          <Badge variant={bankReconciliationBadgeIntent(row.status)}>
                             {row.status === 'matched' ? (
                               <CheckIcon data-icon="inline-start" />
                             ) : null}

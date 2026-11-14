@@ -181,7 +181,7 @@ export function GodownsPanel() {
                     type="button"
                     variant="ghost"
                   >
-                    <StarIcon className="size-4" />
+                    <StarIcon data-icon="inline-start" />
                     Set default
                   </Button>
                 )}

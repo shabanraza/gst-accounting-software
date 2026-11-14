@@ -172,9 +172,9 @@ export function PurchasesPanel({
                 <TableHead>Supplier</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Due</TableHead>
-                <TableHead>Taxable</TableHead>
-                <TableHead>Tax</TableHead>
-                <TableHead>Total</TableHead>
+                <TableHead className="text-right">Taxable</TableHead>
+                <TableHead className="text-right">Tax</TableHead>
+                <TableHead className="text-right">Total</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead />
               </TableRow>
@@ -207,9 +207,9 @@ export function PurchasesPanel({
                     <TableCell>{partyName(row.supplierId)}</TableCell>
                     <TableCell>{row.billDate}</TableCell>
                     <TableCell>{row.dueDate}</TableCell>
-                    <TableCell>{formatInr(row.taxableAmount)}</TableCell>
-                    <TableCell>{formatInr(row.totalGstAmount)}</TableCell>
-                    <TableCell className="font-medium text-money-out">
+                    <TableCell className="text-right">{formatInr(row.taxableAmount)}</TableCell>
+                    <TableCell className="text-right">{formatInr(row.totalGstAmount)}</TableCell>
+                    <TableCell className="text-right font-medium text-money-out">
                       {formatInr(row.totalAmount)}
                     </TableCell>
                     <TableCell>

@@ -3,8 +3,11 @@ import { describe, expect, test } from 'vitest'
 import {
   ageingBucketBadgeIntent,
   ageingBucketChartColor,
+  auditActionBadgeIntent,
+  bankReconciliationBadgeIntent,
   paymentStatusBadgeIntent,
   paymentVoucherStatusBadgeIntent,
+  periodChangeBadgeIntent,
   toolCheckBadgeIntent,
 } from '#/lib/badge-intent.ts'
 
@@ -65,5 +68,37 @@ describe('toolCheckBadgeIntent', () => {
     expect(toolCheckBadgeIntent('action')).toBe('warning')
     expect(toolCheckBadgeIntent('fail')).toBe('destructive')
     expect(toolCheckBadgeIntent('info')).toBe('info')
+  })
+})
+
+describe('auditActionBadgeIntent', () => {
+  test('cancellations and removals are destructive, everything else neutral', () => {
+    expect(auditActionBadgeIntent('sales_invoice.cancelled')).toBe('destructive')
+    expect(auditActionBadgeIntent('team_member.removed')).toBe('destructive')
+    expect(auditActionBadgeIntent('party.updated')).toBe('neutral')
+    expect(auditActionBadgeIntent('sales_invoice.posted')).toBe('neutral')
+  })
+})
+
+describe('bankReconciliationBadgeIntent', () => {
+  test('matched is success, books-only is warning, statement-only is quiet', () => {
+    expect(bankReconciliationBadgeIntent('matched')).toBe('success')
+    expect(bankReconciliationBadgeIntent('unmatched_book')).toBe('warning')
+    expect(bankReconciliationBadgeIntent('unmatched_statement')).toBe(
+      'secondary',
+    )
+  })
+})
+
+describe('periodChangeBadgeIntent', () => {
+  test('a judged rise is success and a judged fall is destructive', () => {
+    expect(periodChangeBadgeIntent({ direction: 'up' })).toBe('success')
+    expect(periodChangeBadgeIntent({ direction: 'down' })).toBe('destructive')
+  })
+
+  test('a change that is not judged good or bad stays neutral', () => {
+    expect(periodChangeBadgeIntent({ direction: 'up', judged: false })).toBe(
+      'secondary',
+    )
   })
 })

@@ -45,6 +45,7 @@ import { currentGstMonthPeriod } from '#/lib/gst-period.ts'
 import { Gstr1Sections } from '#/features/gst/components/gstr1-sections.tsx'
 import { Gstr3bSections } from '#/features/gst/components/gstr3b-sections.tsx'
 import { ReturnPeriodFields } from '#/features/gst/components/return-period-fields.tsx'
+import { SalesAnalysisPanel } from '#/features/reports-analysis/components/sales-analysis-panel.tsx'
 import { parseGstr1PortalJson } from '#/features/gst/gstr1-portal-parser.ts'
 import type { Gstr1ReconciliationReport } from '#/features/gst/gstr1-reconciliation-service.ts'
 import { parseGstr2bPortalJson } from '#/features/gst/gstr2b-portal-parser.ts'
@@ -349,6 +350,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
           <TabsTrigger value="gstr3b">GSTR-3B</TabsTrigger>
           <TabsTrigger value="trial">Trial balance</TabsTrigger>
           <TabsTrigger value="pl">Profit &amp; loss</TabsTrigger>
+          <TabsTrigger value="sales">Sales &amp; profit</TabsTrigger>
           <TabsTrigger value="bs">Balance sheet</TabsTrigger>
           <TabsTrigger value="ageing">Ageing</TabsTrigger>
           <TabsTrigger value="stock">Stock summary</TabsTrigger>
@@ -621,9 +623,6 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Trial balance</CardTitle>
-              <CardDescription>
-                Chart of accounts skeleton (balances filled as books deepen)
-              </CardDescription>
             </CardHeader>
             <CardContent className="px-0">
               <Table>
@@ -632,8 +631,8 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                     <TableHead>Code</TableHead>
                     <TableHead>Account</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead>Debit</TableHead>
-                    <TableHead>Credit</TableHead>
+                    <TableHead className="text-right">Debit</TableHead>
+                    <TableHead className="text-right">Credit</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -646,8 +645,12 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                       <TableCell>
                         <Badge variant="secondary">{row.accountType}</Badge>
                       </TableCell>
-                      <TableCell>{formatInr(row.debit)}</TableCell>
-                      <TableCell>{formatInr(row.credit)}</TableCell>
+                      <TableCell className="text-right">
+                        {formatInr(row.debit)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatInr(row.credit)}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -1111,6 +1114,10 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent className="mt-4" value="sales">
+          {tab === 'sales' ? <SalesAnalysisPanel /> : null}
         </TabsContent>
 
         <TabsContent className="mt-4" value="hsn">

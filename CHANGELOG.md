@@ -18,11 +18,21 @@ built. Never include customer names, balances or other real data.
 - Barcode labels for retail shops: open Items → Print labels, pick items and how many labels each, and print on an A4 label sheet or a 50 × 25 mm label roll. Labels show the item name, MRP and sale price. Items without a barcode get their own store code, and you can enter a product's existing EAN/UPC barcode when adding an item. Scan a label into the item search on a sale or purchase to pick that item.
 - Edit items from the Items page: change the barcode, name, HSN, GST rate, units or rates of an item you already have.
 - A Scan barcode box on sales and purchase bills: each scan adds the item as a new line, and scanning it again adds one more to that line.
+- The audit log in Settings now records every sales invoice saved or cancelled, purchase bill, confirmed scanned bill, receipt, payment, credit and debit note, expense and journal voucher, showing who did it, when, the document number and the amount.
+- The audit log in Settings also records parties, items and godowns added or edited, opening stock, company profile edits, team invites, role changes and removals, and data imports with how many rows were added. For an edit, open the row to see exactly what changed, from what to what. Filter the log by type, person and dates, and download it as a CSV file.
+- Stock journal on the Inventory page: enter a physical stock count and the difference is adjusted for you, write off damaged or lost stock (booked to a new Stock Adjustment expense ledger at average cost), or move stock from one godown to another. The Inventory page now also shows stock by godown, and clicking an item opens its stock history with every movement and the running balance.
+- Sales & profit reports under Reports: see quantity, taxable value, GST, cost and profit for each item, sales and outstanding for each customer, and profit on each invoice for any date range. Sales returns are deducted, cost is what the stock was worth when you sold it, and you can sort any column and download what you see as CSV.
 - Numbered receipts and payments (RCT-0001, PAY-0001 each financial year) by cash, bank transfer, UPI or cheque, with the cheque or UTR number and the cash or bank account used. One receipt or payment can settle several bills at once, and any amount left over is kept as an advance for that party. Receipts & payments now has a register of every voucher, a printable receipt, and a way to cancel a voucher, which gives the bills their balance back.
 
 ### Changed
 
 - The home page now shows Ask AI in action: a question being typed, then the answer and the figures behind it.
+- Amounts in sales, purchases, payments, expenses, stock and GST report tables now line up on the right so figures are easier to compare, long forms in pop-up windows scroll on phones, and invoice previews use the full screen width on phones.
+
+### Fixed
+
+- New sales invoices and purchase bills for a party in another state now set the place of supply to that party's state, so they save without the "place of supply outside your company state" error. This also works for a party you add from the invoice form.
+- Sales and purchase registers update straight away after you cancel an invoice, save a bill or scanned bill, or record a receipt or payment, instead of showing the old status until you reload.
 
 ## [0.4.0] - 2026-10-31
 

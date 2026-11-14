@@ -3,6 +3,10 @@ import { beforeEach, describe, expect, test } from 'vitest'
 import { InMemoryLedgerPostingRepository } from '#/features/accounting/ledger-posting-store.ts'
 import { createPostingTransaction } from '#/features/accounting/posting-transaction.ts'
 import {
+  DrizzleAuditLogRepository,
+  InMemoryAuditLogRepository,
+} from '#/features/audit/audit-store.ts'
+import {
   membershipRepository,
   resetMembershipRepositoryForTests,
 } from '#/features/companies/membership-store.ts'
@@ -49,6 +53,7 @@ function inMemoryRepositories(): PostingRepositories {
     dashboard: new InMemoryDashboardSummaryRepository(),
     sequences: new InMemoryDocumentSequenceRepository(),
     paymentVouchers: new InMemoryPaymentVoucherRepository(),
+    audit: new InMemoryAuditLogRepository(),
   }
 }
 
@@ -98,6 +103,7 @@ describe('createPostingTransaction', () => {
 
     expect(events).toEqual(['begin', 'commit', 'close'])
     expect(used.invoices).toBeInstanceOf(DrizzleSalesInvoiceRepository)
+    expect(used.audit).toBeInstanceOf(DrizzleAuditLogRepository)
   })
 
   test('rolls back and still closes the database when work fails', async () => {

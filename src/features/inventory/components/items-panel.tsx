@@ -107,8 +107,8 @@ export function ItemsPanel() {
                 <TableHead>HSN</TableHead>
                 <TableHead>GST</TableHead>
                 <TableHead>Unit</TableHead>
-                <TableHead>Purchase</TableHead>
-                <TableHead>Sale</TableHead>
+                <TableHead className="text-right">Purchase</TableHead>
+                <TableHead className="text-right">Sale</TableHead>
                 <TableHead>Stock</TableHead>
                 <TableHead />
               </TableRow>
@@ -146,8 +146,8 @@ export function ItemsPanel() {
                       <Badge variant="secondary">{item.gstRate}%</Badge>
                     </TableCell>
                     <TableCell>{item.baseUnit}</TableCell>
-                    <TableCell>{formatInr(item.purchaseRate)}</TableCell>
-                    <TableCell>{formatInr(item.saleRate)}</TableCell>
+                    <TableCell className="text-right">{formatInr(item.purchaseRate)}</TableCell>
+                    <TableCell className="text-right">{formatInr(item.saleRate)}</TableCell>
                     <TableCell>
                       <Badge
                         variant={itemTrackingBadgeIntent(item.tracksInventory)}

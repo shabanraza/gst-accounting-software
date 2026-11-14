@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 
+import { recordDocumentEvent } from '#/features/audit/audit-service.ts'
 import {
   applyVoucherAdvance,
   cancelPaymentVoucher,
@@ -121,8 +122,20 @@ export const createPaymentsRouter = (deps: PaymentsRouterDependencies) => {
       }),
     post: capabilityProcedure('post_payment')
       .input(postVoucherInputSchema)
-      .mutation(({ input }) =>
-        deps.transaction((tx) => postPaymentVoucher(withDeps(tx), input)),
+      .mutation(({ ctx, input }) =>
+        deps.transaction(async (tx) => {
+          const voucher = await postPaymentVoucher(withDeps(tx), input)
+          await recordDocumentEvent(tx.audit, {
+            companyId: voucher.companyId,
+            actorUserId: ctx.userId,
+            action: `${voucher.kind}.posted`,
+            entityType: voucher.kind,
+            entityId: voucher.id,
+            documentNumber: voucher.voucherNumber,
+            amount: voucher.amount,
+          })
+          return voucher
+        }),
       ),
     applyAdvance: capabilityProcedure('post_payment')
       .input(applyAdvanceInputSchema)
@@ -137,25 +150,61 @@ export const createPaymentsRouter = (deps: PaymentsRouterDependencies) => {
       ),
     cancel: capabilityProcedure('post_payment')
       .input(voucherIdInputSchema)
-      .mutation(({ input }) =>
-        deps.transaction((tx) =>
-          cancelPaymentVoucher(withDeps(tx), {
+      .mutation(({ ctx, input }) =>
+        deps.transaction(async (tx) => {
+          const voucher = await cancelPaymentVoucher(withDeps(tx), {
             companyId: input.companyId,
             voucherId: input.id,
-          }),
-        ),
+          })
+          await recordDocumentEvent(tx.audit, {
+            companyId: voucher.companyId,
+            actorUserId: ctx.userId,
+            action: `${voucher.kind}.cancelled`,
+            entityType: voucher.kind,
+            entityId: voucher.id,
+            documentNumber: voucher.voucherNumber,
+            amount: voucher.amount,
+          })
+          return voucher
+        }),
       ),
     // Single-bill cash endpoints kept for the mobile app; both now save a
     // numbered voucher.
     allocateCustomerReceipt: capabilityProcedure('post_payment')
       .input(customerReceiptInputSchema)
-      .mutation(({ input }) =>
-        deps.transaction((tx) => receiptVoucherForInvoice(withDeps(tx), input)),
+      .mutation(({ ctx, input }) =>
+        deps.transaction(async (tx) => {
+          const receipt = await receiptVoucherForInvoice(withDeps(tx), input)
+          const invoice = await tx.invoices.findById(input.invoiceId)
+          await recordDocumentEvent(tx.audit, {
+            companyId: receipt.companyId,
+            actorUserId: ctx.userId,
+            action: 'receipt.posted',
+            entityType: 'receipt',
+            entityId: receipt.id,
+            documentNumber: invoice?.invoiceNumber ?? '',
+            amount: receipt.allocatedAmount,
+          })
+          return receipt
+        }),
       ),
     allocateSupplierPayment: capabilityProcedure('post_payment')
       .input(supplierPaymentInputSchema)
-      .mutation(({ input }) =>
-        deps.transaction((tx) => paymentVoucherForBill(withDeps(tx), input)),
+      .mutation(({ ctx, input }) =>
+        deps.transaction(async (tx) => {
+          const payment = await paymentVoucherForBill(withDeps(tx), input)
+          const bill = await tx.bills.findById(input.purchaseBillId)
+          await recordDocumentEvent(tx.audit, {
+            companyId: payment.companyId,
+            actorUserId: ctx.userId,
+            action: 'payment.posted',
+            entityType: 'payment',
+            entityId: payment.id,
+            documentNumber: bill?.supplierBillNumber ?? '',
+            amount: payment.allocatedAmount,
+          })
+          return payment
+        }),
       ),
   } satisfies TRPCRouterRecord
 }
