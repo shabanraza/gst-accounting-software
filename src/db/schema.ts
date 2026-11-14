@@ -1046,3 +1046,80 @@ export const assistantUsage = pgTable(
   },
   (table) => [primaryKey({ columns: [table.companyId, table.usageDate] })],
 )
+
+export const paymentVouchers = pgTable(
+  'payment_vouchers',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id),
+    voucherNumber: text('voucher_number').notNull(),
+    kind: text('kind').notNull(),
+    partyId: uuid('party_id')
+      .notNull()
+      .references(() => parties.id),
+    voucherDate: text('voucher_date').notNull(),
+    mode: text('mode').notNull(),
+    cashBankAccountId: uuid('cash_bank_account_id')
+      .notNull()
+      .references(() => ledgerAccounts.id),
+    partyAccountId: uuid('party_account_id')
+      .notNull()
+      .references(() => ledgerAccounts.id),
+    reference: text('reference').notNull().default(''),
+    amount: text('amount').notNull(),
+    unallocatedAmount: text('unallocated_amount').notNull(),
+    narration: text('narration').notNull().default(''),
+    status: text('status').notNull().default('posted'),
+    ledgerEntryId: uuid('ledger_entry_id')
+      .notNull()
+      .references(() => ledgerEntries.id),
+    cancelLedgerEntryId: uuid('cancel_ledger_entry_id').references(
+      () => ledgerEntries.id,
+    ),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('payment_vouchers_company_number_idx').on(
+      table.companyId,
+      table.voucherNumber,
+    ),
+    index('payment_vouchers_company_date_idx').on(
+      table.companyId,
+      table.voucherDate,
+    ),
+    index('payment_vouchers_company_party_idx').on(
+      table.companyId,
+      table.partyId,
+    ),
+  ],
+)
+
+export const paymentAllocations = pgTable(
+  'payment_allocations',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id),
+    voucherId: uuid('voucher_id')
+      .notNull()
+      .references(() => paymentVouchers.id),
+    documentType: text('document_type').notNull(),
+    documentId: uuid('document_id').notNull(),
+    documentNumber: text('document_number').notNull(),
+    amount: text('amount').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('payment_allocations_company_voucher_idx').on(
+      table.companyId,
+      table.voucherId,
+    ),
+    index('payment_allocations_company_document_idx').on(
+      table.companyId,
+      table.documentId,
+    ),
+  ],
+)

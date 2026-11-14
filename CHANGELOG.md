@@ -24,6 +24,7 @@ built. Never include customer names, balances or other real data.
 - Sales & profit reports under Reports: see quantity, taxable value, GST, cost and profit for each item, sales and outstanding for each customer, and profit on each invoice for any date range. Sales returns are deducted, cost is what the stock was worth when you sold it, and you can sort any column and download what you see as CSV.
 - Ledger statement for any account: in Chart of accounts, click an account such as Cash, Bank, Sales, Rent or Output GST to see its opening balance, every entry in the period with the other account and a running Dr/Cr balance, and the closing balance. It shows the current financial year by default, and you can print it or download it as CSV.
 - Download for Tally (XML) in Reports → Export: pick a period and get two files your accountant can import into Tally Prime, one with your ledgers, customers and suppliers (with GSTIN, state and address) and stock items, and one with that period's sales, purchases, receipts, payments, journals and credit/debit notes. Cancelled invoices are left out.
+- Numbered receipts and payments (RCT-0001, PAY-0001 each financial year) by cash, bank transfer, UPI or cheque, with the cheque or UTR number and the cash or bank account used. One receipt or payment can settle several bills at once, and any amount left over is kept as an advance for that party. Receipts & payments now has a register of every voucher, a printable receipt, and a way to cancel a voucher, which gives the bills their balance back.
 
 ### Changed
 

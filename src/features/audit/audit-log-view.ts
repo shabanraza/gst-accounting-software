@@ -33,6 +33,8 @@ const actionLabels: Record<string, string> = {
   'scanned_bill.confirmed': 'Scanned bill confirmed',
   'receipt.posted': 'Receipt recorded',
   'payment.posted': 'Payment recorded',
+  'receipt.cancelled': 'Receipt cancelled',
+  'payment.cancelled': 'Payment cancelled',
   'credit_note.posted': 'Credit note (sales return)',
   'debit_note.posted': 'Debit note (purchase return)',
   'expense.posted': 'Expense recorded',

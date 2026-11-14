@@ -10,6 +10,7 @@ import {
   membershipRepository,
   resetMembershipRepositoryForTests,
 } from '#/features/companies/membership-store.ts'
+import { InMemoryFinancialYearRepository } from '#/features/companies/financial-year-store.ts'
 import { InMemoryDashboardSummaryRepository } from '#/features/dashboard/dashboard-store.ts'
 import { InMemoryDocumentSequenceRepository } from '#/features/documents/document-sequence-store.ts'
 import {
@@ -18,6 +19,7 @@ import {
 } from '#/features/inventory/inventory-store.ts'
 import { InMemoryPartyRepository } from '#/features/parties/party-store.ts'
 import { createPaymentsRouter } from '#/features/payments/payment-router.ts'
+import { InMemoryPaymentVoucherRepository } from '#/features/payments/payment-voucher-store.ts'
 import { InMemoryPurchaseBillRepository } from '#/features/purchases/purchase-bill-store.ts'
 import { createPurchasesRouter } from '#/features/purchases/purchase-router.ts'
 import {
@@ -50,6 +52,7 @@ function inMemoryRepositories(): PostingRepositories {
     parties: new InMemoryPartyRepository(),
     dashboard: new InMemoryDashboardSummaryRepository(),
     sequences: new InMemoryDocumentSequenceRepository(),
+    paymentVouchers: new InMemoryPaymentVoucherRepository(),
     audit: new InMemoryAuditLogRepository(),
   }
 }
@@ -153,7 +156,12 @@ describe('posting routers', () => {
     const router = createTRPCRouter({
       sales: createSalesRouter(outer.invoices, transaction),
       purchases: createPurchasesRouter(outer.bills, transaction),
-      payments: createPaymentsRouter(transaction),
+      payments: createPaymentsRouter({
+        transaction,
+        vouchers: outer.paymentVouchers,
+        ledgers: new InMemoryLedgerAccountRepository(),
+        financialYears: new InMemoryFinancialYearRepository(),
+      }),
     })
     return router.createCaller(context)
   }

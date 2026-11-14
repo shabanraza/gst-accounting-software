@@ -35,6 +35,7 @@ import { ocrDraftRepository } from '#/features/ocr/ocr-draft-store.ts'
 import { createPartiesRouter } from '#/features/parties/party-router.ts'
 import { partyRepository } from '#/features/parties/party-store.ts'
 import { createPaymentsRouter } from '#/features/payments/payment-router.ts'
+import { paymentVoucherRepository } from '#/features/payments/payment-voucher-store.ts'
 import { createPurchaseOrdersRouter } from '#/features/purchases/purchase-orders-router.ts'
 import { purchaseOrderRepository } from '#/features/purchases/purchase-order-store.ts'
 import { createGrnRouter } from '#/features/purchases/grn-router.ts'
@@ -73,6 +74,7 @@ const postingTransaction = createPostingTransaction({
   parties: partyRepository,
   dashboard: dashboardSummaryRepository,
   sequences: documentSequenceRepository,
+  paymentVouchers: paymentVoucherRepository,
   audit: auditLogRepository,
 })
 
@@ -115,7 +117,12 @@ export const trpcRouter = createTRPCRouter({
     itemRepository,
   ),
   sales: createSalesRouter(salesInvoiceRepository, postingTransaction),
-  payments: createPaymentsRouter(postingTransaction),
+  payments: createPaymentsRouter({
+    transaction: postingTransaction,
+    vouchers: paymentVoucherRepository,
+    ledgers: ledgerAccountRepository,
+    financialYears: financialYearRepository,
+  }),
   banking: createBankingRouter(
     bankReconciliationRepository,
     ledgerPostingRepository,

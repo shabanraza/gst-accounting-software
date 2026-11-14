@@ -27,6 +27,7 @@ import { InMemoryOcrDraftRepository } from '#/features/ocr/ocr-draft-store.ts'
 import { createOcrRouter } from '#/features/ocr/ocr-router.ts'
 import { createParty } from '#/features/parties/party-service.ts'
 import { InMemoryPartyRepository } from '#/features/parties/party-store.ts'
+import { InMemoryPaymentVoucherRepository } from '#/features/payments/payment-voucher-store.ts'
 import { createPaymentsRouter } from '#/features/payments/payment-router.ts'
 import { InMemoryPurchaseBillRepository } from '#/features/purchases/purchase-bill-store.ts'
 import { createPurchasesRouter } from '#/features/purchases/purchase-router.ts'
@@ -63,6 +64,7 @@ async function seed() {
     parties: new InMemoryPartyRepository(),
     dashboard: new InMemoryDashboardSummaryRepository(),
     sequences: new InMemoryDocumentSequenceRepository(),
+    paymentVouchers: new InMemoryPaymentVoucherRepository(),
     audit,
   }
   const financialYears = new InMemoryFinancialYearRepository()
@@ -124,7 +126,12 @@ async function seed() {
   const router = createTRPCRouter({
     sales: createSalesRouter(repositories.invoices, transaction),
     purchases: createPurchasesRouter(repositories.bills, transaction),
-    payments: createPaymentsRouter(transaction),
+    payments: createPaymentsRouter({
+      transaction,
+      vouchers: repositories.paymentVouchers,
+      ledgers,
+      financialYears,
+    }),
     returns: createReturnsRouter(
       repositories.posting,
       repositories.stock,
