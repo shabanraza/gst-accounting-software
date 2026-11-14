@@ -17,6 +17,7 @@ export type LedgerAccountSystemKey =
   | 'expenses'
   | 'cogs'
   | 'opening_balance'
+  | 'stock_adjustment'
 
 export type LedgerAccountRecord = {
   id: string
@@ -116,6 +117,12 @@ const inventoryLedgers: Array<LedgerTemplate> = [
     accountType: 'expense',
     systemKey: 'cogs',
   },
+  {
+    code: '5300',
+    name: 'Stock Adjustment',
+    accountType: 'expense',
+    systemKey: 'stock_adjustment',
+  },
 ]
 
 function templatesForBusinessType(
@@ -206,6 +213,47 @@ export async function ensureSystemLedgers(
   )
 
   return [...existingAccounts, ...created]
+}
+
+export class UnknownSystemLedgerError extends DomainError {
+  constructor(systemKey: string) {
+    super(`No default ledger exists for system key: ${systemKey}`)
+    this.name = 'UnknownSystemLedgerError'
+  }
+}
+
+/**
+ * Returns the company's ledger for `systemKey`, creating it from the default
+ * template first when the company was set up before that ledger existed.
+ */
+export async function ensureSystemLedger(
+  repository: LedgerAccountRepository,
+  companyId: string,
+  systemKey: LedgerAccountSystemKey,
+): Promise<LedgerAccountRecord> {
+  const existingAccounts = await repository.listByCompanyId(companyId)
+  const existing = existingAccounts.find(
+    (account) => account.systemKey === systemKey,
+  )
+  if (existing) {
+    return existing
+  }
+
+  const template = [...sharedLedgers, ...inventoryLedgers].find(
+    (entry) => entry.systemKey === systemKey,
+  )
+  if (!template) {
+    throw new UnknownSystemLedgerError(systemKey)
+  }
+
+  const [created] = await repository.createMany(
+    accountsFromTemplates(
+      companyId,
+      [template],
+      new Set(existingAccounts.map((account) => account.code)),
+    ),
+  )
+  return created
 }
 
 export async function listLedgerAccountsByCompany(

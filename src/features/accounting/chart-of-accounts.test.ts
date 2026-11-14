@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 
 import {
   ChartAlreadySetupError,
+  ensureSystemLedger,
   ensureSystemLedgers,
   setupDefaultChartOfAccounts,
 } from '#/features/accounting/chart-of-accounts.ts'
@@ -40,6 +41,7 @@ const tradingRequiredNames = [
   'Expenses',
   'Cost of Goods Sold',
   'Opening Balance',
+  'Stock Adjustment',
 ] as const
 
 describe('setupDefaultChartOfAccounts', () => {
@@ -198,5 +200,39 @@ describe('ensureSystemLedgers', () => {
     expect(
       accounts.find((account) => account.systemKey === 'opening_balance')?.code,
     ).toBe('3001')
+  })
+})
+
+describe('ensureSystemLedger', () => {
+  test('creates one missing system ledger and is idempotent', async () => {
+    const repository = new InMemoryLedgerAccountRepository()
+    const existing = await setupDefaultChartOfAccounts(repository, {
+      companyId: 'company-1',
+      businessType: 'trading',
+    })
+    const legacy = new InMemoryLedgerAccountRepository()
+    await legacy.createMany(
+      existing.filter((account) => account.systemKey !== 'stock_adjustment'),
+    )
+
+    const created = await ensureSystemLedger(
+      legacy,
+      'company-1',
+      'stock_adjustment',
+    )
+    const again = await ensureSystemLedger(
+      legacy,
+      'company-1',
+      'stock_adjustment',
+    )
+
+    expect(created.name).toBe('Stock Adjustment')
+    expect(created.accountType).toBe('expense')
+    expect(created.isSystem).toBe(true)
+    expect(again.id).toBe(created.id)
+    expect(legacy.list()).toHaveLength(existing.length)
+    expect(new Set(legacy.list().map((account) => account.code)).size).toBe(
+      existing.length,
+    )
   })
 })

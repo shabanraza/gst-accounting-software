@@ -99,6 +99,7 @@ export const trpcRouter = createTRPCRouter({
     priceListRepository,
     ledgerAccountRepository,
     postingTransaction,
+    financialYearRepository,
   ),
   purchases: createPurchasesRouter(purchaseBillRepository, postingTransaction),
   purchaseOrders: createPurchaseOrdersRouter(purchaseOrderRepository),

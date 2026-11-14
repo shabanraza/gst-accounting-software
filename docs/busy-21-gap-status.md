@@ -33,6 +33,7 @@ Living status vs [BUSY 21](https://busy.in/) wholesale/trading features, trackin
 | PO → GRN → purchase bill                     | Done        | GRN at `/app/purchase-grns`; convert to bill     |
 | Quotation → invoice                          | Done        | Sales documents → `/app/sales/new?fromDocument=` |
 | Per-line godown on voucher                   | Done        | Godown column per row in voucher grid            |
+| Stock journal (count, write-off, transfer)   | Done        | Inventory → Stock journal; item stock history    |
 | Price list auto-rate                         | Done        | Party price list applies on item pick            |
 | Credit limit on party                        | Done        | Blocked on credit sales in service               |
 | CSV + BUSY/EZY native import                 | Done        | Parties/items TSV/CSV; file upload on Import     |

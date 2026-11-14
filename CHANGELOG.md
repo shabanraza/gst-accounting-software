@@ -18,6 +18,7 @@ built. Never include customer names, balances or other real data.
 - Barcode labels for retail shops: open Items → Print labels, pick items and how many labels each, and print on an A4 label sheet or a 50 × 25 mm label roll. Labels show the item name, MRP and sale price. Items without a barcode get their own store code, and you can enter a product's existing EAN/UPC barcode when adding an item. Scan a label into the item search on a sale or purchase to pick that item.
 - Edit items from the Items page: change the barcode, name, HSN, GST rate, units or rates of an item you already have.
 - A Scan barcode box on sales and purchase bills: each scan adds the item as a new line, and scanning it again adds one more to that line.
+- Stock journal on the Inventory page: enter a physical stock count and the difference is adjusted for you, write off damaged or lost stock (booked to a new Stock Adjustment expense ledger at average cost), or move stock from one godown to another. The Inventory page now also shows stock by godown, and clicking an item opens its stock history with every movement and the running balance.
 
 ### Changed
 

@@ -53,6 +53,10 @@ describe('buildStockLedger', () => {
     expect(report.rows[0]?.runningBalance).toBe('10')
     expect(report.rows[1]?.runningBalance).toBe('6')
     expect(report.closingBalance).toBe('6')
+    expect(report.rows[1]).toMatchObject({
+      referenceType: 'sales_invoice',
+      referenceId: 'inv-1',
+    })
   })
 })
 
