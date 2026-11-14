@@ -56,6 +56,7 @@ import type {
 } from '#/features/gst/gstr2b-reconciliation-service.ts'
 import type { Gstr3bWorkingReport } from '#/features/gst/gstr3b-working-service.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
+import { TallyExportButton } from '#/features/exports/components/tally-export-button.tsx'
 
 export function ReportsPanel({ initialTab }: { initialTab?: string }) {
   const trpc = useTRPC()
@@ -1431,6 +1432,7 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
               </Button>
             </CardContent>
           </Card>
+          <TallyExportButton />
         </TabsContent>
       </Tabs>
     </WorkspacePage>
