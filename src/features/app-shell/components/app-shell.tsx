@@ -13,6 +13,7 @@ import {
 
 import { Avatar, AvatarFallback } from '#/components/ui/avatar.tsx'
 import { Button } from '#/components/ui/button.tsx'
+import { Kbd } from '#/components/ui/kbd.tsx'
 import {
   Collapsible,
   CollapsibleContent,
@@ -346,9 +347,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               <SearchIcon data-icon="inline-start" />
               <span className="hidden sm:inline">Search</span>
-              <kbd className="hidden rounded border bg-muted px-1 text-[10px] sm:inline">
-                ⌘K
-              </kbd>
+              <Kbd className="hidden sm:inline-flex">⌘K</Kbd>
             </Button>
             <Button
               aria-label={

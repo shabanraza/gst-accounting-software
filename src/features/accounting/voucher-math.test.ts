@@ -7,6 +7,7 @@ import {
   emptyVoucherLine,
   createEmptyVoucherLines,
   isValidStateCode,
+  partySupplyDefaults,
   partyStateForRegion,
   resolvePlaceOfSupply,
   resolveStateCode,
@@ -85,6 +86,20 @@ describe('voucher math', () => {
     const rows = createEmptyVoucherLines(5)
     expect(rows).toHaveLength(5)
     expect(rows.every((row) => row.itemId === '')).toBe(true)
+  })
+
+  test('an other-state party defaults to IGST with the party state as place of supply', () => {
+    expect(partySupplyDefaults('27', '02')).toEqual({
+      region: 'central',
+      placeOfSupply: '27',
+    })
+  })
+
+  test('a same-state party defaults to local supply in the company state', () => {
+    expect(partySupplyDefaults('27', '27')).toEqual({
+      region: 'local',
+      placeOfSupply: '27',
+    })
   })
 
   test('resolves place of supply for local supply from company state', () => {

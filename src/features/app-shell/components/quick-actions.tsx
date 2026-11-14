@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 
 import { Button } from '#/components/ui/button.tsx'
+import { Kbd } from '#/components/ui/kbd.tsx'
 import {
   quickActionForKey,
   visibleQuickActions,
@@ -81,9 +82,9 @@ export function QuickActionsBar({
             <Link search={action.search} to={action.to}>
               <Icon data-icon="inline-start" />
               <span className="truncate">{action.label}</span>
-              <kbd className="ml-auto hidden rounded border bg-muted px-1 font-mono text-[10px] text-muted-foreground sm:inline">
+              <Kbd className="ml-auto hidden sm:inline-flex">
                 {action.shortcut}
-              </kbd>
+              </Kbd>
             </Link>
           </Button>
         )

@@ -7,6 +7,7 @@ import { CountUpNumber } from '#/components/ui/count-up.tsx'
 import { Skeleton } from '#/components/ui/skeleton.tsx'
 import { moneyTone } from '#/features/dashboard/money-tone.ts'
 import { computeNetPosition } from '#/features/dashboard/net-position.ts'
+import { periodChangeBadgeIntent } from '#/lib/badge-intent.ts'
 import { formatInr } from '#/lib/format-inr.ts'
 import { cn } from '#/lib/utils.ts'
 
@@ -93,9 +94,7 @@ export function MoneyTiles({
       footer: sales?.change ? (
         <span className="flex min-w-0 items-center gap-1.5">
           <Badge
-            variant={
-              sales.change.direction === 'up' ? 'success' : 'destructive'
-            }
+            variant={periodChangeBadgeIntent(sales.change)}
           >
             {sales.change.label}
           </Badge>

@@ -17,6 +17,7 @@ import {
   isQuietDay,
 } from '#/features/dashboard/dashboard-view.ts'
 import { moneyTone } from '#/features/dashboard/money-tone.ts'
+import { periodChangeBadgeIntent } from '#/lib/badge-intent.ts'
 import { formatShortDate } from '#/lib/calendar-date.ts'
 import { formatInr } from '#/lib/format-inr.ts'
 import { cn } from '#/lib/utils.ts'
@@ -57,13 +58,10 @@ function FigureGrid({ figures }: { figures: Array<Figure> }) {
           </span>
           {figure.change ? (
             <Badge
-              variant={
-                !figure.judged
-                  ? 'secondary'
-                  : figure.change.direction === 'up'
-                    ? 'success'
-                    : 'destructive'
-              }
+              variant={periodChangeBadgeIntent({
+                direction: figure.change.direction,
+                judged: Boolean(figure.judged),
+              })}
             >
               {figure.change.label}
             </Badge>

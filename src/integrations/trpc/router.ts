@@ -71,13 +71,14 @@ const postingTransaction = createPostingTransaction({
   parties: partyRepository,
   dashboard: dashboardSummaryRepository,
   sequences: documentSequenceRepository,
+  audit: auditLogRepository,
 })
 
 export const trpcRouter = createTRPCRouter({
   health: {
     ping: publicProcedure.query(() => ({ ok: true })),
   },
-  audit: createAuditRouter(auditLogRepository),
+  audit: createAuditRouter(auditLogRepository, userDirectory),
   marketing: createMarketingRouter(submissionRepository),
   companies: createCompaniesRouter({
     companies: companyRepository,
@@ -90,8 +91,9 @@ export const trpcRouter = createTRPCRouter({
   accounting: createAccountingRouter(
     ledgerAccountRepository,
     ledgerPostingRepository,
+    auditLogRepository,
   ),
-  parties: createPartiesRouter(partyRepository),
+  parties: createPartiesRouter(partyRepository, auditLogRepository),
   inventory: createInventoryRouter(
     itemRepository,
     stockStore,
@@ -100,6 +102,7 @@ export const trpcRouter = createTRPCRouter({
     ledgerAccountRepository,
     postingTransaction,
     financialYearRepository,
+    auditLogRepository,
   ),
   purchases: createPurchasesRouter(purchaseBillRepository, postingTransaction),
   purchaseOrders: createPurchaseOrdersRouter(purchaseOrderRepository),
@@ -122,8 +125,13 @@ export const trpcRouter = createTRPCRouter({
     creditDebitNoteRepository,
     documentSequenceRepository,
     financialYearRepository,
+    auditLogRepository,
   ),
-  expenses: createExpensesRouter(expenseRepository, ledgerPostingRepository),
+  expenses: createExpensesRouter(
+    expenseRepository,
+    ledgerPostingRepository,
+    auditLogRepository,
+  ),
   reports: createReportsRouter({
     invoices: salesInvoiceRepository,
     bills: purchaseBillRepository,
@@ -170,6 +178,7 @@ export const trpcRouter = createTRPCRouter({
     ledgerAccountRepository,
     ledgerPostingRepository,
     postingTransaction,
+    auditLogRepository,
   ),
   salesDocuments: createSalesDocumentsRouter(
     salesDocumentRepository,
@@ -187,6 +196,7 @@ export const trpcRouter = createTRPCRouter({
     invitations: invitationRepository,
     companies: companyRepository,
     users: userDirectory,
+    audit: auditLogRepository,
   }),
   support: createSupportRouter({ send: sendEmail }),
   preferences: createPreferencesRouter(

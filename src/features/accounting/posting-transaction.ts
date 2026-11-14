@@ -1,5 +1,6 @@
 import { openPooledDb } from '#/db/client.ts'
 import { DrizzleLedgerPostingRepository } from '#/features/accounting/ledger-posting-store.ts'
+import { DrizzleAuditLogRepository } from '#/features/audit/audit-store.ts'
 import { DrizzleDashboardSummaryRepository } from '#/features/dashboard/dashboard-store.ts'
 import { DrizzleDocumentSequenceRepository } from '#/features/documents/document-sequence-store.ts'
 import {
@@ -12,6 +13,7 @@ import { DrizzleSalesInvoiceRepository } from '#/features/sales/sales-invoice-st
 
 import type { PooledDatabase } from '#/db/client.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
+import type { AuditLogRepository } from '#/features/audit/audit-service.ts'
 import type { DashboardSummaryRepository } from '#/features/dashboard/dashboard-summary-service.ts'
 import type { DocumentSequenceRepository } from '#/features/documents/document-sequence-service.ts'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
@@ -32,9 +34,10 @@ export type PostingRepositories = {
   parties: PartyRepository
   dashboard: DashboardSummaryRepository
   sequences: DocumentSequenceRepository
+  audit: AuditLogRepository
 }
 
-/** Runs accounting writes (document, ledger, stock, summaries) as one unit. */
+/** Runs accounting writes (document, ledger, stock, summaries, audit) as one unit. */
 export type PostingTransaction = <T>(
   work: (repositories: PostingRepositories) => Promise<T>,
 ) => Promise<T>
@@ -65,6 +68,7 @@ export function createPostingTransaction(
           parties: new DrizzlePartyRepository(tx),
           dashboard: new DrizzleDashboardSummaryRepository(tx),
           sequences: new DrizzleDocumentSequenceRepository(tx),
+          audit: new DrizzleAuditLogRepository(tx),
         }),
       )
     } finally {

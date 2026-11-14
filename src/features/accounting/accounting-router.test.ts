@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, test } from 'vitest'
 import { createAccountingRouter } from '#/features/accounting/accounting-router.ts'
 import { InMemoryLedgerAccountRepository } from '#/features/accounting/ledger-account-store.ts'
 import { InMemoryLedgerPostingRepository } from '#/features/accounting/ledger-posting-store.ts'
+import { InMemoryAuditLogRepository } from '#/features/audit/audit-store.ts'
 import {
   membershipRepository,
   resetMembershipRepositoryForTests,
@@ -26,7 +27,7 @@ const createCaller = (userId: string) => {
     accounting: createAccountingRouter(
       ledgerAccountRepository,
       ledgerPostingRepository,
-      membershipRepository,
+      new InMemoryAuditLogRepository(),
     ),
   })
 
