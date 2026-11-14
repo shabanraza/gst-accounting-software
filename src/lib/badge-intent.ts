@@ -121,6 +121,14 @@ export function toolCheckBadgeIntent(
   return 'info'
 }
 
+/** Audit log action: undoing or removing something stands out, the rest stay quiet. */
+export function auditActionBadgeIntent(action: string): BadgeIntent {
+  if (action.endsWith('.cancelled') || action.endsWith('.removed')) {
+    return 'destructive'
+  }
+  return 'neutral'
+}
+
 /** Bank reconciliation line: matched, in the books only, or on the statement only. */
 export function bankReconciliationBadgeIntent(status: string): BadgeIntent {
   if (status === 'matched') return 'success'

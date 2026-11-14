@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { recordDocumentEvent } from '#/features/audit/audit-service.ts'
 import {
   listExpensesByCompany,
   postExpense,
@@ -8,6 +9,7 @@ import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
+import type { AuditLogRepository } from '#/features/audit/audit-service.ts'
 import type { ExpenseRepository } from '#/features/expenses/expense-service.ts'
 
 const companyIdSchema = z.object({
@@ -26,6 +28,7 @@ const postExpenseInputSchema = z.object({
 export const createExpensesRouter = (
   expenses: ExpenseRepository,
   posting: LedgerPostingRepository,
+  audit: AuditLogRepository,
 ) =>
   ({
     list: capabilityProcedure('view').input(companyIdSchema).query(({ input }) => {
@@ -33,7 +36,17 @@ export const createExpensesRouter = (
     }),
     post: capabilityProcedure('post_voucher')
       .input(postExpenseInputSchema)
-      .mutation(({ input }) => {
-        return postExpense(expenses, posting, input)
+      .mutation(async ({ ctx, input }) => {
+        const expense = await postExpense(expenses, posting, input)
+        await recordDocumentEvent(audit, {
+          companyId: expense.companyId,
+          actorUserId: ctx.userId,
+          action: 'expense.posted',
+          entityType: 'expense',
+          entityId: expense.id,
+          documentNumber: expense.narration,
+          amount: expense.amount,
+        })
+        return expense
       }),
   }) satisfies TRPCRouterRecord
