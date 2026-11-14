@@ -15,6 +15,10 @@ export function paymentStatusBadgeIntent(status: string): BadgeIntent {
   return 'warning'
 }
 
+export function paymentVoucherStatusBadgeIntent(status: string): BadgeIntent {
+  return status === 'cancelled' ? 'destructive' : 'success'
+}
+
 export function invoiceStatusBadgeIntent(input: {
   cancelled?: boolean
   paymentStatus: string

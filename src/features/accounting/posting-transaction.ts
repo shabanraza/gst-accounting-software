@@ -7,6 +7,7 @@ import {
   DrizzleStockStore,
 } from '#/features/inventory/inventory-store.ts'
 import { DrizzlePartyRepository } from '#/features/parties/party-store.ts'
+import { DrizzlePaymentVoucherRepository } from '#/features/payments/payment-voucher-store.ts'
 import { DrizzlePurchaseBillRepository } from '#/features/purchases/purchase-bill-store.ts'
 import { DrizzleSalesInvoiceRepository } from '#/features/sales/sales-invoice-store.ts'
 
@@ -20,6 +21,7 @@ import type {
   StockMovementRepository,
 } from '#/features/inventory/stock-movement-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
+import type { PaymentVoucherRepository } from '#/features/payments/payment-voucher-service.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
 import type { SalesInvoiceRepository } from '#/features/sales/sales-invoice-service.ts'
 
@@ -32,6 +34,7 @@ export type PostingRepositories = {
   parties: PartyRepository
   dashboard: DashboardSummaryRepository
   sequences: DocumentSequenceRepository
+  paymentVouchers: PaymentVoucherRepository
 }
 
 /** Runs accounting writes (document, ledger, stock, summaries) as one unit. */
@@ -65,6 +68,7 @@ export function createPostingTransaction(
           parties: new DrizzlePartyRepository(tx),
           dashboard: new DrizzleDashboardSummaryRepository(tx),
           sequences: new DrizzleDocumentSequenceRepository(tx),
+          paymentVouchers: new DrizzlePaymentVoucherRepository(tx),
         }),
       )
     } finally {

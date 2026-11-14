@@ -4,6 +4,7 @@ import {
   ageingBucketBadgeIntent,
   ageingBucketChartColor,
   paymentStatusBadgeIntent,
+  paymentVoucherStatusBadgeIntent,
   toolCheckBadgeIntent,
 } from '#/lib/badge-intent.ts'
 
@@ -18,6 +19,13 @@ describe('paymentStatusBadgeIntent', () => {
 
   test('Pending is warning amber (industry waiting signal, not info blue)', () => {
     expect(paymentStatusBadgeIntent('Pending')).toBe('warning')
+  })
+})
+
+describe('paymentVoucherStatusBadgeIntent', () => {
+  test('posted is success, cancelled is destructive', () => {
+    expect(paymentVoucherStatusBadgeIntent('posted')).toBe('success')
+    expect(paymentVoucherStatusBadgeIntent('cancelled')).toBe('destructive')
   })
 })
 
