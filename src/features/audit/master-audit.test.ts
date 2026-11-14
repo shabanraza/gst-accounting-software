@@ -183,6 +183,7 @@ async function seed() {
       new InMemoryPriceListRepository(),
       ledgers,
       transaction,
+      new InMemoryFinancialYearRepository(),
       audit,
     ),
     companies: createCompaniesRouter({
