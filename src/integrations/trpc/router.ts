@@ -18,6 +18,7 @@ import { dashboardSummaryRepository } from '#/features/dashboard/dashboard-store
 import { createDocumentsRouter } from '#/features/documents/documents-router.ts'
 import { documentAttachmentRepository } from '#/features/documents/document-attachment-store.ts'
 import { documentSequenceRepository } from '#/features/documents/document-sequence-store.ts'
+import { createFixedWindowRateLimiter } from '#/features/documents/public-rate-limit.ts'
 import { createExpensesRouter } from '#/features/expenses/expense-router.ts'
 import { expenseRepository } from '#/features/expenses/expense-store.ts'
 import { createImportsRouter } from '#/features/imports/imports-router.ts'
@@ -108,7 +109,13 @@ export const trpcRouter = createTRPCRouter({
     stockStore,
     itemRepository,
   ),
-  sales: createSalesRouter(salesInvoiceRepository, postingTransaction),
+  sales: createSalesRouter(salesInvoiceRepository, postingTransaction, {
+    companies: companyRepository,
+    parties: partyRepository,
+    items: itemRepository,
+    getSecret: () => process.env.INVOICE_LINK_SECRET,
+    rateLimiter: createFixedWindowRateLimiter({ limit: 30, windowMs: 60_000 }),
+  }),
   payments: createPaymentsRouter(postingTransaction),
   banking: createBankingRouter(
     bankReconciliationRepository,

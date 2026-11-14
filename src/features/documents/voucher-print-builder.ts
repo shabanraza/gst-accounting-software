@@ -59,6 +59,7 @@ type BuildVoucherInput = {
   totalGstAmount: string
   totalAmount: string
   outstandingAmount: string
+  upiUri?: string
 }
 
 export function buildVoucherPrintDocument(
@@ -166,5 +167,6 @@ export function buildVoucherPrintDocument(
     totalAmount: input.totalAmount,
     amountInWords: amountInWords(input.totalAmount),
     outstandingAmount: input.outstandingAmount,
+    upiUri: input.upiUri,
   }
 }

@@ -30,6 +30,7 @@ import { Route as ToolsGstinValidatorRouteImport } from './routes/tools/gstin-va
 import { Route as ToolsGstInvoiceGeneratorRouteImport } from './routes/tools/gst-invoice-generator'
 import { Route as ToolsGstDueDatesRouteImport } from './routes/tools/gst-due-dates'
 import { Route as ToolsEInvoiceEWayBillCheckerRouteImport } from './routes/tools/e-invoice-e-way-bill-checker'
+import { Route as ITokenRouteImport } from './routes/i.$token'
 import { Route as GuidesSlugRouteImport } from './routes/guides/$slug'
 import { Route as GstBillingSoftwareForSlugRouteImport } from './routes/gst-billing-software-for/$slug'
 import { Route as DesignAccountingRouteImport } from './routes/design/accounting'
@@ -181,6 +182,11 @@ const ToolsEInvoiceEWayBillCheckerRoute =
     path: '/tools/e-invoice-e-way-bill-checker',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ITokenRoute = ITokenRouteImport.update({
+  id: '/i/$token',
+  path: '/i/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GuidesSlugRoute = GuidesSlugRouteImport.update({
   id: '/guides/$slug',
   path: '/guides/$slug',
@@ -429,6 +435,7 @@ export interface FileRoutesByFullPath {
   '/design/accounting': typeof DesignAccountingRouteWithChildren
   '/gst-billing-software-for/$slug': typeof GstBillingSoftwareForSlugRoute
   '/guides/$slug': typeof GuidesSlugRoute
+  '/i/$token': typeof ITokenRoute
   '/tools/e-invoice-e-way-bill-checker': typeof ToolsEInvoiceEWayBillCheckerRoute
   '/tools/gst-due-dates': typeof ToolsGstDueDatesRoute
   '/tools/gst-invoice-generator': typeof ToolsGstInvoiceGeneratorRoute
@@ -492,6 +499,7 @@ export interface FileRoutesByTo {
   '/design/accounting': typeof DesignAccountingRouteWithChildren
   '/gst-billing-software-for/$slug': typeof GstBillingSoftwareForSlugRoute
   '/guides/$slug': typeof GuidesSlugRoute
+  '/i/$token': typeof ITokenRoute
   '/tools/e-invoice-e-way-bill-checker': typeof ToolsEInvoiceEWayBillCheckerRoute
   '/tools/gst-due-dates': typeof ToolsGstDueDatesRoute
   '/tools/gst-invoice-generator': typeof ToolsGstInvoiceGeneratorRoute
@@ -558,6 +566,7 @@ export interface FileRoutesById {
   '/design/accounting': typeof DesignAccountingRouteWithChildren
   '/gst-billing-software-for/$slug': typeof GstBillingSoftwareForSlugRoute
   '/guides/$slug': typeof GuidesSlugRoute
+  '/i/$token': typeof ITokenRoute
   '/tools/e-invoice-e-way-bill-checker': typeof ToolsEInvoiceEWayBillCheckerRoute
   '/tools/gst-due-dates': typeof ToolsGstDueDatesRoute
   '/tools/gst-invoice-generator': typeof ToolsGstInvoiceGeneratorRoute
@@ -625,6 +634,7 @@ export interface FileRouteTypes {
     | '/design/accounting'
     | '/gst-billing-software-for/$slug'
     | '/guides/$slug'
+    | '/i/$token'
     | '/tools/e-invoice-e-way-bill-checker'
     | '/tools/gst-due-dates'
     | '/tools/gst-invoice-generator'
@@ -688,6 +698,7 @@ export interface FileRouteTypes {
     | '/design/accounting'
     | '/gst-billing-software-for/$slug'
     | '/guides/$slug'
+    | '/i/$token'
     | '/tools/e-invoice-e-way-bill-checker'
     | '/tools/gst-due-dates'
     | '/tools/gst-invoice-generator'
@@ -753,6 +764,7 @@ export interface FileRouteTypes {
     | '/design/accounting'
     | '/gst-billing-software-for/$slug'
     | '/guides/$slug'
+    | '/i/$token'
     | '/tools/e-invoice-e-way-bill-checker'
     | '/tools/gst-due-dates'
     | '/tools/gst-invoice-generator'
@@ -804,6 +816,7 @@ export interface RootRouteChildren {
   DesignAccountingRoute: typeof DesignAccountingRouteWithChildren
   GstBillingSoftwareForSlugRoute: typeof GstBillingSoftwareForSlugRoute
   GuidesSlugRoute: typeof GuidesSlugRoute
+  ITokenRoute: typeof ITokenRoute
   ToolsEInvoiceEWayBillCheckerRoute: typeof ToolsEInvoiceEWayBillCheckerRoute
   ToolsGstDueDatesRoute: typeof ToolsGstDueDatesRoute
   ToolsGstInvoiceGeneratorRoute: typeof ToolsGstInvoiceGeneratorRoute
@@ -968,6 +981,13 @@ declare module '@tanstack/react-router' {
       path: '/tools/e-invoice-e-way-bill-checker'
       fullPath: '/tools/e-invoice-e-way-bill-checker'
       preLoaderRoute: typeof ToolsEInvoiceEWayBillCheckerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/i/$token': {
+      id: '/i/$token'
+      path: '/i/$token'
+      fullPath: '/i/$token'
+      preLoaderRoute: typeof ITokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/guides/$slug': {
@@ -1384,6 +1404,7 @@ const rootRouteChildren: RootRouteChildren = {
   DesignAccountingRoute: DesignAccountingRouteWithChildren,
   GstBillingSoftwareForSlugRoute: GstBillingSoftwareForSlugRoute,
   GuidesSlugRoute: GuidesSlugRoute,
+  ITokenRoute: ITokenRoute,
   ToolsEInvoiceEWayBillCheckerRoute: ToolsEInvoiceEWayBillCheckerRoute,
   ToolsGstDueDatesRoute: ToolsGstDueDatesRoute,
   ToolsGstInvoiceGeneratorRoute: ToolsGstInvoiceGeneratorRoute,

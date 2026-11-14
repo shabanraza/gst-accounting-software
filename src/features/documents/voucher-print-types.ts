@@ -27,6 +27,7 @@ export type VoucherPrintCompanyInfo = {
   authorizedSignatory?: string
   logoUrl?: string
   invoiceTerms?: string
+  upiId?: string
 }
 
 export type VoucherPrintLine = {
@@ -93,4 +94,6 @@ export type VoucherPrintDocument = {
   totalAmount: string
   amountInWords: string
   outstandingAmount: string
+  /** `upi://pay` link for the amount still due; absent when nothing is payable. */
+  upiUri?: string
 }

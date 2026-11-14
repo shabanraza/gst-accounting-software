@@ -4,6 +4,7 @@ import {
   formatIndianDate,
   stateLabel,
 } from '#/features/documents/gst-invoice-format.ts'
+import { UpiQrCode } from '#/features/documents/components/upi-qr-code.tsx'
 
 import type { VoucherPrintDocument } from '#/features/documents/voucher-print-types.ts'
 
@@ -471,16 +472,41 @@ export function VoucherDocumentPaper({
 
           <tr>
             <td className={cell} colSpan={leftCols}>
-              {company.bankName ? (
-                <div>
-                  <p className="text-[10px] font-semibold uppercase">
-                    Company&apos;s Bank Details
-                  </p>
-                  <p>Bank: {company.bankName}</p>
-                  {company.bankAccountNumber ? (
-                    <p>A/c No.: {company.bankAccountNumber}</p>
+              {company.bankName || document.upiUri ? (
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  {company.bankName ? (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase">
+                        Company&apos;s Bank Details
+                      </p>
+                      <p>Bank: {company.bankName}</p>
+                      {company.bankAccountNumber ? (
+                        <p>A/c No.: {company.bankAccountNumber}</p>
+                      ) : null}
+                      {company.bankIfsc ? (
+                        <p>IFSC: {company.bankIfsc}</p>
+                      ) : null}
+                    </div>
                   ) : null}
-                  {company.bankIfsc ? <p>IFSC: {company.bankIfsc}</p> : null}
+                  {document.upiUri ? (
+                    <div className="flex items-center gap-2">
+                      <UpiQrCode
+                        className="size-24 shrink-0"
+                        value={document.upiUri}
+                      />
+                      <div className="flex flex-col gap-0.5">
+                        <p className="text-[10px] font-semibold uppercase">
+                          Scan to pay with any UPI app
+                        </p>
+                        <p className="font-semibold tabular-nums">
+                          {formatInr(document.outstandingAmount)}
+                        </p>
+                        {company.upiId ? (
+                          <p className="break-all">UPI: {company.upiId}</p>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
               <p className="mt-2 whitespace-pre-line text-[10px]">

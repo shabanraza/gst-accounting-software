@@ -77,6 +77,7 @@ const updateProfileInputSchema = z.object({
   authorizedSignatory: z.string(),
   logoUrl: z.string(),
   invoiceTerms: z.string(),
+  upiId: z.string().max(330).default(''),
 })
 
 export type CompaniesRouterDependencies = CompanySetupDependencies

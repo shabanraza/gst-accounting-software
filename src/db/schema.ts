@@ -108,6 +108,7 @@ export const companies = pgTable(
     authorizedSignatory: text('authorized_signatory').notNull().default(''),
     logoUrl: text('logo_url').notNull().default(''),
     invoiceTerms: text('invoice_terms').notNull().default(''),
+    upiId: text('upi_id').notNull().default(''),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
