@@ -1,4 +1,5 @@
 import { buildAccountantExport } from '#/features/exports/accountant-export-service.ts'
+import { buildTallyXml } from '#/features/exports/tally-xml-export-service.ts'
 import { buildCashBook } from '#/features/accounting/cash-book-service.ts'
 import { buildDayBook } from '#/features/accounting/day-book-service.ts'
 import { buildHsnSummary } from '#/features/gst/hsn-summary-service.ts'
@@ -367,5 +368,31 @@ export const createReportsRouter = (deps: ReportsRouterDeps) =>
           },
           input.companyId,
         )
+      }),
+    tallyExport: capabilityProcedure('view_reports')
+      .input(reportInputSchema)
+      .query(async ({ input }) => {
+        const [ledgers, parties, items, entries, invoices, bills, notes] =
+          await Promise.all([
+            deps.ledgers.listByCompanyId(input.companyId),
+            deps.parties.listByCompanyId(input.companyId),
+            deps.items.listByCompanyId(input.companyId),
+            deps.postings.listByCompanyId(input.companyId),
+            deps.invoices.listByCompanyId(input.companyId),
+            deps.bills.listByCompanyId(input.companyId),
+            deps.notes.listByCompanyId(input.companyId),
+          ])
+        return buildTallyXml({
+          companyStateCode: input.companyStateCode,
+          from: input.periodStart,
+          to: input.periodEnd,
+          ledgers,
+          parties,
+          items,
+          entries,
+          invoices,
+          bills,
+          notes,
+        })
       }),
   }) satisfies TRPCRouterRecord
