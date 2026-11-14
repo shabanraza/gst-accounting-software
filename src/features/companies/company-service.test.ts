@@ -2,9 +2,13 @@ import { describe, expect, test } from 'vitest'
 
 import {
   DuplicateCompanyGstinError,
+  InvalidUpiIdError,
   createCompany,
+  emptyCompanyProfile,
   listCompaniesByAccount,
+  updateCompanyProfile,
 } from '#/features/companies/company-service.ts'
+import { InMemoryCompanyRepository as StoreCompanyRepository } from '#/features/companies/company-store.ts'
 import type {
   CompanyRecord,
   CompanyRepository,
@@ -148,4 +152,56 @@ describe('createCompany', () => {
     expect(companies).toHaveLength(1)
     expect(companies[0]?.tradeName).toBe('Shaban Textiles')
   })
+})
+
+describe('updateCompanyProfile UPI ID', () => {
+  async function setup() {
+    const repository = new StoreCompanyRepository()
+    const company = await createCompany(repository, {
+      accountId: 'account-1',
+      legalName: 'Shaban Textiles Private Limited',
+      tradeName: 'Shaban Textiles',
+      gstin: null,
+      stateCode: '27',
+      financialYearStart: '2026-04-01',
+      businessType: 'wholesale',
+    })
+    return { repository, company }
+  }
+
+  test('new companies start without a UPI ID', async () => {
+    const { company } = await setup()
+    expect(company.upiId).toBe('')
+  })
+
+  test('saves a valid UPI ID, trimmed', async () => {
+    const { repository, company } = await setup()
+    const updated = await updateCompanyProfile(repository, company.id, {
+      ...emptyCompanyProfile,
+      upiId: '  shaban.textiles@okhdfc ',
+    })
+    expect(updated?.upiId).toBe('shaban.textiles@okhdfc')
+  })
+
+  test('allows clearing the UPI ID', async () => {
+    const { repository, company } = await setup()
+    const updated = await updateCompanyProfile(repository, company.id, {
+      ...emptyCompanyProfile,
+      upiId: '   ',
+    })
+    expect(updated?.upiId).toBe('')
+  })
+
+  test.each(['shaban', 'shaban@', '@okhdfc', 'shaban@okhdfc.com', 'a b@ybl'])(
+    'rejects an invalid UPI ID %j',
+    async (upiId) => {
+      const { repository, company } = await setup()
+      await expect(
+        updateCompanyProfile(repository, company.id, {
+          ...emptyCompanyProfile,
+          upiId,
+        }),
+      ).rejects.toBeInstanceOf(InvalidUpiIdError)
+    },
+  )
 })

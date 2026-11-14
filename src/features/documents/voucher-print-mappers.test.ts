@@ -28,6 +28,7 @@ function makeCompany(): CompanyRecord {
     authorizedSignatory: '',
     logoUrl: '',
     invoiceTerms: '',
+    upiId: '',
     financialYearStart: '2026-04-01',
     createdAt: new Date('2026-01-01'),
   }

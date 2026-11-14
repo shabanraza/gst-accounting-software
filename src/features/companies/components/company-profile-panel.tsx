@@ -32,6 +32,7 @@ type ProfileFields = {
   authorizedSignatory: string
   logoUrl: string
   invoiceTerms: string
+  upiId: string
 }
 
 const emptyProfile: ProfileFields = {
@@ -48,6 +49,7 @@ const emptyProfile: ProfileFields = {
   authorizedSignatory: '',
   logoUrl: '',
   invoiceTerms: '',
+  upiId: '',
 }
 
 const fields: Array<{
@@ -74,6 +76,7 @@ const fields: Array<{
   { key: 'bankName', label: 'Bank name' },
   { key: 'bankAccountNumber', label: 'Bank account number' },
   { key: 'bankIfsc', label: 'IFSC' },
+  { key: 'upiId', label: 'UPI ID', placeholder: 'yourshop@okhdfc' },
   { key: 'logoUrl', label: 'Logo URL' },
   {
     key: 'invoiceTerms',
@@ -105,6 +108,7 @@ export function CompanyProfilePanel() {
       authorizedSignatory: company.authorizedSignatory,
       logoUrl: company.logoUrl,
       invoiceTerms: company.invoiceTerms,
+      upiId: company.upiId,
     })
   }, [company])
 

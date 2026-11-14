@@ -31,6 +31,7 @@ export function toPrintCompany(
     authorizedSignatory: company.authorizedSignatory,
     logoUrl: company.logoUrl,
     invoiceTerms: company.invoiceTerms,
+    upiId: company.upiId,
   }
 }
 

@@ -1,4 +1,5 @@
 import { DomainError } from '#/lib/domain-error.ts'
+import { isValidUpiId } from '#/features/documents/upi-payment.ts'
 
 export type BusinessType =
   | 'trading'
@@ -23,6 +24,7 @@ export type CompanyProfile = {
   authorizedSignatory: string
   logoUrl: string
   invoiceTerms: string
+  upiId: string
 }
 
 export const emptyCompanyProfile: CompanyProfile = {
@@ -39,6 +41,7 @@ export const emptyCompanyProfile: CompanyProfile = {
   authorizedSignatory: '',
   logoUrl: '',
   invoiceTerms: '',
+  upiId: '',
 }
 
 export type CreateCompanyInput = {
@@ -75,6 +78,13 @@ export class DuplicateCompanyGstinError extends DomainError {
   constructor(gstin: string) {
     super(`Company GSTIN already exists for this account: ${gstin}`)
     this.name = 'DuplicateCompanyGstinError'
+  }
+}
+
+export class InvalidUpiIdError extends DomainError {
+  constructor() {
+    super('Enter a valid UPI ID, like yourshop@okhdfc')
+    this.name = 'InvalidUpiIdError'
   }
 }
 
@@ -115,7 +125,11 @@ export async function updateCompanyProfile(
   id: string,
   profile: CompanyProfile,
 ): Promise<CompanyRecord | null> {
-  return repository.updateProfile(id, profile)
+  const upiId = profile.upiId.trim()
+  if (upiId && !isValidUpiId(upiId)) {
+    throw new InvalidUpiIdError()
+  }
+  return repository.updateProfile(id, { ...profile, upiId })
 }
 
 export async function listCompaniesByAccount(

@@ -1,3 +1,4 @@
+import { buildUpiUri } from '#/features/documents/upi-payment.ts'
 import { buildVoucherPrintDocument } from '#/features/documents/voucher-print-builder.ts'
 
 import type { ItemRecord } from '#/features/inventory/item-service.ts'
@@ -14,6 +15,15 @@ export function buildInvoicePrintDocument(input: {
   // An unregistered supplier cannot collect GST, so it issues a bill of
   // supply rather than a tax invoice.
   const isBillOfSupply = !input.company.gstin?.trim()
+  const upiUri =
+    invoice.status === 'cancelled'
+      ? null
+      : buildUpiUri({
+          vpa: input.company.upiId ?? '',
+          payeeName: input.company.tradeName || input.company.legalName,
+          amount: invoice.outstandingAmount,
+          note: invoice.invoiceNumber,
+        })
 
   return buildVoucherPrintDocument({
     kind: 'sales',
@@ -54,5 +64,6 @@ export function buildInvoicePrintDocument(input: {
     totalGstAmount: invoice.totalGstAmount,
     totalAmount: invoice.totalAmount,
     outstandingAmount: invoice.outstandingAmount,
+    upiUri: upiUri ?? undefined,
   })
 }

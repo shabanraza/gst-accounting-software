@@ -211,7 +211,6 @@ export function VoucherPreviewSheet({
               companyName={printDocument.company.legalName}
               invoiceId={target.id}
               invoiceNumber={target.number}
-              printPath={fullPageHref}
             />
           ) : null}
           <Button
