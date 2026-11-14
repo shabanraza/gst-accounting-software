@@ -186,7 +186,9 @@ export function PaymentsPanel({
             cashAccountId: ledgerBySystemKey.cash,
             receivableAccountId: ledgerBySystemKey.customer_receivable,
           })
-          await queryClient.invalidateQueries({ queryKey })
+          await queryClient.invalidateQueries({
+            queryKey: trpc.sales.list.pathKey(),
+          })
         } catch (err) {
           queryClient.setQueryData(queryKey, previousRows)
           throw err
@@ -219,7 +221,9 @@ export function PaymentsPanel({
             cashAccountId: ledgerBySystemKey.cash,
             payableAccountId: ledgerBySystemKey.supplier_payable,
           })
-          await queryClient.invalidateQueries({ queryKey })
+          await queryClient.invalidateQueries({
+            queryKey: trpc.purchases.list.pathKey(),
+          })
         } catch (err) {
           queryClient.setQueryData(queryKey, previousRows)
           throw err
@@ -356,8 +360,8 @@ export function PaymentsPanel({
               <TableRow>
                 <TableHead>Document</TableHead>
                 <TableHead>Party</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Outstanding</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead className="text-right">Outstanding</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -369,8 +373,8 @@ export function PaymentsPanel({
                         {row.invoiceNumber}
                       </TableCell>
                       <TableCell>{partyName(row.customerId)}</TableCell>
-                      <TableCell>{formatInr(row.totalAmount)}</TableCell>
-                      <TableCell className="font-medium text-money-in">
+                      <TableCell className="text-right">{formatInr(row.totalAmount)}</TableCell>
+                      <TableCell className="text-right font-medium text-money-in">
                         {formatInr(row.outstandingAmount)}
                       </TableCell>
                       <TableCell>
@@ -388,8 +392,8 @@ export function PaymentsPanel({
                         {row.supplierBillNumber}
                       </TableCell>
                       <TableCell>{partyName(row.supplierId)}</TableCell>
-                      <TableCell>{formatInr(row.totalAmount)}</TableCell>
-                      <TableCell className="font-medium text-money-out">
+                      <TableCell className="text-right">{formatInr(row.totalAmount)}</TableCell>
+                      <TableCell className="text-right font-medium text-money-out">
                         {formatInr(row.outstandingAmount)}
                       </TableCell>
                       <TableCell>

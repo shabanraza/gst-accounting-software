@@ -39,11 +39,11 @@ function sectionTotals(rows: Array<Gstr1RateRow>) {
 function TaxCells({ row }: { row: Gstr1RateRow }) {
   return (
     <>
-      <TableCell className="tabular-nums">{Number(row.gstRate)}%</TableCell>
-      <TableCell>{formatInr(row.taxableAmount)}</TableCell>
-      <TableCell>{formatInr(row.igstAmount)}</TableCell>
-      <TableCell>{formatInr(row.cgstAmount)}</TableCell>
-      <TableCell>{formatInr(row.sgstAmount)}</TableCell>
+      <TableCell className="text-right">{Number(row.gstRate)}%</TableCell>
+      <TableCell className="text-right">{formatInr(row.taxableAmount)}</TableCell>
+      <TableCell className="text-right">{formatInr(row.igstAmount)}</TableCell>
+      <TableCell className="text-right">{formatInr(row.cgstAmount)}</TableCell>
+      <TableCell className="text-right">{formatInr(row.sgstAmount)}</TableCell>
     </>
   )
 }
@@ -51,11 +51,11 @@ function TaxCells({ row }: { row: Gstr1RateRow }) {
 function TaxHeads() {
   return (
     <>
-      <TableHead>Rate</TableHead>
-      <TableHead>Taxable</TableHead>
-      <TableHead>IGST</TableHead>
-      <TableHead>CGST</TableHead>
-      <TableHead>SGST</TableHead>
+      <TableHead className="text-right">Rate</TableHead>
+      <TableHead className="text-right">Taxable</TableHead>
+      <TableHead className="text-right">IGST</TableHead>
+      <TableHead className="text-right">CGST</TableHead>
+      <TableHead className="text-right">SGST</TableHead>
     </>
   )
 }
@@ -171,7 +171,7 @@ function HsnSection({
               <TableHead>HSN</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>UQC</TableHead>
-              <TableHead>Quantity</TableHead>
+              <TableHead className="text-right">Quantity</TableHead>
               <TaxHeads />
             </TableRow>
           </TableHeader>
@@ -188,7 +188,7 @@ function HsnSection({
                     {row.description}
                   </TableCell>
                   <TableCell>{row.uqc}</TableCell>
-                  <TableCell className="tabular-nums">
+                  <TableCell className="text-right">
                     {Number(row.quantity)}
                   </TableCell>
                   <TaxCells row={row} />
@@ -230,9 +230,9 @@ function DocumentsIssuedSection({
               <TableHead>Document type</TableHead>
               <TableHead>From</TableHead>
               <TableHead>To</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Cancelled</TableHead>
-              <TableHead>Net issued</TableHead>
+              <TableHead className="text-right">Total</TableHead>
+              <TableHead className="text-right">Cancelled</TableHead>
+              <TableHead className="text-right">Net issued</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -246,11 +246,11 @@ function DocumentsIssuedSection({
                   </TableCell>
                   <TableCell>{row.from}</TableCell>
                   <TableCell>{row.to}</TableCell>
-                  <TableCell className="tabular-nums">{row.total}</TableCell>
-                  <TableCell className="tabular-nums">
+                  <TableCell className="text-right">{row.total}</TableCell>
+                  <TableCell className="text-right">
                     {row.cancelled}
                   </TableCell>
-                  <TableCell className="tabular-nums">
+                  <TableCell className="text-right">
                     {row.total - row.cancelled}
                   </TableCell>
                 </TableRow>

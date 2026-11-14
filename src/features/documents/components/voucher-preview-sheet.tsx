@@ -185,18 +185,18 @@ export function VoucherPreviewSheet({
 
           <div className="flex min-h-0 flex-1 justify-center overflow-y-auto bg-background px-4 py-6 sm:px-6 sm:py-8">
             {isLoading ? (
-              <div className="mx-auto flex aspect-[210/297] w-full max-w-[min(794px,calc(60vw-3rem))] shrink-0 items-center justify-center rounded-lg border border-dashed bg-background p-10 text-center text-sm text-muted-foreground">
+              <div className="mx-auto flex aspect-[210/297] w-full max-w-[794px] sm:max-w-[min(794px,calc(60vw-3rem))] shrink-0 items-center justify-center rounded-lg border border-dashed bg-background p-10 text-center text-sm text-muted-foreground">
                 Loading preview…
               </div>
             ) : printDocument ? (
-              <div className="mx-auto aspect-[210/297] w-full max-w-[min(794px,calc(60vw-3rem))] shrink-0">
+              <div className="mx-auto aspect-[210/297] w-full max-w-[794px] sm:max-w-[min(794px,calc(60vw-3rem))] shrink-0">
                 <VoucherDocumentPaper
-                  className="h-full min-h-0 overflow-y-auto shadow-md print:h-auto print:overflow-visible"
+                  className="h-full min-h-0 overflow-y-auto shadow-(--elevation-1) print:h-auto print:overflow-visible"
                   document={printDocument}
                 />
               </div>
             ) : (
-              <div className="mx-auto flex aspect-[210/297] w-full max-w-[min(794px,calc(60vw-3rem))] shrink-0 items-center justify-center rounded-lg border border-dashed bg-background p-10 text-center text-sm text-destructive">
+              <div className="mx-auto flex aspect-[210/297] w-full max-w-[794px] sm:max-w-[min(794px,calc(60vw-3rem))] shrink-0 items-center justify-center rounded-lg border border-dashed bg-background p-10 text-center text-sm text-destructive">
                 Could not load voucher preview.
               </div>
             )}

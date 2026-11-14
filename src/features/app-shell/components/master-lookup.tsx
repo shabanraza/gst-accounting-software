@@ -2,6 +2,7 @@ import * as React from 'react'
 import { ChevronsUpDownIcon, PlusIcon } from 'lucide-react'
 
 import { Button } from '#/components/ui/button.tsx'
+import { Kbd } from '#/components/ui/kbd.tsx'
 import {
   Command,
   CommandDialog,
@@ -104,7 +105,7 @@ export function MasterLookup({
           {selected?.label ?? placeholder}
         </span>
         <span className="flex shrink-0 items-center gap-1 text-muted-foreground">
-          <kbd className="rounded border px-1 font-mono text-[10px]">F2</kbd>
+          <Kbd>F2</Kbd>
           <ChevronsUpDownIcon className="size-3.5 opacity-50" />
         </span>
       </Button>

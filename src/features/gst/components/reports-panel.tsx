@@ -621,9 +621,6 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Trial balance</CardTitle>
-              <CardDescription>
-                Chart of accounts skeleton (balances filled as books deepen)
-              </CardDescription>
             </CardHeader>
             <CardContent className="px-0">
               <Table>
@@ -632,8 +629,8 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                     <TableHead>Code</TableHead>
                     <TableHead>Account</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead>Debit</TableHead>
-                    <TableHead>Credit</TableHead>
+                    <TableHead className="text-right">Debit</TableHead>
+                    <TableHead className="text-right">Credit</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -646,8 +643,12 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                       <TableCell>
                         <Badge variant="secondary">{row.accountType}</Badge>
                       </TableCell>
-                      <TableCell>{formatInr(row.debit)}</TableCell>
-                      <TableCell>{formatInr(row.credit)}</TableCell>
+                      <TableCell className="text-right">
+                        {formatInr(row.debit)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatInr(row.credit)}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

@@ -65,6 +65,7 @@ import {
   emptyVoucherLine,
   isValidStateCode,
   partyStateForRegion,
+  partySupplyDefaults,
   resolvePlaceOfSupply,
   resolveStateCode,
 } from '#/features/accounting/voucher-math.ts'
@@ -277,6 +278,14 @@ function VoucherEntryForm({
     }
     focusedOnOpenRef.current = focusVoucherCell('party')
   })
+  // Once the user touches the form, stop trying to auto-focus the party
+  // field. Otherwise a retry on a later re-render moves focus out of an open
+  // date picker, select or lookup, which dismisses it, so the picker seemed
+  // to need a second click. React focus and pointer events bubble through
+  // portals, so this also covers picker content rendered outside the form.
+  function stopAutoFocus() {
+    focusedOnOpenRef.current = true
+  }
   const companyState = resolveStateCode(company?.stateCode)
   const party = parties.find((item) => item.id === partyId)
   const { recentIds, rememberParty } = useRecentParties(
@@ -297,6 +306,12 @@ function VoucherEntryForm({
         companyStateCode: companyState,
       }),
     )
+  }
+
+  function applyPartySupply(partyStateCode: string) {
+    const defaults = partySupplyDefaults(partyStateCode, companyState)
+    setRegion(defaults.region)
+    setPlaceOfSupply(defaults.placeOfSupply)
   }
 
   function handleRegionChange(nextRegion: SupplyRegion) {
@@ -344,8 +359,7 @@ function VoucherEntryForm({
   React.useEffect(() => {
     if (!partyId && parties[0]) {
       setPartyId(parties[0].id)
-      syncPlaceOfSupplyForParty(parties[0].stateCode)
-      setRegion(parties[0].stateCode === companyState ? 'local' : 'central')
+      applyPartySupply(parties[0].stateCode)
     }
   }, [parties, partyId, companyState])
 
@@ -566,15 +580,14 @@ function VoucherEntryForm({
     requestAnimationFrame(() => focusVoucherCell(`${rowIndex + 1}-item`))
   }
 
-  function selectParty(nextPartyId: string) {
+  // A party created from this form is not in `parties` until the list refetches.
+  function selectParty(nextPartyId: string, knownParty?: PartyRecord) {
     rememberParty(nextPartyId)
-    const nextParty = parties.find((entry) => entry.id === nextPartyId)
+    const nextParty =
+      knownParty ?? parties.find((entry) => entry.id === nextPartyId)
     setPartyId(nextPartyId)
     if (nextParty) {
-      const nextRegion =
-        nextParty.stateCode === companyState ? 'local' : 'central'
-      setRegion(nextRegion)
-      syncPlaceOfSupplyForParty(nextParty.stateCode, nextRegion)
+      applyPartySupply(nextParty.stateCode)
       if (nextParty.paymentTermsDays > 0) {
         const due = new Date()
         due.setDate(due.getDate() + nextParty.paymentTermsDays)
@@ -584,7 +597,7 @@ function VoucherEntryForm({
   }
 
   function applyCreatedParty(createdParty: PartyRecord) {
-    selectParty(createdParty.id)
+    selectParty(createdParty.id, createdParty)
     if (!isSales && createdParty.paymentTermsDays > 0) {
       const due = new Date()
       due.setDate(due.getDate() + createdParty.paymentTermsDays)
@@ -816,7 +829,7 @@ function VoucherEntryForm({
         }
         setVoucherNoPreview(invoice.invoiceNumber)
         await queryClient.invalidateQueries({
-          queryKey: trpc.sales.list.queryKey({ companyId }),
+          queryKey: trpc.sales.list.pathKey(),
         })
         setPreviewTarget({
           kind: 'sales',
@@ -911,7 +924,7 @@ function VoucherEntryForm({
           setAttachmentFile(null)
         }
         await queryClient.invalidateQueries({
-          queryKey: trpc.purchases.list.queryKey({ companyId }),
+          queryKey: trpc.purchases.list.pathKey(),
         })
         setPreviewTarget({
           kind: 'purchase',
@@ -972,6 +985,8 @@ function VoucherEntryForm({
     >
       <form
         className="flex flex-col gap-4 pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] sm:pb-24"
+        onFocusCapture={stopAutoFocus}
+        onPointerDownCapture={stopAutoFocus}
         onSubmit={handleSave}
         ref={formRef}
       >

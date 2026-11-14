@@ -224,7 +224,7 @@ export function ExpensesPanel() {
               <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>Narration</TableHead>
-                <TableHead>Amount</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -244,7 +244,7 @@ export function ExpensesPanel() {
                     <TableCell className="font-medium">
                       {row.narration}
                     </TableCell>
-                    <TableCell>{formatInr(row.amount)}</TableCell>
+                    <TableCell className="text-right">{formatInr(row.amount)}</TableCell>
                   </TableRow>
                 ))
               )}

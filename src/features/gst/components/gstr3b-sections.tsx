@@ -40,10 +40,10 @@ export function Gstr3bSections({
             <TableHeader>
               <TableRow>
                 <TableHead>Nature of supplies</TableHead>
-                <TableHead>Taxable value</TableHead>
-                <TableHead>IGST</TableHead>
-                <TableHead>CGST</TableHead>
-                <TableHead>SGST/UTGST</TableHead>
+                <TableHead className="text-right">Taxable value</TableHead>
+                <TableHead className="text-right">IGST</TableHead>
+                <TableHead className="text-right">CGST</TableHead>
+                <TableHead className="text-right">SGST/UTGST</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -52,16 +52,16 @@ export function Gstr3bSections({
                   (a) Outward taxable supplies (other than zero rated, nil rated
                   and exempted)
                 </TableCell>
-                <TableCell>{formatInr(outward?.taxableValue ?? 0)}</TableCell>
-                <TableCell>{formatInr(outward?.igst ?? 0)}</TableCell>
-                <TableCell>{formatInr(outward?.cgst ?? 0)}</TableCell>
-                <TableCell>{formatInr(outward?.sgst ?? 0)}</TableCell>
+                <TableCell className="text-right">{formatInr(outward?.taxableValue ?? 0)}</TableCell>
+                <TableCell className="text-right">{formatInr(outward?.igst ?? 0)}</TableCell>
+                <TableCell className="text-right">{formatInr(outward?.cgst ?? 0)}</TableCell>
+                <TableCell className="text-right">{formatInr(outward?.sgst ?? 0)}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="min-w-40 whitespace-normal">
                   (c) Other outward supplies (nil rated, exempted)
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-right">
                   {formatInr(report?.nilRatedExemptValue ?? 0)}
                 </TableCell>
                 <TableCell />
@@ -84,17 +84,17 @@ export function Gstr3bSections({
             <TableHeader>
               <TableRow>
                 <TableHead>Details</TableHead>
-                <TableHead>IGST</TableHead>
-                <TableHead>CGST</TableHead>
-                <TableHead>SGST/UTGST</TableHead>
+                <TableHead className="text-right">IGST</TableHead>
+                <TableHead className="text-right">CGST</TableHead>
+                <TableHead className="text-right">SGST/UTGST</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               <TableRow>
                 <TableCell>(A)(5) All other ITC</TableCell>
-                <TableCell>{formatInr(itc?.igst ?? 0)}</TableCell>
-                <TableCell>{formatInr(itc?.cgst ?? 0)}</TableCell>
-                <TableCell>{formatInr(itc?.sgst ?? 0)}</TableCell>
+                <TableCell className="text-right">{formatInr(itc?.igst ?? 0)}</TableCell>
+                <TableCell className="text-right">{formatInr(itc?.cgst ?? 0)}</TableCell>
+                <TableCell className="text-right">{formatInr(itc?.sgst ?? 0)}</TableCell>
               </TableRow>
             </TableBody>
           </Table>

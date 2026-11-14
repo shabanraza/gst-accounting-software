@@ -91,6 +91,27 @@ export function resolvePlaceOfSupply(input: {
   return selected || partyState || companyState
 }
 
+/** Supply type and place of supply that go together when a party is picked. */
+export function partySupplyDefaults(
+  partyStateCode: string,
+  companyStateCode: string,
+): { region: SupplyRegion; placeOfSupply: string } {
+  const companyState = resolveStateCode(companyStateCode)
+  const region: SupplyRegion =
+    resolveStateCode(partyStateCode, companyState) === companyState
+      ? 'local'
+      : 'central'
+  return {
+    region,
+    placeOfSupply: resolvePlaceOfSupply({
+      region,
+      selectedPlaceOfSupply: '',
+      partyStateCode,
+      companyStateCode,
+    }),
+  }
+}
+
 export function partyStateForRegion(
   region: SupplyRegion,
   partyStateCode: string,
