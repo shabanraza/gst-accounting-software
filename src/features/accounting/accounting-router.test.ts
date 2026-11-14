@@ -169,3 +169,71 @@ describe('accountingRouter', () => {
     expect(entry.totalDebit).toBe('250.00')
   })
 })
+
+describe('accountingRouter.accountLedger', () => {
+  beforeEach(() => {
+    resetMembershipRepositoryForTests()
+  })
+
+  async function setup(role: 'owner' | 'billing') {
+    const userId = crypto.randomUUID()
+    const companyId = crypto.randomUUID()
+    const { caller } = createCaller(userId)
+    await membershipRepository.create({
+      id: crypto.randomUUID(),
+      companyId,
+      userId,
+      role,
+      createdAt: new Date(),
+    })
+    return { caller, companyId }
+  }
+
+  test('returns the statement for one of the company ledgers', async () => {
+    const { caller, companyId } = await setup('owner')
+    const accounts = await caller.accounting.setupChartOfAccounts({
+      companyId,
+      businessType: 'services',
+    })
+    const cash = accounts.find((account) => account.systemKey === 'cash')
+    const sales = accounts.find((account) => account.systemKey === 'sales')
+    if (!cash || !sales) throw new Error('default ledgers missing')
+
+    await caller.accounting.postLedgerEntry({
+      companyId,
+      entryDate: '2026-04-11',
+      narration: 'Cash sale',
+      voucherType: 'receipt',
+      lines: [
+        { ledgerAccountId: cash.id, debit: '250.00', credit: '0.00' },
+        { ledgerAccountId: sales.id, debit: '0.00', credit: '250.00' },
+      ],
+    })
+
+    const ledger = await caller.accounting.accountLedger({
+      companyId,
+      ledgerAccountId: cash.id,
+      from: '2026-04-01',
+      to: '2027-03-31',
+    })
+
+    expect(ledger.rows).toHaveLength(1)
+    expect(ledger.rows[0].counterAccounts).toEqual([
+      { id: sales.id, name: 'Sales' },
+    ])
+    expect(ledger.closingBalance).toEqual({ amount: '250.00', side: 'Dr' })
+  })
+
+  test('requires the view_reports capability', async () => {
+    const { caller, companyId } = await setup('billing')
+
+    await expect(
+      caller.accounting.accountLedger({
+        companyId,
+        ledgerAccountId: crypto.randomUUID(),
+        from: '2026-04-01',
+        to: '2027-03-31',
+      }),
+    ).rejects.toThrow(/not permitted/)
+  })
+})

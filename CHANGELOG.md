@@ -22,6 +22,7 @@ built. Never include customer names, balances or other real data.
 - The audit log in Settings also records parties, items and godowns added or edited, opening stock, company profile edits, team invites, role changes and removals, and data imports with how many rows were added. For an edit, open the row to see exactly what changed, from what to what. Filter the log by type, person and dates, and download it as a CSV file.
 - Stock journal on the Inventory page: enter a physical stock count and the difference is adjusted for you, write off damaged or lost stock (booked to a new Stock Adjustment expense ledger at average cost), or move stock from one godown to another. The Inventory page now also shows stock by godown, and clicking an item opens its stock history with every movement and the running balance.
 - Sales & profit reports under Reports: see quantity, taxable value, GST, cost and profit for each item, sales and outstanding for each customer, and profit on each invoice for any date range. Sales returns are deducted, cost is what the stock was worth when you sold it, and you can sort any column and download what you see as CSV.
+- Ledger statement for any account: in Chart of accounts, click an account such as Cash, Bank, Sales, Rent or Output GST to see its opening balance, every entry in the period with the other account and a running Dr/Cr balance, and the closing balance. It shows the current financial year by default, and you can print it or download it as CSV.
 
 ### Changed
 
