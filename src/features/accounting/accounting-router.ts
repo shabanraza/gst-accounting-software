@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { buildAccountLedger } from '#/features/accounting/account-ledger-service.ts'
 import {
   listLedgerAccountsByCompany,
   setupDefaultChartOfAccounts,
@@ -53,6 +54,15 @@ const postLedgerEntryInputSchema = z.object({
     .min(2),
 })
 
+const calendarDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+
+const accountLedgerInputSchema = z.object({
+  companyId: z.string().uuid(),
+  ledgerAccountId: z.string().uuid(),
+  from: calendarDateSchema,
+  to: calendarDateSchema,
+})
+
 export const createAccountingRouter = (
   ledgerAccountRepository: LedgerAccountRepository,
   ledgerPostingRepository: LedgerPostingRepository,
@@ -86,5 +96,16 @@ export const createAccountingRouter = (
           amount: entry.totalDebit,
         })
         return entry
+      }),
+    accountLedger: capabilityProcedure('view_reports')
+      .input(accountLedgerInputSchema)
+      .query(({ input }) => {
+        return buildAccountLedger(
+          {
+            ledgers: ledgerAccountRepository,
+            postings: ledgerPostingRepository,
+          },
+          input,
+        )
       }),
   }) satisfies TRPCRouterRecord
