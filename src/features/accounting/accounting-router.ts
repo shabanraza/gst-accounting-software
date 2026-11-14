@@ -6,11 +6,13 @@ import {
   setupDefaultChartOfAccounts,
 } from '#/features/accounting/chart-of-accounts.ts'
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
+import { recordDocumentEvent } from '#/features/audit/audit-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
+import type { AuditLogRepository } from '#/features/audit/audit-service.ts'
 
 const companyIdInputSchema = z.object({
   companyId: z.string().uuid(),
@@ -64,6 +66,7 @@ const accountLedgerInputSchema = z.object({
 export const createAccountingRouter = (
   ledgerAccountRepository: LedgerAccountRepository,
   ledgerPostingRepository: LedgerPostingRepository,
+  audit: AuditLogRepository,
 ) =>
   ({
     listLedgerAccounts: capabilityProcedure('view')
@@ -81,8 +84,18 @@ export const createAccountingRouter = (
       }),
     postLedgerEntry: capabilityProcedure('post_voucher')
       .input(postLedgerEntryInputSchema)
-      .mutation(({ input }) => {
-        return postLedgerEntry(ledgerPostingRepository, input)
+      .mutation(async ({ ctx, input }) => {
+        const entry = await postLedgerEntry(ledgerPostingRepository, input)
+        await recordDocumentEvent(audit, {
+          companyId: entry.companyId,
+          actorUserId: ctx.userId,
+          action: `${entry.voucherType}_voucher.posted`,
+          entityType: 'ledger_entry',
+          entityId: entry.id,
+          documentNumber: entry.narration,
+          amount: entry.totalDebit,
+        })
+        return entry
       }),
     accountLedger: capabilityProcedure('view_reports')
       .input(accountLedgerInputSchema)

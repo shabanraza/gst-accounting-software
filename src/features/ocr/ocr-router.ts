@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { recordDocumentEvent } from '#/features/audit/audit-service.ts'
 import {
   confirmOcrDraft,
   createOcrDraft,
@@ -94,8 +95,8 @@ export const createOcrRouter = (
     confirm: capabilityProcedure('post_purchase')
       .input(confirmOcrDraftInputSchema)
       .mutation(({ input, ctx }) =>
-        transaction((tx) =>
-          confirmOcrDraft(
+        transaction(async (tx) => {
+          const draft = await confirmOcrDraft(
             repository,
             { ...tx, ledgers },
             {
@@ -109,8 +110,23 @@ export const createOcrRouter = (
               payableAccountId: input.payableAccountId,
               stockAccountId: input.stockAccountId,
             },
-          ),
-        ),
+          )
+          const bill = draft.postedPurchaseBillId
+            ? await tx.bills.findById(draft.postedPurchaseBillId)
+            : null
+          if (bill) {
+            await recordDocumentEvent(tx.audit, {
+              companyId: bill.companyId,
+              actorUserId: ctx.userId,
+              action: 'scanned_bill.confirmed',
+              entityType: 'purchase_bill',
+              entityId: bill.id,
+              documentNumber: bill.supplierBillNumber,
+              amount: bill.totalAmount,
+            })
+          }
+          return draft
+        }),
       ),
   }) satisfies TRPCRouterRecord
 

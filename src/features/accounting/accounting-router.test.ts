@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, test } from 'vitest'
 import { createAccountingRouter } from '#/features/accounting/accounting-router.ts'
 import { InMemoryLedgerAccountRepository } from '#/features/accounting/ledger-account-store.ts'
 import { InMemoryLedgerPostingRepository } from '#/features/accounting/ledger-posting-store.ts'
+import { InMemoryAuditLogRepository } from '#/features/audit/audit-store.ts'
 import {
   membershipRepository,
   resetMembershipRepositoryForTests,
@@ -26,7 +27,7 @@ const createCaller = (userId: string) => {
     accounting: createAccountingRouter(
       ledgerAccountRepository,
       ledgerPostingRepository,
-      membershipRepository,
+      new InMemoryAuditLogRepository(),
     ),
   })
 
@@ -62,8 +63,8 @@ describe('accountingRouter', () => {
 
     const listed = await caller.accounting.listLedgerAccounts({ companyId })
 
-    expect(created).toHaveLength(12)
-    expect(listed).toHaveLength(12)
+    expect(created).toHaveLength(13)
+    expect(listed).toHaveLength(13)
     expect(listed.map((account) => account.name)).toContain('Stock In Hand')
   })
 
