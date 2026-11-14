@@ -56,6 +56,23 @@ export class InMemoryLedgerPostingRepository implements LedgerPostingRepository 
     return totals
   }
 
+  async listEntriesByAccount(
+    companyId: string,
+    ledgerAccountId: string,
+    options: { endDate: string },
+  ) {
+    return this.entries.filter(
+      (entry) =>
+        entry.companyId === companyId &&
+        entry.entryDate <= options.endDate &&
+        entry.lines.some(
+          (line) =>
+            line.companyId === companyId &&
+            line.ledgerAccountId === ledgerAccountId,
+        ),
+    )
+  }
+
   list() {
     return this.entries
   }
@@ -240,6 +257,60 @@ export class DrizzleLedgerPostingRepository implements LedgerPostingRepository {
       })
     }
     return totals
+  }
+
+  async listEntriesByAccount(
+    companyId: string,
+    ledgerAccountId: string,
+    options: { endDate: string },
+  ) {
+    const touchingEntryIds = this.database
+      .select({ id: schema.ledgerLines.entryId })
+      .from(schema.ledgerLines)
+      .innerJoin(
+        schema.ledgerEntries,
+        eq(schema.ledgerEntries.id, schema.ledgerLines.entryId),
+      )
+      .where(
+        and(
+          eq(schema.ledgerLines.companyId, companyId),
+          eq(schema.ledgerLines.ledgerAccountId, ledgerAccountId),
+          eq(schema.ledgerEntries.companyId, companyId),
+          lte(schema.ledgerEntries.entryDate, options.endDate),
+        ),
+      )
+
+    const [entries, lines] = await Promise.all([
+      this.database
+        .select()
+        .from(schema.ledgerEntries)
+        .where(
+          and(
+            eq(schema.ledgerEntries.companyId, companyId),
+            inArray(schema.ledgerEntries.id, touchingEntryIds),
+          ),
+        ),
+      this.database
+        .select()
+        .from(schema.ledgerLines)
+        .where(
+          and(
+            eq(schema.ledgerLines.companyId, companyId),
+            inArray(schema.ledgerLines.entryId, touchingEntryIds),
+          ),
+        ),
+    ])
+
+    const linesByEntryId = new Map<string, Array<LedgerLineRow>>()
+    for (const line of lines) {
+      const existing = linesByEntryId.get(line.entryId) ?? []
+      existing.push(line)
+      linesByEntryId.set(line.entryId, existing)
+    }
+
+    return entries.map((entry) =>
+      mapRowsToLedgerEntryRecord(entry, linesByEntryId.get(entry.id) ?? []),
+    )
   }
 }
 
