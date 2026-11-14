@@ -42,6 +42,8 @@ import { grnRepository } from '#/features/purchases/grn-store.ts'
 import { createPurchasesRouter } from '#/features/purchases/purchase-router.ts'
 import { purchaseBillRepository } from '#/features/purchases/purchase-bill-store.ts'
 import { createReportsRouter } from '#/features/gst/reports-router.ts'
+import { createSalesAnalysisRouter } from '#/features/reports-analysis/sales-analysis-router.ts'
+import { createSalesAnalysisRepository } from '#/features/reports-analysis/sales-analysis-store.ts'
 import { creditDebitNoteRepository } from '#/features/returns/credit-debit-note-store.ts'
 import { createReturnsRouter } from '#/features/returns/returns-router.ts'
 import { createSalesRouter } from '#/features/sales/sales-router.ts'
@@ -143,6 +145,15 @@ export const trpcRouter = createTRPCRouter({
     stockBalances: stockStore,
     items: itemRepository,
   }),
+  analysis: createSalesAnalysisRouter(
+    createSalesAnalysisRepository({
+      invoices: salesInvoiceRepository,
+      stock: stockStore,
+      notes: creditDebitNoteRepository,
+      items: itemRepository,
+      parties: partyRepository,
+    }),
+  ),
   assistant: createAssistantRouter({
     parties: partyRepository,
     invoices: salesInvoiceRepository,

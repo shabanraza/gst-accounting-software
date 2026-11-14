@@ -21,6 +21,7 @@ built. Never include customer names, balances or other real data.
 - The audit log in Settings now records every sales invoice saved or cancelled, purchase bill, confirmed scanned bill, receipt, payment, credit and debit note, expense and journal voucher, showing who did it, when, the document number and the amount.
 - The audit log in Settings also records parties, items and godowns added or edited, opening stock, company profile edits, team invites, role changes and removals, and data imports with how many rows were added. For an edit, open the row to see exactly what changed, from what to what. Filter the log by type, person and dates, and download it as a CSV file.
 - Stock journal on the Inventory page: enter a physical stock count and the difference is adjusted for you, write off damaged or lost stock (booked to a new Stock Adjustment expense ledger at average cost), or move stock from one godown to another. The Inventory page now also shows stock by godown, and clicking an item opens its stock history with every movement and the running balance.
+- Sales & profit reports under Reports: see quantity, taxable value, GST, cost and profit for each item, sales and outstanding for each customer, and profit on each invoice for any date range. Sales returns are deducted, cost is what the stock was worth when you sold it, and you can sort any column and download what you see as CSV.
 
 ### Changed
 
