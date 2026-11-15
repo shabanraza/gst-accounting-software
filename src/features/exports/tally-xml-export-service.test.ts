@@ -251,6 +251,28 @@ describe('buildTallyXml masters', () => {
     )
   })
 
+  test('puts the stock journal Stock Adjustment ledger under Indirect Expenses', () => {
+    const input = baseInput()
+    const withAdjustment = parse(
+      buildTallyXml({
+        ...input,
+        ledgers: [
+          ...input.ledgers,
+          {
+            id: 'acc-stock-adjustment',
+            name: 'Stock Adjustment',
+            accountType: 'expense',
+            systemKey: 'stock_adjustment',
+          },
+        ],
+      }).masters,
+    )
+    const adjustment = [...withAdjustment.getElementsByTagName('LEDGER')].find(
+      (element) => element.getAttribute('NAME') === 'Stock Adjustment',
+    )!
+    expect(text(adjustment, 'PARENT')).toBe('Indirect Expenses')
+  })
+
   test('exports units and stock items with HSN, GST rate and unit', () => {
     expect(
       [...masters.getElementsByTagName('UNIT')].map((u) =>

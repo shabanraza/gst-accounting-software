@@ -36,6 +36,9 @@ built. Never include customer names, balances or other real data.
 
 - New sales invoices and purchase bills for a party in another state now set the place of supply to that party's state, so they save without the "place of supply outside your company state" error. This also works for a party you add from the invoice form.
 - Sales and purchase registers update straight away after you cancel an invoice, save a bill or scanned bill, or record a receipt or payment, instead of showing the old status until you reload.
+- Download for Tally (XML) works again for companies that have used the stock journal. Before, it stopped with an error once a Stock Adjustment ledger existed; that ledger now goes under Indirect Expenses in Tally.
+- The new receipt and payment window waits for the customer's open invoices or supplier's open bills to load before you can save, so a receipt is no longer kept as an advance just because the list hadn't appeared yet. Its first column now reads Invoice for receipts.
+- Sales & profit reports label the value column Net taxable, since sales returns are already deducted from it.
 
 ## [0.4.0] - 2026-10-31
 

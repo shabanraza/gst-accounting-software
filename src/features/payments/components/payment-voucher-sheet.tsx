@@ -149,6 +149,8 @@ export function PaymentVoucherSheet({
             date: row.billDate,
             outstanding: row.outstandingAmount,
           }))
+  const documentsLoading =
+    kind === 'receipt' ? invoicesQuery.isLoading : billsQuery.isLoading
   const summary = summariseAllocation(amount, draft)
 
   const post = useMutation(trpc.payments.post.mutationOptions())
@@ -350,7 +352,7 @@ export function PaymentVoucherSheet({
                   {kind === 'receipt' ? 'Open invoices' : 'Open bills'}
                 </span>
                 <Button
-                  disabled={openDocuments.length === 0}
+                  disabled={documentsLoading || openDocuments.length === 0}
                   onClick={() =>
                     setDraft(allocateOldestFirst(amount, openDocuments))
                   }
@@ -365,7 +367,9 @@ export function PaymentVoucherSheet({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Bill</TableHead>
+                    <TableHead>
+                      {kind === 'receipt' ? 'Invoice' : 'Bill'}
+                    </TableHead>
                     <TableHead className="hidden sm:table-cell">Date</TableHead>
                     <TableHead className="text-right">Due</TableHead>
                     <TableHead className="w-28 text-right">Adjust</TableHead>
@@ -405,7 +409,11 @@ export function PaymentVoucherSheet({
                         className="py-6 text-center text-muted-foreground"
                         colSpan={4}
                       >
-                        Nothing due. The full amount is kept as an advance.
+                        {documentsLoading
+                          ? kind === 'receipt'
+                            ? 'Loading open invoices…'
+                            : 'Loading open bills…'
+                          : 'Nothing due. The full amount is kept as an advance.'}
                       </TableCell>
                     </TableRow>
                   ) : null}
@@ -443,7 +451,7 @@ export function PaymentVoucherSheet({
         </form>
         <SheetFooter>
           <Button
-            disabled={post.isPending}
+            disabled={post.isPending || documentsLoading}
             form="payment-voucher-form"
             type="submit"
           >

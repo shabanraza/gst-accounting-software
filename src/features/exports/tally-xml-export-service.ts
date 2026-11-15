@@ -138,6 +138,7 @@ const GROUP_BY_SYSTEM_KEY: Record<
   purchase: 'Purchase Accounts',
   expenses: 'Indirect Expenses',
   cogs: 'Direct Expenses',
+  stock_adjustment: 'Indirect Expenses',
 }
 
 const GROUP_BY_ACCOUNT_TYPE: Record<

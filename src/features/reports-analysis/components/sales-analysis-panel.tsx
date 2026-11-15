@@ -82,7 +82,7 @@ const ITEM_COLUMNS: Array<Column<ItemSalesRow>> = [
   { key: 'unit', label: 'Unit', kind: 'text', value: (r) => r.unit },
   {
     key: 'taxable',
-    label: 'Taxable',
+    label: 'Net taxable',
     kind: 'money',
     value: (r) => r.taxableAmount,
   },
@@ -117,7 +117,7 @@ const PARTY_COLUMNS: Array<Column<PartySalesRow>> = [
   },
   {
     key: 'taxable',
-    label: 'Taxable',
+    label: 'Net taxable',
     kind: 'money',
     value: (r) => r.taxableAmount,
   },
@@ -158,7 +158,7 @@ const INVOICE_COLUMNS: Array<Column<InvoiceProfitRow>> = [
   },
   {
     key: 'taxable',
-    label: 'Taxable',
+    label: 'Net taxable',
     kind: 'money',
     value: (r) => r.taxableAmount,
   },

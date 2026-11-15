@@ -274,9 +274,13 @@ export function PaymentsPanel({
                     className="py-10 text-center text-muted-foreground"
                     colSpan={8}
                   >
-                    {mode === 'receipts'
-                      ? 'No receipts yet.'
-                      : 'No payments yet.'}
+                    {vouchersQuery.isLoading
+                      ? mode === 'receipts'
+                        ? 'Loading receipts…'
+                        : 'Loading payments…'
+                      : mode === 'receipts'
+                        ? 'No receipts yet.'
+                        : 'No payments yet.'}
                   </TableCell>
                 </TableRow>
               ) : null}
@@ -356,7 +360,10 @@ export function PaymentsPanel({
                     className="py-10 text-center text-muted-foreground"
                     colSpan={5}
                   >
-                    No open documents.
+                    {(mode === 'receipts' ? salesQuery : purchasesQuery)
+                      .isLoading
+                      ? 'Loading open documents…'
+                      : 'No open documents.'}
                   </TableCell>
                 </TableRow>
               ) : null}
