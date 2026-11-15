@@ -27,6 +27,7 @@ import { InMemoryOcrDraftRepository } from '#/features/ocr/ocr-draft-store.ts'
 import { createOcrRouter } from '#/features/ocr/ocr-router.ts'
 import { createParty } from '#/features/parties/party-service.ts'
 import { InMemoryPartyRepository } from '#/features/parties/party-store.ts'
+import { InMemoryPartyOpeningBalanceRepository } from '#/features/parties/party-opening-balance-store.ts'
 import { InMemoryPaymentVoucherRepository } from '#/features/payments/payment-voucher-store.ts'
 import { createPaymentsRouter } from '#/features/payments/payment-router.ts'
 import { InMemoryPurchaseBillRepository } from '#/features/purchases/purchase-bill-store.ts'
@@ -65,6 +66,7 @@ async function seed() {
     dashboard: new InMemoryDashboardSummaryRepository(),
     sequences: new InMemoryDocumentSequenceRepository(),
     paymentVouchers: new InMemoryPaymentVoucherRepository(),
+    openingBalances: new InMemoryPartyOpeningBalanceRepository(),
     audit,
   }
   const financialYears = new InMemoryFinancialYearRepository()

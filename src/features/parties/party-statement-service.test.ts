@@ -9,6 +9,7 @@ import { PartyNotFoundError } from '#/features/parties/party-service.ts'
 
 import type { LedgerEntryRecord } from '#/features/accounting/posting-engine.ts'
 import type { PaymentVoucherRecord } from '#/features/payments/payment-voucher-service.ts'
+import type { PartyOpeningBalanceRecord } from '#/features/parties/party-opening-balance-service.ts'
 import type { PartyRecord } from '#/features/parties/party-service.ts'
 import type { PartyStatementDependencies } from '#/features/parties/party-statement-service.ts'
 import type { PurchaseBillRecord } from '#/features/purchases/purchase-bill-service.ts'
@@ -168,6 +169,7 @@ function deps(data: {
   notes?: Array<CreditDebitNoteRecord>
   vouchers?: Array<PaymentVoucherRecord>
   entries?: Array<LedgerEntryRecord>
+  openings?: Array<PartyOpeningBalanceRecord>
 }): PartyStatementDependencies {
   const parties = data.parties ?? [party()]
   return {
@@ -200,6 +202,13 @@ function deps(data: {
             (!options?.partyId || record.partyId === options.partyId) &&
             (!options?.endDate || record.voucherDate <= options.endDate),
         ),
+    },
+    openingBalances: {
+      findByPartyId: async (companyId: string, partyId: string) =>
+        (data.openings ?? []).find(
+          (record) =>
+            record.companyId === companyId && record.partyId === partyId,
+        ) ?? null,
     },
     postings: {
       listByCompanyId: async (companyId: string) =>
@@ -461,6 +470,104 @@ describe('buildPartyStatement', () => {
 
     expect(statement.rows[0].particulars).toBe('Receipt · Cash · advance')
     expect(statement.closingBalance).toEqual({ amount: '300.00', side: 'Cr' })
+  })
+
+  test('starts with the opening balance and adjusts receipts against it', async () => {
+    const opening: PartyOpeningBalanceRecord = {
+      id: 'opening-1',
+      companyId: COMPANY,
+      partyId: 'party-1',
+      side: 'receivable',
+      asOfDate: '2025-04-01',
+      amount: '5000.00',
+      outstandingAmount: '4500.00',
+      partyAccountId: 'acc-debtors',
+      ledgerEntryId: 'entry-opening',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+    const receipt = voucher({
+      amount: '500.00',
+      allocations: [
+        {
+          id: 'alloc-o',
+          companyId: COMPANY,
+          voucherId: 'voucher-1',
+          documentType: 'party_opening',
+          documentId: 'opening-1',
+          documentNumber: 'Opening balance',
+          amount: '500.00',
+          createdAt: new Date(),
+        },
+      ],
+    })
+
+    const full = await buildPartyStatement(
+      deps({ openings: [opening], vouchers: [receipt] }),
+      {
+        companyId: COMPANY,
+        partyId: 'party-1',
+        from: '2025-04-01',
+        to: '2026-03-31',
+      },
+    )
+    expect(
+      full.rows.map((row) => [
+        row.kind,
+        row.particulars,
+        row.debit,
+        row.credit,
+      ]),
+    ).toEqual([
+      ['receipt', 'Receipt · UPI · against Opening balance', '0.00', '500.00'],
+    ])
+    // A period starting on the opening date opens with the party's balance.
+    expect(full.openingBalance).toEqual({ amount: '5000.00', side: 'Dr' })
+    expect(full.closingBalance).toEqual({ amount: '4500.00', side: 'Dr' })
+
+    const earlier = await buildPartyStatement(
+      deps({ openings: [opening], vouchers: [receipt] }),
+      {
+        companyId: COMPANY,
+        partyId: 'party-1',
+        from: '2025-01-01',
+        to: '2026-03-31',
+      },
+    )
+    expect(earlier.rows[0]).toMatchObject({
+      kind: 'opening_balance',
+      debit: '5000.00',
+    })
+
+    const later = await buildPartyStatement(
+      deps({ openings: [opening], vouchers: [receipt] }),
+      { companyId: COMPANY, partyId: 'party-1', ...period },
+    )
+    expect(later.openingBalance).toEqual({ amount: '5000.00', side: 'Dr' })
+  })
+
+  test('shows an amount owed to the party as a credit opening balance', async () => {
+    const statement = await buildPartyStatement(
+      deps({
+        openings: [
+          {
+            id: 'opening-2',
+            companyId: COMPANY,
+            partyId: 'party-1',
+            side: 'payable',
+            asOfDate: '2025-04-01',
+            amount: '700.00',
+            outstandingAmount: '700.00',
+            partyAccountId: 'acc-creditors',
+            ledgerEntryId: 'entry-opening-2',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      }),
+      { companyId: COMPANY, partyId: 'party-1', ...period },
+    )
+    expect(statement.openingBalance).toEqual({ amount: '700.00', side: 'Cr' })
   })
 
   test('refuses a party from another company', async () => {

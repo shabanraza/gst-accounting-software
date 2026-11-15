@@ -6,6 +6,7 @@ import { InMemoryLedgerPostingRepository } from '#/features/accounting/ledger-po
 import { InMemoryFinancialYearRepository } from '#/features/companies/financial-year-store.ts'
 import { InMemoryDocumentSequenceRepository } from '#/features/documents/document-sequence-store.ts'
 import { createParty } from '#/features/parties/party-service.ts'
+import { InMemoryPartyOpeningBalanceRepository } from '#/features/parties/party-opening-balance-store.ts'
 import { InMemoryPartyRepository } from '#/features/parties/party-store.ts'
 import { InMemoryPaymentVoucherRepository } from '#/features/payments/payment-voucher-store.ts'
 import {
@@ -101,6 +102,7 @@ beforeEach(async () => {
     paymentVouchers: new InMemoryPaymentVoucherRepository(),
     ledgers,
     financialYears,
+    openingBalances: new InMemoryPartyOpeningBalanceRepository(),
   }
   const base = {
     companyId,
@@ -453,5 +455,113 @@ describe('cancelPaymentVoucher', () => {
     await expect(
       cancelPaymentVoucher(deps, { companyId, voucherId: voucher.id }),
     ).rejects.toThrow(PaymentVoucherError)
+  })
+})
+
+describe('opening balances', () => {
+  async function addOpening(
+    partyId: string,
+    side: 'receivable' | 'payable',
+    amount: string,
+  ) {
+    const record = {
+      id: crypto.randomUUID(),
+      companyId,
+      partyId,
+      side,
+      asOfDate: '2026-04-01',
+      amount,
+      outstandingAmount: amount,
+      partyAccountId: accountOf(
+        side === 'receivable' ? 'customer_receivable' : 'supplier_payable',
+      ),
+      ledgerEntryId: crypto.randomUUID(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+    await deps.openingBalances!.save(record)
+    return record
+  }
+
+  test('a receipt can be adjusted against an opening balance to receive', async () => {
+    const opening = await addOpening(customerId, 'receivable', '800.00')
+    const voucher = await postPaymentVoucher(
+      deps,
+      receipt({
+        amount: '500.00',
+        allocations: [{ documentId: opening.id, amount: '500.00' }],
+      }),
+    )
+
+    expect(voucher.allocations[0]).toMatchObject({
+      documentType: 'party_opening',
+      documentNumber: 'Opening balance',
+      amount: '500.00',
+    })
+    expect(
+      (await deps.openingBalances!.findById(companyId, opening.id))
+        ?.outstandingAmount,
+    ).toBe('300.00')
+  })
+
+  test('rejects more than the opening balance left', async () => {
+    const opening = await addOpening(customerId, 'receivable', '800.00')
+    await expect(
+      postPaymentVoucher(
+        deps,
+        receipt({
+          amount: '900.00',
+          allocations: [{ documentId: opening.id, amount: '900.00' }],
+        }),
+      ),
+    ).rejects.toThrow('Amount exceeds the opening balance due')
+  })
+
+  test('a receipt cannot be adjusted against an amount the business owes', async () => {
+    const opening = await addOpening(customerId, 'payable', '800.00')
+    await expect(
+      postPaymentVoucher(
+        deps,
+        receipt({
+          amount: '100.00',
+          allocations: [{ documentId: opening.id, amount: '100.00' }],
+        }),
+      ),
+    ).rejects.toThrow('Invoice not found for this party')
+  })
+
+  test('a payment can be adjusted against an opening balance to pay', async () => {
+    const opening = await addOpening(supplierId, 'payable', '600.00')
+    await postPaymentVoucher(
+      deps,
+      receipt({
+        kind: 'payment',
+        partyId: supplierId,
+        amount: '600.00',
+        allocations: [{ documentId: opening.id, amount: '600.00' }],
+      }),
+    )
+
+    expect(
+      (await deps.openingBalances!.findById(companyId, opening.id))
+        ?.outstandingAmount,
+    ).toBe('0.00')
+  })
+
+  test('cancelling the receipt gives the opening balance back', async () => {
+    const opening = await addOpening(customerId, 'receivable', '800.00')
+    const voucher = await postPaymentVoucher(
+      deps,
+      receipt({
+        amount: '500.00',
+        allocations: [{ documentId: opening.id, amount: '500.00' }],
+      }),
+    )
+    await cancelPaymentVoucher(deps, { companyId, voucherId: voucher.id })
+
+    expect(
+      (await deps.openingBalances!.findById(companyId, opening.id))
+        ?.outstandingAmount,
+    ).toBe('800.00')
   })
 })

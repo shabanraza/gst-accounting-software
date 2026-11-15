@@ -10,12 +10,14 @@ import type {
   PaymentVoucherRecord,
   PaymentVoucherRepository,
 } from '#/features/payments/payment-voucher-service.ts'
+import type { PartyOpeningBalanceRepository } from '#/features/parties/party-opening-balance-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
 import type { CreditDebitNoteRepository } from '#/features/returns/credit-debit-note-service.ts'
 import type { SalesInvoiceRepository } from '#/features/sales/sales-invoice-service.ts'
 
 export type PartyStatementRowKind =
+  | 'opening_balance'
   | 'sales_invoice'
   | 'purchase_bill'
   | 'credit_note'
@@ -62,6 +64,7 @@ export type PartyStatementDependencies = {
   notes: Pick<CreditDebitNoteRepository, 'listByCompanyId'>
   vouchers: Pick<PaymentVoucherRepository, 'listByCompanyId'>
   postings: Pick<LedgerPostingRepository, 'listByCompanyId'>
+  openingBalances: Pick<PartyOpeningBalanceRepository, 'findByPartyId'>
 }
 
 export class InvalidStatementPeriodError extends DomainError {
@@ -83,6 +86,7 @@ const modeLabels: Record<PaymentVoucherMode, string> = {
 }
 
 const kindLabels: Record<PartyStatementRowKind, string> = {
+  opening_balance: 'Opening balance',
   sales_invoice: 'Sales invoice',
   purchase_bill: 'Purchase bill',
   credit_note: 'Credit note',
@@ -256,16 +260,32 @@ export async function buildPartyStatement(
     endDate: input.to,
     includeLines: false,
   }
-  const [invoices, bills, notes, vouchers] = await Promise.all([
+  const [invoices, bills, notes, vouchers, partyOpening] = await Promise.all([
     deps.invoices.listByCompanyId(input.companyId, documentQuery),
     deps.bills.listByCompanyId(input.companyId, documentQuery),
     deps.notes.listByCompanyId(input.companyId),
     // All vouchers, even after the period: their allocations explain how much
     // of each document's amount due has been paid.
     deps.vouchers.listByCompanyId(input.companyId, { partyId: party.id }),
+    deps.openingBalances.findByPartyId(input.companyId, party.id),
   ])
 
   const drafts: Array<DraftRow> = []
+
+  if (partyOpening) {
+    const amount = new Decimal(partyOpening.amount)
+    const receivable = partyOpening.side === 'receivable'
+    drafts.push({
+      id: partyOpening.id,
+      date: partyOpening.asOfDate,
+      kind: 'opening_balance',
+      documentNumber: '',
+      particulars: 'Opening balance',
+      debit: receivable ? amount : ZERO,
+      credit: receivable ? ZERO : amount,
+      order: -1,
+    })
+  }
   const settledDocuments: Array<SettledDocument> = []
 
   for (const invoice of invoices) {
@@ -381,7 +401,12 @@ export async function buildPartyStatement(
   for (const draft of drafts) {
     if (draft.date > input.to) continue
     const net = draft.debit.minus(draft.credit)
-    if (draft.date < input.from) {
+    // The party's opening balance on the first day of the period is the
+    // statement's opening balance, not a row.
+    const isOpening =
+      draft.date < input.from ||
+      (draft.kind === 'opening_balance' && draft.date === input.from)
+    if (isOpening) {
       opening = opening.plus(net)
       running = opening
       continue

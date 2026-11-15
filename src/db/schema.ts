@@ -1124,3 +1124,34 @@ export const paymentAllocations = pgTable(
     ),
   ],
 )
+
+export const partyOpeningBalances = pgTable(
+  'party_opening_balances',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id),
+    partyId: uuid('party_id')
+      .notNull()
+      .references(() => parties.id),
+    side: text('side').notNull(),
+    asOfDate: text('as_of_date').notNull(),
+    amount: text('amount').notNull(),
+    outstandingAmount: text('outstanding_amount').notNull(),
+    partyAccountId: uuid('party_account_id')
+      .notNull()
+      .references(() => ledgerAccounts.id),
+    ledgerEntryId: uuid('ledger_entry_id')
+      .notNull()
+      .references(() => ledgerEntries.id),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('party_opening_balances_company_party_idx').on(
+      table.companyId,
+      table.partyId,
+    ),
+  ],
+)

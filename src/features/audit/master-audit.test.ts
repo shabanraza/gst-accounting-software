@@ -12,6 +12,8 @@ import { InMemoryAuditLogRepository } from '#/features/audit/audit-store.ts'
 import { createCompaniesRouter } from '#/features/companies/company-router.ts'
 import { InMemoryCompanyRepository } from '#/features/companies/company-store.ts'
 import { InMemoryFinancialYearRepository } from '#/features/companies/financial-year-store.ts'
+import { InMemoryPartyOpeningBalanceRepository } from '#/features/parties/party-opening-balance-store.ts'
+import { InMemoryPaymentVoucherRepository } from '#/features/payments/payment-voucher-store.ts'
 import {
   membershipRepository,
   resetMembershipRepositoryForTests,
@@ -130,6 +132,8 @@ async function seed() {
     parties: new InMemoryPartyRepository(),
     dashboard: new InMemoryDashboardSummaryRepository(),
     sequences: new InMemoryDocumentSequenceRepository(),
+    paymentVouchers: new InMemoryPaymentVoucherRepository(),
+    openingBalances: new InMemoryPartyOpeningBalanceRepository(),
     audit,
   }
   const accounts = await setupDefaultChartOfAccounts(ledgers, {
@@ -175,7 +179,12 @@ async function seed() {
   }
 
   const router = createTRPCRouter({
-    parties: createPartiesRouter(repositories.parties, audit),
+    parties: createPartiesRouter(repositories.parties, audit, {
+      transaction,
+      ledgers,
+      financialYears: new InMemoryFinancialYearRepository(),
+      openingBalances: repositories.openingBalances,
+    }),
     inventory: createInventoryRouter(
       repositories.items,
       repositories.stock,

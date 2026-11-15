@@ -44,6 +44,7 @@ import type {
   StockBalanceRepository,
   StockMovementRepository,
 } from '#/features/inventory/stock-movement-service.ts'
+import type { PartyOpeningBalanceRepository } from '#/features/parties/party-opening-balance-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
 import type { PaymentVoucherRepository } from '#/features/payments/payment-voucher-service.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
@@ -133,6 +134,7 @@ type ReportsRouterDeps = {
   stockBalances: StockBalanceRepository
   items: ItemRepository
   vouchers: PaymentVoucherRepository
+  openingBalances: PartyOpeningBalanceRepository
 }
 
 async function loadGstr1Report(

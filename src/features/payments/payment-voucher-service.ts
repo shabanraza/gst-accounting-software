@@ -4,6 +4,10 @@ import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
 import { nextDocumentNumber } from '#/features/documents/document-sequence-service.ts'
 import { DomainError } from '#/lib/domain-error.ts'
 
+import type {
+  PartyOpeningBalanceRecord,
+  PartyOpeningBalanceRepository,
+} from '#/features/parties/party-opening-balance-service.ts'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
 import type { FinancialYearRepository } from '#/features/companies/financial-year-service.ts'
@@ -26,7 +30,9 @@ import type {
 export type PaymentVoucherKind = 'receipt' | 'payment'
 export type PaymentVoucherMode = 'cash' | 'bank' | 'upi' | 'cheque'
 export type PaymentVoucherStatus = 'posted' | 'cancelled'
-export type PaymentDocumentType = 'sales_invoice' | 'purchase_bill'
+/** `party_opening` is a customer's or supplier's opening balance. */
+export type PaymentDocumentType =
+  'sales_invoice' | 'purchase_bill' | 'party_opening'
 
 export type PaymentVoucherAllocationRecord = {
   id: string
@@ -97,6 +103,7 @@ export type PaymentVoucherDependencies = {
   paymentVouchers: PaymentVoucherRepository
   ledgers: LedgerAccountRepository
   financialYears: FinancialYearRepository
+  openingBalances?: PartyOpeningBalanceRepository
 }
 
 export type VoucherAllocationInput = {
@@ -226,6 +233,34 @@ async function allocateVoucherNumber(
   })
 }
 
+export const OPENING_BALANCE_LABEL = 'Opening balance'
+
+/**
+ * The party's opening balance with this id, if the voucher can be adjusted
+ * against it: receipts collect an amount to receive, payments settle an
+ * amount to pay.
+ */
+async function findOpeningBalance(
+  deps: PaymentVoucherDependencies,
+  voucher: Pick<PaymentVoucherRecord, 'companyId' | 'kind' | 'partyId'>,
+  id: string,
+) {
+  const repository = deps.openingBalances
+  if (!repository) return null
+  const opening = repository.lockById
+    ? await repository.lockById(voucher.companyId, id)
+    : await repository.findById(voucher.companyId, id)
+  const side = voucher.kind === 'receipt' ? 'receivable' : 'payable'
+  if (
+    !opening ||
+    opening.partyId !== voucher.partyId ||
+    opening.side !== side
+  ) {
+    return null
+  }
+  return opening
+}
+
 /**
  * Validates and applies allocations to open invoices (receipts) or bills
  * (payments): each must belong to the party and fit its outstanding.
@@ -239,6 +274,31 @@ async function applyAllocations(
   const seen = new Set<string>()
   const rows: Array<PaymentVoucherAllocationRecord> = []
   const writes: Array<() => Promise<unknown>> = []
+  const adjustOpening = (
+    opening: PartyOpeningBalanceRecord,
+    amount: Decimal,
+  ) => {
+    const outstanding = new Decimal(opening.outstandingAmount)
+    if (amount.gt(outstanding)) {
+      throw new PaymentVoucherError('Amount exceeds the opening balance due')
+    }
+    writes.push(() =>
+      deps.openingBalances!.save({
+        ...opening,
+        outstandingAmount: formatMoney(outstanding.minus(amount)),
+        updatedAt: new Date(),
+      }),
+    )
+    rows.push(
+      allocationRow(
+        voucher,
+        'party_opening',
+        opening.id,
+        OPENING_BALANCE_LABEL,
+        amount,
+      ),
+    )
+  }
 
   for (const allocation of allocations) {
     if (seen.has(allocation.documentId)) {
@@ -259,7 +319,16 @@ async function applyAllocations(
         invoice.companyId !== voucher.companyId ||
         invoice.customerId !== voucher.partyId
       ) {
-        throw new PaymentVoucherError('Invoice not found for this party')
+        const opening = await findOpeningBalance(
+          deps,
+          voucher,
+          allocation.documentId,
+        )
+        if (!opening) {
+          throw new PaymentVoucherError('Invoice not found for this party')
+        }
+        adjustOpening(opening, amount)
+        continue
       }
       if (invoice.status === 'cancelled') {
         throw new PaymentVoucherError(
@@ -301,7 +370,16 @@ async function applyAllocations(
         bill.companyId !== voucher.companyId ||
         bill.supplierId !== voucher.partyId
       ) {
-        throw new PaymentVoucherError('Bill not found for this party')
+        const opening = await findOpeningBalance(
+          deps,
+          voucher,
+          allocation.documentId,
+        )
+        if (!opening) {
+          throw new PaymentVoucherError('Bill not found for this party')
+        }
+        adjustOpening(opening, amount)
+        continue
       }
       const outstanding = new Decimal(bill.outstandingAmount)
       if (amount.gt(outstanding)) {
@@ -585,7 +663,23 @@ export async function cancelPaymentVoucher(
   )
   for (const allocation of voucher.allocations) {
     const amount = new Decimal(allocation.amount)
-    if (allocation.documentType === 'sales_invoice') {
+    if (allocation.documentType === 'party_opening') {
+      const repository = deps.openingBalances
+      const opening = repository?.lockById
+        ? await repository.lockById(voucher.companyId, allocation.documentId)
+        : await repository?.findById(voucher.companyId, allocation.documentId)
+      if (!repository || !opening) continue
+      await repository.save({
+        ...opening,
+        outstandingAmount: formatMoney(
+          Decimal.min(
+            new Decimal(opening.outstandingAmount).plus(amount),
+            new Decimal(opening.amount),
+          ),
+        ),
+        updatedAt: new Date(),
+      })
+    } else if (allocation.documentType === 'sales_invoice') {
       const invoice = deps.invoices.lockById
         ? await deps.invoices.lockById(allocation.documentId)
         : await deps.invoices.findById(allocation.documentId)

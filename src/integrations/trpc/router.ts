@@ -37,6 +37,7 @@ import { createPartiesRouter } from '#/features/parties/party-router.ts'
 import { partyRepository } from '#/features/parties/party-store.ts'
 import { createPaymentsRouter } from '#/features/payments/payment-router.ts'
 import { paymentVoucherRepository } from '#/features/payments/payment-voucher-store.ts'
+import { partyOpeningBalanceRepository } from '#/features/parties/party-opening-balance-store.ts'
 import { createPurchaseOrdersRouter } from '#/features/purchases/purchase-orders-router.ts'
 import { purchaseOrderRepository } from '#/features/purchases/purchase-order-store.ts'
 import { createGrnRouter } from '#/features/purchases/grn-router.ts'
@@ -76,6 +77,7 @@ const postingTransaction = createPostingTransaction({
   dashboard: dashboardSummaryRepository,
   sequences: documentSequenceRepository,
   paymentVouchers: paymentVoucherRepository,
+  openingBalances: partyOpeningBalanceRepository,
   audit: auditLogRepository,
 })
 
@@ -98,7 +100,12 @@ export const trpcRouter = createTRPCRouter({
     ledgerPostingRepository,
     auditLogRepository,
   ),
-  parties: createPartiesRouter(partyRepository, auditLogRepository),
+  parties: createPartiesRouter(partyRepository, auditLogRepository, {
+    transaction: postingTransaction,
+    ledgers: ledgerAccountRepository,
+    financialYears: financialYearRepository,
+    openingBalances: partyOpeningBalanceRepository,
+  }),
   inventory: createInventoryRouter(
     itemRepository,
     stockStore,
@@ -159,6 +166,7 @@ export const trpcRouter = createTRPCRouter({
     stockBalances: stockStore,
     items: itemRepository,
     vouchers: paymentVoucherRepository,
+    openingBalances: partyOpeningBalanceRepository,
   }),
   analysis: createSalesAnalysisRouter(
     createSalesAnalysisRepository({

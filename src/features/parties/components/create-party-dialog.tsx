@@ -38,6 +38,7 @@ import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
 import { failForm } from '#/lib/form-validation.ts'
 import { isValidStateCode } from '#/features/accounting/voucher-math.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
+import type { OpeningBalanceSide } from '#/features/parties/party-opening-balance-service.ts'
 import type {
   PartyRecord,
   PartyType,
@@ -93,6 +94,9 @@ export function CreatePartyDialog({
   const [creditLimit, setCreditLimit] = React.useState('')
   const [paymentTermsDays, setPaymentTermsDays] = React.useState('30')
   const [priceListId, setPriceListId] = React.useState('')
+  const [openingAmount, setOpeningAmount] = React.useState('')
+  const [openingSide, setOpeningSide] =
+    React.useState<OpeningBalanceSide>('receivable')
   const [formError, setFormError] = React.useState<string | null>(null)
 
   const priceListsQuery = useQuery(
@@ -101,6 +105,23 @@ export function CreatePartyDialog({
     ),
   )
 
+  const openingBalancesQuery = useQuery(
+    trpc.parties.listOpeningBalances.queryOptions(
+      companyId && isReady && open ? { companyId } : skipToken,
+    ),
+  )
+  const openingRecord = party
+    ? (openingBalancesQuery.data ?? []).find(
+        (record) => record.partyId === party.id,
+      )
+    : undefined
+  const openingLocked = Boolean(
+    openingRecord &&
+    Number(openingRecord.outstandingAmount) < Number(openingRecord.amount),
+  )
+  const setOpeningBalance = useMutation(
+    trpc.parties.setOpeningBalance.mutationOptions(),
+  )
   const createParty = useMutation(trpc.parties.create.mutationOptions())
   const updateParty = useMutation(trpc.parties.update.mutationOptions())
 
@@ -132,6 +153,21 @@ export function CreatePartyDialog({
   }
 
   React.useEffect(() => {
+    if (!open) return
+    setOpeningAmount(openingRecord ? openingRecord.amount : '')
+    setOpeningSide(
+      openingRecord?.side ??
+        (party?.partyType === 'supplier' ? 'payable' : 'receivable'),
+    )
+  }, [
+    open,
+    party,
+    openingRecord?.id,
+    openingRecord?.amount,
+    openingRecord?.side,
+  ])
+
+  React.useEffect(() => {
     if (open) {
       loadPartyValues(party)
       if (!party) {
@@ -157,6 +193,8 @@ export function CreatePartyDialog({
     setCreditLimit('')
     setPaymentTermsDays('30')
     setPriceListId('')
+    setOpeningAmount('')
+    setOpeningSide('receivable')
     setFormError(null)
   }
 
@@ -215,6 +253,11 @@ export function CreatePartyDialog({
       return
     }
 
+    const openingTrimmed = openingAmount.trim()
+    if (openingTrimmed && !/^\d+(\.\d{1,2})?$/.test(openingTrimmed)) {
+      return failForm(setFormError, 'Opening balance must be a valid amount.')
+    }
+
     const contactPayload = {
       pan: pan.trim(),
       addressLine1: addressLine1.trim(),
@@ -225,6 +268,26 @@ export function CreatePartyDialog({
       contactEmail: contactEmail.trim(),
       billingAddress: '',
       shippingAddress: shipSameAsBilling ? '' : shippingAddress.trim(),
+    }
+
+    // Saves the opening balance only when it changed, since it posts to the
+    // books.
+    async function saveOpeningBalance(partyId: string) {
+      if (!companyId) return
+      const next = openingTrimmed ? Number(openingTrimmed).toFixed(2) : ''
+      const current = openingRecord?.amount ?? ''
+      const sameSide = !openingRecord || openingRecord.side === openingSide
+      if (next === current && sameSide) return
+      if (!next && !openingRecord) return
+      await setOpeningBalance.mutateAsync({
+        companyId,
+        partyId,
+        side: openingSide,
+        amount: next,
+      })
+      await queryClient.invalidateQueries({
+        queryKey: trpc.parties.listOpeningBalances.queryKey({ companyId }),
+      })
     }
 
     setFormError(null)
@@ -242,6 +305,7 @@ export function CreatePartyDialog({
           priceListId: priceListId || null,
           ...contactPayload,
         })
+        await saveOpeningBalance(updated.id)
         await queryClient.invalidateQueries({
           queryKey: trpc.parties.list.queryKey({ companyId }),
         })
@@ -269,6 +333,14 @@ export function CreatePartyDialog({
       await queryClient.invalidateQueries({
         queryKey: trpc.parties.list.queryKey({ companyId }),
       })
+      try {
+        await saveOpeningBalance(created.id)
+      } catch (error) {
+        // The party is saved either way; the balance can be set again from Edit.
+        toast.error(
+          `Party created, but the opening balance was not saved: ${getFormErrorMessage(error)}`,
+        )
+      }
       resetForm()
       setOpen(false)
       toast.success('Party created.')
@@ -278,7 +350,10 @@ export function CreatePartyDialog({
     }
   }
 
-  const saving = createParty.isPending || updateParty.isPending
+  const saving =
+    createParty.isPending ||
+    updateParty.isPending ||
+    setOpeningBalance.isPending
 
   const dialog = (
     <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
@@ -493,6 +568,42 @@ export function CreatePartyDialog({
               placeholder="e.g. 100000.00"
               value={creditLimit}
             />
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-sm" htmlFor="party-opening">
+              Opening balance
+            </Label>
+            <Input
+              disabled={openingLocked}
+              id="party-opening"
+              inputMode="decimal"
+              onChange={(event) => setOpeningAmount(event.target.value)}
+              placeholder="0.00"
+              value={openingAmount}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">Balance type</span>
+            <Select
+              disabled={openingLocked}
+              onValueChange={(value) =>
+                setOpeningSide(value as OpeningBalanceSide)
+              }
+              value={openingSide}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectGroup>
+                  <SelectItem value="receivable">To receive (Dr)</SelectItem>
+                  <SelectItem value="payable">To pay (Cr)</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

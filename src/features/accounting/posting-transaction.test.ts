@@ -19,6 +19,7 @@ import {
 } from '#/features/inventory/inventory-store.ts'
 import { InMemoryPartyRepository } from '#/features/parties/party-store.ts'
 import { createPaymentsRouter } from '#/features/payments/payment-router.ts'
+import { InMemoryPartyOpeningBalanceRepository } from '#/features/parties/party-opening-balance-store.ts'
 import { InMemoryPaymentVoucherRepository } from '#/features/payments/payment-voucher-store.ts'
 import { InMemoryPurchaseBillRepository } from '#/features/purchases/purchase-bill-store.ts'
 import { createPurchasesRouter } from '#/features/purchases/purchase-router.ts'
@@ -53,6 +54,7 @@ function inMemoryRepositories(): PostingRepositories {
     dashboard: new InMemoryDashboardSummaryRepository(),
     sequences: new InMemoryDocumentSequenceRepository(),
     paymentVouchers: new InMemoryPaymentVoucherRepository(),
+    openingBalances: new InMemoryPartyOpeningBalanceRepository(),
     audit: new InMemoryAuditLogRepository(),
   }
 }
