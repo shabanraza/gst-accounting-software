@@ -158,6 +158,7 @@ export const trpcRouter = createTRPCRouter({
     stockMovements: stockStore,
     stockBalances: stockStore,
     items: itemRepository,
+    vouchers: paymentVoucherRepository,
   }),
   analysis: createSalesAnalysisRouter(
     createSalesAnalysisRepository({
