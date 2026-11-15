@@ -2,6 +2,7 @@ import Decimal from 'decimal.js'
 
 import { hsnLineOf } from '#/features/gst/hsn-summary-service.ts'
 
+import type { ExpenseRepository } from '#/features/expenses/expense-service.ts'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
@@ -37,14 +38,18 @@ export async function buildGstDocuments(input: {
   notes: CreditDebitNoteRepository
   /** Needed only for the GSTR-1 HSN summary. */
   items?: ItemRepository
+  /** Expenses whose GST is claimed count as inward supplies. */
+  expenses?: Pick<ExpenseRepository, 'listByCompanyId'>
 }): Promise<Array<GstReportDocument>> {
-  const [sales, purchases, partyList, notes, items] = await Promise.all([
-    input.invoices.listByCompanyId(input.companyId),
-    input.bills.listByCompanyId(input.companyId),
-    input.parties.listByCompanyId(input.companyId),
-    input.notes.listByCompanyId(input.companyId),
-    input.items?.listByCompanyId(input.companyId),
-  ])
+  const [sales, purchases, partyList, notes, items, expenses] =
+    await Promise.all([
+      input.invoices.listByCompanyId(input.companyId),
+      input.bills.listByCompanyId(input.companyId),
+      input.parties.listByCompanyId(input.companyId),
+      input.notes.listByCompanyId(input.companyId),
+      input.items?.listByCompanyId(input.companyId),
+      input.expenses?.listByCompanyId(input.companyId),
+    ])
   const partyById = new Map(partyList.map((party) => [party.id, party]))
   const itemById = items && new Map(items.map((item) => [item.id, item]))
   const invoiceById = new Map(sales.map((invoice) => [invoice.id, invoice]))
@@ -164,5 +169,35 @@ export async function buildGstDocuments(input: {
     }
   })
 
-  return [...salesDocs, ...purchaseDocs, ...noteDocs]
+  // Treated like purchase bills so the credit reaches GSTR-3B and the 2B match.
+  const expenseDocs: Array<GstReportDocument> = (expenses ?? [])
+    .filter(
+      (expense) => expense.itcClaimed && new Decimal(expense.gstAmount).gt(0),
+    )
+    .map((expense) => ({
+      id: expense.id,
+      companyId: expense.companyId,
+      documentType: 'purchase_bill',
+      documentDate: expense.expenseDate,
+      partyGstin: expense.supplierGstin || null,
+      partyName: expense.supplierName || 'Supplier',
+      ...taxSplit(
+        input.companyStateCode,
+        expense.placeOfSupply || input.companyStateCode,
+        expense.gstAmount,
+      ),
+      taxableAmount: expense.taxableAmount,
+      totalGstAmount: expense.gstAmount,
+      totalAmount: expense.amount,
+      invoiceNumber: expense.billNumber,
+      rateLines: [
+        {
+          gstRate: expense.gstRate,
+          taxableAmount: expense.taxableAmount,
+          gstAmount: expense.gstAmount,
+        },
+      ],
+    }))
+
+  return [...salesDocs, ...purchaseDocs, ...noteDocs, ...expenseDocs]
 }

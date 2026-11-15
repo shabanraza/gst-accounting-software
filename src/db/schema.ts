@@ -766,6 +766,15 @@ export const expenses = pgTable(
     expenseDate: text('expense_date').notNull(),
     narration: text('narration').notNull(),
     amount: text('amount').notNull(),
+    /** Null for expenses saved before GST was recorded; then it equals amount. */
+    taxableAmount: text('taxable_amount'),
+    gstRate: text('gst_rate').notNull().default('0.00'),
+    gstAmount: text('gst_amount').notNull().default('0.00'),
+    itcClaimed: boolean('itc_claimed').notNull().default(false),
+    supplierName: text('supplier_name').notNull().default(''),
+    supplierGstin: text('supplier_gstin').notNull().default(''),
+    billNumber: text('bill_number').notNull().default(''),
+    placeOfSupply: text('place_of_supply').notNull().default(''),
     expenseAccountId: uuid('expense_account_id')
       .notNull()
       .references(() => ledgerAccounts.id),

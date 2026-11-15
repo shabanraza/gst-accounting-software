@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
+import { InMemoryExpenseRepository } from '#/features/expenses/expense-store.ts'
 import { buildGstDocuments } from '#/features/gst/gst-report-documents.ts'
 import { buildGstr1Report } from '#/features/gst/gstr1-report-service.ts'
 import { buildGstr3bReport } from '#/features/gst/gstr3b-report-service.ts'
@@ -9,6 +10,7 @@ import { InMemoryPurchaseBillRepository } from '#/features/purchases/purchase-bi
 import { InMemoryCreditDebitNoteRepository } from '#/features/returns/credit-debit-note-store.ts'
 import { InMemorySalesInvoiceRepository } from '#/features/sales/sales-invoice-store.ts'
 
+import type { ExpenseRecord } from '#/features/expenses/expense-service.ts'
 import type { CreditDebitNoteRecord } from '#/features/returns/credit-debit-note-service.ts'
 import type { SalesInvoiceRecord } from '#/features/sales/sales-invoice-service.ts'
 
@@ -157,6 +159,7 @@ async function documentsFor(input: {
   invoices?: Array<SalesInvoiceRecord>
   notes?: Array<CreditDebitNoteRecord>
   items?: InMemoryItemRepository
+  expenses?: Array<ExpenseRecord>
 }) {
   const parties = new InMemoryPartyRepository()
   await parties.create(
@@ -167,6 +170,8 @@ async function documentsFor(input: {
   for (const invoice of input.invoices ?? []) await invoices.create(invoice)
   const notes = new InMemoryCreditDebitNoteRepository()
   for (const record of input.notes ?? []) await notes.create(record)
+  const expenses = new InMemoryExpenseRepository()
+  for (const record of input.expenses ?? []) await expenses.create(record)
   return buildGstDocuments({
     companyId: 'company-1',
     companyStateCode: '24',
@@ -175,8 +180,80 @@ async function documentsFor(input: {
     parties,
     notes,
     items: input.items,
+    expenses,
   })
 }
+
+function expense(overrides: Partial<ExpenseRecord> = {}): ExpenseRecord {
+  return {
+    id: 'exp-1',
+    companyId: 'company-1',
+    expenseDate: '2026-07-10',
+    narration: 'Office rent',
+    amount: '11800.00',
+    taxableAmount: '10000.00',
+    gstRate: '18.00',
+    gstAmount: '1800.00',
+    itcClaimed: true,
+    supplierName: 'Shree Properties',
+    supplierGstin: '27AABCS1234K1Z5',
+    billNumber: 'SP/26/041',
+    placeOfSupply: '27',
+    expenseAccountId: 'acc-expense',
+    paymentAccountId: 'acc-cash',
+    ledgerEntryId: 'entry-exp-1',
+    createdAt: new Date(),
+    ...overrides,
+  }
+}
+
+describe('buildGstDocuments expenses', () => {
+  test('counts GST claimed on expenses as input tax credit', async () => {
+    const documents = await documentsFor({
+      expenses: [
+        expense(),
+        expense({
+          id: 'exp-2',
+          supplierGstin: '24AABCS1234K1Z5',
+          placeOfSupply: '24',
+          taxableAmount: '1000.00',
+          gstAmount: '50.00',
+          gstRate: '5.00',
+          amount: '1050.00',
+          billNumber: 'L-9',
+        }),
+        expense({ id: 'exp-3', itcClaimed: false }),
+        expense({ id: 'exp-4', gstAmount: '0.00', itcClaimed: false }),
+      ],
+    })
+
+    expect(documents.map((document) => document.id)).toEqual(['exp-1', 'exp-2'])
+    expect(documents[0]).toMatchObject({
+      documentType: 'purchase_bill',
+      documentDate: '2026-07-10',
+      partyGstin: '27AABCS1234K1Z5',
+      partyName: 'Shree Properties',
+      invoiceNumber: 'SP/26/041',
+      supplyType: 'inter_state',
+      igstAmount: '1800.00',
+      taxableAmount: '10000.00',
+      totalAmount: '11800.00',
+    })
+    expect(documents[1]).toMatchObject({
+      supplyType: 'intra_state',
+      cgstAmount: '25.00',
+      sgstAmount: '25.00',
+    })
+
+    const gstr3b = buildGstr3bReport({
+      companyId: 'company-1',
+      periodStart: '2026-07-01',
+      periodEnd: '2026-07-31',
+      documents,
+    })
+    expect(gstr3b.inputGst).toBe('1850.00')
+  })
+})
 
 describe('buildGstDocuments place of supply', () => {
   test('takes the place of supply from the sales invoice, not the party', async () => {

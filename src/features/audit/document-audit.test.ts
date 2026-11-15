@@ -67,6 +67,7 @@ async function seed() {
     sequences: new InMemoryDocumentSequenceRepository(),
     paymentVouchers: new InMemoryPaymentVoucherRepository(),
     openingBalances: new InMemoryPartyOpeningBalanceRepository(),
+    expenses: new InMemoryExpenseRepository(),
     audit,
   }
   const financialYears = new InMemoryFinancialYearRepository()
@@ -142,11 +143,11 @@ async function seed() {
       financialYears,
       audit,
     ),
-    expenses: createExpensesRouter(
-      new InMemoryExpenseRepository(),
-      repositories.posting,
-      audit,
-    ),
+    expenses: createExpensesRouter({
+      transaction,
+      expenses: repositories.expenses,
+      ledgers,
+    }),
     accounting: createAccountingRouter(ledgers, repositories.posting, audit),
     audit: createAuditRouter(audit, {
       listByIds: async () => [

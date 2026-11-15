@@ -3,6 +3,7 @@ import { DrizzleLedgerPostingRepository } from '#/features/accounting/ledger-pos
 import { DrizzleAuditLogRepository } from '#/features/audit/audit-store.ts'
 import { DrizzleDashboardSummaryRepository } from '#/features/dashboard/dashboard-store.ts'
 import { DrizzleDocumentSequenceRepository } from '#/features/documents/document-sequence-store.ts'
+import { DrizzleExpenseRepository } from '#/features/expenses/expense-store.ts'
 import {
   DrizzleItemRepository,
   DrizzleStockStore,
@@ -18,6 +19,7 @@ import type { LedgerPostingRepository } from '#/features/accounting/posting-engi
 import type { AuditLogRepository } from '#/features/audit/audit-service.ts'
 import type { DashboardSummaryRepository } from '#/features/dashboard/dashboard-summary-service.ts'
 import type { DocumentSequenceRepository } from '#/features/documents/document-sequence-service.ts'
+import type { ExpenseRepository } from '#/features/expenses/expense-service.ts'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
 import type {
   StockBalanceRepository,
@@ -40,6 +42,7 @@ export type PostingRepositories = {
   sequences: DocumentSequenceRepository
   paymentVouchers: PaymentVoucherRepository
   openingBalances: PartyOpeningBalanceRepository
+  expenses: ExpenseRepository
   audit: AuditLogRepository
 }
 
@@ -76,6 +79,7 @@ export function createPostingTransaction(
           sequences: new DrizzleDocumentSequenceRepository(tx),
           paymentVouchers: new DrizzlePaymentVoucherRepository(tx),
           openingBalances: new DrizzlePartyOpeningBalanceRepository(tx),
+          expenses: new DrizzleExpenseRepository(tx),
           audit: new DrizzleAuditLogRepository(tx),
         }),
       )

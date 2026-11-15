@@ -12,6 +12,7 @@ import { InMemoryAuditLogRepository } from '#/features/audit/audit-store.ts'
 import { createCompaniesRouter } from '#/features/companies/company-router.ts'
 import { InMemoryCompanyRepository } from '#/features/companies/company-store.ts'
 import { InMemoryFinancialYearRepository } from '#/features/companies/financial-year-store.ts'
+import { InMemoryExpenseRepository } from '#/features/expenses/expense-store.ts'
 import { InMemoryPartyOpeningBalanceRepository } from '#/features/parties/party-opening-balance-store.ts'
 import { InMemoryPaymentVoucherRepository } from '#/features/payments/payment-voucher-store.ts'
 import {
@@ -134,6 +135,7 @@ async function seed() {
     sequences: new InMemoryDocumentSequenceRepository(),
     paymentVouchers: new InMemoryPaymentVoucherRepository(),
     openingBalances: new InMemoryPartyOpeningBalanceRepository(),
+    expenses: new InMemoryExpenseRepository(),
     audit,
   }
   const accounts = await setupDefaultChartOfAccounts(ledgers, {
