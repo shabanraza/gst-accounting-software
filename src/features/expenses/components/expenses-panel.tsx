@@ -6,9 +6,11 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 import { ReceiptIcon, PlusIcon } from 'lucide-react'
+import Decimal from 'decimal.js'
 import { toast } from 'sonner'
 
 import { Button } from '#/components/ui/button.tsx'
+import { Checkbox } from '#/components/ui/checkbox.tsx'
 import {
   Card,
   CardContent,
@@ -46,6 +48,7 @@ import {
 } from '#/components/ui/table.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
+import { gstRateOptions } from '#/features/app-shell/data/india-masters.ts'
 import { formatInr } from '#/lib/format-inr.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import {
@@ -66,6 +69,20 @@ export function ExpensesPanel() {
     new Date().toISOString().slice(0, 10),
   )
   const [paymentAccountId, setPaymentAccountId] = React.useState('')
+  const [gstRate, setGstRate] = React.useState('0.00')
+  const [supplierName, setSupplierName] = React.useState('')
+  const [supplierGstin, setSupplierGstin] = React.useState('')
+  const [billNumber, setBillNumber] = React.useState('')
+  const [claimItc, setClaimItc] = React.useState(true)
+  const hasGst = Number(gstRate) > 0
+  let gstPreview: { gst: string; total: string } | null = null
+  try {
+    const taxable = new Decimal(amount.trim() || '0')
+    const gst = taxable.times(gstRate).div(100).toDecimalPlaces(2)
+    gstPreview = { gst: gst.toFixed(2), total: taxable.plus(gst).toFixed(2) }
+  } catch {
+    gstPreview = null
+  }
 
   const expensesQuery = useQuery(
     trpc.expenses.list.queryOptions(
@@ -112,6 +129,11 @@ export function ExpensesPanel() {
         amount: expenseAmount,
         expenseAccountId,
         paymentAccountId,
+        gstRate,
+        supplierName: hasGst ? supplierName.trim() : '',
+        supplierGstin: hasGst ? supplierGstin.trim() : '',
+        billNumber: hasGst ? billNumber.trim() : '',
+        claimItc: hasGst && claimItc,
       })
       await queryClient.invalidateQueries({
         queryKey: trpc.expenses.list.queryKey({ companyId }),
@@ -119,6 +141,11 @@ export function ExpensesPanel() {
       setOpen(false)
       setNarration('')
       setAmount('')
+      setGstRate('0.00')
+      setSupplierName('')
+      setSupplierGstin('')
+      setBillNumber('')
+      setClaimItc(true)
       toast.success('Expense posted')
     } catch (err) {
       toastActionError(err, 'Failed to post expense')
@@ -157,7 +184,7 @@ export function ExpensesPanel() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-sm" htmlFor="exp-amt">
-                    Amount
+                    {hasGst ? 'Amount before GST' : 'Amount'}
                   </Label>
                   <Input
                     id="exp-amt"
@@ -178,6 +205,90 @@ export function ExpensesPanel() {
                   />
                 </div>
               </div>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium">GST rate</span>
+                <Select onValueChange={setGstRate} value={gstRate}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {gstRateOptions.map((rate) => (
+                        <SelectItem key={rate} value={rate}>
+                          {Number(rate) === 0 ? 'No GST' : `${Number(rate)}%`}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+              {hasGst ? (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-sm" htmlFor="exp-supplier">
+                        Supplier
+                      </Label>
+                      <Input
+                        id="exp-supplier"
+                        onChange={(event) =>
+                          setSupplierName(event.target.value)
+                        }
+                        value={supplierName}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-sm" htmlFor="exp-bill">
+                        Bill number
+                      </Label>
+                      <Input
+                        id="exp-bill"
+                        onChange={(event) => setBillNumber(event.target.value)}
+                        value={billNumber}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-sm" htmlFor="exp-gstin">
+                      Supplier GSTIN
+                    </Label>
+                    <Input
+                      className="font-mono uppercase"
+                      id="exp-gstin"
+                      maxLength={15}
+                      onChange={(event) => setSupplierGstin(event.target.value)}
+                      value={supplierGstin}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={claimItc}
+                      id="exp-itc"
+                      onCheckedChange={(checked) =>
+                        setClaimItc(checked === true)
+                      }
+                    />
+                    <Label className="font-normal" htmlFor="exp-itc">
+                      Claim input tax credit
+                    </Label>
+                  </div>
+                  {gstPreview ? (
+                    <dl
+                      className="grid grid-cols-2 gap-1 text-sm"
+                      data-ui="data"
+                    >
+                      <dt className="text-muted-foreground">GST</dt>
+                      <dd className="text-right font-mono tabular-nums">
+                        {formatInr(gstPreview.gst)}
+                      </dd>
+                      <dt className="font-medium">Total paid</dt>
+                      <dd className="text-right font-mono font-medium tabular-nums">
+                        {formatInr(gstPreview.total)}
+                      </dd>
+                    </dl>
+                  ) : null}
+                </>
+              ) : null}
               <div className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium">Paid from</span>
                 <Select
@@ -224,6 +335,9 @@ export function ExpensesPanel() {
               <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>Narration</TableHead>
+                <TableHead className="hidden text-right sm:table-cell">
+                  GST
+                </TableHead>
                 <TableHead className="text-right">Amount</TableHead>
               </TableRow>
             </TableHeader>
@@ -232,7 +346,7 @@ export function ExpensesPanel() {
                 <TableRow>
                   <TableCell
                     className="py-10 text-center text-muted-foreground"
-                    colSpan={3}
+                    colSpan={4}
                   >
                     No expenses yet.
                   </TableCell>
@@ -244,7 +358,14 @@ export function ExpensesPanel() {
                     <TableCell className="font-medium">
                       {row.narration}
                     </TableCell>
-                    <TableCell className="text-right">{formatInr(row.amount)}</TableCell>
+                    <TableCell className="hidden text-right font-mono tabular-nums sm:table-cell">
+                      {Number(row.gstAmount) > 0
+                        ? formatInr(row.gstAmount)
+                        : '—'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatInr(row.amount)}
+                    </TableCell>
                   </TableRow>
                 ))
               )}

@@ -12,6 +12,7 @@ import { buildStockSummary } from '#/features/inventory/stock-ledger-service.ts'
 
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
+import type { ExpenseRepository } from '#/features/expenses/expense-service.ts'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
 import type { StockBalanceRepository } from '#/features/inventory/stock-movement-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
@@ -33,6 +34,7 @@ export type AssistantToolDeps = {
   stockBalances: StockBalanceRepository
   ledgers: LedgerAccountRepository
   postings: LedgerPostingRepository
+  expenses?: ExpenseRepository
 }
 
 export type AssistantToolContext = {
@@ -340,6 +342,7 @@ export function createAssistantTools(
         bills: deps.bills,
         parties: deps.parties,
         notes: deps.notes,
+        expenses: deps.expenses,
       })
       const report = buildGstr3bReport({
         companyId,

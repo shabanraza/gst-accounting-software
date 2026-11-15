@@ -8,8 +8,8 @@ import {
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
-import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
-import type { AuditLogRepository } from '#/features/audit/audit-service.ts'
+import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
+import type { PostingTransaction } from '#/features/accounting/posting-transaction.ts'
 import type { ExpenseRepository } from '#/features/expenses/expense-service.ts'
 
 const companyIdSchema = z.object({
@@ -23,30 +23,48 @@ const postExpenseInputSchema = z.object({
   amount: z.string().min(1),
   expenseAccountId: z.string().uuid(),
   paymentAccountId: z.string().uuid(),
+  gstRate: z.string().optional(),
+  supplierName: z.string().optional(),
+  supplierGstin: z.string().optional(),
+  billNumber: z.string().optional(),
+  claimItc: z.boolean().optional(),
 })
 
-export const createExpensesRouter = (
-  expenses: ExpenseRepository,
-  posting: LedgerPostingRepository,
-  audit: AuditLogRepository,
-) =>
+export const createExpensesRouter = (deps: {
+  transaction: PostingTransaction
+  expenses: ExpenseRepository
+  ledgers: Pick<LedgerAccountRepository, 'listByCompanyId'>
+}) =>
   ({
-    list: capabilityProcedure('view').input(companyIdSchema).query(({ input }) => {
-      return listExpensesByCompany(expenses, input.companyId)
-    }),
+    list: capabilityProcedure('view')
+      .input(companyIdSchema)
+      .query(({ input }) => {
+        return listExpensesByCompany(deps.expenses, input.companyId)
+      }),
     post: capabilityProcedure('post_voucher')
       .input(postExpenseInputSchema)
       .mutation(async ({ ctx, input }) => {
-        const expense = await postExpense(expenses, posting, input)
-        await recordDocumentEvent(audit, {
-          companyId: expense.companyId,
-          actorUserId: ctx.userId,
-          action: 'expense.posted',
-          entityType: 'expense',
-          entityId: expense.id,
-          documentNumber: expense.narration,
-          amount: expense.amount,
+        const inputGstAccountId = input.claimItc
+          ? (await deps.ledgers.listByCompanyId(input.companyId)).find(
+              (account) => account.systemKey === 'input_gst',
+            )?.id
+          : undefined
+        // The expense, its ledger entry and the audit event save together.
+        return deps.transaction(async (tx) => {
+          const expense = await postExpense(tx.expenses, tx.posting, {
+            ...input,
+            inputGstAccountId,
+          })
+          await recordDocumentEvent(tx.audit, {
+            companyId: expense.companyId,
+            actorUserId: ctx.userId,
+            action: 'expense.posted',
+            entityType: 'expense',
+            entityId: expense.id,
+            documentNumber: expense.narration,
+            amount: expense.amount,
+          })
+          return expense
         })
-        return expense
       }),
   }) satisfies TRPCRouterRecord

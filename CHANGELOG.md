@@ -15,6 +15,7 @@ built. Never include customer names, balances or other real data.
 
 ### Added
 
+- GST on expenses: choose a GST rate when you record an expense, add the supplier, their GSTIN and the bill number, and tick Claim input tax credit. The GST goes to Input GST and counts towards your ITC in GSTR-3B; leave the box unticked and it stays part of the expense. The expense register shows the GST on each expense.
 - Opening balances for customers and suppliers: enter what a party owed you, or what you owed them, before you started using HisaabKro when you add or edit the party. It is posted to your books, shows in the party statement and the amount due, and you can adjust receipts and payments against it like an invoice or bill.
 - Statement of account for each customer and supplier: open Customers & suppliers and pick the statement icon on a row. It lists every invoice, bill, credit and debit note, receipt and payment for the dates you choose, with the opening balance, the balance after each entry and the closing balance. Print it or download it as CSV.
 - Barcode labels for retail shops: open Items → Print labels, pick items and how many labels each, and print on an A4 label sheet or a 50 × 25 mm label roll. Labels show the item name, MRP and sale price. Items without a barcode get their own store code, and you can enter a product's existing EAN/UPC barcode when adding an item. Scan a label into the item search on a sale or purchase to pick that item.

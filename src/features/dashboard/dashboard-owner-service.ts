@@ -424,7 +424,9 @@ export function topPartyBalances(
 
   return [...byParty.entries()]
     .filter(([, entry]) => entry.outstanding.gt(0))
-    .sort(([, left], [, right]) => right.outstanding.comparedTo(left.outstanding))
+    .sort(([, left], [, right]) =>
+      right.outstanding.comparedTo(left.outstanding),
+    )
     .slice(0, TOP_PARTY_LIMIT)
     .map(([partyId, entry]) => ({
       partyId,
@@ -638,6 +640,7 @@ export async function getOwnerDashboardSnapshot(
       bills: deps.bills,
       parties: deps.parties,
       notes: deps.notes,
+      expenses: deps.expenses,
     }),
     buildLowStockSignals(deps, companyId),
     deps.items.listByCompanyId(companyId),
@@ -735,9 +738,7 @@ export async function getOwnerDashboardSnapshot(
     asOf: asOfDate,
     capabilities,
     lowStock,
-    overdueReceivables: withPhone(
-      rollUpOverdueParties(receivablesAgeing.rows),
-    ),
+    overdueReceivables: withPhone(rollUpOverdueParties(receivablesAgeing.rows)),
     overduePayables: withPhone(rollUpOverdueParties(payablesAgeing.rows)),
     gst: {
       netPayableAmount: gstMtd.netGstPayable,

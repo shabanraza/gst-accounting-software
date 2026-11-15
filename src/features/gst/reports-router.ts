@@ -39,6 +39,7 @@ import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
+import type { ExpenseRepository } from '#/features/expenses/expense-service.ts'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
 import type {
   StockBalanceRepository,
@@ -135,6 +136,7 @@ type ReportsRouterDeps = {
   items: ItemRepository
   vouchers: PaymentVoucherRepository
   openingBalances: PartyOpeningBalanceRepository
+  expenses: ExpenseRepository
 }
 
 async function loadGstr1Report(
@@ -150,6 +152,7 @@ async function loadGstr1Report(
       parties: deps.parties,
       notes: deps.notes,
       items: deps.items,
+      expenses: deps.expenses,
     }),
     deps.invoices.listByCompanyId(input.companyId, {
       includeLines: false,
@@ -187,6 +190,7 @@ export const createReportsRouter = (deps: ReportsRouterDeps) =>
           bills: deps.bills,
           parties: deps.parties,
           notes: deps.notes,
+          expenses: deps.expenses,
         })
         return buildGstr3bReport({
           companyId: input.companyId,
@@ -333,6 +337,7 @@ export const createReportsRouter = (deps: ReportsRouterDeps) =>
           bills: deps.bills,
           parties: deps.parties,
           notes: deps.notes,
+          expenses: deps.expenses,
         })
         return buildGstr3bWorkingReport(
           {
