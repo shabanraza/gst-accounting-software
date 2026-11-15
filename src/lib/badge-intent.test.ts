@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
 import {
+  recurringInvoiceBadgeIntent,
   ageingBucketBadgeIntent,
   ageingBucketChartColor,
   auditActionBadgeIntent,
@@ -73,7 +74,9 @@ describe('toolCheckBadgeIntent', () => {
 
 describe('auditActionBadgeIntent', () => {
   test('cancellations and removals are destructive, everything else neutral', () => {
-    expect(auditActionBadgeIntent('sales_invoice.cancelled')).toBe('destructive')
+    expect(auditActionBadgeIntent('sales_invoice.cancelled')).toBe(
+      'destructive',
+    )
     expect(auditActionBadgeIntent('team_member.removed')).toBe('destructive')
     expect(auditActionBadgeIntent('party.updated')).toBe('neutral')
     expect(auditActionBadgeIntent('sales_invoice.posted')).toBe('neutral')
@@ -99,6 +102,23 @@ describe('periodChangeBadgeIntent', () => {
   test('a change that is not judged good or bad stays neutral', () => {
     expect(periodChangeBadgeIntent({ direction: 'up', judged: false })).toBe(
       'secondary',
+    )
+  })
+})
+
+describe('recurringInvoiceBadgeIntent', () => {
+  test('due is info, running is success, paused is warning, ended is neutral', () => {
+    expect(recurringInvoiceBadgeIntent({ status: 'active', due: true })).toBe(
+      'info',
+    )
+    expect(recurringInvoiceBadgeIntent({ status: 'active', due: false })).toBe(
+      'success',
+    )
+    expect(recurringInvoiceBadgeIntent({ status: 'paused', due: true })).toBe(
+      'warning',
+    )
+    expect(recurringInvoiceBadgeIntent({ status: 'ended', due: false })).toBe(
+      'neutral',
     )
   })
 })

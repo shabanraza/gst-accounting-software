@@ -17,6 +17,7 @@ import { InMemoryDashboardSummaryRepository } from '#/features/dashboard/dashboa
 import { InMemoryDocumentSequenceRepository } from '#/features/documents/document-sequence-store.ts'
 import { createExpensesRouter } from '#/features/expenses/expense-router.ts'
 import { InMemoryExpenseRepository } from '#/features/expenses/expense-store.ts'
+import { InMemoryRecurringInvoiceRepository } from '#/features/sales/recurring-invoice-store.ts'
 import { createItem } from '#/features/inventory/item-service.ts'
 import {
   InMemoryItemRepository,
@@ -68,6 +69,7 @@ async function seed() {
     paymentVouchers: new InMemoryPaymentVoucherRepository(),
     openingBalances: new InMemoryPartyOpeningBalanceRepository(),
     expenses: new InMemoryExpenseRepository(),
+    recurringInvoices: new InMemoryRecurringInvoiceRepository(),
     audit,
   }
   const financialYears = new InMemoryFinancialYearRepository()

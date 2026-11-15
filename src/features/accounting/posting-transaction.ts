@@ -12,6 +12,7 @@ import { DrizzlePartyOpeningBalanceRepository } from '#/features/parties/party-o
 import { DrizzlePartyRepository } from '#/features/parties/party-store.ts'
 import { DrizzlePaymentVoucherRepository } from '#/features/payments/payment-voucher-store.ts'
 import { DrizzlePurchaseBillRepository } from '#/features/purchases/purchase-bill-store.ts'
+import { DrizzleRecurringInvoiceRepository } from '#/features/sales/recurring-invoice-store.ts'
 import { DrizzleSalesInvoiceRepository } from '#/features/sales/sales-invoice-store.ts'
 
 import type { PooledDatabase } from '#/db/client.ts'
@@ -29,6 +30,7 @@ import type { PartyOpeningBalanceRepository } from '#/features/parties/party-ope
 import type { PartyRepository } from '#/features/parties/party-service.ts'
 import type { PaymentVoucherRepository } from '#/features/payments/payment-voucher-service.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
+import type { RecurringInvoiceRepository } from '#/features/sales/recurring-invoice-service.ts'
 import type { SalesInvoiceRepository } from '#/features/sales/sales-invoice-service.ts'
 
 export type PostingRepositories = {
@@ -43,6 +45,7 @@ export type PostingRepositories = {
   paymentVouchers: PaymentVoucherRepository
   openingBalances: PartyOpeningBalanceRepository
   expenses: ExpenseRepository
+  recurringInvoices: RecurringInvoiceRepository
   audit: AuditLogRepository
 }
 
@@ -80,6 +83,7 @@ export function createPostingTransaction(
           paymentVouchers: new DrizzlePaymentVoucherRepository(tx),
           openingBalances: new DrizzlePartyOpeningBalanceRepository(tx),
           expenses: new DrizzleExpenseRepository(tx),
+          recurringInvoices: new DrizzleRecurringInvoiceRepository(tx),
           audit: new DrizzleAuditLogRepository(tx),
         }),
       )

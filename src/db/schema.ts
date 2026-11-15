@@ -3,6 +3,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   serial,
@@ -1161,6 +1162,42 @@ export const partyOpeningBalances = pgTable(
     uniqueIndex('party_opening_balances_company_party_idx').on(
       table.companyId,
       table.partyId,
+    ),
+  ],
+)
+
+export const recurringInvoices = pgTable(
+  'recurring_invoices',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => parties.id),
+    customerName: text('customer_name').notNull(),
+    sourceInvoiceId: uuid('source_invoice_id')
+      .notNull()
+      .references(() => salesInvoices.id),
+    frequency: text('frequency').notNull(),
+    startDate: text('start_date').notNull(),
+    nextRunDate: text('next_run_date').notNull(),
+    endDate: text('end_date'),
+    dueDays: integer('due_days').default(0).notNull(),
+    status: text('status').default('active').notNull(),
+    totalAmount: text('total_amount').notNull(),
+    template: jsonb('template').notNull(),
+    lastInvoiceId: uuid('last_invoice_id').references(() => salesInvoices.id),
+    lastInvoiceNumber: text('last_invoice_number').default('').notNull(),
+    generatedCount: integer('generated_count').default(0).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('recurring_invoices_company_next_run_idx').on(
+      table.companyId,
+      table.nextRunDate,
     ),
   ],
 )
