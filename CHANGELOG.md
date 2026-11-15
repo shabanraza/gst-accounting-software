@@ -15,6 +15,7 @@ built. Never include customer names, balances or other real data.
 
 ### Added
 
+- Recurring invoices: pick the repeat icon on a sales invoice to bill the same customer every week, month, 3 months or year, starting on the date you choose and, if you like, stopping on an end date. Sales → Recurring invoices lists each one with its next date; when an invoice is due, Create invoice makes it with the next invoice number, the same items and rates, and the same payment terms. Pause, resume or stop any of them.
 - GST on expenses: choose a GST rate when you record an expense, add the supplier, their GSTIN and the bill number, and tick Claim input tax credit. The GST goes to Input GST and counts towards your ITC in GSTR-3B; leave the box unticked and it stays part of the expense. The expense register shows the GST on each expense.
 - Opening balances for customers and suppliers: enter what a party owed you, or what you owed them, before you started using HisaabKro when you add or edit the party. It is posted to your books, shows in the party statement and the amount due, and you can adjust receipts and payments against it like an invoice or bill.
 - Statement of account for each customer and supplier: open Customers & suppliers and pick the statement icon on a row. It lists every invoice, bill, credit and debit note, receipt and payment for the dates you choose, with the opening balance, the balance after each entry and the closing balance. Print it or download it as CSV.

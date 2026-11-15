@@ -58,6 +58,7 @@ import { Route as AppPurchasesIndexRouteImport } from './routes/app/purchases/in
 import { Route as ToolsHsnCodeFinderChapterRouteImport } from './routes/tools/hsn-code-finder.$chapter'
 import { Route as ToolsGstCalculatorRateRouteImport } from './routes/tools/gst-calculator.$rate'
 import { Route as DesignAccountingSidebarRouteImport } from './routes/design/accounting/sidebar'
+import { Route as AppSalesRecurringRouteImport } from './routes/app/sales/recurring'
 import { Route as AppSalesNewRouteImport } from './routes/app/sales/new'
 import { Route as AppSalesDocumentsRouteImport } from './routes/app/sales/documents'
 import { Route as AppPurchasesNewRouteImport } from './routes/app/purchases/new'
@@ -325,6 +326,11 @@ const DesignAccountingSidebarRoute = DesignAccountingSidebarRouteImport.update({
   path: '/sidebar',
   getParentRoute: () => DesignAccountingRoute,
 } as any)
+const AppSalesRecurringRoute = AppSalesRecurringRouteImport.update({
+  id: '/recurring',
+  path: '/recurring',
+  getParentRoute: () => AppSalesRoute,
+} as any)
 const AppSalesNewRoute = AppSalesNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -465,6 +471,7 @@ export interface FileRoutesByFullPath {
   '/app/purchases/new': typeof AppPurchasesNewRoute
   '/app/sales/documents': typeof AppSalesDocumentsRoute
   '/app/sales/new': typeof AppSalesNewRoute
+  '/app/sales/recurring': typeof AppSalesRecurringRoute
   '/design/accounting/sidebar': typeof DesignAccountingSidebarRoute
   '/tools/gst-calculator/$rate': typeof ToolsGstCalculatorRateRoute
   '/tools/hsn-code-finder/$chapter': typeof ToolsHsnCodeFinderChapterRoute
@@ -530,6 +537,7 @@ export interface FileRoutesByTo {
   '/app/purchases/new': typeof AppPurchasesNewRoute
   '/app/sales/documents': typeof AppSalesDocumentsRoute
   '/app/sales/new': typeof AppSalesNewRoute
+  '/app/sales/recurring': typeof AppSalesRecurringRoute
   '/design/accounting/sidebar': typeof DesignAccountingSidebarRoute
   '/tools/gst-calculator/$rate': typeof ToolsGstCalculatorRateRoute
   '/tools/hsn-code-finder/$chapter': typeof ToolsHsnCodeFinderChapterRoute
@@ -598,6 +606,7 @@ export interface FileRoutesById {
   '/app/purchases/new': typeof AppPurchasesNewRoute
   '/app/sales/documents': typeof AppSalesDocumentsRoute
   '/app/sales/new': typeof AppSalesNewRoute
+  '/app/sales/recurring': typeof AppSalesRecurringRoute
   '/design/accounting/sidebar': typeof DesignAccountingSidebarRoute
   '/tools/gst-calculator/$rate': typeof ToolsGstCalculatorRateRoute
   '/tools/hsn-code-finder/$chapter': typeof ToolsHsnCodeFinderChapterRoute
@@ -667,6 +676,7 @@ export interface FileRouteTypes {
     | '/app/purchases/new'
     | '/app/sales/documents'
     | '/app/sales/new'
+    | '/app/sales/recurring'
     | '/design/accounting/sidebar'
     | '/tools/gst-calculator/$rate'
     | '/tools/hsn-code-finder/$chapter'
@@ -732,6 +742,7 @@ export interface FileRouteTypes {
     | '/app/purchases/new'
     | '/app/sales/documents'
     | '/app/sales/new'
+    | '/app/sales/recurring'
     | '/design/accounting/sidebar'
     | '/tools/gst-calculator/$rate'
     | '/tools/hsn-code-finder/$chapter'
@@ -799,6 +810,7 @@ export interface FileRouteTypes {
     | '/app/purchases/new'
     | '/app/sales/documents'
     | '/app/sales/new'
+    | '/app/sales/recurring'
     | '/design/accounting/sidebar'
     | '/tools/gst-calculator/$rate'
     | '/tools/hsn-code-finder/$chapter'
@@ -1192,6 +1204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DesignAccountingSidebarRouteImport
       parentRoute: typeof DesignAccountingRoute
     }
+    '/app/sales/recurring': {
+      id: '/app/sales/recurring'
+      path: '/recurring'
+      fullPath: '/app/sales/recurring'
+      preLoaderRoute: typeof AppSalesRecurringRouteImport
+      parentRoute: typeof AppSalesRoute
+    }
     '/app/sales/new': {
       id: '/app/sales/new'
       path: '/new'
@@ -1326,6 +1345,7 @@ const AppPurchasesRouteWithChildren = AppPurchasesRoute._addFileChildren(
 interface AppSalesRouteChildren {
   AppSalesDocumentsRoute: typeof AppSalesDocumentsRoute
   AppSalesNewRoute: typeof AppSalesNewRoute
+  AppSalesRecurringRoute: typeof AppSalesRecurringRoute
   AppSalesIndexRoute: typeof AppSalesIndexRoute
   AppSalesInvoiceIdPrintRoute: typeof AppSalesInvoiceIdPrintRoute
 }
@@ -1333,6 +1353,7 @@ interface AppSalesRouteChildren {
 const AppSalesRouteChildren: AppSalesRouteChildren = {
   AppSalesDocumentsRoute: AppSalesDocumentsRoute,
   AppSalesNewRoute: AppSalesNewRoute,
+  AppSalesRecurringRoute: AppSalesRecurringRoute,
   AppSalesIndexRoute: AppSalesIndexRoute,
   AppSalesInvoiceIdPrintRoute: AppSalesInvoiceIdPrintRoute,
 }

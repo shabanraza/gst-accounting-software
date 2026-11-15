@@ -38,6 +38,7 @@ import type {
 } from '#/features/inventory/item-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
 import type {
+  PostSalesInvoiceInput,
   SalesInvoiceRecord,
   SalesInvoiceRepository,
 } from '#/features/sales/sales-invoice-service.ts'
@@ -220,6 +221,54 @@ function allocateInvoiceNumber(
   })
 }
 
+export type PostSalesInvoiceRequest = Omit<
+  PostSalesInvoiceInput,
+  'invoiceNumber'
+> & {
+  invoiceNumber?: string
+  financialYearId?: string
+  series?: string
+}
+
+/**
+ * Numbers and posts a sales invoice with its dashboard summary and audit
+ * event. Call it inside a posting transaction.
+ */
+export async function postSalesInvoiceWithEffects(
+  tx: PostingRepositories,
+  input: PostSalesInvoiceRequest,
+  actorUserId: string,
+) {
+  const invoiceNumber =
+    input.invoiceNumber ?? (await allocateInvoiceNumber(tx, input))
+  const invoice = await postSalesInvoice(tx, {
+    ...input,
+    invoiceNumber,
+  })
+  const stockOutQuantity = invoice.lines
+    .reduce((sum, line) => sum + Number(line.quantity), 0)
+    .toFixed(0)
+
+  await recordSalesSummary(tx.dashboard, {
+    companyId: invoice.companyId,
+    summaryDate: invoice.invoiceDate,
+    salesAmount: invoice.totalAmount,
+    receivableAmount: invoice.outstandingAmount,
+    stockOutQuantity,
+  })
+  await recordDocumentEvent(tx.audit, {
+    companyId: invoice.companyId,
+    actorUserId,
+    action: 'sales_invoice.posted',
+    entityType: 'sales_invoice',
+    entityId: invoice.id,
+    documentNumber: invoice.invoiceNumber,
+    amount: invoice.totalAmount,
+  })
+
+  return invoice
+}
+
 export const createSalesRouter = (
   invoices: SalesInvoiceRepository,
   transaction: PostingTransaction,
@@ -263,36 +312,7 @@ export const createSalesRouter = (
     postInvoice: capabilityProcedure('post_sales')
       .input(postSalesInvoiceInputSchema)
       .mutation(({ ctx, input }) =>
-        transaction(async (tx) => {
-          const invoiceNumber =
-            input.invoiceNumber ?? (await allocateInvoiceNumber(tx, input))
-          const invoice = await postSalesInvoice(tx, {
-            ...input,
-            invoiceNumber,
-          })
-          const stockOutQuantity = invoice.lines
-            .reduce((sum, line) => sum + Number(line.quantity), 0)
-            .toFixed(0)
-
-          await recordSalesSummary(tx.dashboard, {
-            companyId: invoice.companyId,
-            summaryDate: invoice.invoiceDate,
-            salesAmount: invoice.totalAmount,
-            receivableAmount: invoice.outstandingAmount,
-            stockOutQuantity,
-          })
-          await recordDocumentEvent(tx.audit, {
-            companyId: invoice.companyId,
-            actorUserId: ctx.userId,
-            action: 'sales_invoice.posted',
-            entityType: 'sales_invoice',
-            entityId: invoice.id,
-            documentNumber: invoice.invoiceNumber,
-            amount: invoice.totalAmount,
-          })
-
-          return invoice
-        }),
+        transaction((tx) => postSalesInvoiceWithEffects(tx, input, ctx.userId)),
       ),
     cancelInvoice: capabilityProcedure('post_sales')
       .input(cancelSalesInvoiceInputSchema)

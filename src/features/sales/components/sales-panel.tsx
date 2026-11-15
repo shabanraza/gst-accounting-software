@@ -7,7 +7,13 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { BanIcon, EyeIcon, PlusIcon, PrinterIcon } from 'lucide-react'
+import {
+  BanIcon,
+  EyeIcon,
+  PlusIcon,
+  PrinterIcon,
+  Repeat2Icon,
+} from 'lucide-react'
 
 import {
   AlertDialog,
@@ -48,6 +54,8 @@ import { WorkspacePage } from '#/features/app-shell/components/workspace-page.ts
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { resolveListFilter } from '#/features/app-shell/list-filter.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
+import { RepeatInvoiceDialog } from '#/features/sales/components/repeat-invoice-dialog.tsx'
+import type { RepeatInvoiceTarget } from '#/features/sales/components/repeat-invoice-dialog.tsx'
 import { formatInr } from '#/lib/format-inr.ts'
 import { invoiceStatusBadgeIntent } from '#/lib/badge-intent.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
@@ -73,6 +81,8 @@ export function SalesPanel({
     id: string
     invoiceNumber: string
   } | null>(null)
+  const [repeatTarget, setRepeatTarget] =
+    React.useState<RepeatInvoiceTarget | null>(null)
   const partiesQuery = useQuery(
     trpc.parties.list.queryOptions(
       companyId && isReady ? { companyId } : skipToken,
@@ -218,8 +228,12 @@ export function SalesPanel({
                   </TableCell>
                   <TableCell>{partyName(row.customerId)}</TableCell>
                   <TableCell>{row.invoiceDate}</TableCell>
-                  <TableCell className="text-right">{formatInr(row.taxableAmount)}</TableCell>
-                  <TableCell className="text-right">{formatInr(row.totalGstAmount)}</TableCell>
+                  <TableCell className="text-right">
+                    {formatInr(row.taxableAmount)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatInr(row.totalGstAmount)}
+                  </TableCell>
                   <TableCell className="text-right font-medium text-money-in">
                     {formatInr(row.totalAmount)}
                   </TableCell>
@@ -269,6 +283,28 @@ export function SalesPanel({
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
+                              onClick={() =>
+                                setRepeatTarget({
+                                  id: row.id,
+                                  invoiceNumber: row.invoiceNumber,
+                                  invoiceDate: row.invoiceDate,
+                                })
+                              }
+                              size="icon-sm"
+                              type="button"
+                              variant="ghost"
+                            >
+                              <Repeat2Icon />
+                              <span className="sr-only">Repeat invoice</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Repeat</TooltipContent>
+                        </Tooltip>
+                      )}
+                      {row.status === 'cancelled' ? null : (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
                               className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                               disabled={cancelInvoiceMutation.isPending}
                               onClick={() =>
@@ -312,6 +348,13 @@ export function SalesPanel({
         onOpenChange={setPreviewOpen}
         open={previewOpen}
         target={previewTarget}
+      />
+
+      <RepeatInvoiceDialog
+        onOpenChange={(open) => {
+          if (!open) setRepeatTarget(null)
+        }}
+        target={repeatTarget}
       />
 
       <AlertDialog

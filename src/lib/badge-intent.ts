@@ -41,6 +41,16 @@ export function documentStatusBadgeIntent(status: string): BadgeIntent {
   return 'neutral'
 }
 
+/** Recurring invoice: due now, running, paused or ended. */
+export function recurringInvoiceBadgeIntent(input: {
+  status: string
+  due: boolean
+}): BadgeIntent {
+  if (input.status === 'ended') return 'neutral'
+  if (input.status === 'paused') return 'warning'
+  return input.due ? 'info' : 'success'
+}
+
 export function partyTypeBadgeIntent(partyType: string): BadgeIntent {
   if (partyType === 'customer') return 'info'
   if (partyType === 'supplier') return 'warning'

@@ -50,6 +50,8 @@ import { createSalesAnalysisRepository } from '#/features/reports-analysis/sales
 import { creditDebitNoteRepository } from '#/features/returns/credit-debit-note-store.ts'
 import { createReturnsRouter } from '#/features/returns/returns-router.ts'
 import { createSalesRouter } from '#/features/sales/sales-router.ts'
+import { createRecurringInvoicesRouter } from '#/features/sales/recurring-invoice-router.ts'
+import { createRecurringInvoiceRepository } from '#/features/sales/recurring-invoice-store.ts'
 import { createTeamRouter } from '#/features/team/team-router.ts'
 import { invitationRepository } from '#/features/team/invitation-store.ts'
 import { userDirectory } from '#/features/team/user-directory.ts'
@@ -67,6 +69,7 @@ import { createTRPCRouter, publicProcedure } from './init'
 
 const financialYearRepository = createFinancialYearRepository()
 const membershipRepository = createMembershipRepository()
+const recurringInvoiceRepository = createRecurringInvoiceRepository()
 const postingTransaction = createPostingTransaction({
   invoices: salesInvoiceRepository,
   bills: purchaseBillRepository,
@@ -79,6 +82,7 @@ const postingTransaction = createPostingTransaction({
   paymentVouchers: paymentVoucherRepository,
   openingBalances: partyOpeningBalanceRepository,
   expenses: expenseRepository,
+  recurringInvoices: recurringInvoiceRepository,
   audit: auditLogRepository,
 })
 
@@ -131,6 +135,13 @@ export const trpcRouter = createTRPCRouter({
     items: itemRepository,
     getSecret: () => process.env.INVOICE_LINK_SECRET,
     rateLimiter: createFixedWindowRateLimiter({ limit: 30, windowMs: 60_000 }),
+  }),
+  recurringInvoices: createRecurringInvoicesRouter({
+    transaction: postingTransaction,
+    recurring: recurringInvoiceRepository,
+    companies: companyRepository,
+    ledgers: ledgerAccountRepository,
+    financialYears: financialYearRepository,
   }),
   payments: createPaymentsRouter({
     transaction: postingTransaction,

@@ -18,6 +18,7 @@ import {
   ListTreeIcon,
   PackageCheckIcon,
   PackageIcon,
+  Repeat2Icon,
   ReceiptIcon,
   ReceiptIndianRupeeIcon,
   ScanTextIcon,
@@ -47,6 +48,7 @@ export type AppNavPath =
   | '/app/accounting/journal'
   | '/app/sales'
   | '/app/sales/documents'
+  | '/app/sales/recurring'
   | '/app/purchases'
   | '/app/purchase-orders'
   | '/app/purchase-grns'
@@ -100,6 +102,11 @@ export const appNav: Array<AppNavSection> = [
         label: 'Quotations & orders',
         path: '/app/sales/documents',
         icon: FileSignatureIcon,
+      },
+      {
+        label: 'Recurring invoices',
+        path: '/app/sales/recurring',
+        icon: Repeat2Icon,
       },
       { label: 'Returns', path: '/app/returns', icon: Undo2Icon },
     ],
@@ -255,11 +262,12 @@ export function isAppNavPathActive(pathname: string, path: AppNavPath) {
     return (
       normalizedPathname === path ||
       (normalizedPathname.startsWith('/app/sales/') &&
-        !normalizedPathname.startsWith('/app/sales/documents'))
+        !normalizedPathname.startsWith('/app/sales/documents') &&
+        !normalizedPathname.startsWith('/app/sales/recurring'))
     )
   }
 
-  if (path === '/app/sales/documents') {
+  if (path === '/app/sales/documents' || path === '/app/sales/recurring') {
     return (
       normalizedPathname === path || normalizedPathname.startsWith(`${path}/`)
     )
