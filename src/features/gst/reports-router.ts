@@ -19,6 +19,7 @@ import {
   buildReceivablesAgeing,
 } from '#/features/accounting/ageing-service.ts'
 import { buildPartyLedger } from '#/features/parties/party-ledger-service.ts'
+import { buildPartyStatement } from '#/features/parties/party-statement-service.ts'
 import {
   buildStockLedger,
   buildStockSummary,
@@ -44,6 +45,7 @@ import type {
   StockMovementRepository,
 } from '#/features/inventory/stock-movement-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
+import type { PaymentVoucherRepository } from '#/features/payments/payment-voucher-service.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
 import type { CreditDebitNoteRepository } from '#/features/returns/credit-debit-note-service.ts'
 import type { SalesInvoiceRepository } from '#/features/sales/sales-invoice-service.ts'
@@ -130,6 +132,7 @@ type ReportsRouterDeps = {
   stockMovements: StockMovementRepository
   stockBalances: StockBalanceRepository
   items: ItemRepository
+  vouchers: PaymentVoucherRepository
 }
 
 async function loadGstr1Report(
@@ -231,6 +234,14 @@ export const createReportsRouter = (deps: ReportsRouterDeps) =>
           input.partyId,
         )
       }),
+    partyStatement: capabilityProcedure('view_reports')
+      .input(
+        companyAndPartyInputSchema.extend({
+          from: z.string().date(),
+          to: z.string().date(),
+        }),
+      )
+      .query(({ input }) => buildPartyStatement(deps, input)),
     receivablesAgeing: capabilityProcedure('view_reports')
       .input(z.object({ companyId: z.string().uuid() }))
       .query(({ input }) => {
