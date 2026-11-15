@@ -18,6 +18,7 @@ import { createParty } from '#/features/parties/party-service.ts'
 import { InMemoryPartyRepository } from '#/features/parties/party-store.ts'
 import { InMemoryAuditLogRepository } from '#/features/audit/audit-store.ts'
 import { createPaymentsRouter } from '#/features/payments/payment-router.ts'
+import { InMemoryPartyOpeningBalanceRepository } from '#/features/parties/party-opening-balance-store.ts'
 import { InMemoryPaymentVoucherRepository } from '#/features/payments/payment-voucher-store.ts'
 import { InMemoryPurchaseBillRepository } from '#/features/purchases/purchase-bill-store.ts'
 import { InMemorySalesInvoiceRepository } from '#/features/sales/sales-invoice-store.ts'
@@ -80,6 +81,7 @@ beforeEach(async () => {
     dashboard: new InMemoryDashboardSummaryRepository(),
     sequences: new InMemoryDocumentSequenceRepository(),
     paymentVouchers: new InMemoryPaymentVoucherRepository(),
+    openingBalances: new InMemoryPartyOpeningBalanceRepository(),
     audit: new InMemoryAuditLogRepository(),
   }
   const ledgers = new InMemoryLedgerAccountRepository()

@@ -10,11 +10,7 @@ export type AuditLogRow = {
 }
 
 export type AuditCategory =
-  | 'documents'
-  | 'masters'
-  | 'team'
-  | 'company'
-  | 'imports'
+  'documents' | 'masters' | 'team' | 'company' | 'imports'
 
 export const auditCategoryLabels: Record<AuditCategory, string> = {
   documents: 'Documents',
@@ -46,6 +42,7 @@ const actionLabels: Record<string, string> = {
   'purchase_voucher.posted': 'Purchase voucher',
   'party.created': 'Party added',
   'party.updated': 'Party edited',
+  'party.opening_balance_set': 'Party opening balance set',
   'item.created': 'Item added',
   'item.updated': 'Item edited',
   'opening_stock.posted': 'Opening stock added',
@@ -174,7 +171,10 @@ export function filterAuditEvents<T extends AuditLogRow>(
     ) {
       return false
     }
-    if (filter.actorUserId !== 'all' && row.actorUserId !== filter.actorUserId) {
+    if (
+      filter.actorUserId !== 'all' &&
+      row.actorUserId !== filter.actorUserId
+    ) {
       return false
     }
     const day = localCalendarDate(new Date(row.createdAt))

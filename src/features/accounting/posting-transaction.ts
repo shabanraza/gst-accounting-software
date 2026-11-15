@@ -7,6 +7,7 @@ import {
   DrizzleItemRepository,
   DrizzleStockStore,
 } from '#/features/inventory/inventory-store.ts'
+import { DrizzlePartyOpeningBalanceRepository } from '#/features/parties/party-opening-balance-store.ts'
 import { DrizzlePartyRepository } from '#/features/parties/party-store.ts'
 import { DrizzlePaymentVoucherRepository } from '#/features/payments/payment-voucher-store.ts'
 import { DrizzlePurchaseBillRepository } from '#/features/purchases/purchase-bill-store.ts'
@@ -22,6 +23,7 @@ import type {
   StockBalanceRepository,
   StockMovementRepository,
 } from '#/features/inventory/stock-movement-service.ts'
+import type { PartyOpeningBalanceRepository } from '#/features/parties/party-opening-balance-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
 import type { PaymentVoucherRepository } from '#/features/payments/payment-voucher-service.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
@@ -37,6 +39,7 @@ export type PostingRepositories = {
   dashboard: DashboardSummaryRepository
   sequences: DocumentSequenceRepository
   paymentVouchers: PaymentVoucherRepository
+  openingBalances: PartyOpeningBalanceRepository
   audit: AuditLogRepository
 }
 
@@ -72,6 +75,7 @@ export function createPostingTransaction(
           dashboard: new DrizzleDashboardSummaryRepository(tx),
           sequences: new DrizzleDocumentSequenceRepository(tx),
           paymentVouchers: new DrizzlePaymentVoucherRepository(tx),
+          openingBalances: new DrizzlePartyOpeningBalanceRepository(tx),
           audit: new DrizzleAuditLogRepository(tx),
         }),
       )

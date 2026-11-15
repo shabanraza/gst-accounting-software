@@ -69,6 +69,11 @@ export function PartiesPanel() {
       companyId && isReady ? { companyId } : skipToken,
     ),
   )
+  const openingBalancesQuery = useQuery(
+    trpc.parties.listOpeningBalances.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
   const priceListsQuery = useQuery(
     trpc.inventory.listPriceLists.queryOptions(
       companyId && isReady ? { companyId } : skipToken,
@@ -95,8 +100,14 @@ export function PartiesPanel() {
         (map.get(bill.supplierId) ?? 0) + Number(bill.outstandingAmount),
       )
     }
+    for (const opening of openingBalancesQuery.data ?? []) {
+      map.set(
+        opening.partyId,
+        (map.get(opening.partyId) ?? 0) + Number(opening.outstandingAmount),
+      )
+    }
     return map
-  }, [purchasesQuery.data, salesQuery.data])
+  }, [openingBalancesQuery.data, purchasesQuery.data, salesQuery.data])
 
   const parties = partiesQuery.data
   const filtered = parties.filter((party) => {

@@ -116,6 +116,25 @@ export function PaymentVoucherSheet({
     ),
   )
 
+  const openingBalancesQuery = useQuery(
+    trpc.parties.listOpeningBalances.queryOptions(
+      enabled && companyId && partyId ? { companyId } : skipToken,
+    ),
+  )
+  const openingDocuments = (openingBalancesQuery.data ?? [])
+    .filter(
+      (row) =>
+        row.partyId === partyId &&
+        row.side === (kind === 'receipt' ? 'receivable' : 'payable') &&
+        Number(row.outstandingAmount) > 0,
+    )
+    .map((row) => ({
+      id: row.id,
+      number: 'Opening balance',
+      date: row.asOfDate,
+      outstanding: row.outstandingAmount,
+    }))
+
   const parties = (partiesQuery.data ?? []).filter((party) =>
     kind === 'receipt'
       ? party.partyType !== 'supplier'
@@ -128,7 +147,7 @@ export function PaymentVoucherSheet({
         account.systemKey === 'cash' ||
         account.systemKey === 'bank'),
   )
-  const openDocuments =
+  const documentRows =
     kind === 'receipt'
       ? (invoicesQuery.data ?? [])
           .filter(
@@ -149,8 +168,10 @@ export function PaymentVoucherSheet({
             date: row.billDate,
             outstanding: row.outstandingAmount,
           }))
+  const openDocuments = [...openingDocuments, ...documentRows]
   const documentsLoading =
-    kind === 'receipt' ? invoicesQuery.isLoading : billsQuery.isLoading
+    openingBalancesQuery.isLoading ||
+    (kind === 'receipt' ? invoicesQuery.isLoading : billsQuery.isLoading)
   const summary = summariseAllocation(amount, draft)
 
   const post = useMutation(trpc.payments.post.mutationOptions())
@@ -209,6 +230,9 @@ export function PaymentVoucherSheet({
         }),
         queryClient.invalidateQueries({
           queryKey: trpc.purchases.list.pathKey(),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: trpc.parties.listOpeningBalances.pathKey(),
         }),
       ])
       toast.success(`${voucher.voucherNumber} saved`)

@@ -100,6 +100,12 @@ export function PaymentsPanel({
     ),
   )
 
+  const openingBalancesQuery = useQuery(
+    trpc.parties.listOpeningBalances.queryOptions(
+      enabled && companyId ? { companyId } : skipToken,
+    ),
+  )
+
   const cancelVoucher = useMutation(
     trpc.payments.cancel.mutationOptions({
       onSuccess: async (voucher) => {
@@ -112,6 +118,9 @@ export function PaymentsPanel({
           }),
           queryClient.invalidateQueries({
             queryKey: trpc.purchases.list.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.parties.listOpeningBalances.pathKey(),
           }),
         ])
         toast.success(`${voucher.voucherNumber} cancelled`)
@@ -135,6 +144,42 @@ export function PaymentsPanel({
     (row) => row.paymentStatus !== 'Paid',
   )
   const amountTone = mode === 'receipts' ? 'text-money-in' : 'text-money-out'
+  const openRows = [
+    ...(openingBalancesQuery.data ?? [])
+      .filter(
+        (row) =>
+          row.side === (mode === 'receipts' ? 'receivable' : 'payable') &&
+          Number(row.outstandingAmount) > 0,
+      )
+      .map((row) => ({
+        id: row.id,
+        number: 'Opening balance',
+        partyId: row.partyId,
+        total: row.amount,
+        outstanding: row.outstandingAmount,
+        status:
+          Number(row.outstandingAmount) < Number(row.amount)
+            ? 'Part paid'
+            : 'Pending',
+      })),
+    ...(mode === 'receipts'
+      ? openSales.map((row) => ({
+          id: row.id,
+          number: row.invoiceNumber,
+          partyId: row.customerId,
+          total: row.totalAmount,
+          outstanding: row.outstandingAmount,
+          status: row.paymentStatus,
+        }))
+      : openPurchases.map((row) => ({
+          id: row.id,
+          number: row.supplierBillNumber,
+          partyId: row.supplierId,
+          total: row.totalAmount,
+          outstanding: row.outstandingAmount,
+          status: row.paymentStatus,
+        }))),
+  ]
 
   return (
     <WorkspacePage
@@ -315,24 +360,7 @@ export function PaymentsPanel({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(mode === 'receipts'
-                ? openSales.map((row) => ({
-                    id: row.id,
-                    number: row.invoiceNumber,
-                    partyId: row.customerId,
-                    total: row.totalAmount,
-                    outstanding: row.outstandingAmount,
-                    status: row.paymentStatus,
-                  }))
-                : openPurchases.map((row) => ({
-                    id: row.id,
-                    number: row.supplierBillNumber,
-                    partyId: row.supplierId,
-                    total: row.totalAmount,
-                    outstanding: row.outstandingAmount,
-                    status: row.paymentStatus,
-                  }))
-              ).map((row) => (
+              {openRows.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell className="font-medium">{row.number}</TableCell>
                   <TableCell className="max-w-40 truncate">
@@ -353,8 +381,7 @@ export function PaymentsPanel({
                   </TableCell>
                 </TableRow>
               ))}
-              {(mode === 'receipts' ? openSales : openPurchases).length ===
-              0 ? (
+              {openRows.length === 0 ? (
                 <TableRow>
                   <TableCell
                     className="py-10 text-center text-muted-foreground"

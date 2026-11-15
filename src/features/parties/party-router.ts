@@ -1,15 +1,23 @@
 import { z } from 'zod'
 
-import { diffFields, recordMasterEvent } from '#/features/audit/audit-service.ts'
+import {
+  diffFields,
+  recordMasterEvent,
+} from '#/features/audit/audit-service.ts'
 import {
   createParty,
   listPartiesByCompany,
   updateParty,
 } from '#/features/parties/party-service.ts'
+import { setPartyOpeningBalance } from '#/features/parties/party-opening-balance-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
+import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
+import type { PostingTransaction } from '#/features/accounting/posting-transaction.ts'
 import type { AuditLogRepository } from '#/features/audit/audit-service.ts'
+import type { FinancialYearRepository } from '#/features/companies/financial-year-service.ts'
+import type { PartyOpeningBalanceRepository } from '#/features/parties/party-opening-balance-service.ts'
 import type {
   PartyRecord,
   PartyRepository,
@@ -64,6 +72,20 @@ const listPartiesInputSchema = z.object({
   companyId: z.string().uuid(),
 })
 
+const setOpeningBalanceInputSchema = z.object({
+  companyId: z.string().uuid(),
+  partyId: z.string().uuid(),
+  side: z.enum(['receivable', 'payable']),
+  amount: z.string(),
+})
+
+type OpeningBalanceRouterDeps = {
+  transaction: PostingTransaction
+  ledgers: LedgerAccountRepository
+  financialYears: FinancialYearRepository
+  openingBalances: PartyOpeningBalanceRepository
+}
+
 // Billing/shipping addresses are built from the address fields, so skip them.
 const auditedPartyFields = [
   'name',
@@ -85,11 +107,58 @@ const auditedPartyFields = [
 export const createPartiesRouter = (
   repository: PartyRepository,
   audit: AuditLogRepository,
+  opening: OpeningBalanceRouterDeps,
 ) =>
   ({
-    list: capabilityProcedure('view').input(listPartiesInputSchema).query(({ input }) => {
-      return listPartiesByCompany(repository, input.companyId)
-    }),
+    list: capabilityProcedure('view')
+      .input(listPartiesInputSchema)
+      .query(({ input }) => {
+        return listPartiesByCompany(repository, input.companyId)
+      }),
+    listOpeningBalances: capabilityProcedure('view')
+      .input(listPartiesInputSchema)
+      .query(({ input }) =>
+        opening.openingBalances.listByCompanyId(input.companyId),
+      ),
+    // Posts a journal entry, so it needs the voucher capability.
+    setOpeningBalance: capabilityProcedure('post_voucher')
+      .input(setOpeningBalanceInputSchema)
+      .mutation(({ ctx, input }) =>
+        opening.transaction(async (tx) => {
+          const before = await tx.openingBalances.findByPartyId(
+            input.companyId,
+            input.partyId,
+          )
+          const record = await setPartyOpeningBalance(
+            {
+              parties: tx.parties,
+              ledgers: opening.ledgers,
+              posting: tx.posting,
+              financialYears: opening.financialYears,
+              openingBalances: tx.openingBalances,
+            },
+            input,
+          )
+          const changed =
+            before?.amount !== record?.amount || before?.side !== record?.side
+          if (changed) {
+            const party = await tx.parties.findById(input.partyId)
+            await recordMasterEvent(tx.audit, {
+              companyId: input.companyId,
+              actorUserId: ctx.userId,
+              action: 'party.opening_balance_set',
+              entityType: 'party',
+              entityId: input.partyId,
+              label: party?.name ?? '',
+              details: {
+                side: record?.side ?? before?.side ?? input.side,
+                amount: record?.amount ?? '0.00',
+              },
+            })
+          }
+          return record
+        }),
+      ),
     create: capabilityProcedure('manage_masters')
       .input(createPartyInputSchema)
       .mutation(async ({ ctx, input }) => {

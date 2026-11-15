@@ -17,7 +17,7 @@ import type {
 export type PaymentAllocationRecord = {
   id: string
   companyId: string
-  documentType: 'sales_invoice' | 'purchase_bill'
+  documentType: 'sales_invoice' | 'purchase_bill' | 'party_opening'
   documentId: string
   allocatedAmount: string
   paymentDate: string
