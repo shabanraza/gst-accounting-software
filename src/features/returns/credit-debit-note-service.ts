@@ -1,3 +1,5 @@
+import Decimal from 'decimal.js'
+
 import { nextDocumentNumber } from '#/features/documents/document-sequence-service.ts'
 import { DomainError } from '#/lib/domain-error.ts'
 
@@ -25,6 +27,10 @@ export type CreditDebitNoteRecord = {
 export interface CreditDebitNoteRepository {
   create: (note: CreditDebitNoteRecord) => Promise<CreditDebitNoteRecord>
   listByCompanyId: (companyId: string) => Promise<Array<CreditDebitNoteRecord>>
+  listByReference: (
+    companyId: string,
+    referenceDocumentId: string,
+  ) => Promise<Array<CreditDebitNoteRecord>>
 }
 
 export type NoteNumberDependencies = {
@@ -37,6 +43,53 @@ export class MissingFinancialYearError extends DomainError {
     super('Set up a financial year before posting returns')
     this.name = 'MissingFinancialYearError'
   }
+}
+
+export class InvalidReturnError extends DomainError {
+  constructor(message: string) {
+    super(message)
+    this.name = 'InvalidReturnError'
+  }
+}
+
+/**
+ * Checks that this note plus earlier notes on the document stay within its
+ * total, and returns the document's amount due and status after the note.
+ * The amount due never goes below zero; any excess is the party's credit.
+ */
+export async function applyNoteToDocument(
+  repository: CreditDebitNoteRepository,
+  input: {
+    companyId: string
+    document: { id: string; totalAmount: string; outstandingAmount: string }
+    noteAmount: string
+    documentLabel: 'invoice' | 'bill'
+  },
+) {
+  const earlier = await repository.listByReference(
+    input.companyId,
+    input.document.id,
+  )
+  const returned = earlier.reduce(
+    (sum, note) => sum.plus(note.totalAmount),
+    new Decimal(input.noteAmount),
+  )
+  const total = new Decimal(input.document.totalAmount)
+  if (returned.gt(total)) {
+    throw new InvalidReturnError(
+      `Returns cannot exceed the ${input.documentLabel} total`,
+    )
+  }
+  const outstanding = Decimal.max(
+    0,
+    new Decimal(input.document.outstandingAmount).minus(input.noteAmount),
+  )
+  const paymentStatus: 'Paid' | 'Part paid' | 'Pending' = outstanding.lte(0)
+    ? 'Paid'
+    : outstanding.lt(total)
+      ? 'Part paid'
+      : 'Pending'
+  return { outstandingAmount: outstanding.toFixed(2), paymentStatus }
 }
 
 const noteSeries: Record<CreditDebitNoteType, string> = {

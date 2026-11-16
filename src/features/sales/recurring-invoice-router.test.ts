@@ -26,6 +26,7 @@ import { InMemoryPaymentVoucherRepository } from '#/features/payments/payment-vo
 import { InMemoryPurchaseBillRepository } from '#/features/purchases/purchase-bill-store.ts'
 import { createRecurringInvoicesRouter } from '#/features/sales/recurring-invoice-router.ts'
 import { InMemoryRecurringInvoiceRepository } from '#/features/sales/recurring-invoice-store.ts'
+import { InMemoryCreditDebitNoteRepository } from '#/features/returns/credit-debit-note-store.ts'
 import { InMemorySalesInvoiceRepository } from '#/features/sales/sales-invoice-store.ts'
 import { createSalesRouter } from '#/features/sales/sales-router.ts'
 import { createTRPCRouter } from '#/integrations/trpc/init.ts'
@@ -61,6 +62,7 @@ async function seed(today: string) {
     openingBalances: new InMemoryPartyOpeningBalanceRepository(),
     expenses: new InMemoryExpenseRepository(),
     recurringInvoices: new InMemoryRecurringInvoiceRepository(),
+    creditDebitNotes: new InMemoryCreditDebitNoteRepository(),
     audit,
   }
   const financialYears = new InMemoryFinancialYearRepository()

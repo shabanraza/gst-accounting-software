@@ -4,6 +4,7 @@ import {
   buildPayablesAgeing,
   buildReceivablesAgeing,
 } from '#/features/accounting/ageing-service.ts'
+import type { PartyOpeningBalanceRecord } from '#/features/parties/party-opening-balance-service.ts'
 import type {
   PartyRecord,
   PartyRepository,
@@ -459,5 +460,85 @@ describe('buildPayablesAgeing', () => {
     expect(report.rows[0]?.documentDate).toBe('2025-11-01')
     expect(report.rows[0]?.daysPastDue).toBe(120)
     expect(report.rows[0]?.bucket).toBe('90+')
+  })
+})
+
+describe('opening balances in ageing', () => {
+  function openingBalance(
+    overrides: Partial<PartyOpeningBalanceRecord>,
+  ): PartyOpeningBalanceRecord {
+    return {
+      id: 'ob-1',
+      companyId: 'company-1',
+      partyId: 'party-1',
+      side: 'receivable',
+      asOfDate: '2025-12-01',
+      amount: '5000.00',
+      outstandingAmount: '4000.00',
+      partyAccountId: 'recv-1',
+      ledgerEntryId: 'entry-ob',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      ...overrides,
+    }
+  }
+
+  const openingBalances = {
+    listByCompanyId: async () => [
+      openingBalance({}),
+      openingBalance({ id: 'ob-settled', outstandingAmount: '0.00' }),
+      openingBalance({
+        id: 'ob-payable',
+        partyId: 'party-2',
+        side: 'payable',
+        asOfDate: '2026-02-15',
+        outstandingAmount: '700.00',
+      }),
+    ],
+  }
+
+  test('ages an unpaid customer opening balance from its date', async () => {
+    const report = await buildReceivablesAgeing(
+      {
+        invoices: new FakeInvoices([invoice({ invoiceDate: '2026-02-20' })]),
+        parties: new FakeParties([]),
+        openingBalances,
+      },
+      'company-1',
+      new Date('2026-03-01'),
+    )
+
+    expect(report.rows).toHaveLength(2)
+    expect(report.rows[0]).toMatchObject({
+      partyId: 'party-1',
+      documentNumber: 'Opening balance',
+      documentDate: '2025-12-01',
+      dueDate: '2025-12-01',
+      outstandingAmount: '4000.00',
+      bucket: '61-90',
+    })
+    expect(report.bucketTotals['61-90']).toBe('4000.00')
+  })
+
+  test('ages an unpaid supplier opening balance in payables', async () => {
+    const report = await buildPayablesAgeing(
+      {
+        bills: new FakeBills([]),
+        parties: new FakeParties([]),
+        openingBalances,
+      },
+      'company-1',
+      new Date('2026-03-01'),
+    )
+
+    expect(report.rows).toEqual([
+      expect.objectContaining({
+        partyId: 'party-2',
+        partyName: 'Supplier',
+        documentNumber: 'Opening balance',
+        outstandingAmount: '700.00',
+        bucket: '1-30',
+      }),
+    ])
   })
 })

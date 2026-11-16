@@ -15,6 +15,7 @@ import type { LedgerPostingRepository } from '#/features/accounting/posting-engi
 import type { ExpenseRepository } from '#/features/expenses/expense-service.ts'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
 import type { StockBalanceRepository } from '#/features/inventory/stock-movement-service.ts'
+import type { PartyOpeningBalanceRepository } from '#/features/parties/party-opening-balance-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
 import type { CreditDebitNoteRepository } from '#/features/returns/credit-debit-note-service.ts'
@@ -35,6 +36,7 @@ export type AssistantToolDeps = {
   ledgers: LedgerAccountRepository
   postings: LedgerPostingRepository
   expenses?: ExpenseRepository
+  openingBalances?: PartyOpeningBalanceRepository
 }
 
 export type AssistantToolContext = {

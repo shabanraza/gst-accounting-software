@@ -61,6 +61,9 @@ class FakeNotes implements CreditDebitNoteRepository {
   async listByCompanyId() {
     return this.notes
   }
+  async listByReference() {
+    return this.notes
+  }
 }
 
 function invoice(overrides: Partial<SalesInvoiceRecord>): SalesInvoiceRecord {

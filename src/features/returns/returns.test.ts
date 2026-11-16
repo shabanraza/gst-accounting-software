@@ -161,6 +161,8 @@ async function seedReturnsContext() {
     stock,
     ledgerPosting,
     notes,
+    invoices,
+    bills,
     sequences,
     financialYears,
     customer,
@@ -185,6 +187,7 @@ describe('postSalesReturn', () => {
         posting: context.ledgerPosting,
         stock: context.stock,
         notes: context.notes,
+        invoices: context.invoices,
         sequences: context.sequences,
         financialYears: context.financialYears,
       },
@@ -251,6 +254,7 @@ describe('postSalesReturn', () => {
         posting: context.ledgerPosting,
         stock: context.stock,
         notes: context.notes,
+        invoices: context.invoices,
         sequences: context.sequences,
         financialYears: context.financialYears,
       },
@@ -309,6 +313,7 @@ describe('postPurchaseReturn', () => {
         posting: context.ledgerPosting,
         stock: context.stock,
         notes: context.notes,
+        bills: context.bills,
         sequences: context.sequences,
         financialYears: context.financialYears,
       },
@@ -376,6 +381,7 @@ describe('postPurchaseReturn', () => {
         posting: context.ledgerPosting,
         stock: context.stock,
         notes: context.notes,
+        bills: context.bills,
         sequences: context.sequences,
         financialYears: context.financialYears,
       },
@@ -428,6 +434,7 @@ describe('return stock value', () => {
         posting: context.ledgerPosting,
         stock: context.stock,
         notes: context.notes,
+        invoices: context.invoices,
         sequences: context.sequences,
         financialYears: context.financialYears,
       },
@@ -473,6 +480,7 @@ describe('return stock value', () => {
         posting: context.ledgerPosting,
         stock: context.stock,
         notes: context.notes,
+        bills: context.bills,
         sequences: context.sequences,
         financialYears: context.financialYears,
       },
@@ -520,6 +528,8 @@ describe('credit and debit note numbers', () => {
       posting: context.ledgerPosting,
       stock: context.stock,
       notes: context.notes,
+      invoices: context.invoices,
+      bills: context.bills,
       sequences: context.sequences,
       financialYears: context.financialYears,
     }
@@ -629,5 +639,155 @@ describe('credit and debit note numbers', () => {
     expect(
       await getCurrentStock(context.stock, context.companyId, context.item.id),
     ).toBe('130')
+  })
+})
+
+describe('returns against what is still owed', () => {
+  type ReturnsContext = Awaited<ReturnType<typeof seedReturnsContext>>
+
+  function depsOf(context: ReturnsContext) {
+    return {
+      posting: context.ledgerPosting,
+      stock: context.stock,
+      notes: context.notes,
+      invoices: context.invoices,
+      bills: context.bills,
+      sequences: context.sequences,
+      financialYears: context.financialYears,
+    }
+  }
+
+  function salesReturnInput(context: ReturnsContext, quantity: string) {
+    return {
+      companyId: context.companyId,
+      companyStateCode: '27',
+      customerId: context.customer.id,
+      customerStateCode: '27',
+      salesInvoiceId: context.invoice.id,
+      returnDate: '2026-07-12',
+      salesAccountId: context.salesAccountId,
+      outputGstAccountId: context.outputGstAccountId,
+      receivableAccountId: context.receivableAccountId,
+      lines: [
+        {
+          itemId: context.item.id,
+          description: 'Cotton Fabric',
+          quantity,
+          unit: 'meter',
+          rate: '120.00',
+          gstRate: '5.00',
+        },
+      ],
+    }
+  }
+
+  function purchaseReturnInput(context: ReturnsContext, quantity: string) {
+    return {
+      companyId: context.companyId,
+      companyStateCode: '27',
+      supplierId: context.supplier.id,
+      supplierStateCode: '24',
+      purchaseBillId: context.bill.id,
+      returnDate: '2026-07-12',
+      purchaseAccountId: context.purchaseAccountId,
+      inputGstAccountId: context.inputGstAccountId,
+      payableAccountId: context.payableAccountId,
+      lines: [
+        {
+          itemId: context.item.id,
+          description: 'Cotton Fabric',
+          quantity,
+          unit: 'meter',
+          rate: '80.00',
+          gstRate: '5.00',
+        },
+      ],
+    }
+  }
+
+  test('a credit note reduces the invoice amount due', async () => {
+    const context = await seedReturnsContext()
+    expect(context.invoice.outstandingAmount).toBe('2520.00')
+
+    await postSalesReturn(depsOf(context), salesReturnInput(context, '5'))
+
+    const invoice = await context.invoices.findById(context.invoice.id)
+    expect(invoice?.outstandingAmount).toBe('1890.00')
+    expect(invoice?.paymentStatus).toBe('Part paid')
+
+    await postSalesReturn(depsOf(context), salesReturnInput(context, '15'))
+    const settled = await context.invoices.findById(context.invoice.id)
+    expect(settled?.outstandingAmount).toBe('0.00')
+    expect(settled?.paymentStatus).toBe('Paid')
+  })
+
+  test('a credit note on a paid invoice leaves nothing due, never negative', async () => {
+    const context = await seedReturnsContext()
+    await context.invoices.save({
+      ...context.invoice,
+      outstandingAmount: '100.00',
+      paymentStatus: 'Part paid',
+    })
+
+    await postSalesReturn(depsOf(context), salesReturnInput(context, '5'))
+
+    const invoice = await context.invoices.findById(context.invoice.id)
+    expect(invoice?.outstandingAmount).toBe('0.00')
+    expect(invoice?.paymentStatus).toBe('Paid')
+  })
+
+  test('refuses returns worth more than the invoice, or against another party', async () => {
+    const context = await seedReturnsContext()
+    const entriesBefore = context.ledgerPosting.list().length
+
+    await expect(
+      postSalesReturn(depsOf(context), salesReturnInput(context, '21')),
+    ).rejects.toThrow('Returns cannot exceed the invoice total')
+    await expect(
+      postSalesReturn(depsOf(context), {
+        ...salesReturnInput(context, '1'),
+        customerId: context.supplier.id,
+      }),
+    ).rejects.toThrow('Sales invoice not found')
+    await expect(
+      postSalesReturn(depsOf(context), {
+        ...salesReturnInput(context, '1'),
+        companyId: 'company-2',
+      }),
+    ).rejects.toThrow('Sales invoice not found')
+
+    await postSalesReturn(depsOf(context), salesReturnInput(context, '10'))
+    await expect(
+      postSalesReturn(depsOf(context), salesReturnInput(context, '11')),
+    ).rejects.toThrow('Returns cannot exceed the invoice total')
+
+    expect(context.ledgerPosting.list()).toHaveLength(entriesBefore + 1)
+    expect(await context.notes.listByCompanyId(context.companyId)).toHaveLength(
+      1,
+    )
+  })
+
+  test('a debit note reduces the bill amount due and checks the bill', async () => {
+    const context = await seedReturnsContext()
+    expect(context.bill.outstandingAmount).toBe('4200.00')
+
+    await postPurchaseReturn(
+      depsOf(context),
+      purchaseReturnInput(context, '10'),
+    )
+
+    const bill = await context.bills.findById(context.bill.id)
+    expect(bill?.outstandingAmount).toBe('3360.00')
+    expect(bill?.paymentStatus).toBe('Part paid')
+
+    await expect(
+      postPurchaseReturn(depsOf(context), purchaseReturnInput(context, '41')),
+    ).rejects.toThrow('Returns cannot exceed the bill total')
+    await expect(
+      postPurchaseReturn(depsOf(context), {
+        ...purchaseReturnInput(context, '1'),
+        supplierId: context.customer.id,
+      }),
+    ).rejects.toThrow('Purchase bill not found')
   })
 })

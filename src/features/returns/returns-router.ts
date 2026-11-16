@@ -6,15 +6,9 @@ import { postSalesReturn } from '#/features/returns/sales-return-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
-import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
-import type { AuditLogRepository } from '#/features/audit/audit-service.ts'
+import type { PostingTransaction } from '#/features/accounting/posting-transaction.ts'
 import type { FinancialYearRepository } from '#/features/companies/financial-year-service.ts'
-import type { DocumentSequenceRepository } from '#/features/documents/document-sequence-service.ts'
 import type { CreditDebitNoteRepository } from '#/features/returns/credit-debit-note-service.ts'
-import type {
-  StockBalanceRepository,
-  StockMovementRepository,
-} from '#/features/inventory/stock-movement-service.ts'
 
 const returnLineSchema = z.object({
   itemId: z.string().uuid(),
@@ -58,54 +52,72 @@ const listReturnsInputSchema = z.object({
   companyId: z.string().uuid(),
 })
 
-export const createReturnsRouter = (
-  posting: LedgerPostingRepository,
-  stock: StockMovementRepository & StockBalanceRepository,
-  notes: CreditDebitNoteRepository,
-  sequences: DocumentSequenceRepository,
-  financialYears: FinancialYearRepository,
-  audit: AuditLogRepository,
-) =>
+export type ReturnsRouterDeps = {
+  /** Note, ledger, stock, document amount due and audit commit together. */
+  transaction: PostingTransaction
+  notes: CreditDebitNoteRepository
+  financialYears: FinancialYearRepository
+}
+
+export const createReturnsRouter = (deps: ReturnsRouterDeps) =>
   ({
     postSalesReturn: capabilityProcedure('post_sales')
       .input(salesReturnInputSchema)
-      .mutation(async ({ ctx, input }) => {
-        const note = await postSalesReturn(
-          { posting, stock, notes, sequences, financialYears },
-          input,
-        )
-        await recordDocumentEvent(audit, {
-          companyId: note.companyId,
-          actorUserId: ctx.userId,
-          action: 'credit_note.posted',
-          entityType: 'credit_note',
-          entityId: note.id,
-          documentNumber: note.noteNumber,
-          amount: note.totalAmount,
-        })
-        return note
-      }),
+      .mutation(({ ctx, input }) =>
+        deps.transaction(async (tx) => {
+          const note = await postSalesReturn(
+            {
+              posting: tx.posting,
+              stock: tx.stock,
+              notes: tx.creditDebitNotes,
+              invoices: tx.invoices,
+              sequences: tx.sequences,
+              financialYears: deps.financialYears,
+            },
+            input,
+          )
+          await recordDocumentEvent(tx.audit, {
+            companyId: note.companyId,
+            actorUserId: ctx.userId,
+            action: 'credit_note.posted',
+            entityType: 'credit_note',
+            entityId: note.id,
+            documentNumber: note.noteNumber,
+            amount: note.totalAmount,
+          })
+          return note
+        }),
+      ),
     postPurchaseReturn: capabilityProcedure('post_purchase')
       .input(purchaseReturnInputSchema)
-      .mutation(async ({ ctx, input }) => {
-        const note = await postPurchaseReturn(
-          { posting, stock, notes, sequences, financialYears },
-          input,
-        )
-        await recordDocumentEvent(audit, {
-          companyId: note.companyId,
-          actorUserId: ctx.userId,
-          action: 'debit_note.posted',
-          entityType: 'debit_note',
-          entityId: note.id,
-          documentNumber: note.noteNumber,
-          amount: note.totalAmount,
-        })
-        return note
-      }),
+      .mutation(({ ctx, input }) =>
+        deps.transaction(async (tx) => {
+          const note = await postPurchaseReturn(
+            {
+              posting: tx.posting,
+              stock: tx.stock,
+              notes: tx.creditDebitNotes,
+              bills: tx.bills,
+              sequences: tx.sequences,
+              financialYears: deps.financialYears,
+            },
+            input,
+          )
+          await recordDocumentEvent(tx.audit, {
+            companyId: note.companyId,
+            actorUserId: ctx.userId,
+            action: 'debit_note.posted',
+            entityType: 'debit_note',
+            entityId: note.id,
+            documentNumber: note.noteNumber,
+            amount: note.totalAmount,
+          })
+          return note
+        }),
+      ),
     listCreditDebitNotes: capabilityProcedure('view')
       .input(listReturnsInputSchema)
       .query(({ input }) => {
-        return notes.listByCompanyId(input.companyId)
+        return deps.notes.listByCompanyId(input.companyId)
       }),
   }) satisfies TRPCRouterRecord

@@ -2,6 +2,7 @@ import Decimal from 'decimal.js'
 
 import { buildGstr3bReport } from '#/features/gst/gstr3b-report-service.ts'
 import { reconcileGstr2b } from '#/features/gst/gstr2b-reconciliation-service.ts'
+import type { ExpenseRepository } from '#/features/expenses/expense-service.ts'
 import type { GstReportDocument } from '#/features/gst/gst-report-types.ts'
 import type { GstReconciliationRepository } from '#/features/gst/gst-reconciliation-store.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
@@ -27,6 +28,7 @@ export async function buildGstr3bWorkingReport(
     bills: PurchaseBillRepository
     parties: PartyRepository
     recon: GstReconciliationRepository
+    expenses?: Pick<ExpenseRepository, 'listByCompanyId'>
   },
   input: {
     companyId: string
@@ -45,7 +47,12 @@ export async function buildGstr3bWorkingReport(
   })
 
   const recon = await reconcileGstr2b(
-    { bills: deps.bills, parties: deps.parties, recon: deps.recon },
+    {
+      bills: deps.bills,
+      parties: deps.parties,
+      recon: deps.recon,
+      expenses: deps.expenses,
+    },
     {
       companyId: input.companyId,
       companyStateCode: input.companyStateCode,

@@ -252,7 +252,11 @@ export const createReportsRouter = (deps: ReportsRouterDeps) =>
       .input(z.object({ companyId: z.string().uuid() }))
       .query(({ input }) => {
         return buildReceivablesAgeing(
-          { invoices: deps.invoices, parties: deps.parties },
+          {
+            invoices: deps.invoices,
+            parties: deps.parties,
+            openingBalances: deps.openingBalances,
+          },
           input.companyId,
         )
       }),
@@ -260,7 +264,11 @@ export const createReportsRouter = (deps: ReportsRouterDeps) =>
       .input(z.object({ companyId: z.string().uuid() }))
       .query(({ input }) => {
         return buildPayablesAgeing(
-          { bills: deps.bills, parties: deps.parties },
+          {
+            bills: deps.bills,
+            parties: deps.parties,
+            openingBalances: deps.openingBalances,
+          },
           input.companyId,
         )
       }),
@@ -303,6 +311,7 @@ export const createReportsRouter = (deps: ReportsRouterDeps) =>
             bills: deps.bills,
             parties: deps.parties,
             recon: gstReconciliationRepository,
+            expenses: deps.expenses,
           },
           input,
         )
@@ -315,6 +324,7 @@ export const createReportsRouter = (deps: ReportsRouterDeps) =>
             recon: gstReconciliationRepository,
             bills: deps.bills,
             parties: deps.parties,
+            expenses: deps.expenses,
           },
           input,
         )
@@ -344,6 +354,7 @@ export const createReportsRouter = (deps: ReportsRouterDeps) =>
             bills: deps.bills,
             parties: deps.parties,
             recon: gstReconciliationRepository,
+            expenses: deps.expenses,
           },
           { ...input, documents },
         )
@@ -390,16 +401,25 @@ export const createReportsRouter = (deps: ReportsRouterDeps) =>
     tallyExport: capabilityProcedure('view_reports')
       .input(reportInputSchema)
       .query(async ({ input }) => {
-        const [ledgers, parties, items, entries, invoices, bills, notes] =
-          await Promise.all([
-            deps.ledgers.listByCompanyId(input.companyId),
-            deps.parties.listByCompanyId(input.companyId),
-            deps.items.listByCompanyId(input.companyId),
-            deps.postings.listByCompanyId(input.companyId),
-            deps.invoices.listByCompanyId(input.companyId),
-            deps.bills.listByCompanyId(input.companyId),
-            deps.notes.listByCompanyId(input.companyId),
-          ])
+        const [
+          ledgers,
+          parties,
+          items,
+          entries,
+          invoices,
+          bills,
+          notes,
+          openingBalances,
+        ] = await Promise.all([
+          deps.ledgers.listByCompanyId(input.companyId),
+          deps.parties.listByCompanyId(input.companyId),
+          deps.items.listByCompanyId(input.companyId),
+          deps.postings.listByCompanyId(input.companyId),
+          deps.invoices.listByCompanyId(input.companyId),
+          deps.bills.listByCompanyId(input.companyId),
+          deps.notes.listByCompanyId(input.companyId),
+          deps.openingBalances.listByCompanyId(input.companyId),
+        ])
         return buildTallyXml({
           companyStateCode: input.companyStateCode,
           from: input.periodStart,
@@ -411,6 +431,7 @@ export const createReportsRouter = (deps: ReportsRouterDeps) =>
           invoices,
           bills,
           notes,
+          openingBalances,
         })
       }),
   }) satisfies TRPCRouterRecord

@@ -8,6 +8,7 @@ import type {
   LedgerLineRecord,
 } from '#/features/accounting/posting-engine.ts'
 import type { ItemRecord } from '#/features/inventory/item-service.ts'
+import type { PartyOpeningBalanceRecord } from '#/features/parties/party-opening-balance-service.ts'
 import type { PartyRecord } from '#/features/parties/party-service.ts'
 import type {
   PurchaseBillLineRecord,
@@ -104,6 +105,16 @@ export type TallyExportInput = {
       | 'totalAmount'
       | 'ledgerEntryId'
       | 'narration'
+    >
+  >
+  /**
+   * Party balances carried in from before HisaabKro. They become ledger
+   * opening balances in Tally, and their posting is left out of vouchers.
+   */
+  openingBalances?: Array<
+    Pick<
+      PartyOpeningBalanceRecord,
+      'partyId' | 'side' | 'amount' | 'partyAccountId' | 'ledgerEntryId'
     >
   >
 }
@@ -264,7 +275,17 @@ type Voucher = {
   inventoryLines: Array<InventoryLine>
 }
 
-function partyLedgerXml(party: TallyExportInput['parties'][number]): string {
+/** Tally's opening balance tag: debit balances negative, credits positive. */
+function openingBalanceTag(debit: Decimal | undefined): string {
+  return debit && !debit.isZero()
+    ? tag('OPENINGBALANCE', debit.negated().toFixed(2))
+    : ''
+}
+
+function partyLedgerXml(
+  party: TallyExportInput['parties'][number],
+  openingDebit?: Decimal,
+): string {
   const name = escapeXml(party.name)
   const address = [party.addressLine1, party.addressLine2, party.city]
     .map((line) => line?.trim() ?? '')
@@ -287,6 +308,7 @@ function partyLedgerXml(party: TallyExportInput['parties'][number]): string {
     party.pincode?.trim() ? tag('PINCODE', party.pincode.trim()) : '',
     tag('GSTREGISTRATIONTYPE', party.gstin ? 'Regular' : 'Unregistered'),
     party.gstin ? tag('PARTYGSTIN', party.gstin) : '',
+    openingBalanceTag(openingDebit),
     '</LEDGER>',
   ].join('')
 }
@@ -453,6 +475,51 @@ export function buildTallyXml(input: TallyExportInput): TallyExport {
   }
   const salesLedger = ledgerFor('sales', 'Sales')
   const purchaseLedger = ledgerFor('purchase', 'Purchase')
+
+  // Party opening balances sit on the party ledger in Tally; the other side
+  // of their posting (the opening balance account) gets the matching balance.
+  const openingEntryIds = new Set<string>()
+  const partyOpening = new Map<string, Decimal>()
+  const ledgerOpening = new Map<string, Decimal>()
+  const addOpening = (map: Map<string, Decimal>, key: string, debit: Decimal) =>
+    map.set(key, (map.get(key) ?? new Decimal(0)).plus(debit))
+  const entriesById = new Map(input.entries.map((entry) => [entry.id, entry]))
+  for (const balance of input.openingBalances ?? []) {
+    openingEntryIds.add(balance.ledgerEntryId)
+    const debit =
+      balance.side === 'receivable'
+        ? money(balance.amount)
+        : money(balance.amount).negated()
+    addOpening(partyOpening, balance.partyId, debit)
+    const entry = entriesById.get(balance.ledgerEntryId)
+    if (!entry) {
+      addOpening(
+        ledgerOpening,
+        ledgerFor('opening_balance', 'Opening Balance'),
+        debit.negated(),
+      )
+      continue
+    }
+    for (const line of entry.lines) {
+      if (line.ledgerAccountId === balance.partyAccountId) continue
+      addOpening(
+        ledgerOpening,
+        accountsById.get(line.ledgerAccountId)?.name ?? 'Suspense',
+        money(line.debit).minus(money(line.credit)),
+      )
+    }
+  }
+  for (const [name, debit] of ledgerOpening) {
+    const master = masters.get(name) ?? {
+      name,
+      parent: name === 'Suspense' ? 'Suspense A/c' : 'Capital Account',
+      extra: '',
+    }
+    masters.set(name, {
+      ...master,
+      extra: master.extra + openingBalanceTag(debit),
+    })
+  }
 
   const extraParties: Array<TallyExportInput['parties'][number]> = []
   const partyName = (
@@ -660,6 +727,7 @@ export function buildTallyXml(input: TallyExportInput): TallyExport {
       entry.voucherType === 'sales' ||
       entry.voucherType === 'purchase' ||
       noteEntryIds.has(entry.id) ||
+      openingEntryIds.has(entry.id) ||
       !inPeriod(entry.entryDate)
     ) {
       continue
@@ -711,7 +779,9 @@ export function buildTallyXml(input: TallyExportInput): TallyExport {
   const masterMessages = [
     ...[...units].filter(Boolean).map(unitXml),
     ...[...masters.values()].map(ledgerXml),
-    ...[...input.parties, ...extraParties].map(partyLedgerXml),
+    ...[...input.parties, ...extraParties].map((party) =>
+      partyLedgerXml(party, partyOpening.get(party.id)),
+    ),
     ...input.items.map(stockItemXml),
   ]
 
