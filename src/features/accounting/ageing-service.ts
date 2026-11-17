@@ -1,15 +1,14 @@
 import Decimal from 'decimal.js'
 
+import type {
+  OpeningBalanceSide,
+  PartyOpeningBalanceRepository,
+} from '#/features/parties/party-opening-balance-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
 import type { SalesInvoiceRepository } from '#/features/sales/sales-invoice-service.ts'
 
-export type AgeingBucketLabel =
-  | 'not-due'
-  | '1-30'
-  | '31-60'
-  | '61-90'
-  | '90+'
+export type AgeingBucketLabel = 'not-due' | '1-30' | '31-60' | '61-90' | '90+'
 
 /** Buckets in escalating order, for anything that renders the whole set. */
 export const AGEING_BUCKET_ORDER = [
@@ -113,8 +112,48 @@ function addBucketTotals(
   }
 }
 
+type OpeningBalanceSource = Pick<
+  PartyOpeningBalanceRepository,
+  'listByCompanyId'
+>
+
+/** Unpaid opening balances on one side, aged from their as-of date. */
+async function openingBalanceRows(
+  source: OpeningBalanceSource | undefined,
+  companyId: string,
+  side: OpeningBalanceSide,
+  partyName: (partyId: string) => string,
+  asOf: Date,
+): Promise<Array<AgeingRow>> {
+  if (!source) return []
+  const balances = await source.listByCompanyId(companyId)
+  return balances
+    .filter(
+      (balance) =>
+        balance.side === side && new Decimal(balance.outstandingAmount).gt(0),
+    )
+    .map((balance) => {
+      const daysPastDue = daysBetween(balance.asOfDate, asOf)
+      return {
+        partyId: balance.partyId,
+        partyName: partyName(balance.partyId),
+        documentNumber: 'Opening balance',
+        documentDate: balance.asOfDate,
+        dueDate: balance.asOfDate,
+        outstandingAmount: balance.outstandingAmount,
+        daysOutstanding: daysPastDue,
+        daysPastDue,
+        bucket: bucketFor(daysPastDue),
+      }
+    })
+}
+
 export async function buildReceivablesAgeing(
-  deps: { invoices: SalesInvoiceRepository; parties: PartyRepository },
+  deps: {
+    invoices: SalesInvoiceRepository
+    parties: PartyRepository
+    openingBalances?: OpeningBalanceSource
+  },
   companyId: string,
   asOf: Date = new Date(),
 ): Promise<AgeingReport> {
@@ -123,6 +162,13 @@ export async function buildReceivablesAgeing(
     deps.parties.listByCompanyId(companyId),
   ])
   const partyById = new Map(parties.map((party) => [party.id, party]))
+  const opening = await openingBalanceRows(
+    deps.openingBalances,
+    companyId,
+    'receivable',
+    (partyId) => partyById.get(partyId)?.name ?? 'Customer',
+    asOf,
+  )
 
   const rows: Array<AgeingRow> = invoices
     .filter((invoice) => new Decimal(invoice.outstandingAmount).gt(0))
@@ -141,6 +187,7 @@ export async function buildReceivablesAgeing(
         bucket: bucketFor(daysPastDue),
       }
     })
+  rows.unshift(...opening)
 
   return {
     companyId,
@@ -150,7 +197,11 @@ export async function buildReceivablesAgeing(
 }
 
 export async function buildPayablesAgeing(
-  deps: { bills: PurchaseBillRepository; parties: PartyRepository },
+  deps: {
+    bills: PurchaseBillRepository
+    parties: PartyRepository
+    openingBalances?: OpeningBalanceSource
+  },
   companyId: string,
   asOf: Date = new Date(),
 ): Promise<AgeingReport> {
@@ -159,6 +210,13 @@ export async function buildPayablesAgeing(
     deps.parties.listByCompanyId(companyId),
   ])
   const partyById = new Map(parties.map((party) => [party.id, party]))
+  const opening = await openingBalanceRows(
+    deps.openingBalances,
+    companyId,
+    'payable',
+    (partyId) => partyById.get(partyId)?.name ?? 'Supplier',
+    asOf,
+  )
 
   const rows: Array<AgeingRow> = bills
     .filter((bill) => new Decimal(bill.outstandingAmount).gt(0))
@@ -177,6 +235,7 @@ export async function buildPayablesAgeing(
         bucket: bucketFor(daysPastDue),
       }
     })
+  rows.unshift(...opening)
 
   return {
     companyId,

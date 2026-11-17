@@ -38,6 +38,10 @@ built. Never include customer names, balances or other real data.
 
 ### Fixed
 
+- A credit note now lowers what the customer still owes on the invoice, and a debit note lowers what you owe on the bill, so the amount due, payment status and receivables are right after a return. A return can no longer add up to more than the invoice or bill.
+- Customer and supplier opening balances now show in receivables and payables ageing, the dashboard's dues, and Ask AI's answers about who owes what.
+- The Tally export carries customer and supplier opening balances on their ledgers in Tally.
+- GSTR-2B reconciliation now matches expenses whose input tax credit you claimed, not only purchase bills.
 - New sales invoices and purchase bills for a party in another state now set the place of supply to that party's state, so they save without the "place of supply outside your company state" error. This also works for a party you add from the invoice form.
 - Sales and purchase registers update straight away after you cancel an invoice, save a bill or scanned bill, or record a receipt or payment, instead of showing the old status until you reload.
 - Download for Tally (XML) works again for companies that have used the stock journal. Before, it stopped with an error once a Stock Adjustment ledger existed; that ledger now goes under Indirect Expenses in Tally.

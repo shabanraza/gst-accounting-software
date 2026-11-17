@@ -21,6 +21,7 @@ import { InMemoryPartyRepository } from '#/features/parties/party-store.ts'
 import { createPaymentsRouter } from '#/features/payments/payment-router.ts'
 import { InMemoryExpenseRepository } from '#/features/expenses/expense-store.ts'
 import { InMemoryRecurringInvoiceRepository } from '#/features/sales/recurring-invoice-store.ts'
+import { InMemoryCreditDebitNoteRepository } from '#/features/returns/credit-debit-note-store.ts'
 import { InMemoryPartyOpeningBalanceRepository } from '#/features/parties/party-opening-balance-store.ts'
 import { InMemoryPaymentVoucherRepository } from '#/features/payments/payment-voucher-store.ts'
 import { InMemoryPurchaseBillRepository } from '#/features/purchases/purchase-bill-store.ts'
@@ -59,6 +60,7 @@ function inMemoryRepositories(): PostingRepositories {
     openingBalances: new InMemoryPartyOpeningBalanceRepository(),
     expenses: new InMemoryExpenseRepository(),
     recurringInvoices: new InMemoryRecurringInvoiceRepository(),
+    creditDebitNotes: new InMemoryCreditDebitNoteRepository(),
     audit: new InMemoryAuditLogRepository(),
   }
 }

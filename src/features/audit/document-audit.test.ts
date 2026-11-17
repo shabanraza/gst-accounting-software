@@ -70,6 +70,7 @@ async function seed() {
     openingBalances: new InMemoryPartyOpeningBalanceRepository(),
     expenses: new InMemoryExpenseRepository(),
     recurringInvoices: new InMemoryRecurringInvoiceRepository(),
+    creditDebitNotes: new InMemoryCreditDebitNoteRepository(),
     audit,
   }
   const financialYears = new InMemoryFinancialYearRepository()
@@ -137,14 +138,11 @@ async function seed() {
       ledgers,
       financialYears,
     }),
-    returns: createReturnsRouter(
-      repositories.posting,
-      repositories.stock,
-      new InMemoryCreditDebitNoteRepository(),
-      repositories.sequences,
+    returns: createReturnsRouter({
+      transaction,
+      notes: repositories.creditDebitNotes,
       financialYears,
-      audit,
-    ),
+    }),
     expenses: createExpensesRouter({
       transaction,
       expenses: repositories.expenses,

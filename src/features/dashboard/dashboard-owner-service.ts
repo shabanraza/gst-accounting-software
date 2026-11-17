@@ -32,6 +32,7 @@ import type { DashboardSummaryRepository } from '#/features/dashboard/dashboard-
 import type { ExpenseRepository } from '#/features/expenses/expense-service.ts'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
 import type { StockBalanceRepository } from '#/features/inventory/stock-movement-service.ts'
+import type { PartyOpeningBalanceRepository } from '#/features/parties/party-opening-balance-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
 import type { CreditDebitNoteRepository } from '#/features/returns/credit-debit-note-service.ts'
@@ -166,6 +167,7 @@ export type OwnerDashboardDeps = {
   items: ItemRepository
   stockBalances: StockBalanceRepository
   notes: CreditDebitNoteRepository
+  openingBalances?: PartyOpeningBalanceRepository
 }
 
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP })
@@ -624,12 +626,20 @@ export async function getOwnerDashboardSnapshot(
     computeCashFlowForDate(deps, companyId, asOfDate),
     computeCashBankBalance(deps, companyId),
     buildReceivablesAgeing(
-      { invoices: deps.invoices, parties: deps.parties },
+      {
+        invoices: deps.invoices,
+        parties: deps.parties,
+        openingBalances: deps.openingBalances,
+      },
       companyId,
       new Date(`${asOfDate}T12:00:00`),
     ),
     buildPayablesAgeing(
-      { bills: deps.bills, parties: deps.parties },
+      {
+        bills: deps.bills,
+        parties: deps.parties,
+        openingBalances: deps.openingBalances,
+      },
       companyId,
       new Date(`${asOfDate}T12:00:00`),
     ),

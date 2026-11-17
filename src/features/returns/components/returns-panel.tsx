@@ -170,9 +170,14 @@ export function ReturnsPanel() {
             },
           ],
         })
-        await queryClient.invalidateQueries({
-          queryKey: trpc.inventory.listStockBalances.queryKey({ companyId }),
-        })
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.inventory.listStockBalances.queryKey({ companyId }),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.sales.pathKey(),
+          }),
+        ])
         toast.success(
           `Credit note ${salesReturn.noteNumber} posted for ${selectedSales.invoiceNumber}.`,
         )
@@ -225,9 +230,14 @@ export function ReturnsPanel() {
             },
           ],
         })
-        await queryClient.invalidateQueries({
-          queryKey: trpc.inventory.listStockBalances.queryKey({ companyId }),
-        })
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.inventory.listStockBalances.queryKey({ companyId }),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.purchases.pathKey(),
+          }),
+        ])
         toast.success(
           `Debit note ${purchaseReturn.noteNumber} posted for ${selectedPurchase.supplierBillNumber}.`,
         )

@@ -3,7 +3,9 @@ import Decimal from 'decimal.js'
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
 import { calculateGst } from '#/features/gst/gst-calculator.ts'
 import {
+  InvalidReturnError,
   allocateNoteNumber,
+  applyNoteToDocument,
   recordCreditDebitNote,
 } from '#/features/returns/credit-debit-note-service.ts'
 import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
@@ -17,6 +19,7 @@ import type {
   CreditDebitNoteRepository,
   NoteNumberDependencies,
 } from '#/features/returns/credit-debit-note-service.ts'
+import type { SalesInvoiceRepository } from '#/features/sales/sales-invoice-service.ts'
 
 export type ReturnLineInput = {
   itemId: string
@@ -60,6 +63,7 @@ export type SalesReturnDependencies = {
   posting: LedgerPostingRepository
   stock: StockMovementRepository & StockBalanceRepository
   notes: CreditDebitNoteRepository
+  invoices: SalesInvoiceRepository
 } & NoteNumberDependencies
 
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP })
@@ -76,6 +80,20 @@ export async function postSalesReturn(
   deps: SalesReturnDependencies,
   input: PostSalesReturnInput,
 ): Promise<SalesReturnRecord> {
+  const invoice = deps.invoices.lockById
+    ? await deps.invoices.lockById(input.salesInvoiceId)
+    : await deps.invoices.findById(input.salesInvoiceId)
+  if (
+    !invoice ||
+    invoice.companyId !== input.companyId ||
+    invoice.customerId !== input.customerId
+  ) {
+    throw new InvalidReturnError('Sales invoice not found')
+  }
+  if (invoice.status === 'cancelled') {
+    throw new InvalidReturnError('A cancelled invoice cannot be returned')
+  }
+
   // Reserve the note number first so a missing financial year stops the
   // return before any stock or ledger posting.
   const noteNumber = await allocateNoteNumber(deps, {
@@ -100,6 +118,12 @@ export async function postSalesReturn(
   }
 
   const totalAmount = taxableTotal.plus(gstTotal)
+  const amountDue = await applyNoteToDocument(deps.notes, {
+    companyId: input.companyId,
+    document: invoice,
+    noteAmount: formatMoney(totalAmount),
+    documentLabel: 'invoice',
+  })
   const returnId = crypto.randomUUID()
 
   // Returned goods come back at the unit cost the invoice took them out at;
@@ -190,6 +214,7 @@ export async function postSalesReturn(
     ledgerEntryId: ledgerEntry.id,
     narration: `Sales return for invoice ${input.salesInvoiceId}`,
   })
+  await deps.invoices.save({ ...invoice, ...amountDue })
 
   return {
     id: returnId,

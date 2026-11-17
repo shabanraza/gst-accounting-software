@@ -83,6 +83,7 @@ const postingTransaction = createPostingTransaction({
   openingBalances: partyOpeningBalanceRepository,
   expenses: expenseRepository,
   recurringInvoices: recurringInvoiceRepository,
+  creditDebitNotes: creditDebitNoteRepository,
   audit: auditLogRepository,
 })
 
@@ -154,14 +155,11 @@ export const trpcRouter = createTRPCRouter({
     ledgerPostingRepository,
     ledgerAccountRepository,
   ),
-  returns: createReturnsRouter(
-    ledgerPostingRepository,
-    stockStore,
-    creditDebitNoteRepository,
-    documentSequenceRepository,
-    financialYearRepository,
-    auditLogRepository,
-  ),
+  returns: createReturnsRouter({
+    transaction: postingTransaction,
+    notes: creditDebitNoteRepository,
+    financialYears: financialYearRepository,
+  }),
   expenses: createExpensesRouter({
     transaction: postingTransaction,
     expenses: expenseRepository,
@@ -200,6 +198,7 @@ export const trpcRouter = createTRPCRouter({
     ledgers: ledgerAccountRepository,
     postings: ledgerPostingRepository,
     expenses: expenseRepository,
+    openingBalances: partyOpeningBalanceRepository,
     usage: assistantUsageRepository,
     getAi: getWorkersAi,
   }),
@@ -214,6 +213,7 @@ export const trpcRouter = createTRPCRouter({
     items: itemRepository,
     stockBalances: stockStore,
     notes: creditDebitNoteRepository,
+    openingBalances: partyOpeningBalanceRepository,
   }),
   documents: createDocumentsRouter(
     documentSequenceRepository,

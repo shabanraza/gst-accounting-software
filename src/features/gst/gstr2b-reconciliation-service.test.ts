@@ -421,3 +421,78 @@ describe('reconcileGstr2b', () => {
     ).rejects.toBeInstanceOf(Gstr2bItcDecisionError)
   })
 })
+
+describe('expenses with claimed GST', () => {
+  const expenseBase = {
+    companyId: 'company-1',
+    narration: 'Office rent',
+    gstRate: '18.00',
+    supplierName: 'Shah Estates',
+    supplierGstin: '24AAACS1234K1Z5',
+    placeOfSupply: '24',
+    expenseAccountId: 'acc-rent',
+    paymentAccountId: 'acc-cash',
+    ledgerEntryId: 'entry-exp',
+    createdAt: new Date(),
+  }
+  const expenses = {
+    listByCompanyId: async () => [
+      {
+        ...expenseBase,
+        id: 'exp-claimed',
+        expenseDate: '2026-01-10',
+        amount: '11800.00',
+        taxableAmount: '10000.00',
+        gstAmount: '1800.00',
+        itcClaimed: true,
+        billNumber: 'R/2026/01',
+      },
+      {
+        ...expenseBase,
+        id: 'exp-not-claimed',
+        expenseDate: '2026-01-11',
+        amount: '1180.00',
+        taxableAmount: '1000.00',
+        gstAmount: '180.00',
+        itcClaimed: false,
+        billNumber: 'R/2026/02',
+      },
+    ],
+  }
+
+  test('matches a claimed expense bill and ignores unclaimed ones', async () => {
+    const report = await reconcileGstr2b(
+      {
+        bills: new FakeBills([]),
+        parties: new FakeParties([]),
+        expenses,
+      },
+      {
+        companyId: 'company-1',
+        ...period,
+        portalRows: [
+          {
+            supplierGstin: '24AAACS1234K1Z5',
+            supplierInvoiceNumber: 'R/2026/01',
+            invoiceDate: '2026-01-10',
+            taxableAmount: '10000.00',
+            cgstAmount: '900.00',
+            sgstAmount: '900.00',
+            igstAmount: '0.00',
+            totalGstAmount: '1800.00',
+          },
+        ],
+      },
+    )
+
+    expect(report.rows).toHaveLength(1)
+    expect(report.rows[0]).toMatchObject({
+      supplierInvoiceNumber: 'R/2026/01',
+      bookTaxableAmount: '10000.00',
+      bookCgstAmount: '900.00',
+      bookTotalGstAmount: '1800.00',
+      status: 'matched',
+    })
+    expect(report.summary.booksItcTotal).toBe('1800.00')
+  })
+})

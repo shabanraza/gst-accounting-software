@@ -488,3 +488,99 @@ describe('buildTallyXml vouchers', () => {
     ).toBeGreaterThan(0)
   })
 })
+
+describe('party opening balances', () => {
+  const openingLedger = {
+    id: 'acc-opening',
+    name: 'Opening Balance Equity',
+    accountType: 'equity' as const,
+    systemKey: 'opening_balance' as const,
+  }
+
+  function ledgerMaster(xml: string, name: string) {
+    return [...parse(xml).getElementsByTagName('LEDGER')].find(
+      (ledger) => ledger.getAttribute('NAME') === name,
+    )
+  }
+
+  test('puts opening balances on the party and opening ledgers, not in vouchers', () => {
+    const input = baseInput()
+    const result = buildTallyXml({
+      ...input,
+      ledgers: [...input.ledgers, openingLedger],
+      openingBalances: [
+        {
+          partyId: ids.customer,
+          side: 'receivable',
+          amount: '5000.00',
+          partyAccountId: ids.receivable,
+          ledgerEntryId: 'entry-ob-customer',
+        },
+        {
+          partyId: ids.supplier,
+          side: 'payable',
+          amount: '1200.00',
+          partyAccountId: ids.payable,
+          ledgerEntryId: 'entry-ob-supplier',
+        },
+      ],
+      entries: [
+        {
+          id: 'entry-ob-customer',
+          entryDate: '2026-04-01',
+          narration: 'Opening balance',
+          voucherType: 'journal',
+          lines: [
+            {
+              ledgerAccountId: ids.receivable,
+              debit: '5000.00',
+              credit: '0.00',
+            },
+            {
+              ledgerAccountId: 'acc-opening',
+              debit: '0.00',
+              credit: '5000.00',
+            },
+          ],
+        },
+        {
+          id: 'entry-ob-supplier',
+          entryDate: '2026-04-01',
+          narration: 'Opening balance',
+          voucherType: 'journal',
+          lines: [
+            { ledgerAccountId: ids.payable, debit: '0.00', credit: '1200.00' },
+            {
+              ledgerAccountId: 'acc-opening',
+              debit: '1200.00',
+              credit: '0.00',
+            },
+          ],
+        },
+      ],
+    })
+
+    // Tally: debit balances are negative, credit balances positive.
+    expect(
+      text(
+        ledgerMaster(result.masters, 'Asha & Sons <Pune>')!,
+        'OPENINGBALANCE',
+      ),
+    ).toBe('-5000.00')
+    expect(
+      text(ledgerMaster(result.masters, 'Gujarat Mills')!, 'OPENINGBALANCE'),
+    ).toBe('1200.00')
+    expect(
+      text(
+        ledgerMaster(result.masters, 'Opening Balance Equity')!,
+        'OPENINGBALANCE',
+      ),
+    ).toBe('3800.00')
+    expect(
+      ledgerMaster(result.masters, 'Cash')!.getElementsByTagName(
+        'OPENINGBALANCE',
+      ),
+    ).toHaveLength(0)
+    expect(result.voucherCount).toBe(0)
+  })
+})
