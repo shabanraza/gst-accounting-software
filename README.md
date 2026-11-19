@@ -6,7 +6,9 @@ Looking for a **Busy accounting alternative**, **Zoho Books alternative**, or **
 
 Use it at no cost. Fork it, self-host it, or contribute back.
 
-**Repository:** [github.com/shabanraza/gst-accounting-software](https://github.com/shabanraza/gst-accounting-software)
+**Try it free:** [hisaabkro.in](https://hisaabkro.in) · **Repository:** [github.com/shabanraza/gst-accounting-software](https://github.com/shabanraza/gst-accounting-software) · **What's new:** [hisaabkro.in/changelog](https://hisaabkro.in/changelog)
+
+[![HisaabKro home page with the dashboard: sales this month, amounts to collect and pay, cash and bank, and GST this month](docs/screenshots/home.png)](https://hisaabkro.in)
 
 ---
 
