@@ -13,6 +13,8 @@ built. Never include customer names, balances or other real data.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-19
+
 ### Added
 
 - Recurring invoices: pick the repeat icon on a sales invoice to bill the same customer every week, month, 3 months or year, starting on the date you choose and, if you like, stopping on an end date. Sales → Recurring invoices lists each one with its next date; when an invoice is due, Create invoice makes it with the next invoice number, the same items and rates, and the same payment terms. Pause, resume or stop any of them.
