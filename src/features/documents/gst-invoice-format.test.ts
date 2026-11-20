@@ -38,6 +38,19 @@ describe('splitLineGst', () => {
     expect(split.igstAmount).toBe('180.00')
     expect(split.cgstAmount).toBe('0.00')
   })
+
+  test('an odd legacy GST amount still adds up: CGST + SGST = GST', () => {
+    const split = splitLineGst({ gstRate: '0.25', gstAmount: '0.25' }, false)
+    expect(split.cgstAmount).toBe('0.13')
+    expect(split.sgstAmount).toBe('0.12')
+  })
+
+  test('half-rates keep a third decimal when they need one', () => {
+    const split = splitLineGst({ gstRate: '0.25', gstAmount: '0.26' }, false)
+    expect(split.cgstRate).toBe('0.125')
+    expect(split.sgstRate).toBe('0.125')
+    expect(splitLineGst({ gstRate: '18.00', gstAmount: '18.00' }, false).cgstRate).toBe('9.00')
+  })
 })
 
 describe('isInterStateSupply', () => {

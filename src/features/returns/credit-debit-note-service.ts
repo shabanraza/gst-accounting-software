@@ -57,6 +57,40 @@ export class InvalidReturnError extends DomainError {
  * total, and returns the document's amount due and status after the note.
  * The amount due never goes below zero; any excess is the party's credit.
  */
+/**
+ * Keeps a return's GST within what the original document charged. Returns
+ * recompute GST at today's rounding, which can differ by a paisa from a
+ * document saved earlier: a return of everything still left reverses
+ * exactly the GST still left, and any return is capped at it.
+ */
+export async function fitReturnGstToDocument(
+  repository: CreditDebitNoteRepository,
+  input: {
+    companyId: string
+    document: { id: string; taxableAmount: string; totalGstAmount: string }
+    taxableTotal: Decimal
+    gstTotal: Decimal
+  },
+): Promise<Decimal> {
+  const earlier = await repository.listByReference(
+    input.companyId,
+    input.document.id,
+  )
+  const remainingTaxable = earlier.reduce(
+    (left, note) => left.minus(note.taxableAmount),
+    new Decimal(input.document.taxableAmount),
+  )
+  const remainingGst = Decimal.max(
+    0,
+    earlier.reduce(
+      (left, note) => left.minus(note.totalGstAmount),
+      new Decimal(input.document.totalGstAmount),
+    ),
+  )
+  if (input.taxableTotal.eq(remainingTaxable)) return remainingGst
+  return Decimal.min(input.gstTotal, remainingGst)
+}
+
 export async function applyNoteToDocument(
   repository: CreditDebitNoteRepository,
   input: {

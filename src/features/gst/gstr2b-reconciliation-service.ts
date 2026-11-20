@@ -1,5 +1,6 @@
 import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
+import { splitIntraStateGst } from '#/features/gst/gst-calculator.ts'
 
 import type { ExpenseRepository } from '#/features/expenses/expense-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
@@ -105,10 +106,10 @@ function splitPurchaseGst(
 ) {
   const supplyType =
     partyStateCode === companyStateCode ? 'intra_state' : 'inter_state'
-  const half = new Decimal(totalGstAmount).div(2).toFixed(2)
+  const split = splitIntraStateGst(totalGstAmount)
   return {
-    cgstAmount: supplyType === 'intra_state' ? half : '0.00',
-    sgstAmount: supplyType === 'intra_state' ? half : '0.00',
+    cgstAmount: supplyType === 'intra_state' ? split.cgst : '0.00',
+    sgstAmount: supplyType === 'intra_state' ? split.sgst : '0.00',
     igstAmount: supplyType === 'inter_state' ? totalGstAmount : '0.00',
   }
 }

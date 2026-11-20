@@ -1,5 +1,7 @@
 import Decimal from 'decimal.js'
 
+import { splitIntraStateGst } from '#/features/gst/gst-calculator.ts'
+
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP })
 
 export const GST_STATE_NAMES: Record<string, string> = {
@@ -112,12 +114,16 @@ export function splitLineGst(
   }
 
   const halfRate = gstRate.dividedBy(2)
-  const halfAmount = gstAmount.dividedBy(2)
+  // 0.25% splits into 0.125% each; show the third decimal only when needed.
+  const halfRateLabel = halfRate.decimalPlaces() > 2
+    ? halfRate.toFixed(3)
+    : halfRate.toFixed(2)
+  const split = splitIntraStateGst(gstAmount)
   return {
-    cgstRate: halfRate.toFixed(2),
-    cgstAmount: halfAmount.toFixed(2),
-    sgstRate: halfRate.toFixed(2),
-    sgstAmount: gstAmount.minus(halfAmount).toFixed(2),
+    cgstRate: halfRateLabel,
+    cgstAmount: split.cgst,
+    sgstRate: halfRateLabel,
+    sgstAmount: split.sgst,
     igstRate: '0.00',
     igstAmount: '0.00',
   }
