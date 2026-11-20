@@ -24,6 +24,7 @@ import {
 } from '#/components/ui/select.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import {
+  formatGstRateLabel,
   gstRateOptions,
   itemGroups,
   unitOptions,
@@ -291,7 +292,7 @@ export function CreateItemDialog({
                 <SelectGroup>
                   {gstRateOptions.map((rate) => (
                     <SelectItem key={rate} value={rate}>
-                      {rate}%
+                      {formatGstRateLabel(rate)}
                     </SelectItem>
                   ))}
                 </SelectGroup>
