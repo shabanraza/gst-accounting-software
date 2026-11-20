@@ -13,6 +13,10 @@ built. Never include customer names, balances or other real data.
 
 ## [Unreleased]
 
+### Added
+
+- More GST rates when you create an item or record an expense: the new 40% rate, plus 0.1%, 0.25%, 1%, 1.5%, 3% (gold, silver and jewellery), 6% and 7.5%. 12% and 28% are still there for older bills and items still taxed at those rates.
+
 ## [0.5.0] - 2026-11-19
 
 ### Added
