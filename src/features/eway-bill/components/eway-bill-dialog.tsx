@@ -165,10 +165,9 @@ export function EWayBillDialog({
   }, [target, details])
 
   const distanceKm = Number.parseInt(distance || '0', 10)
-  const suggestedValidUntil =
-    ewbDate && Number.isFinite(distanceKm)
-      ? defaultValidUntil(ewbDate, distanceKm, vehicleType)
-      : ''
+  const suggestedValidUntil = Number.isFinite(distanceKm)
+    ? (defaultValidUntil(ewbDate, distanceKm, vehicleType) ?? '')
+    : ''
 
   const buildJson = useMutation(trpc.eWayBills.buildJson.mutationOptions())
   const saveRecord = useMutation(trpc.eWayBills.record.mutationOptions())
@@ -218,6 +217,10 @@ export function EWayBillDialog({
   async function handleSave(event: React.FormEvent) {
     event.preventDefault()
     if (!companyId || !source || !target) return
+    if (!validUntil && !suggestedValidUntil) {
+      toast.error('Enter the valid-until date from the portal')
+      return
+    }
     try {
       await saveRecord.mutateAsync({
         companyId,
@@ -499,7 +502,7 @@ export function EWayBillDialog({
                       id="ewb-valid"
                       min={ewbDate}
                       onChange={setValidUntil}
-                      placeholder={suggestedValidUntil}
+                      required
                       value={validUntil || suggestedValidUntil}
                     />
                   </Field>

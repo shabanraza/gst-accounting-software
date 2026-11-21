@@ -176,6 +176,8 @@ async function seed(options: { gstin?: string | null } = {}) {
     foreign,
     challan,
     audit,
+    invoices,
+    eWayBills,
   }
 }
 
@@ -269,7 +271,7 @@ describe('e-way bill router', () => {
 
   test('flags invoices above the threshold until the number is recorded', async () => {
     const { caller, big, small } = await seed()
-    const range = { companyId, startDate: '2026-11-01', endDate: '2026-11-30' }
+    const range = { companyId, invoiceIds: [big.id, small.id] }
 
     expect(await caller.eWayBills.invoiceStatuses(range)).toEqual({
       [big.id]: 'due',
@@ -293,12 +295,112 @@ describe('e-way bill router', () => {
   })
 
   test('shows no reminders for a company without a GSTIN', async () => {
-    const { caller } = await seed({ gstin: null })
+    const { caller, big } = await seed({ gstin: null })
     expect(
       await caller.eWayBills.invoiceStatuses({
         companyId,
-        startDate: '2026-11-01',
-        endDate: '2026-11-30',
+        invoiceIds: [big.id],
+      }),
+    ).toEqual({})
+  })
+
+  test('uses the party state for older invoices with no place of supply', async () => {
+    const { caller, invoices, big } = await seed()
+    const old = await invoices.create({
+      ...big,
+      id: crypto.randomUUID(),
+      invoiceNumber: 'INV-OLD',
+      placeOfSupply: '',
+      partyStateCodeSnapshot: '27',
+    })
+    const { json } = await caller.eWayBills.buildJson({
+      companyId,
+      source: { kind: 'invoice', id: old.id },
+      deliveryPincode: '411001',
+      transport,
+    })
+
+    expect(json.billLists[0]).toMatchObject({
+      actualToStateCode: 27,
+      igstValue: 0,
+      cgstValue: 2500,
+      sgstValue: 2500,
+    })
+    // Rs 1,05,000 inside Maharashtra is above its Rs 1 lakh limit.
+    expect(
+      await caller.eWayBills.invoiceStatuses({
+        companyId,
+        invoiceIds: [old.id],
+      }),
+    ).toEqual({ [old.id]: 'due' })
+  })
+
+  test('refuses to save an e-way bill on a cancelled invoice', async () => {
+    const { caller, invoices, big } = await seed()
+    await invoices.save({ ...big, status: 'cancelled' })
+
+    await expect(
+      caller.eWayBills.record({
+        companyId,
+        source: { kind: 'invoice', id: big.id },
+        ewbNumber: '331012345678',
+        ewbDate: '2026-11-20',
+        validUntil: '2026-11-25',
+        vehicleNumber: 'MH12AB1234',
+        transportMode: 'road',
+        distanceKm: 980,
+        transporterId: '',
+        transporterName: '',
+      }),
+    ).rejects.toThrow(/cancelled/)
+  })
+
+  test('never reads or changes the documents or e-way bills of another company', async () => {
+    const { caller, foreign, eWayBills } = await seed()
+    await expect(
+      caller.eWayBills.record({
+        companyId,
+        source: { kind: 'invoice', id: foreign.id },
+        ewbNumber: '331012345678',
+        ewbDate: '2026-11-20',
+        validUntil: '2026-11-25',
+        vehicleNumber: 'MH12AB1234',
+        transportMode: 'road',
+        distanceKm: 980,
+        transporterId: '',
+        transporterName: '',
+      }),
+    ).rejects.toThrow(/not found/i)
+    await expect(
+      caller.eWayBills.forDocument({
+        companyId,
+        source: { kind: 'challan', id: crypto.randomUUID() },
+      }),
+    ).rejects.toThrow(/not found/i)
+
+    const theirs = await eWayBills.save({
+      id: crypto.randomUUID(),
+      companyId: otherCompanyId,
+      salesInvoiceId: foreign.id,
+      salesDocumentId: null,
+      ewbNumber: '331012345678',
+      ewbDate: '2026-11-20',
+      validUntil: '2026-11-25',
+      vehicleNumber: null,
+      transportMode: 'road',
+      distanceKm: 100,
+      transporterId: '',
+      transporterName: '',
+      generatedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    await expect(
+      caller.eWayBills.remove({ companyId, id: theirs.id }),
+    ).rejects.toThrow(/not found/i)
+    expect(
+      await caller.eWayBills.invoiceStatuses({
+        companyId,
+        invoiceIds: [foreign.id],
       }),
     ).toEqual({})
   })

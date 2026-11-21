@@ -224,6 +224,20 @@ const VEHICLE_PATTERNS = [
   /^TR[0-9A-Z]{6,13}$/, // temporary registration
 ]
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+const STATE_CODE = /^[0-9]{2}$/
+const DOC_NUMBER = /^[A-Za-z0-9/-]{1,16}$/
+
+/**
+ * For these challan reasons the goods stay with the consignor, so the portal
+ * expects the consignor's own GSTIN and name as the recipient; the delivery
+ * place is still where the goods go.
+ */
+const CONSIGNOR_IS_RECIPIENT = new Set<EWayBillChallanReason>([
+  'for_own_use',
+  'line_sales',
+  'recipient_not_known',
+  'exhibition',
+])
 
 export function normalizeVehicleNumber(value: string) {
   return value.replace(/[\s-]/g, '').toUpperCase()
@@ -251,6 +265,20 @@ export function buildEWayBillJson(input: {
   }
   if (!PINCODE.test(company.pincode.trim())) {
     invalid('Add a 6-digit PIN code to the company profile.')
+  }
+  for (const code of [
+    company.stateCode,
+    party.stateCode,
+    document.placeOfSupply,
+  ]) {
+    if (!STATE_CODE.test(code)) {
+      invalid('Set the state on the company, the party and the document.')
+    }
+  }
+  if (!DOC_NUMBER.test(document.number)) {
+    invalid(
+      `${document.number}: e-way bill document numbers can have up to 16 letters, digits, / or -.`,
+    )
   }
   if (!PINCODE.test(party.pincode.trim())) {
     invalid(`Enter the 6-digit delivery PIN code for ${party.name}.`)
@@ -284,12 +312,18 @@ export function buildEWayBillJson(input: {
   ) {
     invalid('Enter the RR, airway bill or bill of lading number and date.')
   }
+  const transportDocNumber = transport.transportDocNumber.trim()
+  // By road the LR number is optional, and its date goes with it.
+  const sendTransportDoc =
+    transportDocNumber !== '' && ISO_DATE.test(transport.transportDocDate)
 
   let subSupplyType = 1
   let subSupplyDesc = ''
+  let consignorIsRecipient = false
   if (document.kind === 'challan') {
     const reason = transport.subSupplyType ?? 'others'
     subSupplyType = challanReasonCodes[reason]
+    consignorIsRecipient = CONSIGNOR_IS_RECIPIENT.has(reason)
     if (reason === 'others') {
       subSupplyDesc = transport.subSupplyDescription?.trim() ?? ''
       if (!subSupplyDesc) invalid('Say why the goods are moving.')
@@ -372,32 +406,34 @@ export function buildEWayBillJson(input: {
         fromPincode: Number(company.pincode.trim()),
         fromStateCode: stateNumber(company.stateCode),
         actualFromStateCode: stateNumber(company.stateCode),
-        toGstin: party.gstin?.trim().toUpperCase() || 'URP',
-        toTrdName: party.name,
+        toGstin: consignorIsRecipient
+          ? companyGstin
+          : party.gstin?.trim().toUpperCase() || 'URP',
+        toTrdName: consignorIsRecipient ? company.name : party.name,
         toAddr1: party.addressLine1.trim(),
         toAddr2: party.addressLine2.trim(),
         toPlace: party.city.trim(),
         toPincode: Number(party.pincode.trim()),
-        toStateCode: stateNumber(party.stateCode),
+        toStateCode: stateNumber(
+          consignorIsRecipient ? company.stateCode : party.stateCode,
+        ),
         actualToStateCode: stateNumber(document.placeOfSupply),
         totalValue: toNumber(totalValue),
         cgstValue: toNumber(cgst),
         sgstValue: toNumber(sgst),
         igstValue: toNumber(igst),
         cessValue: 0,
-        cessNonAdvolValue: 0,
+        TotNonAdvolVal: 0,
         OthValue: toNumber(otherValue),
         totInvValue: toNumber(invoiceValue),
         transMode: transportModeCodes[transport.mode],
         transDistance: transport.distanceKm,
         transporterId,
         transporterName: transport.transporterName.trim(),
-        transDocNo:
-          transport.mode === 'road' ? '' : transport.transportDocNumber.trim(),
-        transDocDate:
-          transport.mode === 'road'
-            ? ''
-            : portalDate(transport.transportDocDate),
+        transDocNo: sendTransportDoc ? transportDocNumber : '',
+        transDocDate: sendTransportDoc
+          ? portalDate(transport.transportDocDate)
+          : '',
         vehicleNo: transport.mode === 'road' ? vehicleNumber : '',
         vehicleType: transport.vehicleType === 'odc' ? 'O' : 'R',
         mainHsnCode: Number(mainLine.hsnCode.trim()),
@@ -424,10 +460,11 @@ export function defaultValidUntil(
   ewbDate: string,
   distanceKm: number,
   vehicleType: EWayBillVehicleType,
-) {
+): string | null {
+  // Distance 0 means the portal works it out, so the validity isn't known here.
+  if (!ISO_DATE.test(ewbDate) || !(distanceKm > 0)) return null
   const perDay = vehicleType === 'odc' ? 20 : 200
-  const days = Math.max(1, Math.ceil(distanceKm / perDay))
-  return addDays(ewbDate, days)
+  return addDays(ewbDate, Math.ceil(distanceKm / perDay))
 }
 
 export type EWayBillSource = { kind: 'invoice' | 'challan'; id: string }

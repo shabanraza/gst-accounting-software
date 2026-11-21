@@ -39,7 +39,7 @@ import type {
 
 export type EWayBillRouterDeps = {
   eWayBills: EWayBillRepository
-  invoices: Pick<SalesInvoiceRepository, 'findById' | 'listByCompanyId'>
+  invoices: Required<Pick<SalesInvoiceRepository, 'findById' | 'listByIds'>>
   salesDocuments: Pick<SalesDocumentRepository, 'findById'>
   companies: Pick<CompanyRepository, 'listByIds'>
   parties: Pick<PartyRepository, 'findById'>
@@ -103,6 +103,14 @@ function invoiceLines(
   })
 }
 
+/** Older invoices may have no place of supply saved; it is then the party's state. */
+function invoicePlaceOfSupply(
+  invoice: SalesInvoiceRecord,
+  partyStateCode: string,
+) {
+  return invoice.placeOfSupply || partyStateCode
+}
+
 export function createEWayBillRouter(deps: EWayBillRouterDeps) {
   async function itemMap(companyId: string) {
     const items = await deps.items.listByCompanyId(companyId)
@@ -134,6 +142,8 @@ export function createEWayBillRouter(deps: EWayBillRouterDeps) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Invoice not found' })
       }
       const party = await deps.parties.findById(invoice.customerId)
+      const partyStateCode =
+        invoice.partyStateCodeSnapshot || party?.stateCode || ''
       return {
         company: companyInfo,
         invoice,
@@ -145,13 +155,13 @@ export function createEWayBillRouter(deps: EWayBillRouterDeps) {
           addressLine2: party?.addressLine2 ?? '',
           city: party?.city ?? '',
           pincode: party?.pincode ?? '',
-          stateCode: invoice.partyStateCodeSnapshot,
+          stateCode: partyStateCode,
         },
         document: {
           kind: 'invoice',
           number: invoice.invoiceNumber,
           date: invoice.invoiceDate,
-          placeOfSupply: invoice.placeOfSupply,
+          placeOfSupply: invoicePlaceOfSupply(invoice, partyStateCode),
           totalAmount: invoice.totalAmount,
           lines: invoiceLines(invoice, items),
         },
@@ -289,6 +299,12 @@ export function createEWayBillRouter(deps: EWayBillRouterDeps) {
       )
       .mutation(async ({ ctx, input }) => {
         const loaded = await loadSource(input.companyId, input.source)
+        if (loaded.cancelled) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'This invoice is cancelled.',
+          })
+        }
         const record = await recordEWayBill(deps.eWayBills, input)
         await recordDocumentEvent(deps.audit, {
           companyId: input.companyId,
@@ -320,33 +336,30 @@ export function createEWayBillRouter(deps: EWayBillRouterDeps) {
         return { ok: true }
       }),
     /**
-     * Per-invoice e-way bill status for a date range of the sales register:
+     * E-way bill status of the invoices shown in the sales register:
      * `recorded` once a number is stored, `due` when one is needed.
      */
     invoiceStatuses: capabilityProcedure('view')
       .input(
         z.object({
           companyId: z.string().uuid(),
-          startDate: dateSchema,
-          endDate: dateSchema,
+          invoiceIds: z.array(z.string().uuid()).max(500),
         }),
       )
       .query(async ({ input }) => {
         const company = (await deps.companies.listByIds([input.companyId])).at(
           0,
         )
-        if (!company?.gstin?.trim()) return {}
+        const statuses: Partial<Record<string, 'recorded' | 'due'>> = {}
+        if (!company?.gstin?.trim() || input.invoiceIds.length === 0) {
+          return statuses
+        }
         const [invoices, records, items] = await Promise.all([
-          deps.invoices.listByCompanyId(input.companyId, {
-            includeLines: true,
-            startDate: input.startDate,
-            endDate: input.endDate,
-          }),
+          deps.invoices.listByIds(input.companyId, input.invoiceIds),
           deps.eWayBills.listByCompanyId(input.companyId),
           itemMap(input.companyId),
         ])
         const recorded = new Set(records.map((record) => record.salesInvoiceId))
-        const statuses: Record<string, 'recorded' | 'due'> = {}
         for (const invoice of invoices) {
           if (recorded.has(invoice.id)) {
             statuses[invoice.id] = 'recorded'
@@ -354,7 +367,10 @@ export function createEWayBillRouter(deps: EWayBillRouterDeps) {
             isEWayBillDue({
               companyGstin: company.gstin,
               fromStateCode: company.stateCode,
-              toStateCode: invoice.placeOfSupply,
+              toStateCode: invoicePlaceOfSupply(
+                invoice,
+                invoice.partyStateCodeSnapshot,
+              ),
               cancelled: invoice.status === 'cancelled',
               hasEWayBill: false,
               lines: invoiceLines(invoice, items),

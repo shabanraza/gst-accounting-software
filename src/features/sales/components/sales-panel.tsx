@@ -142,15 +142,11 @@ export function SalesPanel({
   }, [partiesQuery.data])
 
   const rows = salesQuery.data?.pages.flat() ?? []
-  const invoiceDates = rows.map((row) => row.invoiceDate).sort()
+  const invoiceIds = rows.slice(0, 500).map((row) => row.id)
   const eWayBillStatusQuery = useQuery(
     trpc.eWayBills.invoiceStatuses.queryOptions(
-      companyId && isReady && invoiceDates.length > 0
-        ? {
-            companyId,
-            startDate: invoiceDates[0],
-            endDate: invoiceDates[invoiceDates.length - 1],
-          }
+      companyId && isReady && invoiceIds.length > 0
+        ? { companyId, invoiceIds }
         : skipToken,
     ),
   )
@@ -242,147 +238,144 @@ export function SalesPanel({
                 </TableCell>
               </TableRow>
             ) : (
-              rows.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <span>{row.invoiceNumber}</span>
-                      {eWayBillStatuses[row.id] ? (
-                        <Badge
-                          variant={eWayBillStatusBadgeIntent(
-                            eWayBillStatuses[row.id],
-                          )}
-                        >
-                          {eWayBillStatuses[row.id] === 'due'
-                            ? 'EWB due'
-                            : 'EWB'}
-                        </Badge>
-                      ) : null}
-                    </div>
-                  </TableCell>
-                  <TableCell>{partyName(row.customerId)}</TableCell>
-                  <TableCell>{row.invoiceDate}</TableCell>
-                  <TableCell className="text-right">
-                    {formatInr(row.taxableAmount)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatInr(row.totalGstAmount)}
-                  </TableCell>
-                  <TableCell className="text-right font-medium text-money-in">
-                    {formatInr(row.totalAmount)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={invoiceStatusBadgeIntent({
-                        cancelled: row.status === 'cancelled',
-                        paymentStatus: row.paymentStatus,
-                      })}
-                    >
-                      {row.status === 'cancelled'
-                        ? 'Cancelled'
-                        : row.paymentStatus}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            onClick={() => openPreview(row)}
-                            size="icon-sm"
-                            type="button"
-                            variant="ghost"
-                          >
-                            <EyeIcon />
-                            <span className="sr-only">Preview invoice</span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Preview</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button asChild size="icon-sm" variant="ghost">
-                            <Link
-                              params={{ invoiceId: row.id }}
-                              to="/app/sales/$invoiceId/print"
-                            >
-                              <PrinterIcon />
-                              <span className="sr-only">Print invoice</span>
-                            </Link>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Print</TooltipContent>
-                      </Tooltip>
-                      {row.status === 'cancelled' ? null : (
+              rows.map((row) => {
+                const ewbStatus = eWayBillStatuses[row.id]
+                return (
+                  <TableRow key={row.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <span>{row.invoiceNumber}</span>
+                        {ewbStatus ? (
+                          <Badge variant={eWayBillStatusBadgeIntent(ewbStatus)}>
+                            {ewbStatus === 'due' ? 'EWB due' : 'EWB'}
+                          </Badge>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                    <TableCell>{partyName(row.customerId)}</TableCell>
+                    <TableCell>{row.invoiceDate}</TableCell>
+                    <TableCell className="text-right">
+                      {formatInr(row.taxableAmount)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatInr(row.totalGstAmount)}
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-money-in">
+                      {formatInr(row.totalAmount)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={invoiceStatusBadgeIntent({
+                          cancelled: row.status === 'cancelled',
+                          paymentStatus: row.paymentStatus,
+                        })}
+                      >
+                        {row.status === 'cancelled'
+                          ? 'Cancelled'
+                          : row.paymentStatus}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
-                              onClick={() =>
-                                setEWayBillTarget({
-                                  kind: 'invoice',
-                                  id: row.id,
-                                  number: row.invoiceNumber,
-                                })
-                              }
+                              onClick={() => openPreview(row)}
                               size="icon-sm"
                               type="button"
                               variant="ghost"
                             >
-                              <TruckIcon />
-                              <span className="sr-only">E-way bill</span>
+                              <EyeIcon />
+                              <span className="sr-only">Preview invoice</span>
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>E-way bill</TooltipContent>
+                          <TooltipContent>Preview</TooltipContent>
                         </Tooltip>
-                      )}
-                      {row.status === 'cancelled' ? null : (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button
-                              onClick={() =>
-                                setRepeatTarget({
-                                  id: row.id,
-                                  invoiceNumber: row.invoiceNumber,
-                                  invoiceDate: row.invoiceDate,
-                                })
-                              }
-                              size="icon-sm"
-                              type="button"
-                              variant="ghost"
-                            >
-                              <Repeat2Icon />
-                              <span className="sr-only">Repeat invoice</span>
+                            <Button asChild size="icon-sm" variant="ghost">
+                              <Link
+                                params={{ invoiceId: row.id }}
+                                to="/app/sales/$invoiceId/print"
+                              >
+                                <PrinterIcon />
+                                <span className="sr-only">Print invoice</span>
+                              </Link>
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Repeat</TooltipContent>
+                          <TooltipContent>Print</TooltipContent>
                         </Tooltip>
-                      )}
-                      {row.status === 'cancelled' ? null : (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                              disabled={cancelInvoiceMutation.isPending}
-                              onClick={() =>
-                                setCancelTarget({
-                                  id: row.id,
-                                  invoiceNumber: row.invoiceNumber,
-                                })
-                              }
-                              size="icon-sm"
-                              variant="ghost"
-                            >
-                              <BanIcon />
-                              <span className="sr-only">Cancel invoice</span>
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Cancel</TooltipContent>
-                        </Tooltip>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                        {row.status === 'cancelled' ? null : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                onClick={() =>
+                                  setEWayBillTarget({
+                                    kind: 'invoice',
+                                    id: row.id,
+                                    number: row.invoiceNumber,
+                                  })
+                                }
+                                size="icon-sm"
+                                type="button"
+                                variant="ghost"
+                              >
+                                <TruckIcon />
+                                <span className="sr-only">E-way bill</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>E-way bill</TooltipContent>
+                          </Tooltip>
+                        )}
+                        {row.status === 'cancelled' ? null : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                onClick={() =>
+                                  setRepeatTarget({
+                                    id: row.id,
+                                    invoiceNumber: row.invoiceNumber,
+                                    invoiceDate: row.invoiceDate,
+                                  })
+                                }
+                                size="icon-sm"
+                                type="button"
+                                variant="ghost"
+                              >
+                                <Repeat2Icon />
+                                <span className="sr-only">Repeat invoice</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Repeat</TooltipContent>
+                          </Tooltip>
+                        )}
+                        {row.status === 'cancelled' ? null : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                disabled={cancelInvoiceMutation.isPending}
+                                onClick={() =>
+                                  setCancelTarget({
+                                    id: row.id,
+                                    invoiceNumber: row.invoiceNumber,
+                                  })
+                                }
+                                size="icon-sm"
+                                variant="ghost"
+                              >
+                                <BanIcon />
+                                <span className="sr-only">Cancel invoice</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Cancel</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })
             )}
           </TableBody>
         </Table>

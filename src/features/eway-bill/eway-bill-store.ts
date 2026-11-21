@@ -117,11 +117,15 @@ export class DrizzleEWayBillRepository implements EWayBillRepository {
       generatedAt: record.generatedAt,
       updatedAt: record.updatedAt,
     }
-    const [saved] = await this.database
+    const [saved] = (await this.database
       .insert(schema.eWayBills)
       .values(values)
       .onConflictDoUpdate({
-        target: schema.eWayBills.id,
+        // The source is the business key: a second save for the same invoice
+        // or challan updates it, even when two saves race.
+        target: record.salesInvoiceId
+          ? schema.eWayBills.salesInvoiceId
+          : schema.eWayBills.salesDocumentId,
         set: {
           ewbNumber: values.ewbNumber,
           ewbDate: values.ewbDate,
@@ -133,9 +137,10 @@ export class DrizzleEWayBillRepository implements EWayBillRepository {
           transporterName: values.transporterName,
           updatedAt: values.updatedAt,
         },
-        where: eq(schema.eWayBills.companyId, record.companyId),
+        setWhere: eq(schema.eWayBills.companyId, record.companyId),
       })
-      .returning()
+      .returning()) as Array<EWayBillRow | undefined>
+    if (!saved) throw new Error('E-way bill was not saved')
     return mapRow(saved)
   }
 

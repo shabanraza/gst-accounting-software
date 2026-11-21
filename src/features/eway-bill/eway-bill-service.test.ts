@@ -239,7 +239,7 @@ describe('buildEWayBillJson', () => {
       sgstValue: 0,
       igstValue: 5200,
       cessValue: 0,
-      cessNonAdvolValue: 0,
+      TotNonAdvolVal: 0,
       OthValue: 700,
       totInvValue: 70900,
       transMode: 1,
@@ -342,6 +342,135 @@ describe('buildEWayBillJson', () => {
 
     expect(json.billLists[0].itemList).toHaveLength(2)
     expect(json.billLists[0].OthValue).toBe(4720)
+  })
+
+  test('sends exactly the bulk-upload fields', () => {
+    const bill = buildEWayBillJson({
+      company,
+      party: registeredParty,
+      document: invoice,
+      transport: road,
+    }).billLists[0]
+
+    expect(Object.keys(bill).sort()).toEqual(
+      [
+        'userGstin',
+        'supplyType',
+        'subSupplyType',
+        'subSupplyDesc',
+        'docType',
+        'docNo',
+        'docDate',
+        'transType',
+        'fromGstin',
+        'fromTrdName',
+        'fromAddr1',
+        'fromAddr2',
+        'fromPlace',
+        'fromPincode',
+        'fromStateCode',
+        'actualFromStateCode',
+        'toGstin',
+        'toTrdName',
+        'toAddr1',
+        'toAddr2',
+        'toPlace',
+        'toPincode',
+        'toStateCode',
+        'actualToStateCode',
+        'totalValue',
+        'cgstValue',
+        'sgstValue',
+        'igstValue',
+        'cessValue',
+        'TotNonAdvolVal',
+        'OthValue',
+        'totInvValue',
+        'transMode',
+        'transDistance',
+        'transporterName',
+        'transporterId',
+        'transDocNo',
+        'transDocDate',
+        'vehicleNo',
+        'vehicleType',
+        'mainHsnCode',
+        'itemList',
+      ].sort(),
+    )
+  })
+
+  test('carries a negative other value when the invoice was rounded down or discounted', () => {
+    const json = buildEWayBillJson({
+      company,
+      party: registeredParty,
+      document: { ...invoice, totalAmount: '69699.60' },
+      transport: road,
+    })
+
+    expect(json.billLists[0].OthValue).toBe(-500.4)
+    expect(json.billLists[0].totInvValue).toBe(69699.6)
+  })
+
+  test('sends the LR number by road when it is given with its date', () => {
+    const json = buildEWayBillJson({
+      company,
+      party: registeredParty,
+      document: invoice,
+      transport: {
+        ...road,
+        transportDocNumber: 'LR-5521',
+        transportDocDate: '2026-11-20',
+      },
+    })
+
+    expect(json.billLists[0]).toMatchObject({
+      vehicleNo: 'MH12AB1234',
+      transDocNo: 'LR-5521',
+      transDocDate: '20/11/2026',
+    })
+  })
+
+  test('names the consignor as recipient when challan goods stay with the business', () => {
+    const json = buildEWayBillJson({
+      company,
+      party: registeredParty,
+      document: {
+        ...invoice,
+        kind: 'challan',
+        number: 'DC-0008',
+        totalAmount: '70200.00',
+      },
+      transport: { ...road, subSupplyType: 'exhibition' },
+    })
+
+    expect(json.billLists[0]).toMatchObject({
+      subSupplyType: 12,
+      toGstin: '27AAACB1234C1Z5',
+      toTrdName: 'Sharma Traders',
+      toStateCode: 27,
+      toPincode: 560001,
+      actualToStateCode: 29,
+    })
+  })
+
+  test('rejects missing state codes and document numbers the portal cannot take', () => {
+    expect(() =>
+      buildEWayBillJson({
+        company,
+        party: registeredParty,
+        document: { ...invoice, placeOfSupply: '' },
+        transport: road,
+      }),
+    ).toThrow(/state/)
+    expect(() =>
+      buildEWayBillJson({
+        company,
+        party: registeredParty,
+        document: { ...invoice, number: 'INV 2026-27 #00042' },
+        transport: road,
+      }),
+    ).toThrow(/16 letters/)
   })
 
   test('uses the challan doc type and the reason picked for a delivery challan', () => {
@@ -504,6 +633,10 @@ describe('defaultValidUntil', () => {
 
   test('gives one day per 20 km for over-dimensional cargo', () => {
     expect(defaultValidUntil('2026-11-30', 45, 'odc')).toBe('2026-12-03')
+  })
+
+  test('suggests nothing when the portal works out the distance', () => {
+    expect(defaultValidUntil('2026-11-20', 0, 'regular')).toBeNull()
   })
 })
 

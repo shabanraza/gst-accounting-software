@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import {
   boolean,
+  check,
   index,
   integer,
   jsonb,
@@ -984,6 +985,10 @@ export const eWayBills = pgTable(
     uniqueIndex('e_way_bills_sales_invoice_idx').on(table.salesInvoiceId),
     uniqueIndex('e_way_bills_sales_document_idx').on(table.salesDocumentId),
     index('e_way_bills_company_idx').on(table.companyId),
+    check(
+      'e_way_bills_one_source_chk',
+      sql`(${table.salesInvoiceId} IS NULL) <> (${table.salesDocumentId} IS NULL)`,
+    ),
   ],
 )
 
