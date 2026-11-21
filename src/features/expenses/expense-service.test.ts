@@ -135,6 +135,45 @@ describe('postExpense', () => {
     expect(expense.amount).toBe('393.33')
   })
 
+  test('a same-state expense rounds CGST and SGST each, so they stay equal', async () => {
+    const base = {
+      amount: '10.10',
+      gstRate: '5',
+      supplierGstin: '27AABCS1234K1Z5',
+      billNumber: 'B-1',
+      claimItc: true,
+      inputGstAccountId,
+      companyStateCode: '27',
+    }
+    // 10.10 × 2.5% = 0.2525 → 0.25 each, so GST is 0.50 (not 0.51).
+    const sameState = await postExpense(expenses, posting, input(base))
+    expect(sameState.gstAmount).toBe('0.50')
+
+    // Another state is IGST, rounded once on the full rate.
+    const otherState = await postExpense(
+      expenses,
+      posting,
+      input({ ...base, supplierGstin: '29AABCS1234K1Z1' }),
+    )
+    expect(otherState.gstAmount).toBe('0.51')
+  })
+
+  test('with no supplier GSTIN the expense counts as same-state; without the company state it rounds once', async () => {
+    const noGstin = await postExpense(
+      expenses,
+      posting,
+      input({ amount: '10.10', gstRate: '5', companyStateCode: '27' }),
+    )
+    expect(noGstin.gstAmount).toBe('0.50')
+
+    const noCompanyState = await postExpense(
+      expenses,
+      posting,
+      input({ amount: '10.10', gstRate: '5' }),
+    )
+    expect(noCompanyState.gstAmount).toBe('0.51')
+  })
+
   test('requires the supplier GSTIN and bill number to claim credit', async () => {
     await expect(
       postExpense(

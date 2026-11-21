@@ -87,3 +87,34 @@ export function calculateGst(input: CalculateGstInput): GstCalculation {
     totalAmount: formatMoney(taxableAmount.plus(totalGstAmount)),
   }
 }
+
+/**
+ * GST on a price that already includes it. The tax is worked out on the
+ * backed-out taxable value with the same rounding as `calculateGst` (equal
+ * CGST and SGST halves), and the taxable value takes whatever paisa is left,
+ * so taxable + GST is always exactly the price entered.
+ */
+export function calculateInclusiveGst(input: {
+  inclusiveAmount: string
+  gstRate: string
+  companyStateCode: string
+  partyStateCode: string
+}): GstCalculation {
+  const price = money(input.inclusiveAmount).toDecimalPlaces(
+    2,
+    Decimal.ROUND_HALF_UP,
+  )
+  const gstRate = money(input.gstRate)
+  const backedOut = price.mul(100).div(gstRate.plus(100))
+  const gst = calculateGst({
+    taxableAmount: backedOut.toString(),
+    gstRate: input.gstRate,
+    companyStateCode: input.companyStateCode,
+    partyStateCode: input.partyStateCode,
+  })
+  return {
+    ...gst,
+    taxableAmount: formatMoney(price.minus(gst.totalGstAmount)),
+    totalAmount: formatMoney(price),
+  }
+}

@@ -17,6 +17,8 @@ built. Never include customer names, balances or other real data.
 
 - CGST and SGST are now always equal on same-state invoices and bills, as e-invoicing requires. Each half is worked out on its own and the GST total is the two added together, so a line can no longer show halves that don't add up to the total (for example ₹0.13 + ₹0.13 against ₹0.25). GST reports and printed invoices split older documents so CGST plus SGST always equals the GST you recorded, and a 0.25% rate now prints as 0.125% CGST and 0.125% SGST.
 - A sales or purchase return can no longer reverse more GST than the original invoice or bill charged. Returning everything that's left reverses exactly the GST that's left, so no paisa stays due.
+- Prices that include GST now come out to exactly the price you enter. ₹100 at 0.25% used to post ₹99.99; the GST is worked out with equal CGST and SGST and the taxable value takes the rest.
+- Same-state expenses round CGST and SGST each, the same way as invoices, so the two always match.
 
 ### Added
 

@@ -57,6 +57,27 @@ describe('voucher math', () => {
     expect(line.lineTotal).toBe('118.00')
   })
 
+  test('an inclusive price splits into equal halves that add back to the price', () => {
+    const line = computeVoucherLine(
+      {
+        ...emptyVoucherLine(),
+        quantity: '1',
+        rate: '100.00',
+        discountPercent: '0',
+        gstRate: '0.25',
+      },
+      'local',
+      '27',
+      'inclusive',
+      '27',
+    )
+
+    expect(line.cgstAmount).toBe('0.12')
+    expect(line.sgstAmount).toBe('0.12')
+    expect(line.taxableAmount).toBe('99.76')
+    expect(line.lineTotal).toBe('100.00')
+  })
+
   test('adds bill-level discount into totals', () => {
     const line = computeVoucherLine(
       {

@@ -28,6 +28,7 @@ const postExpenseInputSchema = z.object({
   supplierGstin: z.string().optional(),
   billNumber: z.string().optional(),
   claimItc: z.boolean().optional(),
+  companyStateCode: z.string().length(2).optional(),
 })
 
 export const createExpensesRouter = (deps: {
