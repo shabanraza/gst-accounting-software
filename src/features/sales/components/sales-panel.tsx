@@ -13,6 +13,7 @@ import {
   PlusIcon,
   PrinterIcon,
   Repeat2Icon,
+  TruckIcon,
 } from 'lucide-react'
 
 import {
@@ -55,9 +56,14 @@ import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { resolveListFilter } from '#/features/app-shell/list-filter.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { RepeatInvoiceDialog } from '#/features/sales/components/repeat-invoice-dialog.tsx'
+import { EWayBillDialog } from '#/features/eway-bill/components/eway-bill-dialog.tsx'
+import type { EWayBillTarget } from '#/features/eway-bill/components/eway-bill-dialog.tsx'
 import type { RepeatInvoiceTarget } from '#/features/sales/components/repeat-invoice-dialog.tsx'
 import { formatInr } from '#/lib/format-inr.ts'
-import { invoiceStatusBadgeIntent } from '#/lib/badge-intent.ts'
+import {
+  eWayBillStatusBadgeIntent,
+  invoiceStatusBadgeIntent,
+} from '#/lib/badge-intent.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function SalesPanel({
@@ -83,6 +89,8 @@ export function SalesPanel({
   } | null>(null)
   const [repeatTarget, setRepeatTarget] =
     React.useState<RepeatInvoiceTarget | null>(null)
+  const [eWayBillTarget, setEWayBillTarget] =
+    React.useState<EWayBillTarget | null>(null)
   const partiesQuery = useQuery(
     trpc.parties.list.queryOptions(
       companyId && isReady ? { companyId } : skipToken,
@@ -134,6 +142,19 @@ export function SalesPanel({
   }, [partiesQuery.data])
 
   const rows = salesQuery.data?.pages.flat() ?? []
+  const invoiceDates = rows.map((row) => row.invoiceDate).sort()
+  const eWayBillStatusQuery = useQuery(
+    trpc.eWayBills.invoiceStatuses.queryOptions(
+      companyId && isReady && invoiceDates.length > 0
+        ? {
+            companyId,
+            startDate: invoiceDates[0],
+            endDate: invoiceDates[invoiceDates.length - 1],
+          }
+        : skipToken,
+    ),
+  )
+  const eWayBillStatuses = eWayBillStatusQuery.data ?? {}
 
   function openPreview(row: { id: string; invoiceNumber: string }) {
     setPreviewTarget({
@@ -224,7 +245,20 @@ export function SalesPanel({
               rows.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell className="font-medium">
-                    {row.invoiceNumber}
+                    <div className="flex items-center gap-2">
+                      <span>{row.invoiceNumber}</span>
+                      {eWayBillStatuses[row.id] ? (
+                        <Badge
+                          variant={eWayBillStatusBadgeIntent(
+                            eWayBillStatuses[row.id],
+                          )}
+                        >
+                          {eWayBillStatuses[row.id] === 'due'
+                            ? 'EWB due'
+                            : 'EWB'}
+                        </Badge>
+                      ) : null}
+                    </div>
                   </TableCell>
                   <TableCell>{partyName(row.customerId)}</TableCell>
                   <TableCell>{row.invoiceDate}</TableCell>
@@ -279,6 +313,28 @@ export function SalesPanel({
                         </TooltipTrigger>
                         <TooltipContent>Print</TooltipContent>
                       </Tooltip>
+                      {row.status === 'cancelled' ? null : (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              onClick={() =>
+                                setEWayBillTarget({
+                                  kind: 'invoice',
+                                  id: row.id,
+                                  number: row.invoiceNumber,
+                                })
+                              }
+                              size="icon-sm"
+                              type="button"
+                              variant="ghost"
+                            >
+                              <TruckIcon />
+                              <span className="sr-only">E-way bill</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>E-way bill</TooltipContent>
+                        </Tooltip>
+                      )}
                       {row.status === 'cancelled' ? null : (
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -348,6 +404,13 @@ export function SalesPanel({
         onOpenChange={setPreviewOpen}
         open={previewOpen}
         target={previewTarget}
+      />
+
+      <EWayBillDialog
+        onOpenChange={(open) => {
+          if (!open) setEWayBillTarget(null)
+        }}
+        target={eWayBillTarget}
       />
 
       <RepeatInvoiceDialog

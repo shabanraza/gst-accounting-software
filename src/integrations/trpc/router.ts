@@ -58,6 +58,8 @@ import { userDirectory } from '#/features/team/user-directory.ts'
 import { createSalesDocumentsRouter } from '#/features/sales-documents/sales-documents-router.ts'
 import { salesDocumentRepository } from '#/features/sales-documents/sales-document-store.ts'
 import { salesInvoiceRepository } from '#/features/sales/sales-invoice-store.ts'
+import { createEWayBillRouter } from '#/features/eway-bill/eway-bill-router.ts'
+import { createEWayBillRepository } from '#/features/eway-bill/eway-bill-store.ts'
 import { createSupportRouter } from '#/features/support/support-router.ts'
 import { preferenceStore } from '#/features/product-updates/preference-store.ts'
 import { createPreferencesRouter } from '#/features/product-updates/preferences-router.ts'
@@ -233,6 +235,15 @@ export const trpcRouter = createTRPCRouter({
     itemRepository,
     documentSequenceRepository,
   ),
+  eWayBills: createEWayBillRouter({
+    eWayBills: createEWayBillRepository(),
+    invoices: salesInvoiceRepository,
+    salesDocuments: salesDocumentRepository,
+    companies: companyRepository,
+    parties: partyRepository,
+    items: itemRepository,
+    audit: auditLogRepository,
+  }),
   ocr: createOcrRouter(
     ocrDraftRepository,
     documentAttachmentRepository,

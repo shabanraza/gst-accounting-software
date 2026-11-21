@@ -161,3 +161,9 @@ export function periodChangeBadgeIntent(input: {
   if (input.judged === false) return 'secondary'
   return input.direction === 'up' ? 'success' : 'destructive'
 }
+
+export function eWayBillStatusBadgeIntent(
+  status: 'due' | 'recorded',
+): BadgeIntent {
+  return status === 'due' ? 'warning' : 'neutral'
+}

@@ -20,6 +20,7 @@ built. Never include customer names, balances or other real data.
 
 ### Added
 
+- E-way bills for sales invoices and delivery challans: pick the truck icon on an invoice in Sales, or E-way bill on a delivery challan, enter the transport details (vehicle or transporter ID, mode, distance) and download the JSON file to upload on the e-way bill portal. After the portal gives you the e-way bill number, save it with its validity, which is filled in from the distance. Invoices that need an e-way bill and don't have one yet show "EWB due" in the sales register. The limit is ₹50,000, or the higher limit some states set for goods moving within the state.
 - More GST rates when you create an item or record an expense: the new 40% rate, plus 0.1%, 0.25%, 1%, 1.5%, 3% (gold, silver and jewellery), 6% and 7.5%. 12% and 28% are still there for older bills and items still taxed at those rates.
 
 ## [0.5.0] - 2026-11-19

@@ -964,17 +964,25 @@ export const eWayBills = pgTable(
     companyId: uuid('company_id')
       .notNull()
       .references(() => companies.id),
-    salesInvoiceId: uuid('sales_invoice_id')
-      .notNull()
-      .references(() => salesInvoices.id),
+    // Exactly one of these is set (check constraint in migration 0022).
+    salesInvoiceId: uuid('sales_invoice_id').references(() => salesInvoices.id),
+    salesDocumentId: uuid('sales_document_id').references(
+      () => salesDocuments.id,
+    ),
     ewbNumber: text('ewb_number').notNull(),
     ewbDate: text('ewb_date').notNull(),
     vehicleNumber: text('vehicle_number'),
     validUntil: text('valid_until').notNull(),
+    transportMode: text('transport_mode').notNull().default('road'),
+    distanceKm: integer('distance_km').notNull().default(0),
+    transporterId: text('transporter_id').notNull().default(''),
+    transporterName: text('transporter_name').notNull().default(''),
     generatedAt: timestamp('generated_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (table) => [
     uniqueIndex('e_way_bills_sales_invoice_idx').on(table.salesInvoiceId),
+    uniqueIndex('e_way_bills_sales_document_idx').on(table.salesDocumentId),
     index('e_way_bills_company_idx').on(table.companyId),
   ],
 )

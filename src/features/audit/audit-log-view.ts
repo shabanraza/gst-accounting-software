@@ -26,6 +26,8 @@ const actionLabels: Record<string, string> = {
   'sales_invoice.posted': 'Sales invoice saved',
   'sales_invoice.cancelled': 'Sales invoice cancelled',
   'recurring_invoice.created': 'Recurring invoice set up',
+  'e_way_bill.recorded': 'E-way bill number saved',
+  'e_way_bill.removed': 'E-way bill number removed',
   'purchase_bill.posted': 'Purchase bill saved',
   'scanned_bill.confirmed': 'Scanned bill confirmed',
   'receipt.posted': 'Receipt recorded',
