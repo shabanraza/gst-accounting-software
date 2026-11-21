@@ -1,5 +1,6 @@
 import Decimal from 'decimal.js'
 
+import { splitIntraStateGst } from '#/features/gst/gst-calculator.ts'
 import { uqcForUnit } from '#/features/app-shell/data/india-masters.ts'
 
 import type {
@@ -108,8 +109,8 @@ export function summarizeHsnByRate(
       gstRate: new Decimal(group.line.gstRate).toFixed(2),
       taxableAmount: group.taxable.toFixed(2),
       igstAmount: group.interGst.toFixed(2),
-      cgstAmount: group.intraGst.div(2).toFixed(2),
-      sgstAmount: group.intraGst.div(2).toFixed(2),
+      cgstAmount: splitIntraStateGst(group.intraGst).cgst,
+      sgstAmount: splitIntraStateGst(group.intraGst).sgst,
     }))
 }
 

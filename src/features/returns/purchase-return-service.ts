@@ -6,6 +6,7 @@ import {
   InvalidReturnError,
   allocateNoteNumber,
   applyNoteToDocument,
+  fitReturnGstToDocument,
   recordCreditDebitNote,
 } from '#/features/returns/credit-debit-note-service.ts'
 import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
@@ -108,6 +109,12 @@ export async function postPurchaseReturn(
     gstTotal = gstTotal.plus(money(gst.totalGstAmount))
   }
 
+  gstTotal = await fitReturnGstToDocument(deps.notes, {
+    companyId: input.companyId,
+    document: bill,
+    taxableTotal,
+    gstTotal,
+  })
   const totalAmount = taxableTotal.plus(gstTotal)
   const amountDue = await applyNoteToDocument(deps.notes, {
     companyId: input.companyId,

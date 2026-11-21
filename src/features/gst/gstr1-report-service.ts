@@ -1,5 +1,6 @@
 import Decimal from 'decimal.js'
 
+import { splitIntraStateGst } from '#/features/gst/gst-calculator.ts'
 import { summarizeHsnByRate } from '#/features/gst/hsn-summary-service.ts'
 
 import type { Gstr1HsnRow } from '#/features/gst/hsn-summary-service.ts'
@@ -144,12 +145,12 @@ function rateRow(
   gst: Decimal,
 ): Gstr1RateRow {
   const isIntraState = supplyType === 'intra_state'
-  const half = gst.div(2).toFixed(2)
+  const split = splitIntraStateGst(gst)
   return {
     gstRate: gstRate.toFixed(2),
     taxableAmount: taxable.toFixed(2),
-    cgstAmount: isIntraState ? half : '0.00',
-    sgstAmount: isIntraState ? half : '0.00',
+    cgstAmount: isIntraState ? split.cgst : '0.00',
+    sgstAmount: isIntraState ? split.sgst : '0.00',
     igstAmount: isIntraState ? '0.00' : gst.toFixed(2),
   }
 }

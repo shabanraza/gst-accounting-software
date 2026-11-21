@@ -1,5 +1,6 @@
 import Decimal from 'decimal.js'
 
+import { splitIntraStateGst } from '#/features/gst/gst-calculator.ts'
 import { hsnLineOf } from '#/features/gst/hsn-summary-service.ts'
 
 import type { ExpenseRepository } from '#/features/expenses/expense-service.ts'
@@ -19,12 +20,12 @@ function taxSplit(
 ) {
   const supplyType: GstReportDocument['supplyType'] =
     placeOfSupply === companyStateCode ? 'intra_state' : 'inter_state'
-  const half = new Decimal(totalGstAmount).div(2).toFixed(2)
+  const split = splitIntraStateGst(totalGstAmount)
   return {
     placeOfSupply,
     supplyType,
-    cgstAmount: supplyType === 'intra_state' ? half : '0.00',
-    sgstAmount: supplyType === 'intra_state' ? half : '0.00',
+    cgstAmount: supplyType === 'intra_state' ? split.cgst : '0.00',
+    sgstAmount: supplyType === 'intra_state' ? split.sgst : '0.00',
     igstAmount: supplyType === 'inter_state' ? totalGstAmount : '0.00',
   }
 }
