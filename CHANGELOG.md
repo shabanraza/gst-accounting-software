@@ -19,6 +19,7 @@ built. Never include customer names, balances or other real data.
 - A sales or purchase return can no longer reverse more GST than the original invoice or bill charged. Returning everything that's left reverses exactly the GST that's left, so no paisa stays due.
 - Prices that include GST now come out to exactly the price you enter. ₹100 at 0.25% used to post ₹99.99; the GST is worked out with equal CGST and SGST and the taxable value takes the rest.
 - Same-state expenses round CGST and SGST each, the same way as invoices, so the two always match.
+- Returns are valued at what the original invoice or bill actually charged for the item. On an invoice priced with GST included, the GST is no longer added on top, and a line discount on the invoice or bill now carries into the return.
 
 ### Added
 
