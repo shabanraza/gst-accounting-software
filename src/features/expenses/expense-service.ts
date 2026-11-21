@@ -2,6 +2,7 @@ import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
+import { calculateGst } from '#/features/gst/gst-calculator.ts'
 import { isValidGstin } from '#/features/gst/gst-validation.ts'
 
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
@@ -22,6 +23,33 @@ export type PostExpenseInput = {
   claimItc?: boolean
   /** Input GST ledger; required when credit is claimed. */
   inputGstAccountId?: string
+  /**
+   * The company's state. With it, a same-state expense (supplier GSTIN in
+   * this state, or none) rounds CGST and SGST each so they stay equal.
+   */
+  companyStateCode?: string
+}
+
+/** GST on an expense: equal CGST/SGST halves within the state, else IGST. */
+export function expenseGst(input: {
+  amount: string
+  gstRate: string
+  supplierGstin?: string
+  companyStateCode?: string
+}): Decimal {
+  const taxable = new Decimal(input.amount)
+  if (!input.companyStateCode) {
+    return taxable.times(input.gstRate).div(100).toDecimalPlaces(2)
+  }
+  const supplierState = (input.supplierGstin ?? '').trim().slice(0, 2)
+  return new Decimal(
+    calculateGst({
+      taxableAmount: input.amount,
+      gstRate: input.gstRate,
+      companyStateCode: input.companyStateCode,
+      partyStateCode: supplierState || input.companyStateCode,
+    }).totalGstAmount,
+  )
 }
 
 export type ExpenseRecord = {
@@ -82,7 +110,12 @@ export async function postExpense(
     throw new InvalidExpenseError('GST rate must be between 0 and 100')
   }
 
-  const gst = taxable.times(rate).div(100).toDecimalPlaces(2)
+  const gst = expenseGst({
+    amount: taxable.toString(),
+    gstRate: rate.toString(),
+    supplierGstin: input.supplierGstin,
+    companyStateCode: input.companyStateCode,
+  })
   const total = taxable.plus(gst)
   const supplierGstin = (input.supplierGstin ?? '').trim().toUpperCase()
   const billNumber = (input.billNumber ?? '').trim()
