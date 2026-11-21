@@ -1,3 +1,4 @@
+import Decimal from 'decimal.js'
 import { describe, expect, test } from 'vitest'
 
 import { setupDefaultChartOfAccounts } from '#/features/accounting/chart-of-accounts.ts'
@@ -156,6 +157,8 @@ async function seedReturnsContext() {
   return {
     companyId,
     item,
+    items,
+    parties,
     invoice,
     bill,
     stock,
@@ -248,6 +251,11 @@ describe('postSalesReturn', () => {
 
   test('posts a 0% return without an output GST line', async () => {
     const context = await seedReturnsContext()
+    // A nil-rated line: returns follow the rate the document charged.
+    await context.invoices.save({
+      ...context.invoice,
+      lines: context.invoice.lines.map((line) => ({ ...line, gstRate: '0.00' })),
+    })
 
     const salesReturn = await postSalesReturn(
       {
@@ -375,6 +383,11 @@ describe('postPurchaseReturn', () => {
 
   test('posts a 0% return without an input GST line', async () => {
     const context = await seedReturnsContext()
+    // A nil-rated line: returns follow the rate the document charged.
+    await context.bills.save({
+      ...context.bill,
+      lines: context.bill.lines.map((line) => ({ ...line, gstRate: '0.00' })),
+    })
 
     const purchaseReturn = await postPurchaseReturn(
       {
@@ -742,7 +755,7 @@ describe('returns against what is still owed', () => {
 
     await expect(
       postSalesReturn(depsOf(context), salesReturnInput(context, '21')),
-    ).rejects.toThrow('Returns cannot exceed the invoice total')
+    ).rejects.toThrow('Return quantity is more than the 20 billed')
     await expect(
       postSalesReturn(depsOf(context), {
         ...salesReturnInput(context, '1'),
@@ -789,5 +802,276 @@ describe('returns against what is still owed', () => {
         supplierId: context.customer.id,
       }),
     ).rejects.toThrow('Purchase bill not found')
+  })
+})
+
+describe('returns at the price the document actually charged', () => {
+  test('a GST-inclusive invoice is returned at its inclusive price, not with GST added on top', async () => {
+    const context = await seedReturnsContext()
+    const inclusive = await postSalesInvoice(
+      {
+        invoices: context.invoices,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+        parties: context.parties,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        customerId: context.customer.id,
+        customerStateCode: '27',
+        invoiceNumber: 'INV-1002',
+        invoiceDate: '2026-07-11',
+        paymentMode: 'credit',
+        taxMode: 'inclusive',
+        salesAccountId: context.salesAccountId,
+        outputGstAccountId: context.outputGstAccountId,
+        receivableAccountId: context.receivableAccountId,
+        cashAccountId: context.salesAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity: '2',
+            unit: 'meter',
+            rate: '118.00',
+            gstRate: '18.00',
+          },
+        ],
+      },
+    )
+
+    const salesReturn = await postSalesReturn(
+      {
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        notes: context.notes,
+        invoices: context.invoices,
+        sequences: context.sequences,
+        financialYears: context.financialYears,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        customerId: context.customer.id,
+        customerStateCode: '27',
+        salesInvoiceId: inclusive.id,
+        returnDate: '2026-07-12',
+        salesAccountId: context.salesAccountId,
+        outputGstAccountId: context.outputGstAccountId,
+        receivableAccountId: context.receivableAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity: '1',
+            unit: 'meter',
+            rate: '118.00',
+            gstRate: '18.00',
+          },
+        ],
+      },
+    )
+
+    expect(salesReturn.taxableAmount).toBe('100.00')
+    expect(salesReturn.totalGstAmount).toBe('18.00')
+    expect(salesReturn.totalAmount).toBe('118.00')
+  })
+
+  test('a line discount on the bill carries into the return', async () => {
+    const context = await seedReturnsContext()
+    const discounted = await postPurchaseBill(
+      {
+        bills: context.bills,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+        parties: context.parties,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        financialYearStart: '2026-04-01',
+        supplierId: context.supplier.id,
+        supplierStateCode: '24',
+        supplierBillNumber: 'SUP-1002',
+        billDate: '2026-07-10',
+        dueDate: '2026-07-25',
+        purchaseAccountId: context.purchaseAccountId,
+        inputGstAccountId: context.inputGstAccountId,
+        payableAccountId: context.payableAccountId,
+        stockAccountId: context.stockAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity: '10',
+            unit: 'meter',
+            rate: '100.00',
+            discountPercent: '10',
+            gstRate: '5.00',
+          },
+        ],
+      },
+    )
+
+    const purchaseReturn = await postPurchaseReturn(
+      {
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        notes: context.notes,
+        bills: context.bills,
+        sequences: context.sequences,
+        financialYears: context.financialYears,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        supplierId: context.supplier.id,
+        supplierStateCode: '24',
+        purchaseBillId: discounted.id,
+        returnDate: '2026-07-12',
+        purchaseAccountId: context.purchaseAccountId,
+        inputGstAccountId: context.inputGstAccountId,
+        payableAccountId: context.payableAccountId,
+        stockAccountId: context.stockAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity: '5',
+            unit: 'meter',
+            rate: '100.00',
+            gstRate: '5.00',
+          },
+        ],
+      },
+    )
+
+    expect(purchaseReturn.taxableAmount).toBe('450.00')
+    expect(purchaseReturn.totalGstAmount).toBe('22.50')
+    expect(purchaseReturn.totalAmount).toBe('472.50')
+  })
+})
+
+describe('part returns and repeated items', () => {
+  async function inclusiveInvoice(
+    context: Awaited<ReturnType<typeof seedReturnsContext>>,
+    lines: Array<{ quantity: string; rate: string; discountPercent?: string }>,
+  ) {
+    return postSalesInvoice(
+      {
+        invoices: context.invoices,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+        parties: context.parties,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        customerId: context.customer.id,
+        customerStateCode: '27',
+        invoiceNumber: `INV-${crypto.randomUUID().slice(0, 6)}`,
+        invoiceDate: '2026-07-11',
+        paymentMode: 'credit',
+        taxMode: 'inclusive',
+        salesAccountId: context.salesAccountId,
+        outputGstAccountId: context.outputGstAccountId,
+        receivableAccountId: context.receivableAccountId,
+        cashAccountId: context.salesAccountId,
+        lines: lines.map((line) => ({
+          itemId: context.item.id,
+          description: 'Cotton Fabric',
+          unit: 'meter',
+          gstRate: '18.00',
+          ...line,
+        })),
+      },
+    )
+  }
+
+  function returnOf(
+    context: Awaited<ReturnType<typeof seedReturnsContext>>,
+    invoiceId: string,
+    quantity: string,
+  ) {
+    return postSalesReturn(
+      {
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        notes: context.notes,
+        invoices: context.invoices,
+        sequences: context.sequences,
+        financialYears: context.financialYears,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        customerId: context.customer.id,
+        customerStateCode: '27',
+        salesInvoiceId: invoiceId,
+        returnDate: '2026-07-12',
+        salesAccountId: context.salesAccountId,
+        outputGstAccountId: context.outputGstAccountId,
+        receivableAccountId: context.receivableAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity,
+            unit: 'meter',
+            rate: '100.00',
+            gstRate: '18.00',
+          },
+        ],
+      },
+    )
+  }
+
+  test('returning 3 inclusive units one at a time credits 100 each and adds up to the invoice', async () => {
+    const context = await seedReturnsContext()
+    const invoice = await inclusiveInvoice(context, [
+      { quantity: '3', rate: '100.00' },
+    ])
+    expect(invoice.totalAmount).toBe('300.00')
+
+    const first = await returnOf(context, invoice.id, '1')
+    const second = await returnOf(context, invoice.id, '1')
+    const third = await returnOf(context, invoice.id, '1')
+
+    expect(first.totalAmount).toBe('100.00')
+    expect(second.totalAmount).toBe('100.00')
+    expect(third.totalAmount).toBe('100.00')
+    expect(
+      new Decimal(first.taxableAmount)
+        .plus(second.taxableAmount)
+        .plus(third.taxableAmount)
+        .toFixed(2),
+    ).toBe(invoice.taxableAmount)
+    expect((await context.invoices.findById(invoice.id))?.outstandingAmount).toBe('0.00')
+  })
+
+  test('an item on several lines is valued across all of them', async () => {
+    const context = await seedReturnsContext()
+    // 1 free unit plus 9 at 100: 10 units for 900 including GST.
+    const invoice = await inclusiveInvoice(context, [
+      { quantity: '1', rate: '100.00', discountPercent: '100' },
+      { quantity: '9', rate: '100.00' },
+    ])
+
+    const salesReturn = await returnOf(context, invoice.id, '5')
+    expect(salesReturn.totalAmount).toBe('450.00')
+  })
+
+  test('refuses to return more than was billed', async () => {
+    const context = await seedReturnsContext()
+    const invoice = await inclusiveInvoice(context, [
+      { quantity: '3', rate: '100.00' },
+    ])
+    await expect(returnOf(context, invoice.id, '4')).rejects.toThrow(
+      'Return quantity is more than the 3 billed',
+    )
   })
 })

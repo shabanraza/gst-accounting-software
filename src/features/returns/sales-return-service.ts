@@ -1,12 +1,12 @@
 import Decimal from 'decimal.js'
 
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
-import { calculateGst } from '#/features/gst/gst-calculator.ts'
 import {
   InvalidReturnError,
   allocateNoteNumber,
   applyNoteToDocument,
-  fitReturnGstToDocument,
+  fitReturnToDocument,
+  priceReturnLine,
   recordCreditDebitNote,
 } from '#/features/returns/credit-debit-note-service.ts'
 import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
@@ -107,10 +107,7 @@ export async function postSalesReturn(
   let gstTotal = new Decimal(0)
 
   for (const line of input.lines) {
-    const taxableAmount = money(line.quantity).mul(money(line.rate))
-    const gst = calculateGst({
-      taxableAmount: formatMoney(taxableAmount),
-      gstRate: line.gstRate,
+    const gst = priceReturnLine(invoice, line, {
       companyStateCode: input.companyStateCode,
       partyStateCode: input.customerStateCode,
     })
@@ -118,12 +115,14 @@ export async function postSalesReturn(
     gstTotal = gstTotal.plus(money(gst.totalGstAmount))
   }
 
-  gstTotal = await fitReturnGstToDocument(deps.notes, {
+  const fitted = await fitReturnToDocument(deps.notes, {
     companyId: input.companyId,
     document: invoice,
     taxableTotal,
     gstTotal,
   })
+  taxableTotal = fitted.taxableTotal
+  gstTotal = fitted.gstTotal
   const totalAmount = taxableTotal.plus(gstTotal)
   const amountDue = await applyNoteToDocument(deps.notes, {
     companyId: input.companyId,
