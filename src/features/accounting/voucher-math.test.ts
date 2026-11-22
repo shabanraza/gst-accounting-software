@@ -103,6 +103,30 @@ describe('voucher math', () => {
     expect(totals.grandTotal).toBe('110.00')
   })
 
+  test('a reverse charge bill totals the value only; the GST stays shown but is ours to pay', () => {
+    const line = computeVoucherLine(
+      {
+        ...emptyVoucherLine(),
+        quantity: '10',
+        rate: '80.00',
+        gstRate: '5.00',
+      },
+      'central',
+      '24',
+      'exclusive',
+      '27',
+    )
+
+    const totals = computeVoucherTotals(
+      [line],
+      { freight: '100.00', packing: '0.00', roundOff: '0.00' },
+      { reverseCharge: true },
+    )
+
+    expect(totals.igstAmount).toBe('40.00')
+    expect(totals.grandTotal).toBe('900.00')
+  })
+
   test('creates a spreadsheet of empty rows', () => {
     const rows = createEmptyVoucherLines(5)
     expect(rows).toHaveLength(5)

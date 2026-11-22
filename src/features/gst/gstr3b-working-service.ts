@@ -78,7 +78,10 @@ export async function buildGstr3bWorkingReport(
     acceptedInputGst: acceptedInputGst.toFixed(2),
     pendingInputGst: pendingInputGst.toFixed(2),
     rejectedInputGst: rejectedInputGst.toFixed(2),
-    netGstPayableWithAcceptedItc: outputGst.minus(acceptedInputGst).toFixed(2),
+    netGstPayableWithAcceptedItc: outputGst
+      .plus(gstr3b.reverseChargeTax)
+      .minus(acceptedInputGst)
+      .toFixed(2),
     netGstPayableWithBooksItc: gstr3b.netGstPayable,
   }
 }

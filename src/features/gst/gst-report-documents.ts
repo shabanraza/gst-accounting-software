@@ -108,6 +108,7 @@ export async function buildGstDocuments(input: {
       totalGstAmount: bill.totalGstAmount,
       totalAmount: bill.totalAmount,
       invoiceNumber: bill.supplierBillNumber,
+      reverseCharge: bill.reverseCharge,
     }
   })
 
@@ -154,7 +155,7 @@ export async function buildGstDocuments(input: {
       totalGstAmount: note.totalGstAmount,
       totalAmount: note.totalAmount,
       invoiceNumber: note.noteNumber,
-      reverseCharge: invoice?.reverseCharge,
+      reverseCharge: invoice?.reverseCharge ?? bill?.reverseCharge,
       originalInvoice,
       // Notes keep totals only; a return against a one-rate invoice is at that rate.
       rateLines:

@@ -25,6 +25,8 @@ export function Gstr3bSections({
 }) {
   const outward = report?.outwardTaxableSupplies
   const itc = report?.eligibleItc
+  const inwardRcm = report?.inwardReverseCharge
+  const rcmItc = report?.reverseChargeItc
 
   return (
     <>
@@ -33,7 +35,7 @@ export function Gstr3bSections({
           <CardTitle className="text-base">
             3.1 Outward supplies and inward supplies liable to reverse charge
           </CardTitle>
-          <CardDescription>Net of credit notes</CardDescription>
+          <CardDescription>Net of credit and debit notes</CardDescription>
         </CardHeader>
         <CardContent className="px-0">
           <Table>
@@ -68,6 +70,15 @@ export function Gstr3bSections({
                 <TableCell />
                 <TableCell />
               </TableRow>
+              <TableRow>
+                <TableCell className="min-w-40 whitespace-normal">
+                  (d) Inward supplies (liable to reverse charge)
+                </TableCell>
+                <TableCell className="text-right">{formatInr(inwardRcm?.taxableValue ?? 0)}</TableCell>
+                <TableCell className="text-right">{formatInr(inwardRcm?.igst ?? 0)}</TableCell>
+                <TableCell className="text-right">{formatInr(inwardRcm?.cgst ?? 0)}</TableCell>
+                <TableCell className="text-right">{formatInr(inwardRcm?.sgst ?? 0)}</TableCell>
+              </TableRow>
             </TableBody>
           </Table>
         </CardContent>
@@ -90,6 +101,14 @@ export function Gstr3bSections({
               </TableRow>
             </TableHeader>
             <TableBody>
+              <TableRow>
+                <TableCell className="min-w-40 whitespace-normal">
+                  (A)(3) Inward supplies liable to reverse charge
+                </TableCell>
+                <TableCell className="text-right">{formatInr(rcmItc?.igst ?? 0)}</TableCell>
+                <TableCell className="text-right">{formatInr(rcmItc?.cgst ?? 0)}</TableCell>
+                <TableCell className="text-right">{formatInr(rcmItc?.sgst ?? 0)}</TableCell>
+              </TableRow>
               <TableRow>
                 <TableCell>(A)(5) All other ITC</TableCell>
                 <TableCell className="text-right">{formatInr(itc?.igst ?? 0)}</TableCell>

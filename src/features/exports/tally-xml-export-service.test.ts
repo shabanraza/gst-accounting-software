@@ -363,6 +363,49 @@ describe('buildTallyXml vouchers', () => {
     expect(voucherTotal(voucher).toFixed(2)).toBe('0.00')
   })
 
+  test('a reverse charge purchase owes the supplier the value and books the GST to its own ledger', () => {
+    const reverseChargeBill = {
+      ...interStateBill,
+      id: 'bill-rcm',
+      supplierBillNumber: 'GM/78',
+      totalAmount: '500.00',
+      reverseCharge: true,
+    }
+    const debitNote = {
+      noteType: 'debit' as const,
+      noteNumber: 'DN-0001',
+      noteDate: '2026-04-13',
+      partyId: ids.supplier,
+      referenceDocumentId: 'bill-rcm',
+      totalGstAmount: '18.00',
+      totalAmount: '100.00',
+      ledgerEntryId: 'entry-dn',
+      narration: '',
+    }
+    const xml = buildTallyXml(
+      baseInput({ bills: [reverseChargeBill], notes: [debitNote] }),
+    )
+    const [bill, note] = vouchersOf(xml.vouchers)
+
+    expect(ledgerEntries(bill)).toEqual([
+      { ledger: 'Gujarat Mills', deemedPositive: 'No', amount: '500.00' },
+      { ledger: 'Input IGST', deemedPositive: 'Yes', amount: '-90.00' },
+      {
+        ledger: 'GST Payable (Reverse Charge)',
+        deemedPositive: 'No',
+        amount: '90.00',
+      },
+    ])
+    expect(voucherTotal(bill).toFixed(2)).toBe('0.00')
+    expect(voucherTotal(note).toFixed(2)).toBe('0.00')
+    expect(
+      ledgerEntries(note).find(
+        (entry) => entry.ledger === 'GST Payable (Reverse Charge)',
+      )?.amount,
+    ).toBe('-18.00')
+    expect(xml.masters).toContain('GST Payable (Reverse Charge)')
+  })
+
   test('leaves out cancelled invoices and documents outside the period', () => {
     const result = buildTallyXml(
       baseInput({

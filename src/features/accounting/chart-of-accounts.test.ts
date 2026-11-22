@@ -236,3 +236,30 @@ describe('ensureSystemLedger', () => {
     )
   })
 })
+
+describe('reverse charge ledger', () => {
+  test('is created only when first needed, as a liability', async () => {
+    const repository = new InMemoryLedgerAccountRepository()
+    const chart = await setupDefaultChartOfAccounts(repository, {
+      companyId: 'company-1',
+      businessType: 'trading',
+    })
+    expect(
+      chart.some((account) => account.systemKey === 'rcm_gst_payable'),
+    ).toBe(false)
+
+    const created = await ensureSystemLedger(
+      repository,
+      'company-1',
+      'rcm_gst_payable',
+    )
+
+    expect(created.name).toBe('GST Payable (Reverse Charge)')
+    expect(created.accountType).toBe('liability')
+    expect(created.isSystem).toBe(true)
+    expect(
+      (await ensureSystemLedger(repository, 'company-1', 'rcm_gst_payable'))
+        .id,
+    ).toBe(created.id)
+  })
+})

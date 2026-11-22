@@ -20,9 +20,16 @@ export type Gstr3bReport = {
   outwardTaxableSupplies: Gstr3bTaxSplit & { taxableValue: string }
   /** Table 3.1(c): 0% rated sales, net of credit notes. */
   nilRatedExemptValue: string
-  /** Table 4(A)(5): ITC on purchase bills, net of debit notes. */
+  /** Table 3.1(d): inward supplies liable to reverse charge, net of debit notes. */
+  inwardReverseCharge: Gstr3bTaxSplit & { taxableValue: string }
+  /** Table 4(A)(3): ITC on the reverse charge paid in 3.1(d). */
+  reverseChargeItc: Gstr3bTaxSplit
+  /** Table 4(A)(5): ITC on other purchase bills, net of debit notes. */
   eligibleItc: Gstr3bTaxSplit
   outputGst: string
+  /** GST we owe on reverse charge purchases (3.1(d)); payable in cash. */
+  reverseChargeTax: string
+  /** All ITC: 4(A)(3) plus 4(A)(5). */
   inputGst: string
   netGstPayable: string
 }
@@ -93,6 +100,7 @@ export function buildGstr3bReport(input: GstReportPeriodInput): Gstr3bReport {
 
   const outward = emptyTotals()
   const itc = emptyTotals()
+  const reverseCharge = emptyTotals()
   let nilRated = new Decimal(0)
 
   for (const document of periodDocs) {
@@ -106,17 +114,19 @@ export function buildGstr3bReport(input: GstReportPeriodInput): Gstr3bReport {
       nilRated = nilRated.minus(nilRatedTaxable(document))
     }
 
+    const inward = document.reverseCharge ? reverseCharge : itc
     if (document.documentType === 'purchase_bill') {
-      addDocument(itc, document, 1)
+      addDocument(inward, document, 1)
     }
 
     if (document.documentType === 'debit_note') {
-      addDocument(itc, document, -1)
+      addDocument(inward, document, -1)
     }
   }
 
   const outputGst = outward.totalGst
-  const inputGst = itc.totalGst
+  const reverseChargeTax = reverseCharge.totalGst
+  const inputGst = itc.totalGst.plus(reverseChargeTax)
 
   return {
     companyId: input.companyId,
@@ -128,9 +138,18 @@ export function buildGstr3bReport(input: GstReportPeriodInput): Gstr3bReport {
       ...taxSplit(outward),
     },
     nilRatedExemptValue: nilRated.toFixed(2),
+    inwardReverseCharge: {
+      taxableValue: reverseCharge.taxable.toFixed(2),
+      ...taxSplit(reverseCharge),
+    },
+    reverseChargeItc: taxSplit(reverseCharge),
     eligibleItc: taxSplit(itc),
     outputGst: outputGst.toFixed(2),
+    reverseChargeTax: reverseChargeTax.toFixed(2),
     inputGst: inputGst.toFixed(2),
-    netGstPayable: outputGst.minus(inputGst).toFixed(2),
+    netGstPayable: outputGst
+      .plus(reverseChargeTax)
+      .minus(inputGst)
+      .toFixed(2),
   }
 }
