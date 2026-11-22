@@ -195,6 +195,54 @@ describe('postPurchaseBill', () => {
     expect(payableLine?.credit).toBe('8400.00')
   })
 
+  test('a GST-inclusive price posts exactly the price entered', async () => {
+    const context = await seedPurchaseContext()
+
+    const bill = await postPurchaseBill(
+      {
+        bills: context.bills,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+        parties: context.parties,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        supplierStateCode: '27',
+        financialYearStart: '2026-04-01',
+        supplierId: context.supplier.id,
+        supplierBillNumber: 'SUP-1002',
+        billDate: '2026-07-11',
+        dueDate: '2026-07-26',
+        taxMode: 'inclusive',
+        purchaseAccountId: context.purchaseAccountId,
+        inputGstAccountId: context.inputGstAccountId,
+        payableAccountId: context.payableAccountId,
+        stockAccountId: context.stockAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cut diamond',
+            quantity: '1',
+            unit: 'meter',
+            rate: '100.00',
+            gstRate: '0.25',
+          },
+        ],
+      },
+    )
+
+    // Before: taxable 99.75 + GST 0.24 posted 99.99 against a price of 100.
+    expect(bill.lines[0].taxableAmount).toBe('99.76')
+    expect(bill.lines[0].gstAmount).toBe('0.24')
+    expect(bill.totalAmount).toBe('100.00')
+    const payable = context.ledgerPosting
+      .list()[0]
+      .lines.find((line) => line.ledgerAccountId === context.payableAccountId)
+    expect(payable?.credit).toBe('100.00')
+  })
+
   test('blocks duplicate supplier bill number for same supplier/company/financial year', async () => {
     const context = await seedPurchaseContext()
 

@@ -308,6 +308,50 @@ describe('postSalesInvoice', () => {
     expect(cashLine).toBeUndefined()
   })
 
+  test('a GST-inclusive price posts exactly the price entered, with equal halves', async () => {
+    const context = await seedSalesContext()
+
+    const invoice = await postSalesInvoice(
+      {
+        invoices: context.invoices,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+        parties: context.parties,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        customerId: context.customer.id,
+        customerStateCode: '27',
+        invoiceNumber: 'INV-1001',
+        invoiceDate: '2026-07-11',
+        paymentMode: 'credit',
+        taxMode: 'inclusive',
+        salesAccountId: context.salesAccountId,
+        outputGstAccountId: context.outputGstAccountId,
+        receivableAccountId: context.receivableAccountId,
+        cashAccountId: context.cashAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity: '1',
+            unit: 'meter',
+            rate: '100.00',
+            gstRate: '5.00',
+          },
+        ],
+      },
+    )
+
+    // 100 incl. 5%: CGST = SGST = 2.38, taxable takes the rest.
+    expect(invoice.lines[0].taxableAmount).toBe('95.24')
+    expect(invoice.lines[0].gstAmount).toBe('4.76')
+    expect(invoice.lines[0].lineTotal).toBe('100.00')
+    expect(invoice.totalAmount).toBe('100.00')
+  })
+
   test('charges no GST when the company is unregistered', async () => {
     const context = await seedSalesContext()
 

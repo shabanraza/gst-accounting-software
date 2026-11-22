@@ -48,6 +48,7 @@ import {
 } from '#/components/ui/table.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
+import { calculateGst } from '#/features/gst/gst-calculator.ts'
 import {
   formatGstRateLabel,
   gstRateOptions,
@@ -64,7 +65,7 @@ import { useTRPC } from '#/integrations/trpc/react.ts'
 export function ExpensesPanel() {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
-  const { companyId, ledgerBySystemKey, isReady } = useWorkspace()
+  const { companyId, company, ledgerBySystemKey, isReady } = useWorkspace()
   const [open, setOpen] = React.useState(false)
   const [narration, setNarration] = React.useState('')
   const [amount, setAmount] = React.useState('')
@@ -81,7 +82,18 @@ export function ExpensesPanel() {
   let gstPreview: { gst: string; total: string } | null = null
   try {
     const taxable = new Decimal(amount.trim() || '0')
-    const gst = taxable.times(gstRate).div(100).toDecimalPlaces(2)
+    // Same rule as the server: equal CGST/SGST halves within the state.
+    const gst = company?.stateCode
+      ? new Decimal(
+          calculateGst({
+            taxableAmount: taxable.toString(),
+            gstRate,
+            companyStateCode: company.stateCode,
+            partyStateCode:
+              supplierGstin.trim().slice(0, 2) || company.stateCode,
+          }).totalGstAmount,
+        )
+      : taxable.times(gstRate).div(100).toDecimalPlaces(2)
     gstPreview = { gst: gst.toFixed(2), total: taxable.plus(gst).toFixed(2) }
   } catch {
     gstPreview = null
@@ -137,6 +149,7 @@ export function ExpensesPanel() {
         supplierGstin: hasGst ? supplierGstin.trim() : '',
         billNumber: hasGst ? billNumber.trim() : '',
         claimItc: hasGst && claimItc,
+        companyStateCode: company?.stateCode,
       })
       await queryClient.invalidateQueries({
         queryKey: trpc.expenses.list.queryKey({ companyId }),

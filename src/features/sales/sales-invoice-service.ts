@@ -2,7 +2,10 @@ import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
-import { calculateGst } from '#/features/gst/gst-calculator.ts'
+import {
+  calculateGst,
+  calculateInclusiveGst,
+} from '#/features/gst/gst-calculator.ts'
 import {
   assertTaxInvoiceCompanyAddress,
   assertTaxInvoicePartyAddress,
@@ -229,17 +232,16 @@ export async function postSalesInvoice(
     const lineGstRate = chargesGst ? line.gstRate : '0.00'
     const gstRate = money(lineGstRate)
 
-    let taxableAmount = net
-    if (taxMode === 'inclusive' && gstRate.gt(0)) {
-      taxableAmount = net.mul(100).div(gstRate.plus(100))
-    }
-
-    const gst = calculateGst({
-      taxableAmount: formatMoney(taxableAmount),
+    const supply = {
       gstRate: lineGstRate,
       companyStateCode: input.companyStateCode,
       partyStateCode: input.customerStateCode,
-    })
+    }
+    // An inclusive price keeps taxable + GST equal to the price entered.
+    const gst =
+      taxMode === 'inclusive' && gstRate.gt(0)
+        ? calculateInclusiveGst({ inclusiveAmount: formatMoney(net), ...supply })
+        : calculateGst({ taxableAmount: formatMoney(net), ...supply })
 
     taxableTotal = taxableTotal.plus(money(gst.taxableAmount))
     gstTotal = gstTotal.plus(money(gst.totalGstAmount))

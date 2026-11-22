@@ -1,6 +1,9 @@
 import Decimal from 'decimal.js'
 
-import { calculateGst } from '#/features/gst/gst-calculator.ts'
+import {
+  calculateGst,
+  calculateInclusiveGst,
+} from '#/features/gst/gst-calculator.ts'
 
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP })
 
@@ -142,13 +145,7 @@ export function computeVoucherLine(
     new Decimal(0),
   )
 
-  let taxableAmount = netAmount
-  if (taxMode === 'inclusive' && gstRate.gt(0)) {
-    taxableAmount = netAmount.mul(100).div(gstRate.plus(100))
-  }
-
-  const gst = calculateGst({
-    taxableAmount: format(taxableAmount),
+  const supply = {
     gstRate: line.gstRate || '0',
     companyStateCode,
     partyStateCode: partyStateForRegion(
@@ -156,7 +153,13 @@ export function computeVoucherLine(
       partyStateCode,
       companyStateCode,
     ),
-  })
+  }
+  // Same rule as the server: an inclusive price keeps taxable + GST equal to
+  // the price entered.
+  const gst =
+    taxMode === 'inclusive' && gstRate.gt(0)
+      ? calculateInclusiveGst({ inclusiveAmount: format(netAmount), ...supply })
+      : calculateGst({ taxableAmount: format(netAmount), ...supply })
 
   return {
     ...line,

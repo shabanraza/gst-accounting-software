@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 
 import {
   calculateGst,
+  calculateInclusiveGst,
   splitIntraStateGst,
 } from '#/features/gst/gst-calculator.ts'
 
@@ -99,5 +100,28 @@ describe('splitIntraStateGst', () => {
       cgst: '90.01',
       sgst: '90.00',
     })
+  })
+})
+
+describe('calculateInclusiveGst', () => {
+  test.each([
+    // price, rate, state, taxable, cgst, igst
+    ['100.00', '0.25', '27', '99.76', '0.12', '0.00'],
+    ['100.00', '5.00', '27', '95.24', '2.38', '0.00'],
+    ['1000.00', '18.00', '27', '847.46', '76.27', '0.00'],
+    ['100.00', '0.25', '29', '99.75', '0.00', '0.25'],
+    ['118.00', '18.00', '29', '100.00', '0.00', '18.00'],
+  ])('%s incl. %s, party %s', (price, gstRate, partyStateCode, taxable, cgst, igst) => {
+    const result = calculateInclusiveGst({
+      inclusiveAmount: price,
+      gstRate,
+      companyStateCode: '27',
+      partyStateCode,
+    })
+    expect(result.taxableAmount).toBe(taxable)
+    expect(result.cgstAmount).toBe(cgst)
+    expect(result.sgstAmount).toBe(cgst)
+    expect(result.igstAmount).toBe(igst)
+    expect(result.totalAmount).toBe(price)
   })
 })
