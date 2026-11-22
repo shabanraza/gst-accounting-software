@@ -1319,7 +1319,10 @@ function VoucherEntryForm({
           {!isSales ? (
             <Collapsible className="group/collapsible" defaultOpen={false}>
               <CollapsibleTrigger asChild>
-                <CollapsibleSectionTrigger title="Bill options" />
+                <CollapsibleSectionTrigger
+                  filledCount={billIsReverseCharge ? 1 : undefined}
+                  title="Bill options"
+                />
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <section className="grid gap-3 pt-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -1732,7 +1735,11 @@ function VoucherEntryForm({
                         className="text-sm font-medium tabular-nums"
                         data-voucher-col="total"
                       >
-                        {formatInr(line.lineTotal)}
+                        {formatInr(
+                          billIsReverseCharge
+                            ? line.taxableAmount
+                            : line.lineTotal,
+                        )}
                       </TableCell>
                       <TableCell data-voucher-col="actions">
                         <Button
@@ -1854,13 +1861,17 @@ function VoucherEntryForm({
                 {region === 'local' ? (
                   <>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-muted-foreground">CGST</span>
+                      <span className="text-muted-foreground">
+                        {billIsReverseCharge ? 'CGST (reverse charge)' : 'CGST'}
+                      </span>
                       <span className="tabular-nums">
                         {formatInr(totals.cgstAmount)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-muted-foreground">SGST</span>
+                      <span className="text-muted-foreground">
+                        {billIsReverseCharge ? 'SGST (reverse charge)' : 'SGST'}
+                      </span>
                       <span className="tabular-nums">
                         {formatInr(totals.sgstAmount)}
                       </span>
@@ -1868,7 +1879,9 @@ function VoucherEntryForm({
                   </>
                 ) : (
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">IGST</span>
+                    <span className="text-muted-foreground">
+                      {billIsReverseCharge ? 'IGST (reverse charge)' : 'IGST'}
+                    </span>
                     <span className="tabular-nums">
                       {formatInr(totals.igstAmount)}
                     </span>
@@ -1909,7 +1922,9 @@ function VoucherEntryForm({
                 </span>
               </div>
               <div className="flex flex-col gap-0.5">
-                <span className="text-xs text-muted-foreground">GST</span>
+                <span className="text-xs text-muted-foreground">
+                  {billIsReverseCharge ? 'GST (RCM)' : 'GST'}
+                </span>
                 <span className="text-sm font-medium tabular-nums">
                   {formatInr(
                     region === 'local'

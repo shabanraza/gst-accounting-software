@@ -21,6 +21,8 @@ export type Gstr3bWorkingReport = {
   rejectedInputGst: string
   netGstPayableWithAcceptedItc: string
   netGstPayableWithBooksItc: string
+  /** Reverse charge GST, paid in cash on top of either net figure. */
+  reverseChargeTax: string
 }
 
 export async function buildGstr3bWorkingReport(
@@ -78,10 +80,13 @@ export async function buildGstr3bWorkingReport(
     acceptedInputGst: acceptedInputGst.toFixed(2),
     pendingInputGst: pendingInputGst.toFixed(2),
     rejectedInputGst: rejectedInputGst.toFixed(2),
+    // Reverse charge bills are not matched against 2B; their ITC is
+    // self-assessed, so it counts in full alongside the accepted 2B credit.
     netGstPayableWithAcceptedItc: outputGst
-      .plus(gstr3b.reverseChargeTax)
       .minus(acceptedInputGst)
+      .minus(gstr3b.reverseChargeTax)
       .toFixed(2),
     netGstPayableWithBooksItc: gstr3b.netGstPayable,
+    reverseChargeTax: gstr3b.reverseChargeTax,
   }
 }

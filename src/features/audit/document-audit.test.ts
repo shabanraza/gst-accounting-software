@@ -143,6 +143,7 @@ async function seed() {
       notes: repositories.creditDebitNotes,
       financialYears,
       ledgers,
+      bills: repositories.bills,
     }),
     expenses: createExpensesRouter({
       transaction,
@@ -506,7 +507,7 @@ describe('document audit trail', () => {
     expect(bill.totalGstAmount).toBe('18.00')
     const entry = await repositories.posting.findById(bill.ledgerEntryId)
     expect(
-      entry?.lines.find((line) => line.ledgerAccountId === rcmLedger?.id)
+      entry?.lines.find((entryLine) => entryLine.ledgerAccountId === rcmLedger?.id)
         ?.credit,
     ).toBe('18.00')
 
@@ -527,7 +528,7 @@ describe('document audit trail', () => {
       debitNote.ledgerEntryId,
     )
     expect(
-      noteEntry?.lines.find((line) => line.ledgerAccountId === rcmLedger?.id)
+      noteEntry?.lines.find((entryLine) => entryLine.ledgerAccountId === rcmLedger?.id)
         ?.debit,
     ).toBe('18.00')
   })

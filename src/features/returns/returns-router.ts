@@ -10,6 +10,7 @@ import type { TRPCRouterRecord } from '@trpc/server'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 import type { PostingTransaction } from '#/features/accounting/posting-transaction.ts'
 import type { FinancialYearRepository } from '#/features/companies/financial-year-service.ts'
+import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
 import type { CreditDebitNoteRepository } from '#/features/returns/credit-debit-note-service.ts'
 
 const returnLineSchema = z.object({
@@ -61,6 +62,8 @@ export type ReturnsRouterDeps = {
   financialYears: FinancialYearRepository
   /** Finds or creates the reverse charge GST ledger for returns on RCM bills. */
   ledgers: LedgerAccountRepository
+  /** Read before the transaction, to tell whether the bill is reverse charge. */
+  bills: Pick<PurchaseBillRepository, 'findById'>
 }
 
 export const createReturnsRouter = (deps: ReturnsRouterDeps) =>
@@ -94,19 +97,21 @@ export const createReturnsRouter = (deps: ReturnsRouterDeps) =>
       ),
     postPurchaseReturn: capabilityProcedure('post_purchase')
       .input(purchaseReturnInputSchema)
-      .mutation(({ ctx, input }) =>
-        deps.transaction(async (tx) => {
-          const bill = await tx.bills.findById(input.purchaseBillId)
-          const reverseChargeAccountId =
-            bill?.reverseCharge && bill.companyId === input.companyId
-              ? (
-                  await ensureSystemLedger(
-                    deps.ledgers,
-                    input.companyId,
-                    'rcm_gst_payable',
-                  )
-                ).id
-              : undefined
+      .mutation(async ({ ctx, input }) => {
+        // Created on first use, before the transaction, as for bills.
+        const bill = await deps.bills.findById(input.purchaseBillId)
+        const reverseChargeAccountId =
+          bill?.reverseCharge && bill.companyId === input.companyId
+            ? (
+                await ensureSystemLedger(
+                  deps.ledgers,
+                  input.companyId,
+                  'rcm_gst_payable',
+                )
+              ).id
+            : undefined
+
+        return deps.transaction(async (tx) => {
           const note = await postPurchaseReturn(
             {
               posting: tx.posting,
@@ -128,8 +133,8 @@ export const createReturnsRouter = (deps: ReturnsRouterDeps) =>
             amount: note.totalAmount,
           })
           return note
-        }),
-      ),
+        })
+      }),
     listCreditDebitNotes: capabilityProcedure('view')
       .input(listReturnsInputSchema)
       .query(({ input }) => {

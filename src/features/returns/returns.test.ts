@@ -1052,6 +1052,30 @@ describe('returns on a reverse charge bill', () => {
     expect(notes.at(0)?.totalAmount).toBe('800.00')
   })
 
+  test('part returns add up to the bill value and clear what is owed', async () => {
+    const { context, bill, deps, returnInput, rcmAccountId } =
+      await seedReverseChargeBill()
+    const returnQuantity = (quantity: string) =>
+      postPurchaseReturn(deps, {
+        ...returnInput,
+        reverseChargeAccountId: rcmAccountId,
+        lines: [{ ...returnInput.lines[0], quantity }],
+      })
+
+    const first = await returnQuantity('4')
+    expect(first.totalAmount).toBe('320.00')
+    expect((await context.bills.findById(bill.id))?.paymentStatus).toBe(
+      'Part paid',
+    )
+    const second = await returnQuantity('6')
+
+    expect(second.totalAmount).toBe('480.00')
+    expect(second.totalGstAmount).toBe('24.00')
+    const saved = await context.bills.findById(bill.id)
+    expect(saved?.outstandingAmount).toBe('0.00')
+    expect(saved?.paymentStatus).toBe('Paid')
+  })
+
   test('needs the reverse charge ledger', async () => {
     const { deps, returnInput } = await seedReverseChargeBill()
 

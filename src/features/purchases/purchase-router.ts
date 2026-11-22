@@ -114,6 +114,13 @@ export const createPurchasesRouter = (
     postBill: capabilityProcedure('post_purchase')
       .input(postPurchaseBillInputSchema)
       .mutation(async ({ ctx, input }) => {
+        if (input.reverseCharge && input.taxMode === 'inclusive') {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Enter reverse charge bills with prices before GST; the supplier does not charge GST on them.',
+          })
+        }
         // Created on first use; harmless if the posting below then fails.
         const reverseChargeAccountId = input.reverseCharge
           ? (

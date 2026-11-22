@@ -164,6 +164,7 @@ export const trpcRouter = createTRPCRouter({
     notes: creditDebitNoteRepository,
     financialYears: financialYearRepository,
     ledgers: ledgerAccountRepository,
+    bills: purchaseBillRepository,
   }),
   expenses: createExpensesRouter({
     transaction: postingTransaction,

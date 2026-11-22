@@ -27,11 +27,17 @@ export type Gstr3bReport = {
   /** Table 4(A)(5): ITC on other purchase bills, net of debit notes. */
   eligibleItc: Gstr3bTaxSplit
   outputGst: string
-  /** GST we owe on reverse charge purchases (3.1(d)); payable in cash. */
+  /**
+   * GST we owe on reverse charge purchases (3.1(d)). It must be paid in cash
+   * and cannot be set off against ITC, so it is not part of `netGstPayable`.
+   */
   reverseChargeTax: string
   /** All ITC: 4(A)(3) plus 4(A)(5). */
   inputGst: string
+  /** Output GST less all ITC; negative means ITC carried forward. */
   netGstPayable: string
+  /** Cash due this period: any output GST left after ITC, plus reverse charge. */
+  cashPayable: string
 }
 
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP })
@@ -147,9 +153,9 @@ export function buildGstr3bReport(input: GstReportPeriodInput): Gstr3bReport {
     outputGst: outputGst.toFixed(2),
     reverseChargeTax: reverseChargeTax.toFixed(2),
     inputGst: inputGst.toFixed(2),
-    netGstPayable: outputGst
+    netGstPayable: outputGst.minus(inputGst).toFixed(2),
+    cashPayable: Decimal.max(0, outputGst.minus(inputGst))
       .plus(reverseChargeTax)
-      .minus(inputGst)
       .toFixed(2),
   }
 }

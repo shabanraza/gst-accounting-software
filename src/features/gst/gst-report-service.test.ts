@@ -292,8 +292,9 @@ describe('buildGstr3bReport', () => {
     expect(report.outputGst).toBe('90.00')
     expect(report.reverseChargeTax).toBe('144.00')
     expect(report.inputGst).toBe('544.00')
-    // 90 output + 144 reverse charge - 544 ITC
-    expect(report.netGstPayable).toBe('-310.00')
+    // Reverse charge is paid in cash; ITC cannot pay it.
+    expect(report.netGstPayable).toBe('-454.00')
+    expect(report.cashPayable).toBe('144.00')
   })
 
   test('summarizes output GST and input GST', () => {

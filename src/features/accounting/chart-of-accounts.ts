@@ -264,14 +264,25 @@ export async function ensureSystemLedger(
     throw new UnknownSystemLedgerError(systemKey)
   }
 
-  const [created] = await repository.createMany(
-    accountsFromTemplates(
-      companyId,
-      [template],
-      new Set(existingAccounts.map((account) => account.code)),
-    ),
-  )
-  return created
+  try {
+    const [created] = await repository.createMany(
+      accountsFromTemplates(
+        companyId,
+        [template],
+        new Set(existingAccounts.map((account) => account.code)),
+      ),
+    )
+    return created
+  } catch (error) {
+    // Another request may have created it a moment ago (unique system key).
+    const raced = (await repository.listByCompanyId(companyId)).find(
+      (account) => account.systemKey === systemKey,
+    )
+    if (raced) {
+      return raced
+    }
+    throw error
+  }
 }
 
 export async function listLedgerAccountsByCompany(

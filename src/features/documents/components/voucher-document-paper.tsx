@@ -459,6 +459,16 @@ export function VoucherDocumentPaper({
                       {formatInr(document.totalAmount)}
                     </td>
                   </tr>
+                  {document.reverseCharge ? (
+                    <tr>
+                      <td className="py-0.5">
+                        Tax payable on reverse charge
+                      </td>
+                      <td className="py-0.5 text-right tabular-nums">
+                        {formatInr(document.totalGstAmount)}
+                      </td>
+                    </tr>
+                  ) : null}
                   <tr>
                     <td className="py-0.5">Outstanding</td>
                     <td className="py-0.5 text-right tabular-nums">

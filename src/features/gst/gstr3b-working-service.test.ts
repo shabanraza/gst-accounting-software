@@ -137,4 +137,47 @@ describe('buildGstr3bWorkingReport', () => {
       Number(report.netGstPayableWithBooksItc),
     )
   })
+
+  test('counts reverse charge ITC in full, since it never appears in 2B', async () => {
+    const rcmBill = { ...bill(), reverseCharge: true, totalAmount: '500.00' }
+    const report = await buildGstr3bWorkingReport(
+      {
+        bills: new FakeBills([rcmBill]),
+        parties: new FakeParties([supplierParty()]),
+        recon: createGstReconciliationRepository(),
+      },
+      {
+        companyId: 'company-1',
+        companyStateCode: '24',
+        periodStart: '2026-01-01',
+        periodEnd: '2026-01-31',
+        portalRows: [],
+        documents: [
+          {
+            id: 'bill-1',
+            companyId: 'company-1',
+            documentType: 'purchase_bill',
+            documentDate: '2026-01-06',
+            partyGstin: null,
+            partyName: 'Supplier',
+            placeOfSupply: '24',
+            supplyType: 'intra_state',
+            taxableAmount: '500.00',
+            cgstAmount: '45.00',
+            sgstAmount: '45.00',
+            igstAmount: '0.00',
+            totalGstAmount: '90.00',
+            totalAmount: '500.00',
+            invoiceNumber: 'SB-1',
+            reverseCharge: true,
+          },
+        ],
+      },
+    )
+
+    expect(report.pendingInputGst).toBe('0.00')
+    expect(report.reverseChargeTax).toBe('90.00')
+    expect(report.netGstPayableWithAcceptedItc).toBe('-90.00')
+    expect(report.netGstPayableWithBooksItc).toBe('-90.00')
+  })
 })
