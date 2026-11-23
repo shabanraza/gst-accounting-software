@@ -22,6 +22,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ToolsIndexRouteImport } from './routes/tools/index'
+import { Route as HelpIndexRouteImport } from './routes/help/index'
 import { Route as GuidesIndexRouteImport } from './routes/guides/index'
 import { Route as GstBillingSoftwareForIndexRouteImport } from './routes/gst-billing-software-for/index'
 import { Route as CompareIndexRouteImport } from './routes/compare/index'
@@ -31,6 +32,7 @@ import { Route as ToolsGstInvoiceGeneratorRouteImport } from './routes/tools/gst
 import { Route as ToolsGstDueDatesRouteImport } from './routes/tools/gst-due-dates'
 import { Route as ToolsEInvoiceEWayBillCheckerRouteImport } from './routes/tools/e-invoice-e-way-bill-checker'
 import { Route as ITokenRouteImport } from './routes/i.$token'
+import { Route as HelpSlugRouteImport } from './routes/help/$slug'
 import { Route as GuidesSlugRouteImport } from './routes/guides/$slug'
 import { Route as GstBillingSoftwareForSlugRouteImport } from './routes/gst-billing-software-for/$slug'
 import { Route as DesignAccountingRouteImport } from './routes/design/accounting'
@@ -141,6 +143,11 @@ const ToolsIndexRoute = ToolsIndexRouteImport.update({
   path: '/tools/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HelpIndexRoute = HelpIndexRouteImport.update({
+  id: '/help/',
+  path: '/help/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GuidesIndexRoute = GuidesIndexRouteImport.update({
   id: '/guides/',
   path: '/guides/',
@@ -187,6 +194,11 @@ const ToolsEInvoiceEWayBillCheckerRoute =
 const ITokenRoute = ITokenRouteImport.update({
   id: '/i/$token',
   path: '/i/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpSlugRoute = HelpSlugRouteImport.update({
+  id: '/help/$slug',
+  path: '/help/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GuidesSlugRoute = GuidesSlugRouteImport.update({
@@ -448,6 +460,7 @@ export interface FileRoutesByFullPath {
   '/design/accounting': typeof DesignAccountingRouteWithChildren
   '/gst-billing-software-for/$slug': typeof GstBillingSoftwareForSlugRoute
   '/guides/$slug': typeof GuidesSlugRoute
+  '/help/$slug': typeof HelpSlugRoute
   '/i/$token': typeof ITokenRoute
   '/tools/e-invoice-e-way-bill-checker': typeof ToolsEInvoiceEWayBillCheckerRoute
   '/tools/gst-due-dates': typeof ToolsGstDueDatesRoute
@@ -457,6 +470,7 @@ export interface FileRoutesByFullPath {
   '/compare/': typeof CompareIndexRoute
   '/gst-billing-software-for/': typeof GstBillingSoftwareForIndexRoute
   '/guides/': typeof GuidesIndexRoute
+  '/help/': typeof HelpIndexRoute
   '/tools/': typeof ToolsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
@@ -514,6 +528,7 @@ export interface FileRoutesByTo {
   '/design/accounting': typeof DesignAccountingRouteWithChildren
   '/gst-billing-software-for/$slug': typeof GstBillingSoftwareForSlugRoute
   '/guides/$slug': typeof GuidesSlugRoute
+  '/help/$slug': typeof HelpSlugRoute
   '/i/$token': typeof ITokenRoute
   '/tools/e-invoice-e-way-bill-checker': typeof ToolsEInvoiceEWayBillCheckerRoute
   '/tools/gst-due-dates': typeof ToolsGstDueDatesRoute
@@ -523,6 +538,7 @@ export interface FileRoutesByTo {
   '/compare': typeof CompareIndexRoute
   '/gst-billing-software-for': typeof GstBillingSoftwareForIndexRoute
   '/guides': typeof GuidesIndexRoute
+  '/help': typeof HelpIndexRoute
   '/tools': typeof ToolsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
@@ -583,6 +599,7 @@ export interface FileRoutesById {
   '/design/accounting': typeof DesignAccountingRouteWithChildren
   '/gst-billing-software-for/$slug': typeof GstBillingSoftwareForSlugRoute
   '/guides/$slug': typeof GuidesSlugRoute
+  '/help/$slug': typeof HelpSlugRoute
   '/i/$token': typeof ITokenRoute
   '/tools/e-invoice-e-way-bill-checker': typeof ToolsEInvoiceEWayBillCheckerRoute
   '/tools/gst-due-dates': typeof ToolsGstDueDatesRoute
@@ -592,6 +609,7 @@ export interface FileRoutesById {
   '/compare/': typeof CompareIndexRoute
   '/gst-billing-software-for/': typeof GstBillingSoftwareForIndexRoute
   '/guides/': typeof GuidesIndexRoute
+  '/help/': typeof HelpIndexRoute
   '/tools/': typeof ToolsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
@@ -653,6 +671,7 @@ export interface FileRouteTypes {
     | '/design/accounting'
     | '/gst-billing-software-for/$slug'
     | '/guides/$slug'
+    | '/help/$slug'
     | '/i/$token'
     | '/tools/e-invoice-e-way-bill-checker'
     | '/tools/gst-due-dates'
@@ -662,6 +681,7 @@ export interface FileRouteTypes {
     | '/compare/'
     | '/gst-billing-software-for/'
     | '/guides/'
+    | '/help/'
     | '/tools/'
     | '/api/auth/$'
     | '/api/trpc/$'
@@ -719,6 +739,7 @@ export interface FileRouteTypes {
     | '/design/accounting'
     | '/gst-billing-software-for/$slug'
     | '/guides/$slug'
+    | '/help/$slug'
     | '/i/$token'
     | '/tools/e-invoice-e-way-bill-checker'
     | '/tools/gst-due-dates'
@@ -728,6 +749,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/gst-billing-software-for'
     | '/guides'
+    | '/help'
     | '/tools'
     | '/api/auth/$'
     | '/api/trpc/$'
@@ -787,6 +809,7 @@ export interface FileRouteTypes {
     | '/design/accounting'
     | '/gst-billing-software-for/$slug'
     | '/guides/$slug'
+    | '/help/$slug'
     | '/i/$token'
     | '/tools/e-invoice-e-way-bill-checker'
     | '/tools/gst-due-dates'
@@ -796,6 +819,7 @@ export interface FileRouteTypes {
     | '/compare/'
     | '/gst-billing-software-for/'
     | '/guides/'
+    | '/help/'
     | '/tools/'
     | '/api/auth/$'
     | '/api/trpc/$'
@@ -841,6 +865,7 @@ export interface RootRouteChildren {
   DesignAccountingRoute: typeof DesignAccountingRouteWithChildren
   GstBillingSoftwareForSlugRoute: typeof GstBillingSoftwareForSlugRoute
   GuidesSlugRoute: typeof GuidesSlugRoute
+  HelpSlugRoute: typeof HelpSlugRoute
   ITokenRoute: typeof ITokenRoute
   ToolsEInvoiceEWayBillCheckerRoute: typeof ToolsEInvoiceEWayBillCheckerRoute
   ToolsGstDueDatesRoute: typeof ToolsGstDueDatesRoute
@@ -850,6 +875,7 @@ export interface RootRouteChildren {
   CompareIndexRoute: typeof CompareIndexRoute
   GstBillingSoftwareForIndexRoute: typeof GstBillingSoftwareForIndexRoute
   GuidesIndexRoute: typeof GuidesIndexRoute
+  HelpIndexRoute: typeof HelpIndexRoute
   ToolsIndexRoute: typeof ToolsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
@@ -952,6 +978,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ToolsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/help/': {
+      id: '/help/'
+      path: '/help'
+      fullPath: '/help/'
+      preLoaderRoute: typeof HelpIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/guides/': {
       id: '/guides/'
       path: '/guides'
@@ -1013,6 +1046,13 @@ declare module '@tanstack/react-router' {
       path: '/i/$token'
       fullPath: '/i/$token'
       preLoaderRoute: typeof ITokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help/$slug': {
+      id: '/help/$slug'
+      path: '/help/$slug'
+      fullPath: '/help/$slug'
+      preLoaderRoute: typeof HelpSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/guides/$slug': {
@@ -1447,6 +1487,7 @@ const rootRouteChildren: RootRouteChildren = {
   DesignAccountingRoute: DesignAccountingRouteWithChildren,
   GstBillingSoftwareForSlugRoute: GstBillingSoftwareForSlugRoute,
   GuidesSlugRoute: GuidesSlugRoute,
+  HelpSlugRoute: HelpSlugRoute,
   ITokenRoute: ITokenRoute,
   ToolsEInvoiceEWayBillCheckerRoute: ToolsEInvoiceEWayBillCheckerRoute,
   ToolsGstDueDatesRoute: ToolsGstDueDatesRoute,
@@ -1456,6 +1497,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompareIndexRoute: CompareIndexRoute,
   GstBillingSoftwareForIndexRoute: GstBillingSoftwareForIndexRoute,
   GuidesIndexRoute: GuidesIndexRoute,
+  HelpIndexRoute: HelpIndexRoute,
   ToolsIndexRoute: ToolsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,
