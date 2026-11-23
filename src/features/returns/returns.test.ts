@@ -955,6 +955,136 @@ describe('returns at the price the document actually charged', () => {
   })
 })
 
+describe('returns on a reverse charge bill', () => {
+  async function seedReverseChargeBill() {
+    const context = await seedReturnsContext()
+    const rcmAccountId = crypto.randomUUID()
+    const bill = await postPurchaseBill(
+      {
+        bills: context.bills,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+        parties: context.parties,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        financialYearStart: '2026-04-01',
+        supplierId: context.supplier.id,
+        supplierStateCode: '24',
+        supplierBillNumber: 'SUP-RCM-1',
+        billDate: '2026-07-10',
+        dueDate: '2026-07-25',
+        purchaseAccountId: context.purchaseAccountId,
+        inputGstAccountId: context.inputGstAccountId,
+        payableAccountId: context.payableAccountId,
+        stockAccountId: context.stockAccountId,
+        reverseCharge: true,
+        reverseChargeAccountId: rcmAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity: '10',
+            unit: 'meter',
+            rate: '80.00',
+            gstRate: '5.00',
+          },
+        ],
+      },
+    )
+    const deps = {
+      posting: context.ledgerPosting,
+      stock: context.stock,
+      notes: context.notes,
+      bills: context.bills,
+      sequences: context.sequences,
+      financialYears: context.financialYears,
+    }
+    const returnInput = {
+      companyId: context.companyId,
+      companyStateCode: '27',
+      supplierId: context.supplier.id,
+      supplierStateCode: '24',
+      purchaseBillId: bill.id,
+      returnDate: '2026-07-12',
+      purchaseAccountId: context.purchaseAccountId,
+      inputGstAccountId: context.inputGstAccountId,
+      payableAccountId: context.payableAccountId,
+      lines: [
+        {
+          itemId: context.item.id,
+          description: 'Cotton Fabric',
+          quantity: '10',
+          unit: 'meter',
+          rate: '80.00',
+          gstRate: '5.00',
+        },
+      ],
+    }
+    return { context, bill, deps, returnInput, rcmAccountId }
+  }
+
+  test('takes back only the value from the supplier and reverses our own GST liability', async () => {
+    const { context, bill, deps, returnInput, rcmAccountId } =
+      await seedReverseChargeBill()
+
+    const purchaseReturn = await postPurchaseReturn(deps, {
+      ...returnInput,
+      reverseChargeAccountId: rcmAccountId,
+    })
+
+    expect(purchaseReturn.taxableAmount).toBe('800.00')
+    expect(purchaseReturn.totalGstAmount).toBe('40.00')
+    expect(purchaseReturn.totalAmount).toBe('800.00')
+
+    const lines = context.ledgerPosting.list().at(-1)!.lines
+    const amount = (id: string) => lines.find((line) => line.ledgerAccountId === id)
+    expect(amount(context.payableAccountId)?.debit).toBe('800.00')
+    expect(amount(context.purchaseAccountId)?.credit).toBe('800.00')
+    expect(amount(context.inputGstAccountId)?.credit).toBe('40.00')
+    expect(amount(rcmAccountId)?.debit).toBe('40.00')
+
+    const saved = await context.bills.findById(bill.id)
+    expect(saved?.outstandingAmount).toBe('0.00')
+    const notes = await context.notes.listByCompanyId(context.companyId)
+    expect(notes.at(0)?.totalAmount).toBe('800.00')
+  })
+
+  test('part returns add up to the bill value and clear what is owed', async () => {
+    const { context, bill, deps, returnInput, rcmAccountId } =
+      await seedReverseChargeBill()
+    const returnQuantity = (quantity: string) =>
+      postPurchaseReturn(deps, {
+        ...returnInput,
+        reverseChargeAccountId: rcmAccountId,
+        lines: [{ ...returnInput.lines[0], quantity }],
+      })
+
+    const first = await returnQuantity('4')
+    expect(first.totalAmount).toBe('320.00')
+    expect((await context.bills.findById(bill.id))?.paymentStatus).toBe(
+      'Part paid',
+    )
+    const second = await returnQuantity('6')
+
+    expect(second.totalAmount).toBe('480.00')
+    expect(second.totalGstAmount).toBe('24.00')
+    const saved = await context.bills.findById(bill.id)
+    expect(saved?.outstandingAmount).toBe('0.00')
+    expect(saved?.paymentStatus).toBe('Paid')
+  })
+
+  test('needs the reverse charge ledger', async () => {
+    const { deps, returnInput } = await seedReverseChargeBill()
+
+    await expect(postPurchaseReturn(deps, returnInput)).rejects.toThrow(
+      /reverse charge/i,
+    )
+  })
+})
+
 describe('part returns and repeated items', () => {
   async function inclusiveInvoice(
     context: Awaited<ReturnType<typeof seedReturnsContext>>,

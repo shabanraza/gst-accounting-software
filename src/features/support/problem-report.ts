@@ -7,6 +7,8 @@ export type ProblemReportInput = {
   route: string
   appVersion: string
   userAgent: string
+  /** Recent errors the app hit in the reporter's tab, newest last. */
+  errors?: Array<string>
   reporter: { name: string; email: string }
 }
 
@@ -18,6 +20,18 @@ function routePath(route: string) {
 function subjectLine(description: string) {
   const firstLine = description.trim().split(/\r?\n/)[0] ?? ''
   return firstLine.length > 60 ? `${firstLine.slice(0, 60)}…` : firstLine
+}
+
+function errorsSection(errors: Array<string> | undefined) {
+  if (!errors?.length) return ''
+  return `
+        <h3 style="margin:16px 0 6px;font-size:14px">Recent errors</h3>
+        ${errors
+          .map(
+            (entry) =>
+              `<pre style="font-size:12px;background:#f5f5f4;padding:8px;white-space:pre-wrap;margin:0 0 6px">${escapeHtml(entry)}</pre>`,
+          )
+          .join('')}`
 }
 
 export function buildProblemReportEmail(input: ProblemReportInput) {
@@ -43,7 +57,7 @@ export function buildProblemReportEmail(input: ProblemReportInput) {
                 `<tr><td style="padding:2px 12px 2px 0;color:#888">${label}</td><td>${escapeHtml(value)}</td></tr>`,
             )
             .join('')}
-        </table>
+        </table>${errorsSection(input.errors)}
       </div>
     `,
   }

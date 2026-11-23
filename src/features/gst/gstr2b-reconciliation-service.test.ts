@@ -195,6 +195,20 @@ describe('reconcileGstr2b', () => {
     expect(portalOnly?.status).toBe('missing_in_books')
   })
 
+  test('leaves reverse charge bills out; their ITC is self-assessed', async () => {
+    const report = await reconcileGstr2b(
+      {
+        bills: new FakeBills([
+          bill({ supplierBillNumber: 'SB-RCM', reverseCharge: true }),
+        ]),
+        parties: new FakeParties([supplierParty()]),
+      },
+      { companyId: 'company-1', ...period, portalRows: [] },
+    )
+
+    expect(report.rows).toEqual([])
+  })
+
   test('excludes rows outside the selected period', async () => {
     const report = await reconcileGstr2b(
       {

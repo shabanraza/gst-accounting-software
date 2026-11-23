@@ -167,3 +167,8 @@ export function eWayBillStatusBadgeIntent(
 ): BadgeIntent {
   return status === 'due' ? 'warning' : 'neutral'
 }
+
+/** Reverse charge purchases: the GST is ours to pay, so it is a GST signal. */
+export function reverseChargeBadgeIntent(): BadgeIntent {
+  return 'gst'
+}

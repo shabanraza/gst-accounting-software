@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { ensureSystemLedger } from '#/features/accounting/chart-of-accounts.ts'
 import { recordDocumentEvent } from '#/features/audit/audit-service.ts'
 import { recordPurchaseSummary } from '#/features/dashboard/dashboard-summary-service.ts'
 import { postPurchaseBill } from '#/features/purchases/purchase-bill-service.ts'
@@ -7,6 +8,7 @@ import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 import { TRPCError } from '@trpc/server'
 
 import type { TRPCRouterRecord } from '@trpc/server'
+import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 import type { PostingTransaction } from '#/features/accounting/posting-transaction.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
 
@@ -43,6 +45,7 @@ const postPurchaseBillInputSchema = z.object({
   billDate: z.string().min(1),
   dueDate: z.string().min(1),
   taxMode: z.enum(['exclusive', 'inclusive']).optional(),
+  reverseCharge: z.boolean().optional(),
   narration: z.string().optional(),
   freight: z.string().optional(),
   packing: z.string().optional(),
@@ -82,6 +85,7 @@ const getPurchaseBillInputSchema = z.object({
 export const createPurchasesRouter = (
   bills: PurchaseBillRepository,
   transaction: PostingTransaction,
+  ledgers: LedgerAccountRepository,
 ) =>
   ({
     list: capabilityProcedure('view')
@@ -109,9 +113,30 @@ export const createPurchasesRouter = (
       }),
     postBill: capabilityProcedure('post_purchase')
       .input(postPurchaseBillInputSchema)
-      .mutation(({ ctx, input }) =>
-        transaction(async (tx) => {
-          const bill = await postPurchaseBill(tx, input)
+      .mutation(async ({ ctx, input }) => {
+        if (input.reverseCharge && input.taxMode === 'inclusive') {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Enter reverse charge bills with prices before GST; the supplier does not charge GST on them.',
+          })
+        }
+        // Created on first use; harmless if the posting below then fails.
+        const reverseChargeAccountId = input.reverseCharge
+          ? (
+              await ensureSystemLedger(
+                ledgers,
+                input.companyId,
+                'rcm_gst_payable',
+              )
+            ).id
+          : undefined
+
+        return transaction(async (tx) => {
+          const bill = await postPurchaseBill(tx, {
+            ...input,
+            reverseChargeAccountId,
+          })
           const stockInQuantity = bill.lines
             .reduce((sum, line) => sum + Number(line.quantity), 0)
             .toFixed(0)
@@ -134,6 +159,6 @@ export const createPurchasesRouter = (
           })
 
           return bill
-        }),
-      ),
+        })
+      }),
   }) satisfies TRPCRouterRecord

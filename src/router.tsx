@@ -3,6 +3,8 @@ import { routeTree } from './routeTree.gen'
 
 import type { ReactNode } from 'react'
 import { RoutePending } from '#/features/app-shell/components/route-pending.tsx'
+import { RouteError } from '#/features/app-shell/components/route-error.tsx'
+import { installClientErrorCapture } from '#/features/support/recent-errors.ts'
 import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
 import TanstackQueryProvider, {
   getContext,
@@ -10,6 +12,7 @@ import TanstackQueryProvider, {
 
 export function getRouter() {
   const context = getContext()
+  installClientErrorCapture()
 
   const router = createTanStackRouter({
     routeTree,
@@ -20,6 +23,7 @@ export function getRouter() {
     defaultPendingMs: 200,
     defaultPendingMinMs: 300,
     defaultPendingComponent: RoutePending,
+    defaultErrorComponent: RouteError,
 
     Wrap: (props: { children: ReactNode }) => {
       return (

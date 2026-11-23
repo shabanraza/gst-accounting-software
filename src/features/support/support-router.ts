@@ -12,6 +12,7 @@ const reportProblemInput = z.object({
   route: z.string().max(500),
   appVersion: z.string().max(20),
   userAgent: z.string().max(500),
+  errors: z.array(z.string().max(1500)).max(5).optional(),
 })
 
 export function createSupportRouter(deps: { send: typeof sendEmail }) {

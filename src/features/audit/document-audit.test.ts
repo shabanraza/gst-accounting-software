@@ -131,7 +131,7 @@ async function seed() {
   const transaction = createPostingTransaction(repositories, () => null)
   const router = createTRPCRouter({
     sales: createSalesRouter(repositories.invoices, transaction),
-    purchases: createPurchasesRouter(repositories.bills, transaction),
+    purchases: createPurchasesRouter(repositories.bills, transaction, ledgers),
     payments: createPaymentsRouter({
       transaction,
       vouchers: repositories.paymentVouchers,
@@ -142,6 +142,8 @@ async function seed() {
       transaction,
       notes: repositories.creditDebitNotes,
       financialYears,
+      ledgers,
+      bills: repositories.bills,
     }),
     expenses: createExpensesRouter({
       transaction,
@@ -172,7 +174,7 @@ async function seed() {
       cashAccountId: byKey('cash'),
       lines: [line],
     })
-  const postBill = () =>
+  const postBill = (overrides: { reverseCharge?: boolean } = {}) =>
     caller.purchases.postBill({
       companyId,
       companyStateCode: '27',
@@ -187,6 +189,7 @@ async function seed() {
       payableAccountId: byKey('supplier_payable'),
       stockAccountId: byKey('stock_in_hand'),
       lines: [line],
+      ...overrides,
     })
 
   return {
@@ -463,5 +466,70 @@ describe('document audit trail', () => {
       { action: 'purchase_bill.posted', actorName: 'Test Owner' },
       { action: 'sales_invoice.posted', actorName: 'Test Owner' },
     ])
+  })
+
+  test('posts a reverse charge bill against its own GST payable ledger', async () => {
+    const {
+      ledgers,
+      repositories,
+      caller,
+      byKey,
+      customer,
+      supplier,
+      line,
+      postInvoice,
+      postBill,
+    } = await seed()
+    // The test item is a service with no stock; a sales return brings one
+    // unit in so the purchase return below has something to send back.
+    const invoice = await postInvoice()
+    await caller.returns.postSalesReturn({
+      companyId,
+      companyStateCode: '27',
+      customerId: customer.id,
+      customerStateCode: '27',
+      salesInvoiceId: invoice.id,
+      returnDate: '2026-07-12',
+      salesAccountId: byKey('sales'),
+      outputGstAccountId: byKey('output_gst'),
+      receivableAccountId: byKey('customer_receivable'),
+      lines: [line],
+    })
+
+    const bill = await postBill({ reverseCharge: true })
+
+    const rcmLedger = (await ledgers.listByCompanyId(companyId)).find(
+      (account) => account.systemKey === 'rcm_gst_payable',
+    )
+    expect(rcmLedger?.name).toBe('GST Payable (Reverse Charge)')
+    expect(bill.reverseCharge).toBe(true)
+    expect(bill.totalAmount).toBe('100.00')
+    expect(bill.totalGstAmount).toBe('18.00')
+    const entry = await repositories.posting.findById(bill.ledgerEntryId)
+    expect(
+      entry?.lines.find((entryLine) => entryLine.ledgerAccountId === rcmLedger?.id)
+        ?.credit,
+    ).toBe('18.00')
+
+    const debitNote = await caller.returns.postPurchaseReturn({
+      companyId,
+      companyStateCode: '27',
+      supplierId: supplier.id,
+      supplierStateCode: '27',
+      purchaseBillId: bill.id,
+      returnDate: '2026-07-13',
+      purchaseAccountId: byKey('purchase'),
+      inputGstAccountId: byKey('input_gst'),
+      payableAccountId: byKey('supplier_payable'),
+      lines: [line],
+    })
+    expect(debitNote.totalAmount).toBe('100.00')
+    const noteEntry = await repositories.posting.findById(
+      debitNote.ledgerEntryId,
+    )
+    expect(
+      noteEntry?.lines.find((entryLine) => entryLine.ledgerAccountId === rcmLedger?.id)
+        ?.debit,
+    ).toBe('18.00')
   })
 })

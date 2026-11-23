@@ -38,6 +38,8 @@ export type PostPurchaseReturnInput = {
    * gap to the return value goes to purchases.
    */
   stockAccountId?: string
+  /** "GST Payable (Reverse Charge)" ledger; required for a reverse charge bill. */
+  reverseChargeAccountId?: string
   lines: Array<ReturnLineInput>
 }
 
@@ -85,6 +87,12 @@ export async function postPurchaseReturn(
   ) {
     throw new InvalidReturnError('Purchase bill not found')
   }
+  const reverseCharge = bill.reverseCharge
+  if (reverseCharge && !input.reverseChargeAccountId) {
+    throw new InvalidReturnError(
+      'The GST Payable (Reverse Charge) ledger is missing.',
+    )
+  }
 
   // Reserve the note number first so a missing financial year stops the
   // return before any stock or ledger posting.
@@ -114,7 +122,9 @@ export async function postPurchaseReturn(
   })
   taxableTotal = fitted.taxableTotal
   gstTotal = fitted.gstTotal
-  const totalAmount = taxableTotal.plus(gstTotal)
+  // Under reverse charge the supplier never charged the GST, so the note
+  // takes back only the value; the GST reverses our own liability below.
+  const totalAmount = reverseCharge ? taxableTotal : taxableTotal.plus(gstTotal)
   const amountDue = await applyNoteToDocument(deps.notes, {
     companyId: input.companyId,
     document: bill,
@@ -166,6 +176,15 @@ export async function postPurchaseReturn(
       debit: '0.00',
       credit: formatMoney(gstTotal),
     },
+    ...(reverseCharge && input.reverseChargeAccountId
+      ? [
+          {
+            ledgerAccountId: input.reverseChargeAccountId,
+            debit: formatMoney(gstTotal),
+            credit: '0.00',
+          },
+        ]
+      : []),
   ]
 
   const ledgerEntry = await postLedgerEntry(deps.posting, {

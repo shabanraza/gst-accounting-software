@@ -124,7 +124,11 @@ export const trpcRouter = createTRPCRouter({
     financialYearRepository,
     auditLogRepository,
   ),
-  purchases: createPurchasesRouter(purchaseBillRepository, postingTransaction),
+  purchases: createPurchasesRouter(
+    purchaseBillRepository,
+    postingTransaction,
+    ledgerAccountRepository,
+  ),
   purchaseOrders: createPurchaseOrdersRouter(purchaseOrderRepository),
   purchaseGrns: createGrnRouter(
     grnRepository,
@@ -161,6 +165,8 @@ export const trpcRouter = createTRPCRouter({
     transaction: postingTransaction,
     notes: creditDebitNoteRepository,
     financialYears: financialYearRepository,
+    ledgers: ledgerAccountRepository,
+    bills: purchaseBillRepository,
   }),
   expenses: createExpensesRouter({
     transaction: postingTransaction,

@@ -176,6 +176,7 @@ export function computeVoucherLine(
 export function computeVoucherTotals(
   lines: Array<ComputedVoucherLine>,
   sundry: VoucherSundry,
+  options: { reverseCharge?: boolean } = {},
 ): VoucherTotals {
   const taxableAmount = lines.reduce(
     (sum, line) => sum.plus(money(line.taxableAmount)),
@@ -199,7 +200,10 @@ export function computeVoucherTotals(
     .plus(money(sundry.packing))
     .plus(money(sundry.roundOff))
     .minus(billDiscountAmount)
-  const grandTotal = taxableAmount.plus(totalGstAmount).plus(sundryTotal)
+  // Under reverse charge the supplier's bill carries no GST; we pay it ourselves.
+  const grandTotal = taxableAmount
+    .plus(options.reverseCharge ? 0 : totalGstAmount)
+    .plus(sundryTotal)
 
   return {
     taxableAmount: format(taxableAmount),

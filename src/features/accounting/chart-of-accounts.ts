@@ -18,6 +18,7 @@ export type LedgerAccountSystemKey =
   | 'cogs'
   | 'opening_balance'
   | 'stock_adjustment'
+  | 'rcm_gst_payable'
 
 export type LedgerAccountRecord = {
   id: string
@@ -122,6 +123,19 @@ const inventoryLedgers: Array<LedgerTemplate> = [
     name: 'Stock Adjustment',
     accountType: 'expense',
     systemKey: 'stock_adjustment',
+  },
+]
+
+/**
+ * Ledgers most companies never need. They are not part of a new chart and are
+ * created by `ensureSystemLedger` the first time a posting uses them.
+ */
+const onDemandLedgers: Array<LedgerTemplate> = [
+  {
+    code: '2110',
+    name: 'GST Payable (Reverse Charge)',
+    accountType: 'liability',
+    systemKey: 'rcm_gst_payable',
   },
 ]
 
@@ -239,21 +253,36 @@ export async function ensureSystemLedger(
     return existing
   }
 
-  const template = [...sharedLedgers, ...inventoryLedgers].find(
+  const template = [
+    ...sharedLedgers,
+    ...inventoryLedgers,
+    ...onDemandLedgers,
+  ].find(
     (entry) => entry.systemKey === systemKey,
   )
   if (!template) {
     throw new UnknownSystemLedgerError(systemKey)
   }
 
-  const [created] = await repository.createMany(
-    accountsFromTemplates(
-      companyId,
-      [template],
-      new Set(existingAccounts.map((account) => account.code)),
-    ),
-  )
-  return created
+  try {
+    const [created] = await repository.createMany(
+      accountsFromTemplates(
+        companyId,
+        [template],
+        new Set(existingAccounts.map((account) => account.code)),
+      ),
+    )
+    return created
+  } catch (error) {
+    // Another request may have created it a moment ago (unique system key).
+    const raced = (await repository.listByCompanyId(companyId)).find(
+      (account) => account.systemKey === systemKey,
+    )
+    if (raced) {
+      return raced
+    }
+    throw error
+  }
 }
 
 export async function listLedgerAccountsByCompany(

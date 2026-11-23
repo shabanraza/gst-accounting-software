@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 
 import {
   eWayBillStatusBadgeIntent,
+  reverseChargeBadgeIntent,
   recurringInvoiceBadgeIntent,
   ageingBucketBadgeIntent,
   ageingBucketChartColor,
@@ -129,4 +130,8 @@ describe('eWayBillStatusBadgeIntent', () => {
     expect(eWayBillStatusBadgeIntent('due')).toBe('warning')
     expect(eWayBillStatusBadgeIntent('recorded')).toBe('neutral')
   })
+})
+
+test('marks reverse charge purchases with the GST intent', () => {
+  expect(reverseChargeBadgeIntent()).toBe('gst')
 })
