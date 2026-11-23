@@ -162,6 +162,12 @@ export function periodChangeBadgeIntent(input: {
   return input.direction === 'up' ? 'success' : 'destructive'
 }
 
+export function eWayBillStatusBadgeIntent(
+  status: 'due' | 'recorded',
+): BadgeIntent {
+  return status === 'due' ? 'warning' : 'neutral'
+}
+
 /** Reverse charge purchases: the GST is ours to pay, so it is a GST signal. */
 export function reverseChargeBadgeIntent(): BadgeIntent {
   return 'gst'

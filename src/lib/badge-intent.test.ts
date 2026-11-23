@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
 import {
+  eWayBillStatusBadgeIntent,
   reverseChargeBadgeIntent,
   recurringInvoiceBadgeIntent,
   ageingBucketBadgeIntent,
@@ -121,6 +122,13 @@ describe('recurringInvoiceBadgeIntent', () => {
     expect(recurringInvoiceBadgeIntent({ status: 'ended', due: false })).toBe(
       'neutral',
     )
+  })
+})
+
+describe('eWayBillStatusBadgeIntent', () => {
+  test('flags a missing e-way bill as a warning and a recorded one as neutral', () => {
+    expect(eWayBillStatusBadgeIntent('due')).toBe('warning')
+    expect(eWayBillStatusBadgeIntent('recorded')).toBe('neutral')
   })
 })
 
