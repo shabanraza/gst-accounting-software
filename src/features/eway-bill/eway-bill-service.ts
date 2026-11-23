@@ -514,8 +514,9 @@ export async function recordEWayBill(
   input: RecordEWayBillInput,
 ) {
   const ewbNumber = input.ewbNumber.replace(/\s/g, '')
-  if (!/^[0-9]{12}$/.test(ewbNumber)) {
-    invalid('The e-way bill number has 12 digits.')
+  // 12 digits until 31 Dec 2026; numbers issued from 1 Jan 2027 have 14.
+  if (!/^(?:[0-9]{12}|[0-9]{14})$/.test(ewbNumber)) {
+    invalid('The e-way bill number has 12 or 14 digits.')
   }
   if (!ISO_DATE.test(input.ewbDate) || !ISO_DATE.test(input.validUntil)) {
     invalid('Enter the e-way bill date and valid-until date.')

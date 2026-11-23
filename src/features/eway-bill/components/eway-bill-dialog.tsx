@@ -483,7 +483,7 @@ export function EWayBillDialog({
                     id="ewb-number"
                     inputMode="numeric"
                     onChange={(event) => setEwbNumber(event.target.value)}
-                    placeholder="12 digits"
+                    placeholder="12 or 14 digits"
                     required
                     value={ewbNumber}
                   />
