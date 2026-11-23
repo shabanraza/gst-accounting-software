@@ -111,6 +111,7 @@ describe('help guides content', () => {
         "Record a payment or receipt (6 steps)",
         "Record a sales or purchase return (5 steps)",
         "Get your GSTR-1 and GSTR-3B figures (6 steps)",
+        "Make an e-way bill (6 steps)",
         "Export to Tally or back up your data (4 steps)",
         "Invite a team member (5 steps)",
       ]

@@ -133,6 +133,11 @@ export interface SalesInvoiceRepository {
     companyId: string,
     options?: ListQueryOptions,
   ) => Promise<Array<SalesInvoiceRecord>>
+  /** Invoices of the company with these ids, with their lines. */
+  listByIds?: (
+    companyId: string,
+    ids: Array<string>,
+  ) => Promise<Array<SalesInvoiceRecord>>
   sumOutstandingByCustomer?: (
     companyId: string,
     customerId: string,

@@ -6,7 +6,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { FileTextIcon, PlusIcon, Trash2Icon } from 'lucide-react'
+import { FileTextIcon, PlusIcon, Trash2Icon, TruckIcon } from 'lucide-react'
 
 import { toast } from 'sonner'
 
@@ -48,6 +48,8 @@ import {
   requireWorkspace,
 } from '#/lib/form-validation.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
+import { EWayBillDialog } from '#/features/eway-bill/components/eway-bill-dialog.tsx'
+import type { EWayBillTarget } from '#/features/eway-bill/components/eway-bill-dialog.tsx'
 
 import { documentStatusBadgeIntent } from '#/lib/badge-intent.ts'
 
@@ -82,6 +84,8 @@ export function SalesDocumentsPanel() {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const { activeFinancialYearId, companyId, isReady } = useWorkspace()
+  const [eWayBillTarget, setEWayBillTarget] =
+    React.useState<EWayBillTarget | null>(null)
   const [documentType, setDocumentType] =
     React.useState<keyof typeof documentTypeLabels>('quotation')
   const [documentNumber, setDocumentNumber] = React.useState('')
@@ -406,17 +410,36 @@ export function SalesDocumentsPanel() {
                       {formatInr(document.totalAmount)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {document.status === 'open' ? (
-                        <Button asChild size="sm" variant="outline">
-                          <Link
-                            search={{ fromDocument: document.id }}
-                            to="/app/sales/new"
+                      <div className="flex items-center justify-end gap-1">
+                        {document.documentType === 'delivery_challan' ? (
+                          <Button
+                            onClick={() =>
+                              setEWayBillTarget({
+                                kind: 'challan',
+                                id: document.id,
+                                number: document.documentNumber,
+                              })
+                            }
+                            size="sm"
+                            type="button"
+                            variant="ghost"
                           >
-                            <FileTextIcon data-icon="inline-start" />
-                            Convert to invoice
-                          </Link>
-                        </Button>
-                      ) : null}
+                            <TruckIcon data-icon="inline-start" />
+                            E-way bill
+                          </Button>
+                        ) : null}
+                        {document.status === 'open' ? (
+                          <Button asChild size="sm" variant="outline">
+                            <Link
+                              search={{ fromDocument: document.id }}
+                              to="/app/sales/new"
+                            >
+                              <FileTextIcon data-icon="inline-start" />
+                              Convert to invoice
+                            </Link>
+                          </Button>
+                        ) : null}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -425,6 +448,12 @@ export function SalesDocumentsPanel() {
           </CardContent>
         </Card>
       </div>
+      <EWayBillDialog
+        onOpenChange={(open) => {
+          if (!open) setEWayBillTarget(null)
+        }}
+        target={eWayBillTarget}
+      />
     </WorkspacePage>
   )
 }

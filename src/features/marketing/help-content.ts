@@ -147,6 +147,22 @@ export const HELP_GUIDES: ReadonlyArray<HelpGuide> = [
     appPath: '/app/reports',
   },
   {
+    slug: 'generate-an-e-way-bill',
+    title: 'Make an e-way bill',
+    summary: 'Prepare the e-way bill file for an invoice, upload it on the portal, and save the number.',
+    seoTitle: `How to Generate an E-Way Bill from a GST Invoice | ${SITE.name}`,
+    seoDescription: `Prepare e-way bill JSON from a sales invoice or delivery challan in ${SITE.name}, upload it on the e-way bill portal, and save the EWB number and validity.`,
+    steps: [
+      'Open **Sales → Sales invoices**. Invoices that still need one show **EWB due**.',
+      'On the invoice row, choose **E-way bill** (the truck icon). For a delivery challan, open **Sales → Quotations & orders** and choose **E-way bill** on the challan.',
+      'Set **Transport by**, the **Distance (km)** and the **Delivery PIN code**.',
+      'For **Road**, enter the **Vehicle number**; for rail, air or ship, enter the **RR / airway bill / B/L no.** and **Document date**. If a transporter moves the goods, add the **Transporter ID** and **Transporter name**.',
+      'Choose **Download JSON**, then **Open e-way bill portal** and upload the file there.',
+      'Back in the dialog, enter the **E-way bill number** the portal gives you and choose **Save e-way bill**. **Valid until** fills in from the distance.',
+    ],
+    appPath: '/app/sales',
+  },
+  {
     slug: 'export-to-tally-and-back-up',
     title: 'Export to Tally or back up your data',
     summary: 'Hand your books to an accountant in Tally, or keep your own copy.',

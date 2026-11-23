@@ -676,6 +676,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://hisaabkro.in/help/generate-an-e-way-bill</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://hisaabkro.in/help/export-to-tally-and-back-up</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>

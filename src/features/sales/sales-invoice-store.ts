@@ -58,6 +58,13 @@ export class InMemorySalesInvoiceRepository implements SalesInvoiceRepository {
     )
   }
 
+  async listByIds(companyId: string, ids: Array<string>) {
+    const wanted = new Set(ids)
+    return this.invoices.filter(
+      (invoice) => invoice.companyId === companyId && wanted.has(invoice.id),
+    )
+  }
+
   async sumOutstandingByCustomer(companyId: string, customerId: string) {
     const total = this.invoices
       .filter(
@@ -234,6 +241,35 @@ export class DrizzleSalesInvoiceRepository implements SalesInvoiceRepository {
       .where(eq(schema.salesInvoiceLines.salesInvoiceId, invoices[0].id))
 
     return mapRowsToSalesInvoiceRecord(invoices[0], lines)
+  }
+
+  async listByIds(companyId: string, ids: Array<string>) {
+    if (ids.length === 0) return []
+    const invoices = await this.database
+      .select()
+      .from(schema.salesInvoices)
+      .where(
+        and(
+          eq(schema.salesInvoices.companyId, companyId),
+          inArray(schema.salesInvoices.id, ids),
+        ),
+      )
+    if (invoices.length === 0) return []
+    const lines = await this.database
+      .select()
+      .from(schema.salesInvoiceLines)
+      .where(
+        inArray(
+          schema.salesInvoiceLines.salesInvoiceId,
+          invoices.map((invoice) => invoice.id),
+        ),
+      )
+    return invoices.map((invoice) =>
+      mapRowsToSalesInvoiceRecord(
+        invoice,
+        lines.filter((line) => line.salesInvoiceId === invoice.id),
+      ),
+    )
   }
 
   async save(invoice: SalesInvoiceRecord) {
