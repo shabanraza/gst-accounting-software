@@ -2,6 +2,7 @@ import * as React from 'react'
 import { useNavigate } from '@tanstack/react-router'
 
 import { Skeleton } from '#/components/ui/skeleton.tsx'
+import { ErrorState } from '#/features/app-shell/components/error-state.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { sessionGateAction } from '#/features/app-shell/session-gate.ts'
 import { authClient } from '#/lib/auth-client.ts'
@@ -30,7 +31,8 @@ export function WorkspaceLoadingGate({
     error: sessionError,
     refetch,
   } = authClient.useSession()
-  const { accountId, isLoading, error, company } = useWorkspace()
+  const { accountId, isLoading, error, errorAction, company, refresh } =
+    useWorkspace()
   const [retries, setRetries] = React.useState(0)
   const action = sessionGateAction({
     isPending: isSessionPending,
@@ -54,15 +56,27 @@ export function WorkspaceLoadingGate({
     return () => window.clearTimeout(timer)
   }, [action, navigate, refetch, retries])
 
+  const needsCompany = errorAction === 'onboarding' && !company
+  React.useEffect(() => {
+    if (needsCompany) void navigate({ to: '/onboarding' })
+  }, [needsCompany, navigate])
+
   if (action !== 'ready' || !accountId) {
+    return <WorkspacePageSkeleton />
+  }
+
+  if (needsCompany) {
     return <WorkspacePageSkeleton />
   }
 
   if (error && !company) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col gap-2 p-4 text-sm text-destructive">
-        {error}
-      </div>
+      <ErrorState
+        canReport
+        message={error}
+        onRetry={() => void refresh()}
+        title="Your workspace didn't load"
+      />
     )
   }
 

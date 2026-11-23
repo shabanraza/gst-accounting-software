@@ -66,6 +66,34 @@ describe('buildProblemReportEmail', () => {
 
     expect(email.subject).toBe(`Problem report (v0.2.0): ${'a'.repeat(60)}…`)
   })
+
+  test('lists recent app errors, escaped, so a crash can be traced', () => {
+    const email = buildProblemReportEmail({
+      description: 'App crashed',
+      route: '/app/purchases',
+      appVersion: '0.5.0',
+      userAgent: 'ua',
+      errors: ['TypeError: x is undefined\n    at <Panel> (panel.tsx:1:1)'],
+      reporter,
+    })
+
+    expect(email.html).toContain('Recent errors')
+    expect(email.html).toContain('TypeError: x is undefined')
+    expect(email.html).toContain('&lt;Panel&gt;')
+    expect(email.html).not.toContain('<Panel>')
+  })
+
+  test('leaves the errors section out when there are none', () => {
+    const email = buildProblemReportEmail({
+      description: 'x',
+      route: '/app',
+      appVersion: '0.5.0',
+      userAgent: 'ua',
+      reporter,
+    })
+
+    expect(email.html).not.toContain('Recent errors')
+  })
 })
 
 describe('supportRouter.reportProblem', () => {
@@ -103,6 +131,23 @@ describe('supportRouter.reportProblem', () => {
         replyTo: 'asha@example.com',
       }),
     )
+  })
+
+  test('accepts up to five recent errors and refuses more', async () => {
+    const { send, caller: api } = caller({
+      user: { id: 'u1', email: 'asha@example.com', name: 'Asha' },
+      session: { id: 's1', userId: 'u1' },
+    })
+
+    await api.support.reportProblem({ ...input, errors: ['TypeError: boom'] })
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.stringContaining('TypeError: boom'),
+      }),
+    )
+    await expect(
+      api.support.reportProblem({ ...input, errors: Array(6).fill('e') }),
+    ).rejects.toThrow()
   })
 
   test('requires a signed-in user', async () => {

@@ -17,6 +17,7 @@ import { Textarea } from '#/components/ui/textarea.tsx'
 import { FieldLabel } from '#/features/app-shell/components/field-label.tsx'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { APP_VERSION } from '#/features/changelog/releases.ts'
+import { recentClientErrors } from '#/features/support/recent-errors.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function ReportProblemDialog({
@@ -30,6 +31,7 @@ export function ReportProblemDialog({
   const route = useRouterState({ select: (state) => state.location.pathname })
   const [description, setDescription] = React.useState('')
   const userAgent = typeof navigator === 'undefined' ? '' : navigator.userAgent
+  const errors = open ? recentClientErrors() : []
 
   const report = useMutation({
     ...trpc.support.reportProblem.mutationOptions(),
@@ -44,7 +46,13 @@ export function ReportProblemDialog({
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!description.trim()) return
-    report.mutate({ description, route, appVersion: APP_VERSION, userAgent })
+    report.mutate({
+      description,
+      route,
+      appVersion: APP_VERSION,
+      userAgent,
+      errors: errors.length ? errors : undefined,
+    })
   }
 
   return (
@@ -79,6 +87,16 @@ export function ReportProblemDialog({
             <dt>Browser</dt>
             <dd className="truncate">{userAgent}</dd>
           </dl>
+          {errors.length ? (
+            <details className="text-xs text-muted-foreground">
+              <summary className="cursor-pointer">
+                Errors attached ({errors.length})
+              </summary>
+              <pre className="mt-2 max-h-40 overflow-auto rounded-md bg-muted p-2 font-mono whitespace-pre-wrap break-words">
+                {errors.join('\n\n')}
+              </pre>
+            </details>
+          ) : null}
           <DialogFooter>
             <Button
               disabled={!description.trim() || report.isPending}
