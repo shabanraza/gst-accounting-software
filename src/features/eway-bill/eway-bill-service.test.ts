@@ -701,12 +701,23 @@ describe('recordEWayBill', () => {
     })
   })
 
+  test('accepts the 14-digit numbers issued from 1 January 2027', async () => {
+    const repository = new InMemoryEWayBillRepository()
+    const record = await recordEWayBill(repository, {
+      ...input,
+      ewbNumber: '3310 1234 5678 90',
+    })
+
+    expect(record.ewbNumber).toBe('33101234567890')
+  })
+
   test.each([
     [
-      'an EWB number that is not 12 digits',
+      'an EWB number that is not 12 or 14 digits',
       { ewbNumber: '12345' },
-      /12 digits/,
+      /12 or 14 digits/,
     ],
+    ['a 13-digit EWB number', { ewbNumber: '3310123456789' }, /12 or 14 digits/],
     ['validity before the EWB date', { validUntil: '2026-11-19' }, /valid/i],
     ['a bad date', { ewbDate: '20-11-2026' }, /date/i],
   ])('rejects %s', async (_label, override, message) => {

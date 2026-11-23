@@ -22,6 +22,7 @@ built. Never include customer names, balances or other real data.
 - Returns are valued at what the original invoice or bill actually charged for the item. On an invoice priced with GST included, the GST is no longer added on top, and a line discount on the invoice or bill now carries into the return.
 - When a page fails to load you now see what went wrong, with Try again and Report a problem, instead of a blank error. A report sent from there includes the error, so support can find the cause faster.
 - Opening a page link before your company is set up now takes you to company setup, instead of showing "No company found for this account" on every page.
+- E-way bill numbers can be saved with 14 digits as well as 12, ready for the longer numbers the portal issues from 1 January 2027.
 
 ### Added
 
