@@ -751,7 +751,7 @@ export async function getOwnerDashboardSnapshot(
     overdueReceivables: withPhone(rollUpOverdueParties(receivablesAgeing.rows)),
     overduePayables: withPhone(rollUpOverdueParties(payablesAgeing.rows)),
     gst: {
-      netPayableAmount: gstMtd.netGstPayable,
+      netPayableAmount: gstMtd.cashPayable,
       periodLabel: currentLabel,
     },
   })

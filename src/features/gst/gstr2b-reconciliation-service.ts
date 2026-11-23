@@ -295,7 +295,9 @@ export async function reconcileGstr2b(
   )
 
   const bookDocuments: Array<BookDocument> = [
-    ...bills.map((bill) => {
+    // Reverse charge bills carry self-assessed ITC (GSTR-3B 4(A)(3)), so
+    // they are not matched against the supplier-reported 2B credit.
+    ...bills.filter((bill) => !bill.reverseCharge).map((bill) => {
       const party = partyById.get(bill.supplierId)
       return {
         supplierGstin: party?.gstin ?? null,

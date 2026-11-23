@@ -363,3 +363,77 @@ describe('purchase bill stock value', () => {
     expect(debitOf(context.purchaseAccountId)).toBe('275.00')
   })
 })
+
+describe('postPurchaseBill under reverse charge', () => {
+  async function postRcmBill(
+    overrides: Partial<Parameters<typeof postPurchaseBill>[1]> = {},
+  ) {
+    const context = await seedPurchaseContext()
+    const rcmAccountId = 'rcm-gst-payable'
+    const bill = await postPurchaseBill(
+      {
+        bills: context.bills,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+        parties: context.parties,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        financialYearStart: '2026-04-01',
+        supplierId: context.supplier.id,
+        supplierBillNumber: 'GTA-77',
+        billDate: '2026-07-11',
+        dueDate: '2026-07-26',
+        reverseCharge: true,
+        reverseChargeAccountId: rcmAccountId,
+        freight: '100.00',
+        purchaseAccountId: context.purchaseAccountId,
+        inputGstAccountId: context.inputGstAccountId,
+        payableAccountId: context.payableAccountId,
+        stockAccountId: context.stockAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity: '100',
+            unit: 'meter',
+            rate: '80.00',
+            gstRate: '5.00',
+          },
+        ],
+        ...overrides,
+      },
+    )
+    return { context, bill, rcmAccountId }
+  }
+
+  test('owes the supplier only the value; the GST is our own liability with matching ITC', async () => {
+    const { context, bill, rcmAccountId } = await postRcmBill()
+
+    expect(bill.reverseCharge).toBe(true)
+    expect(bill.taxableAmount).toBe('8000.00')
+    expect(bill.totalGstAmount).toBe('400.00')
+    expect(bill.totalAmount).toBe('8100.00')
+    expect(bill.outstandingAmount).toBe('8100.00')
+    expect(bill.lines[0].lineTotal).toBe('8000.00')
+
+    const entry = context.ledgerPosting.list()[0]
+    const amount = (accountId: string, side: 'debit' | 'credit') =>
+      entry.lines.find((line) => line.ledgerAccountId === accountId)?.[side]
+    expect(amount(context.stockAccountId, 'debit')).toBe('8100.00')
+    expect(amount(context.inputGstAccountId, 'debit')).toBe('400.00')
+    expect(amount(context.payableAccountId, 'credit')).toBe('8100.00')
+    expect(amount(rcmAccountId, 'credit')).toBe('400.00')
+  })
+
+  test('needs prices without GST and a reverse charge ledger', async () => {
+    await expect(postRcmBill({ taxMode: 'inclusive' })).rejects.toThrow(
+      /reverse charge/i,
+    )
+    await expect(
+      postRcmBill({ reverseChargeAccountId: undefined }),
+    ).rejects.toThrow(/reverse charge/i)
+  })
+})

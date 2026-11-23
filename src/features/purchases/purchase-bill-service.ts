@@ -50,7 +50,13 @@ export type PostPurchaseBillInput = {
   billDate: string
   dueDate: string
   placeOfSupply?: string
+  /**
+   * The recipient pays the GST (RCM): the supplier is owed the value only,
+   * and the GST is booked as our liability with matching input credit.
+   */
   reverseCharge?: boolean
+  /** "GST Payable (Reverse Charge)" ledger; required with `reverseCharge`. */
+  reverseChargeAccountId?: string
   taxMode?: TaxMode
   narration?: string
   freight?: string
@@ -139,6 +145,13 @@ export type PurchaseBillDependencies = {
   parties?: PartyRepository
 }
 
+export class InvalidReverseChargeBillError extends DomainError {
+  constructor(message: string) {
+    super(message)
+    this.name = 'InvalidReverseChargeBillError'
+  }
+}
+
 export class DuplicateSupplierBillError extends DomainError {
   constructor(supplierBillNumber: string) {
     super(
@@ -208,6 +221,17 @@ export async function postPurchaseBill(
   }
 
   const taxMode = input.taxMode ?? 'exclusive'
+  const reverseCharge = input.reverseCharge ?? false
+  if (reverseCharge && taxMode === 'inclusive') {
+    throw new InvalidReverseChargeBillError(
+      'Enter reverse charge bills with prices before GST; the supplier does not charge GST on them.',
+    )
+  }
+  if (reverseCharge && !input.reverseChargeAccountId) {
+    throw new InvalidReverseChargeBillError(
+      'The GST Payable (Reverse Charge) ledger is missing.',
+    )
+  }
   const partyStateCode = input.supplierStateCode ?? supplier.stateCode
   let taxableTotal = new Decimal(0)
   let gstTotal = new Decimal(0)
@@ -240,7 +264,11 @@ export async function postPurchaseBill(
       discountAmount: formatMoney(discountAmount),
       taxableAmount: gst.taxableAmount,
       gstAmount: gst.totalGstAmount,
-      lineTotal: taxMode === 'inclusive' ? formatMoney(net) : gst.totalAmount,
+      lineTotal: reverseCharge
+        ? gst.taxableAmount
+        : taxMode === 'inclusive'
+          ? formatMoney(net)
+          : gst.totalAmount,
       godownName: line.godownName ?? input.godownName ?? null,
     }
   })
@@ -250,7 +278,10 @@ export async function postPurchaseBill(
   const roundOff = money(input.roundOff ?? '0')
   const billDiscount = money(input.billDiscount ?? '0')
   const sundryNet = freight.plus(packing).plus(roundOff).minus(billDiscount)
-  const totalAmount = taxableTotal.plus(gstTotal).plus(sundryNet)
+  // Under reverse charge the supplier's bill carries no GST.
+  const totalAmount = taxableTotal
+    .plus(reverseCharge ? 0 : gstTotal)
+    .plus(sundryNet)
   const billId = crypto.randomUUID()
 
   assertTaxInvoiceCompanyAddress({
@@ -315,6 +346,15 @@ export async function postPurchaseBill(
       debit: '0.00',
       credit: formatMoney(totalAmount),
     },
+    ...(reverseCharge && input.reverseChargeAccountId
+      ? [
+          {
+            ledgerAccountId: input.reverseChargeAccountId,
+            debit: '0.00',
+            credit: formatMoney(gstTotal),
+          },
+        ]
+      : []),
   ]
 
   const ledgerEntry = await postLedgerEntry(deps.posting, {
@@ -355,7 +395,7 @@ export async function postPurchaseBill(
     billDate: input.billDate,
     dueDate: input.dueDate,
     placeOfSupply: input.placeOfSupply ?? input.companyStateCode,
-    reverseCharge: input.reverseCharge ?? false,
+    reverseCharge,
     paymentStatus: 'Pending',
     taxMode,
     narration: input.narration?.trim() || '',

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
 import {
+  reverseChargeBadgeIntent,
   recurringInvoiceBadgeIntent,
   ageingBucketBadgeIntent,
   ageingBucketChartColor,
@@ -121,4 +122,8 @@ describe('recurringInvoiceBadgeIntent', () => {
       'neutral',
     )
   })
+})
+
+test('marks reverse charge purchases with the GST intent', () => {
+  expect(reverseChargeBadgeIntent()).toBe('gst')
 })

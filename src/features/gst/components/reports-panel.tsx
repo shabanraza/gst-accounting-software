@@ -579,6 +579,16 @@ export function ReportsPanel({ initialTab }: { initialTab?: string }) {
                 </CardTitle>
               </CardHeader>
             </Card>
+            {Number(gstr3bQuery.data?.reverseChargeTax ?? 0) > 0 ? (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>Reverse charge (pay in cash)</CardDescription>
+                  <CardTitle className="text-2xl">
+                    {formatInr(gstr3bQuery.data?.reverseChargeTax ?? 0)}
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+            ) : null}
           </div>
           {gstr3bWorking &&
           gstr3bWorking.periodStart === reconPeriodStart &&

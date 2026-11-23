@@ -4,7 +4,10 @@ import { skipToken, useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { EyeIcon, PlusIcon, PrinterIcon, TruckIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
-import { paymentStatusBadgeIntent } from '#/lib/badge-intent.ts'
+import {
+  paymentStatusBadgeIntent,
+  reverseChargeBadgeIntent,
+} from '#/lib/badge-intent.ts'
 import { Button } from '#/components/ui/button.tsx'
 import {
   Card,
@@ -208,7 +211,14 @@ export function PurchasesPanel({
                     <TableCell>{row.billDate}</TableCell>
                     <TableCell>{row.dueDate}</TableCell>
                     <TableCell className="text-right">{formatInr(row.taxableAmount)}</TableCell>
-                    <TableCell className="text-right">{formatInr(row.totalGstAmount)}</TableCell>
+                    <TableCell className="text-right">
+                      <span className="inline-flex items-center justify-end gap-1.5">
+                        {row.reverseCharge ? (
+                          <Badge variant={reverseChargeBadgeIntent()}>RCM</Badge>
+                        ) : null}
+                        {formatInr(row.totalGstAmount)}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-right font-medium text-money-out">
                       {formatInr(row.totalAmount)}
                     </TableCell>

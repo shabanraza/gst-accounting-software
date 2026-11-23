@@ -237,6 +237,66 @@ describe('buildGstr1Json', () => {
 })
 
 describe('buildGstr3bReport', () => {
+  test('reports reverse charge bills in 3.1(d) and their credit in 4(A)(3)', () => {
+    const reverseChargeBill: GstReportDocument = {
+      ...purchaseBill,
+      id: 'bill-rcm',
+      invoiceNumber: 'SUP-RCM',
+      partyGstin: null,
+      reverseCharge: true,
+      taxableAmount: '1000.00',
+      igstAmount: '180.00',
+      totalGstAmount: '180.00',
+      totalAmount: '1000.00',
+    }
+    const reverseChargeReturn: GstReportDocument = {
+      ...reverseChargeBill,
+      id: 'dn-rcm',
+      documentType: 'debit_note',
+      invoiceNumber: 'DN-RCM',
+      taxableAmount: '200.00',
+      igstAmount: '36.00',
+      totalGstAmount: '36.00',
+      totalAmount: '200.00',
+    }
+
+    const report = buildGstr3bReport({
+      companyId: 'company-1',
+      periodStart: '2026-07-01',
+      periodEnd: '2026-07-31',
+      documents: [
+        outwardInvoice,
+        creditNote,
+        purchaseBill,
+        reverseChargeBill,
+        reverseChargeReturn,
+      ],
+    })
+
+    expect(report.inwardReverseCharge).toEqual({
+      taxableValue: '800.00',
+      igst: '144.00',
+      cgst: '0.00',
+      sgst: '0.00',
+    })
+    expect(report.reverseChargeItc).toEqual({
+      igst: '144.00',
+      cgst: '0.00',
+      sgst: '0.00',
+    })
+    expect(report.eligibleItc).toEqual({
+      igst: '400.00',
+      cgst: '0.00',
+      sgst: '0.00',
+    })
+    expect(report.outputGst).toBe('90.00')
+    expect(report.reverseChargeTax).toBe('144.00')
+    expect(report.inputGst).toBe('544.00')
+    // Reverse charge is paid in cash; ITC cannot pay it.
+    expect(report.netGstPayable).toBe('-454.00')
+    expect(report.cashPayable).toBe('144.00')
+  })
+
   test('summarizes output GST and input GST', () => {
     const report = buildGstr3bReport({
       companyId: 'company-1',

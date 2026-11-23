@@ -163,7 +163,11 @@ describe('posting routers', () => {
   function caller() {
     const router = createTRPCRouter({
       sales: createSalesRouter(outer.invoices, transaction),
-      purchases: createPurchasesRouter(outer.bills, transaction),
+      purchases: createPurchasesRouter(
+        outer.bills,
+        transaction,
+        new InMemoryLedgerAccountRepository(),
+      ),
       payments: createPaymentsRouter({
         transaction,
         vouchers: outer.paymentVouchers,

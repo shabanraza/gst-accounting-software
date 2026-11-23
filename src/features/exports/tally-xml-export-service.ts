@@ -79,7 +79,10 @@ export type TallyExportInput = {
       | 'totalGstAmount'
       | 'totalAmount'
       | 'partyNameSnapshot'
-    > & { lines: Array<DocumentLine> }
+    > &
+      Partial<Pick<PurchaseBillRecord, 'id' | 'reverseCharge'>> & {
+        lines: Array<DocumentLine>
+      }
   >
   bills: Array<
     Pick<
@@ -105,7 +108,8 @@ export type TallyExportInput = {
       | 'totalAmount'
       | 'ledgerEntryId'
       | 'narration'
-    >
+    > &
+      Partial<Pick<CreditDebitNoteRecord, 'referenceDocumentId'>>
   >
   /**
    * Party balances carried in from before HisaabKro. They become ledger
@@ -150,6 +154,7 @@ const GROUP_BY_SYSTEM_KEY: Record<
   expenses: 'Indirect Expenses',
   cogs: 'Direct Expenses',
   stock_adjustment: 'Indirect Expenses',
+  rcm_gst_payable: DUTIES_AND_TAXES,
 }
 
 const GROUP_BY_ACCOUNT_TYPE: Record<
@@ -475,6 +480,14 @@ export function buildTallyXml(input: TallyExportInput): TallyExport {
   }
   const salesLedger = ledgerFor('sales', 'Sales')
   const purchaseLedger = ledgerFor('purchase', 'Purchase')
+  // Only companies with reverse charge bills get this ledger.
+  const reverseChargeLedger = () =>
+    ledgerFor('rcm_gst_payable', 'GST Payable (Reverse Charge)')
+  const reverseChargeBillIds = new Set(
+    input.bills.flatMap((bill) =>
+      bill.reverseCharge && bill.id ? [bill.id] : [],
+    ),
+  )
 
   // Party opening balances sit on the party ledger in Tally; the other side
   // of their posting (the opening balance account) gets the matching balance.
@@ -637,7 +650,19 @@ export function buildTallyXml(input: TallyExportInput): TallyExport {
         ...splitGst(gst, bill.placeOfSupply === input.companyStateCode).map(
           ({ head, amount }) => ({ ledger: `Input ${head}`, debit: amount }),
         ),
-        { ledger: purchaseLedger, debit: residual(total, gst, inventory) },
+        // Under reverse charge the supplier is owed the value only; the GST
+        // is our own liability.
+        ...(bill.reverseCharge
+          ? [{ ledger: reverseChargeLedger(), debit: gst.negated() }]
+          : []),
+        {
+          ledger: purchaseLedger,
+          debit: residual(
+            bill.reverseCharge ? total.plus(gst) : total,
+            gst,
+            inventory,
+          ),
+        },
       ],
     })
   }
@@ -660,6 +685,10 @@ export function buildTallyXml(input: TallyExportInput): TallyExport {
     const gst = money(note.totalGstAmount)
     // A credit note reverses a sale; a debit note reverses a purchase.
     const sign = isCredit ? 1 : -1
+    const reverseCharge =
+      !isCredit &&
+      note.referenceDocumentId != null &&
+      reverseChargeBillIds.has(note.referenceDocumentId)
     vouchers.push({
       type: isCredit ? 'Credit Note' : 'Debit Note',
       date: note.noteDate,
@@ -673,9 +702,12 @@ export function buildTallyXml(input: TallyExportInput): TallyExport {
           ledger: `${isCredit ? 'Output' : 'Input'} ${head}`,
           debit: amount.times(sign),
         })),
+        ...(reverseCharge
+          ? [{ ledger: reverseChargeLedger(), debit: gst.negated().times(sign) }]
+          : []),
         {
           ledger: isCredit ? salesLedger : purchaseLedger,
-          debit: total.minus(gst).times(sign),
+          debit: (reverseCharge ? total : total.minus(gst)).times(sign),
         },
       ],
     })
