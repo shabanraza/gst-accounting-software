@@ -161,3 +161,8 @@ export function periodChangeBadgeIntent(input: {
   if (input.judged === false) return 'secondary'
   return input.direction === 'up' ? 'success' : 'destructive'
 }
+
+/** Reverse charge purchases: the GST is ours to pay, so it is a GST signal. */
+export function reverseChargeBadgeIntent(): BadgeIntent {
+  return 'gst'
+}

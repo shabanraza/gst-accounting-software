@@ -520,10 +520,9 @@ export function VoucherDocumentPaper({
                 </div>
               ) : null}
               <p className="mt-2 whitespace-pre-line text-[10px]">
+                {/* Whether tax is on reverse charge prints on its own line below. */}
                 {company.invoiceTerms?.trim() ||
-                  (showTax
-                    ? 'Goods once sold will not be taken back. Interest @18% p.a. on overdue bills. Subject to local jurisdiction. Whether tax is payable on reverse charge - No.'
-                    : 'Goods once sold will not be taken back. Interest @18% p.a. on overdue bills. Subject to local jurisdiction.')}
+                  'Goods once sold will not be taken back. Interest @18% p.a. on overdue bills. Subject to local jurisdiction.'}
               </p>
               {showTax ? (
                 <p className="mt-1 text-[10px]">
