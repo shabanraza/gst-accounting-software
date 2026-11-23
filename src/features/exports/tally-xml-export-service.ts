@@ -79,10 +79,7 @@ export type TallyExportInput = {
       | 'totalGstAmount'
       | 'totalAmount'
       | 'partyNameSnapshot'
-    > &
-      Partial<Pick<PurchaseBillRecord, 'id' | 'reverseCharge'>> & {
-        lines: Array<DocumentLine>
-      }
+    > & { lines: Array<DocumentLine> }
   >
   bills: Array<
     Pick<
@@ -95,7 +92,10 @@ export type TallyExportInput = {
       | 'totalGstAmount'
       | 'totalAmount'
       | 'partyNameSnapshot'
-    > & { lines: Array<DocumentLine> }
+    > &
+      Partial<Pick<PurchaseBillRecord, 'id' | 'reverseCharge'>> & {
+        lines: Array<DocumentLine>
+      }
   >
   notes: Array<
     Pick<
