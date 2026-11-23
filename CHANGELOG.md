@@ -25,6 +25,7 @@ built. Never include customer names, balances or other real data.
 
 ### Added
 
+- Guides: open Help → Guides for short, step-by-step how-tos on setting up your company, adding parties and items, sales invoices, purchase bills, receipts and payments, returns, GSTR-1 and GSTR-3B, Tally export and backup, and inviting your team. Each guide links straight to the page it starts on. The same guides are on the web at hisaabkro.in/help.
 - Reverse charge purchases: choose Reverse charge as the tax type on a purchase bill when you pay the GST instead of the supplier (for example legal or transport services, or goods notified for reverse charge). The supplier is owed the bill value only, the GST is booked to a GST Payable (Reverse Charge) ledger with the matching input tax credit, and GSTR-3B shows it in 3.1(d) and 4(A)(3). Returns against these bills reverse both sides, and the Tally export carries the reverse charge ledger.
 - More GST rates when you create an item or record an expense: the new 40% rate, plus 0.1%, 0.25%, 1%, 1.5%, 3% (gold, silver and jewellery), 6% and 7.5%. 12% and 28% are still there for older bills and items still taxed at those rates.
 

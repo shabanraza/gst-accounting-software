@@ -4,6 +4,7 @@ import {
   BugIcon,
   CircleHelpIcon,
   KeyboardIcon,
+  ListChecksIcon,
   MailIcon,
   SparklesIcon,
 } from 'lucide-react'
@@ -22,11 +23,12 @@ import {
   WhatsNewSheet,
   useWhatsNew,
 } from '#/features/changelog/components/whats-new-sheet.tsx'
+import { GuidesSheet } from '#/features/support/components/guides-sheet.tsx'
 import { KeyboardShortcutsDialog } from '#/features/support/components/keyboard-shortcuts-dialog.tsx'
 import { ReportProblemDialog } from '#/features/support/components/report-problem-dialog.tsx'
 import { SUPPORT_EMAIL } from '#/features/support/problem-report.ts'
 
-type HelpPanel = 'whats-new' | 'shortcuts' | 'report' | null
+type HelpPanel = 'guides' | 'whats-new' | 'shortcuts' | 'report' | null
 
 export function HelpMenu() {
   const [panel, setPanel] = React.useState<HelpPanel>(null)
@@ -61,6 +63,10 @@ export function HelpMenu() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuGroup>
+            <DropdownMenuItem onSelect={() => setPanel('guides')}>
+              <ListChecksIcon />
+              Guides
+            </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <a href="/#faq" rel="noreferrer" target="_blank">
                 <BookOpenIcon />
@@ -96,6 +102,7 @@ export function HelpMenu() {
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
+      <GuidesSheet onOpenChange={closePanel} open={panel === 'guides'} />
       <WhatsNewSheet
         onOpenChange={closePanel}
         open={panel === 'whats-new'}

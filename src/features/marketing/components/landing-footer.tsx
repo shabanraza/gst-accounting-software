@@ -107,6 +107,9 @@ export function LandingFooter() {
         </FooterColumn>
 
         <FooterColumn title="Company">
+          <Link className={linkClassName} to="/help">
+            Help
+          </Link>
           <Link className={linkClassName} to="/contact">
             Contact
           </Link>

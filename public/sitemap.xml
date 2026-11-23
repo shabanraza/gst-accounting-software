@@ -636,6 +636,56 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://hisaabkro.in/help</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://hisaabkro.in/help/set-up-your-company</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://hisaabkro.in/help/add-customer-supplier-and-item</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://hisaabkro.in/help/create-a-sales-invoice</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://hisaabkro.in/help/record-a-purchase-bill</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://hisaabkro.in/help/record-a-payment-or-receipt</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://hisaabkro.in/help/sales-and-purchase-returns</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://hisaabkro.in/help/gstr-1-and-gstr-3b</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://hisaabkro.in/help/export-to-tally-and-back-up</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://hisaabkro.in/help/invite-a-team-member</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://hisaabkro.in/alternatives/tally</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>

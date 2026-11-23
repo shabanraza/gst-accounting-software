@@ -13,6 +13,8 @@ describe('sitemap', () => {
     expect(paths).toContain('/tools/hsn-code-finder/chapter-85')
     expect(paths).toContain('/guides/gst-invoice-format')
     expect(paths).toContain('/alternatives/marg')
+    expect(paths).toContain('/help')
+    expect(paths).toContain('/help/create-a-sales-invoice')
     expect(paths.some((entry) => entry.startsWith('/app'))).toBe(false)
   })
 
