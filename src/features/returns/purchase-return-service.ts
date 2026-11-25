@@ -1,8 +1,14 @@
 import Decimal from 'decimal.js'
 
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
-import { calculateGst } from '#/features/gst/gst-calculator.ts'
-import { recordCreditDebitNote } from '#/features/returns/credit-debit-note-service.ts'
+import {
+  InvalidReturnError,
+  allocateNoteNumber,
+  applyNoteToDocument,
+  fitReturnToDocument,
+  priceReturnLine,
+  recordCreditDebitNote,
+} from '#/features/returns/credit-debit-note-service.ts'
 import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
 
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
@@ -10,7 +16,11 @@ import type {
   StockBalanceRepository,
   StockMovementRepository,
 } from '#/features/inventory/stock-movement-service.ts'
-import type { CreditDebitNoteRepository } from '#/features/returns/credit-debit-note-service.ts'
+import type {
+  CreditDebitNoteRepository,
+  NoteNumberDependencies,
+} from '#/features/returns/credit-debit-note-service.ts'
+import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
 import type { ReturnLineInput } from '#/features/returns/sales-return-service.ts'
 
 export type PostPurchaseReturnInput = {
@@ -23,6 +33,13 @@ export type PostPurchaseReturnInput = {
   purchaseAccountId: string
   inputGstAccountId: string
   payableAccountId: string
+  /**
+   * With it, returned stock leaves the books at moving-average cost and the
+   * gap to the return value goes to purchases.
+   */
+  stockAccountId?: string
+  /** "GST Payable (Reverse Charge)" ledger; required for a reverse charge bill. */
+  reverseChargeAccountId?: string
   lines: Array<ReturnLineInput>
 }
 
@@ -43,7 +60,8 @@ export type PurchaseReturnDependencies = {
   posting: LedgerPostingRepository
   stock: StockMovementRepository & StockBalanceRepository
   notes: CreditDebitNoteRepository
-}
+  bills: PurchaseBillRepository
+} & NoteNumberDependencies
 
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP })
 
@@ -59,14 +77,36 @@ export async function postPurchaseReturn(
   deps: PurchaseReturnDependencies,
   input: PostPurchaseReturnInput,
 ): Promise<PurchaseReturnRecord> {
+  const bill = deps.bills.lockById
+    ? await deps.bills.lockById(input.purchaseBillId)
+    : await deps.bills.findById(input.purchaseBillId)
+  if (
+    !bill ||
+    bill.companyId !== input.companyId ||
+    bill.supplierId !== input.supplierId
+  ) {
+    throw new InvalidReturnError('Purchase bill not found')
+  }
+  const reverseCharge = bill.reverseCharge
+  if (reverseCharge && !input.reverseChargeAccountId) {
+    throw new InvalidReturnError(
+      'The GST Payable (Reverse Charge) ledger is missing.',
+    )
+  }
+
+  // Reserve the note number first so a missing financial year stops the
+  // return before any stock or ledger posting.
+  const noteNumber = await allocateNoteNumber(deps, {
+    companyId: input.companyId,
+    noteType: 'debit',
+    noteDate: input.returnDate,
+  })
+
   let taxableTotal = new Decimal(0)
   let gstTotal = new Decimal(0)
 
   for (const line of input.lines) {
-    const taxableAmount = money(line.quantity).mul(money(line.rate))
-    const gst = calculateGst({
-      taxableAmount: formatMoney(taxableAmount),
-      gstRate: line.gstRate,
+    const gst = priceReturnLine(bill, line, {
       companyStateCode: input.companyStateCode,
       partyStateCode: input.supplierStateCode,
     })
@@ -74,37 +114,31 @@ export async function postPurchaseReturn(
     gstTotal = gstTotal.plus(money(gst.totalGstAmount))
   }
 
-  const totalAmount = taxableTotal.plus(gstTotal)
+  const fitted = await fitReturnToDocument(deps.notes, {
+    companyId: input.companyId,
+    document: bill,
+    taxableTotal,
+    gstTotal,
+  })
+  taxableTotal = fitted.taxableTotal
+  gstTotal = fitted.gstTotal
+  // Under reverse charge the supplier never charged the GST, so the note
+  // takes back only the value; the GST reverses our own liability below.
+  const totalAmount = reverseCharge ? taxableTotal : taxableTotal.plus(gstTotal)
+  const amountDue = await applyNoteToDocument(deps.notes, {
+    companyId: input.companyId,
+    document: bill,
+    noteAmount: formatMoney(totalAmount),
+    documentLabel: 'bill',
+  })
   const returnId = crypto.randomUUID()
 
-  const ledgerEntry = await postLedgerEntry(deps.posting, {
-    companyId: input.companyId,
-    entryDate: input.returnDate,
-    narration: `Purchase return for bill ${input.purchaseBillId}`,
-    voucherType: 'journal',
-    lines: [
-      {
-        ledgerAccountId: input.payableAccountId,
-        debit: formatMoney(totalAmount),
-        credit: '0.00',
-      },
-      {
-        ledgerAccountId: input.purchaseAccountId,
-        debit: '0.00',
-        credit: formatMoney(taxableTotal),
-      },
-      {
-        ledgerAccountId: input.inputGstAccountId,
-        debit: '0.00',
-        credit: formatMoney(gstTotal),
-      },
-    ],
-  })
-
+  let returnedCost = new Decimal(0)
   for (const line of input.lines) {
-    await recordStockMovement(deps.stock, deps.stock, {
+    const movement = await recordStockMovement(deps.stock, deps.stock, {
       companyId: input.companyId,
       itemId: line.itemId,
+      itemName: line.description,
       movementType: 'purchase_return_out',
       quantity: line.quantity,
       unit: line.unit,
@@ -112,11 +146,61 @@ export async function postPurchaseReturn(
       referenceId: returnId,
       occurredOn: input.returnDate,
     })
+    returnedCost = returnedCost.plus(money(movement.value))
   }
+
+  const stockCredit = input.stockAccountId ? returnedCost : new Decimal(0)
+  const purchaseCredit = taxableTotal.minus(stockCredit)
+  const ledgerLines = [
+    {
+      ledgerAccountId: input.payableAccountId,
+      debit: formatMoney(totalAmount),
+      credit: '0.00',
+    },
+    {
+      ledgerAccountId: input.stockAccountId ?? input.purchaseAccountId,
+      debit: '0.00',
+      credit: formatMoney(stockCredit),
+    },
+    {
+      ledgerAccountId: input.purchaseAccountId,
+      debit: purchaseCredit.isNegative()
+        ? formatMoney(purchaseCredit.negated())
+        : '0.00',
+      credit: purchaseCredit.isNegative()
+        ? '0.00'
+        : formatMoney(purchaseCredit),
+    },
+    {
+      ledgerAccountId: input.inputGstAccountId,
+      debit: '0.00',
+      credit: formatMoney(gstTotal),
+    },
+    ...(reverseCharge && input.reverseChargeAccountId
+      ? [
+          {
+            ledgerAccountId: input.reverseChargeAccountId,
+            debit: formatMoney(gstTotal),
+            credit: '0.00',
+          },
+        ]
+      : []),
+  ]
+
+  const ledgerEntry = await postLedgerEntry(deps.posting, {
+    companyId: input.companyId,
+    entryDate: input.returnDate,
+    narration: `Purchase return for bill ${input.purchaseBillId}`,
+    voucherType: 'journal',
+    lines: ledgerLines.filter(
+      (line) => !money(line.debit).isZero() || !money(line.credit).isZero(),
+    ),
+  })
 
   const note = await recordCreditDebitNote(deps.notes, {
     companyId: input.companyId,
     noteType: 'debit',
+    noteNumber,
     noteDate: input.returnDate,
     partyId: input.supplierId,
     referenceDocumentId: input.purchaseBillId,
@@ -126,6 +210,7 @@ export async function postPurchaseReturn(
     ledgerEntryId: ledgerEntry.id,
     narration: `Purchase return for bill ${input.purchaseBillId}`,
   })
+  await deps.bills.save({ ...bill, ...amountDue })
 
   return {
     id: returnId,

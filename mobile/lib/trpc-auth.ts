@@ -26,7 +26,7 @@ export function pickBestSessionToken(
     .filter((token): token is string => Boolean(token))
 
   const signed = valid.find((token) => token.includes('.'))
-  return signed ?? valid[0] ?? null
+  return signed ?? valid.at(0) ?? null
 }
 
 export function extractTokenFromCookieHeader(cookie: string) {
@@ -34,12 +34,12 @@ export function extractTokenFromCookieHeader(cookie: string) {
     `(?:^|;\\s*)${SESSION_COOKIE_NAME.replace('.', '\\.')}=([^;]+)`,
   )
   const match = cookie.match(pattern)
-  return match?.[1]?.trim() ?? null
+  return match?.[1].trim() ?? null
 }
 
 export function readSessionTokenForAuth() {
   const stored = readSessionToken()
-  const cookie = authClient.getCookie?.() ?? ''
+  const cookie = authClient.getCookie()
   const fromCookie = cookie ? extractTokenFromCookieHeader(cookie) : null
 
   return pickBestSessionToken(stored, fromCookie)
@@ -69,7 +69,7 @@ export function extractSignInToken(result: {
     result.response ? extractAuthTokenFromResponse(result.response) : null,
     result.data?.token,
     readSessionToken(),
-    extractTokenFromCookieHeader(authClient.getCookie?.() ?? ''),
+    extractTokenFromCookieHeader(authClient.getCookie()),
   )
 }
 
@@ -97,7 +97,7 @@ export async function ensureTrpcAuthReady(options?: {
 
   if (!readSessionTokenForAuth()) {
     await authClient.getSession()
-    const fromCookie = extractTokenFromCookieHeader(authClient.getCookie?.() ?? '')
+    const fromCookie = extractTokenFromCookieHeader(authClient.getCookie())
     if (fromCookie) {
       await persistSessionToken(fromCookie)
     }
@@ -107,7 +107,7 @@ export async function ensureTrpcAuthReady(options?: {
   while (!readSessionTokenForAuth() && Date.now() < deadline) {
     await authClient.getSession()
 
-    const fromCookie = extractTokenFromCookieHeader(authClient.getCookie?.() ?? '')
+    const fromCookie = extractTokenFromCookieHeader(authClient.getCookie())
     if (fromCookie) {
       await persistSessionToken(fromCookie)
     }

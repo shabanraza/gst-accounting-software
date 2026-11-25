@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 export type PurchaseOrderStatus = 'open' | 'closed' | 'cancelled'
@@ -52,7 +53,7 @@ export interface PurchaseOrderRepository {
   ) => Promise<PurchaseOrderRecord>
 }
 
-export class InvalidPurchaseOrderError extends Error {
+export class InvalidPurchaseOrderError extends DomainError {
   constructor(message: string) {
     super(message)
     this.name = 'InvalidPurchaseOrderError'

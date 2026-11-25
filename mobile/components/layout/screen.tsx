@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons'
 import { Link } from 'expo-router'
 import * as React from 'react'
-import { FlatList, Platform, type FlatListProps } from 'react-native'
-import { KeyboardAvoidingView } from '@/tw'
+import { FlatList, Platform  } from 'react-native'
+import type {FlatListProps} from 'react-native';
+import { KeyboardAvoidingView, View, Text, ScrollView, Pressable  } from '@/tw'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { StackHeader } from '@/components/layout/stack-header'
@@ -10,10 +11,11 @@ import {
   FormPickerScope,
   useFormPickerContext,
 } from '@/lib/form-picker-coordination'
-import { shouldShowBackButton, type ScreenVariant } from '@/lib/navigation'
+import { shouldShowBackButton  } from '@/lib/navigation'
+import type {ScreenVariant} from '@/lib/navigation';
 import { pageLayout, spacing } from '@/lib/spacing'
 import { pagePaddingHorizontal, themeColors } from '@/lib/theme'
-import { View, Text, ScrollView, Pressable } from '@/tw'
+
 
 function useScreenInsets(hasFooter: boolean) {
   const insets = useSafeAreaInsets()
@@ -115,7 +117,7 @@ function ScreenBody({
         <View style={{ flexShrink: 0 }}>{footer}</View>
       ) : null}
       {actionHref && actionLabel ? (
-        <Link href={actionHref as never} asChild>
+        <Link href={actionHref} asChild>
           <Pressable
             className="absolute right-4 size-14 items-center justify-center rounded-full bg-primary"
             style={{ bottom: fabBottom }}
@@ -151,8 +153,8 @@ export function Screen(props: React.ComponentProps<typeof ScreenBody>) {
   )
 }
 
-type ListScreenProps<ItemT> = Omit<
-  FlatListProps<ItemT>,
+type ListScreenProps<TItem> = Omit<
+  FlatListProps<TItem>,
   'contentContainerStyle'
 > & {
   title: string
@@ -164,10 +166,10 @@ type ListScreenProps<ItemT> = Omit<
   actionHref?: string
   actionLabel?: string
   contentGap?: number
-  contentContainerStyle?: FlatListProps<ItemT>['contentContainerStyle']
+  contentContainerStyle?: FlatListProps<TItem>['contentContainerStyle']
 }
 
-export function ListScreen<ItemT>({
+export function ListScreen<TItem>({
   title,
   subtitle,
   variant = 'stack',
@@ -179,7 +181,7 @@ export function ListScreen<ItemT>({
   contentGap = pageLayout.sectionHeaderGap,
   contentContainerStyle,
   ...flatListProps
-}: ListScreenProps<ItemT>) {
+}: ListScreenProps<TItem>) {
   const { top, bottom, fabBottom } = useScreenInsets(false)
   const showBackButton = shouldShowBackButton(variant, showBack)
 
@@ -211,7 +213,7 @@ export function ListScreen<ItemT>({
         showsVerticalScrollIndicator={false}
       />
       {actionHref && actionLabel ? (
-        <Link href={actionHref as never} asChild>
+        <Link href={actionHref} asChild>
           <Pressable
             className="absolute right-4 size-14 items-center justify-center rounded-full bg-primary"
             style={{ bottom: fabBottom }}

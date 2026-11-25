@@ -2,6 +2,7 @@ import Decimal from 'decimal.js'
 
 import { buildGstr3bReport } from '#/features/gst/gstr3b-report-service.ts'
 import { reconcileGstr2b } from '#/features/gst/gstr2b-reconciliation-service.ts'
+import type { ExpenseRepository } from '#/features/expenses/expense-service.ts'
 import type { GstReportDocument } from '#/features/gst/gst-report-types.ts'
 import type { GstReconciliationRepository } from '#/features/gst/gst-reconciliation-store.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
@@ -20,6 +21,8 @@ export type Gstr3bWorkingReport = {
   rejectedInputGst: string
   netGstPayableWithAcceptedItc: string
   netGstPayableWithBooksItc: string
+  /** Reverse charge GST, paid in cash on top of either net figure. */
+  reverseChargeTax: string
 }
 
 export async function buildGstr3bWorkingReport(
@@ -27,6 +30,7 @@ export async function buildGstr3bWorkingReport(
     bills: PurchaseBillRepository
     parties: PartyRepository
     recon: GstReconciliationRepository
+    expenses?: Pick<ExpenseRepository, 'listByCompanyId'>
   },
   input: {
     companyId: string
@@ -45,7 +49,12 @@ export async function buildGstr3bWorkingReport(
   })
 
   const recon = await reconcileGstr2b(
-    { bills: deps.bills, parties: deps.parties, recon: deps.recon },
+    {
+      bills: deps.bills,
+      parties: deps.parties,
+      recon: deps.recon,
+      expenses: deps.expenses,
+    },
     {
       companyId: input.companyId,
       companyStateCode: input.companyStateCode,
@@ -71,7 +80,13 @@ export async function buildGstr3bWorkingReport(
     acceptedInputGst: acceptedInputGst.toFixed(2),
     pendingInputGst: pendingInputGst.toFixed(2),
     rejectedInputGst: rejectedInputGst.toFixed(2),
-    netGstPayableWithAcceptedItc: outputGst.minus(acceptedInputGst).toFixed(2),
+    // Reverse charge bills are not matched against 2B; their ITC is
+    // self-assessed, so it counts in full alongside the accepted 2B credit.
+    netGstPayableWithAcceptedItc: outputGst
+      .minus(acceptedInputGst)
+      .minus(gstr3b.reverseChargeTax)
+      .toFixed(2),
     netGstPayableWithBooksItc: gstr3b.netGstPayable,
+    reverseChargeTax: gstr3b.reverseChargeTax,
   }
 }

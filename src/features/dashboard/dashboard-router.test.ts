@@ -14,6 +14,7 @@ import {
 } from '#/features/inventory/inventory-store.ts'
 import { InMemoryPartyRepository } from '#/features/parties/party-store.ts'
 import { InMemoryPurchaseBillRepository } from '#/features/purchases/purchase-bill-store.ts'
+import { InMemoryCreditDebitNoteRepository } from '#/features/returns/credit-debit-note-store.ts'
 import { InMemorySalesInvoiceRepository } from '#/features/sales/sales-invoice-store.ts'
 import { createTRPCRouter } from '#/integrations/trpc/init.ts'
 
@@ -58,6 +59,7 @@ const createCaller = (userId: string) => {
       ledgers: new InMemoryLedgerAccountRepository(),
       items: new InMemoryItemRepository(),
       stockBalances: new InMemoryStockStore(),
+      notes: new InMemoryCreditDebitNoteRepository(),
     }),
   })
 

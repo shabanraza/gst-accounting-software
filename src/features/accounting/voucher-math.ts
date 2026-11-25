@@ -1,6 +1,9 @@
 import Decimal from 'decimal.js'
 
-import { calculateGst } from '#/features/gst/gst-calculator.ts'
+import {
+  calculateGst,
+  calculateInclusiveGst,
+} from '#/features/gst/gst-calculator.ts'
 
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP })
 
@@ -79,10 +82,8 @@ export function resolvePlaceOfSupply(input: {
   selectedPlaceOfSupply: string
   partyStateCode: string
   companyStateCode: string
-  fallbackStateCode?: string
 }): string {
-  const fallback = input.fallbackStateCode ?? '27'
-  const companyState = resolveStateCode(input.companyStateCode, fallback)
+  const companyState = resolveStateCode(input.companyStateCode)
   const partyState = resolveStateCode(input.partyStateCode, companyState)
   const selected = resolveStateCode(input.selectedPlaceOfSupply)
 
@@ -91,6 +92,27 @@ export function resolvePlaceOfSupply(input: {
   }
 
   return selected || partyState || companyState
+}
+
+/** Supply type and place of supply that go together when a party is picked. */
+export function partySupplyDefaults(
+  partyStateCode: string,
+  companyStateCode: string,
+): { region: SupplyRegion; placeOfSupply: string } {
+  const companyState = resolveStateCode(companyStateCode)
+  const region: SupplyRegion =
+    resolveStateCode(partyStateCode, companyState) === companyState
+      ? 'local'
+      : 'central'
+  return {
+    region,
+    placeOfSupply: resolvePlaceOfSupply({
+      region,
+      selectedPlaceOfSupply: '',
+      partyStateCode,
+      companyStateCode,
+    }),
+  }
 }
 
 export function partyStateForRegion(
@@ -102,7 +124,7 @@ export function partyStateForRegion(
     return companyStateCode
   }
 
-  return partyStateCode === companyStateCode ? '24' : partyStateCode
+  return partyStateCode === companyStateCode ? '' : partyStateCode
 }
 
 export function computeVoucherLine(
@@ -123,13 +145,7 @@ export function computeVoucherLine(
     new Decimal(0),
   )
 
-  let taxableAmount = netAmount
-  if (taxMode === 'inclusive' && gstRate.gt(0)) {
-    taxableAmount = netAmount.mul(100).div(gstRate.plus(100))
-  }
-
-  const gst = calculateGst({
-    taxableAmount: format(taxableAmount),
+  const supply = {
     gstRate: line.gstRate || '0',
     companyStateCode,
     partyStateCode: partyStateForRegion(
@@ -137,7 +153,13 @@ export function computeVoucherLine(
       partyStateCode,
       companyStateCode,
     ),
-  })
+  }
+  // Same rule as the server: an inclusive price keeps taxable + GST equal to
+  // the price entered.
+  const gst =
+    taxMode === 'inclusive' && gstRate.gt(0)
+      ? calculateInclusiveGst({ inclusiveAmount: format(netAmount), ...supply })
+      : calculateGst({ taxableAmount: format(netAmount), ...supply })
 
   return {
     ...line,
@@ -154,6 +176,7 @@ export function computeVoucherLine(
 export function computeVoucherTotals(
   lines: Array<ComputedVoucherLine>,
   sundry: VoucherSundry,
+  options: { reverseCharge?: boolean } = {},
 ): VoucherTotals {
   const taxableAmount = lines.reduce(
     (sum, line) => sum.plus(money(line.taxableAmount)),
@@ -177,7 +200,10 @@ export function computeVoucherTotals(
     .plus(money(sundry.packing))
     .plus(money(sundry.roundOff))
     .minus(billDiscountAmount)
-  const grandTotal = taxableAmount.plus(totalGstAmount).plus(sundryTotal)
+  // Under reverse charge the supplier's bill carries no GST; we pay it ourselves.
+  const grandTotal = taxableAmount
+    .plus(options.reverseCharge ? 0 : totalGstAmount)
+    .plus(sundryTotal)
 
   return {
     taxableAmount: format(taxableAmount),
@@ -205,6 +231,43 @@ export function emptyVoucherLine(defaultGodown = ''): VoucherLineDraft {
     discountPercent: '0',
     godownName: defaultGodown,
   }
+}
+
+/**
+ * Puts a scanned item on the bill: one more of it when a line for the same
+ * item, unit and godown is already there, otherwise a new line of 1.
+ */
+export function addScannedItem(
+  lines: Array<VoucherLineDraft>,
+  scanned: Omit<VoucherLineDraft, 'key' | 'quantity' | 'discountPercent'>,
+): Array<VoucherLineDraft> {
+  const existing = lines.find(
+    (line) =>
+      line.itemId === scanned.itemId &&
+      line.unit === scanned.unit &&
+      line.godownName === scanned.godownName,
+  )
+  if (existing) {
+    return lines.map((line) =>
+      line === existing
+        ? {
+            ...line,
+            quantity: new Decimal(line.quantity || '0').plus(1).toString(),
+          }
+        : line,
+    )
+  }
+
+  const emptyIndex = lines.findIndex((line) => !line.itemId)
+  if (emptyIndex === -1) {
+    return [
+      ...lines,
+      { ...emptyVoucherLine(scanned.godownName), ...scanned, quantity: '1' },
+    ]
+  }
+  return lines.map((line, index) =>
+    index === emptyIndex ? { ...line, ...scanned, quantity: '1' } : line,
+  )
 }
 
 export function createEmptyVoucherLines(

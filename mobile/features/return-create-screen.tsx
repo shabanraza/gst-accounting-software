@@ -18,10 +18,11 @@ import {
   createInitialReturnForm,
   resolvePartyStateCode,
   validateReturnForm,
-  validateReturnLedgerMappings,
-  type ReturnFormDraft,
-  type ReturnMode,
+  validateReturnLedgerMappings
+  
+  
 } from '@/lib/return-form'
+import type {ReturnFormDraft, ReturnMode} from '@/lib/return-form';
 import { trpcClient } from '@/lib/trpc-client'
 import { View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'
@@ -220,9 +221,9 @@ export function ReturnCreateScreen() {
           key: document.id,
           label:
             form.mode === 'sales'
-              ? ((document as { invoiceNumber: string }).invoiceNumber ??
+              ? ((document as { invoiceNumber?: string }).invoiceNumber ??
                 document.id)
-              : ((document as { supplierBillNumber: string })
+              : ((document as { supplierBillNumber?: string })
                   .supplierBillNumber ?? document.id),
         }))}
         onSelect={(documentId) =>

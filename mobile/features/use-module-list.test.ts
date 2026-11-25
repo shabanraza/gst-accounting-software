@@ -10,7 +10,7 @@ describe('useModuleList configuration', () => {
     })
   })
 
-  it('maps OCR review to the ocr.list procedure', () => {
+  it('maps scanned bills to the ocr.list procedure', () => {
     expect(getModuleById('ocr')).toMatchObject({
       trpcNamespace: 'ocr',
       listProcedure: 'list',

@@ -6,28 +6,35 @@ import {
   CollapsibleTrigger,
 } from '#/components/ui/collapsible.tsx'
 import { FAQ } from '#/features/marketing/landing-content.ts'
+import { cn } from '#/lib/utils.ts'
 
 interface LandingFaqProps {
   id?: string
   title?: string
   items?: ReadonlyArray<{ question: string; answer: string }>
+  /** `start` lines the FAQ up with the page column instead of centring it. */
+  align?: 'center' | 'start'
 }
 
 export function LandingFaq({
   id = FAQ.id,
   title = FAQ.title,
   items = FAQ.items,
+  align = 'center',
 }: LandingFaqProps = {}) {
   return (
     <section
-      className="mx-auto max-w-3xl px-4 py-16 md:py-20"
+      className={cn(
+        'mx-auto px-4 py-16 md:py-20',
+        align === 'start' ? 'max-w-6xl' : 'max-w-3xl',
+      )}
       data-ui="chrome"
       id={id}
     >
       <h2 className="font-heading text-2xl font-semibold tracking-tight md:text-3xl">
         {title}
       </h2>
-      <div className="mt-8 flex flex-col gap-2">
+      <div className="mt-8 flex max-w-3xl flex-col gap-2">
         {items.map((item) => (
           <Collapsible
             key={item.question}

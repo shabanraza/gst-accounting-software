@@ -1,5 +1,6 @@
 import type * as React from 'react'
 
+import { Label } from '#/components/ui/label.tsx'
 import { cn } from '#/lib/utils.ts'
 
 export function FieldLabel({
@@ -13,12 +14,12 @@ export function FieldLabel({
 }) {
   if (htmlFor) {
     return (
-      <label
-        className={cn('text-xs text-muted-foreground', className)}
+      <Label
+        className={cn('text-xs font-normal text-muted-foreground', className)}
         htmlFor={htmlFor}
       >
         {children}
-      </label>
+      </Label>
     )
   }
 

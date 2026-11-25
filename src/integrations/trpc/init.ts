@@ -1,8 +1,11 @@
 import { initTRPC, TRPCError } from '@trpc/server'
+import { DomainError } from '#/lib/domain-error.ts'
 import superjson from 'superjson'
 
 import { assertCompanyMembership } from '#/features/companies/membership-service.ts'
 import { membershipRepository } from '#/features/companies/membership-store.ts'
+
+import type { MembershipRecord } from '#/features/companies/membership-service.ts'
 import { auth } from '#/lib/auth.ts'
 
 export type AuthSession = {
@@ -57,10 +60,30 @@ const t = initTRPC.context<TRPCContext>().create({
   transformer: superjson,
 })
 
-export const createTRPCRouter = t.router
-export const publicProcedure = t.procedure
+function domainErrorCode(error: DomainError): TRPCError['code'] {
+  if (error.name.includes('NotFound')) return 'NOT_FOUND'
+  if (/^Duplicate|Already/.test(error.name)) return 'CONFLICT'
+  if (error.name === 'InsufficientRoleError') return 'FORBIDDEN'
+  return 'BAD_REQUEST'
+}
 
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
+/** Business-rule failures reach the client as 4xx with their message, not 500. */
+const baseProcedure = t.procedure.use(async ({ next }) => {
+  const result = await next()
+  if (!result.ok && result.error.cause instanceof DomainError) {
+    throw new TRPCError({
+      code: domainErrorCode(result.error.cause),
+      message: result.error.cause.message,
+      cause: result.error.cause,
+    })
+  }
+  return result
+})
+
+export const createTRPCRouter = t.router
+export const publicProcedure = baseProcedure
+
+export const protectedProcedure = baseProcedure.use(({ ctx, next }) => {
   if (!ctx.session?.user) {
     throw new TRPCError({ code: 'UNAUTHORIZED' })
   }
@@ -83,7 +106,7 @@ export const mutatingProcedure = protectedProcedure
  * (see `assertCapability`) run inside each router using the injected membership
  * repository so unit tests can supply their own memberships.
  */
-export const companyProcedure = t.procedure.use(
+export const companyProcedure = baseProcedure.use(
   async ({ ctx, next, getRawInput }) => {
     if (!ctx.session?.user) {
       throw new TRPCError({ code: 'UNAUTHORIZED' })
@@ -106,8 +129,9 @@ export const companyProcedure = t.procedure.use(
     }
 
     const memberships = membershipRepository
+    let membership: MembershipRecord
     try {
-      await assertCompanyMembership(memberships, {
+      membership = await assertCompanyMembership(memberships, {
         companyId,
         userId: ctx.session.user.id,
       })
@@ -121,6 +145,7 @@ export const companyProcedure = t.procedure.use(
         session: ctx.session,
         userId: ctx.session.user.id,
         companyId,
+        membership,
       },
     })
   },

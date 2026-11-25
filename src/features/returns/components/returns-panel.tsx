@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { usePostHog } from '@posthog/react'
 import { Undo2Icon } from 'lucide-react'
 import { toast } from 'sonner'
@@ -14,6 +19,7 @@ import {
 } from '#/components/ui/card.tsx'
 import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
+import { Label } from '#/components/ui/label.tsx'
 import {
   Select,
   SelectContent,
@@ -26,7 +32,7 @@ import { ScrollableTabsList } from '#/components/ui/scrollable-tabs-list.tsx'
 import { Tabs, TabsTrigger } from '#/components/ui/tabs.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import {
   requirePositiveQuantity,
@@ -35,7 +41,7 @@ import {
   requireWorkspace,
 } from '#/lib/form-validation.ts'
 import { resolveStateCode } from '#/features/accounting/voucher-math.ts'
-import { COMPANY_STATE_CODE } from '#/features/app-shell/data/voucher-demo-masters.ts'
+
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function ReturnsPanel() {
@@ -51,24 +57,21 @@ export function ReturnsPanel() {
   )
   const [message, setMessage] = React.useState<string | null>(null)
 
-  const salesQuery = useQuery({
-    ...trpc.sales.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
-  const purchasesQuery = useQuery({
-    ...trpc.purchases.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
-  const partiesQuery = useQuery({
-    ...trpc.parties.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const salesQuery = useQuery(
+    trpc.sales.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
+  const purchasesQuery = useQuery(
+    trpc.purchases.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
+  const partiesQuery = useQuery(
+    trpc.parties.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const postSalesReturn = useMutation(
     trpc.returns.postSalesReturn.mutationOptions(),
@@ -77,12 +80,31 @@ export function ReturnsPanel() {
     trpc.returns.postPurchaseReturn.mutationOptions(),
   )
 
-  const selectedSales = (salesQuery.data ?? []).find(
-    (row) => row.id === documentId,
-  )
-  const selectedPurchase = (purchasesQuery.data ?? []).find(
-    (row) => row.id === documentId,
-  )
+  // The lists come without line items, so load the selected document in full.
+  const selectedSalesQuery = useQuery({
+    ...trpc.sales.getById.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            id: documentId,
+          }
+        : skipToken,
+    ),
+    enabled: mode === 'sales' && Boolean(documentId),
+  })
+  const selectedPurchaseQuery = useQuery({
+    ...trpc.purchases.getById.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            id: documentId,
+          }
+        : skipToken,
+    ),
+    enabled: mode === 'purchase' && Boolean(documentId),
+  })
+  const selectedSales = selectedSalesQuery.data
+  const selectedPurchase = selectedPurchaseQuery.data
 
   async function handleReturn(event: React.FormEvent) {
     event.preventDefault()
@@ -97,10 +119,7 @@ export function ReturnsPanel() {
     const returnQuantity = requirePositiveQuantity(quantity, 'Return quantity')
     if (!returnQuantity) return
 
-    const companyStateCode = resolveStateCode(
-      company.stateCode,
-      COMPANY_STATE_CODE,
-    )
+    const companyStateCode = resolveStateCode(company.stateCode)
     if (!requireStateCode(companyStateCode, 'Company state')) return
 
     setMessage(null)
@@ -126,7 +145,7 @@ export function ReturnsPanel() {
           !ledgerBySystemKey.output_gst ||
           !ledgerBySystemKey.customer_receivable
         ) {
-          toast.error('Sales ledger mappings are missing for this company.')
+          toast.error('Set up default accounts in Chart of accounts first.')
           return
         }
 
@@ -140,6 +159,8 @@ export function ReturnsPanel() {
           salesAccountId: ledgerBySystemKey.sales,
           outputGstAccountId: ledgerBySystemKey.output_gst,
           receivableAccountId: ledgerBySystemKey.customer_receivable,
+          stockAccountId: ledgerBySystemKey.stock_in_hand,
+          cogsAccountId: ledgerBySystemKey.cogs,
           lines: [
             {
               itemId: line.itemId,
@@ -151,9 +172,14 @@ export function ReturnsPanel() {
             },
           ],
         })
-        await queryClient.invalidateQueries({
-          queryKey: trpc.inventory.listStockBalances.queryKey({ companyId }),
-        })
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.inventory.listStockBalances.queryKey({ companyId }),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.sales.pathKey(),
+          }),
+        ])
         posthog.capture('return_posted', { return_type: 'sales' })
         toast.success(
           `Credit note ${salesReturn.noteNumber} posted for ${selectedSales.invoiceNumber}.`,
@@ -181,7 +207,7 @@ export function ReturnsPanel() {
           !ledgerBySystemKey.input_gst ||
           !ledgerBySystemKey.supplier_payable
         ) {
-          toast.error('Purchase ledger mappings are missing for this company.')
+          toast.error('Set up default accounts in Chart of accounts first.')
           return
         }
 
@@ -195,6 +221,7 @@ export function ReturnsPanel() {
           purchaseAccountId: ledgerBySystemKey.purchase,
           inputGstAccountId: ledgerBySystemKey.input_gst,
           payableAccountId: ledgerBySystemKey.supplier_payable,
+          stockAccountId: ledgerBySystemKey.stock_in_hand,
           lines: [
             {
               itemId: line.itemId,
@@ -206,9 +233,14 @@ export function ReturnsPanel() {
             },
           ],
         })
-        await queryClient.invalidateQueries({
-          queryKey: trpc.inventory.listStockBalances.queryKey({ companyId }),
-        })
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.inventory.listStockBalances.queryKey({ companyId }),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.purchases.pathKey(),
+          }),
+        ])
         posthog.capture('return_posted', { return_type: 'purchase' })
         toast.success(
           `Debit note ${purchaseReturn.noteNumber} posted for ${selectedPurchase.supplierBillNumber}.`,
@@ -224,7 +256,7 @@ export function ReturnsPanel() {
 
   return (
     <WorkspacePage
-      description="Sales and purchase returns reverse stock and GST through the ledger engine."
+      description="Credit notes for sales returns and debit notes for purchase returns. Stock and GST are reversed."
       title="Returns"
     >
       <Card>
@@ -232,10 +264,10 @@ export function ReturnsPanel() {
           <div className="flex flex-col gap-1">
             <CardTitle className="flex items-center gap-2 text-base">
               <Undo2Icon className="size-4 text-muted-foreground" />
-              Return / note entry
+              Credit / debit note
             </CardTitle>
             <CardDescription>
-              Returns first line of the selected document for a quick MVP flow
+              Returns the first item line of the selected invoice or bill.
             </CardDescription>
           </div>
           <Tabs
@@ -281,9 +313,9 @@ export function ReturnsPanel() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium" htmlFor="ret-qty">
+                <Label className="text-sm" htmlFor="ret-qty">
                   Return qty (first line)
-                </label>
+                </Label>
                 <Input
                   id="ret-qty"
                   onChange={(event) => setQuantity(event.target.value)}
@@ -292,9 +324,9 @@ export function ReturnsPanel() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium" htmlFor="ret-date">
+                <Label className="text-sm" htmlFor="ret-date">
                   Return date
-                </label>
+                </Label>
                 <DatePicker
                   id="ret-date"
                   onChange={setReturnDate}

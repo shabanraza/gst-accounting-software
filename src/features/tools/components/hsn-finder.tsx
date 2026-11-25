@@ -73,7 +73,7 @@ export function HsnChapterIndex() {
   }
 
   return (
-    <section className="mx-auto max-w-4xl px-4 py-8" data-ui="chrome">
+    <section className="mx-auto max-w-6xl px-4 py-8" data-ui="chrome">
       <h2 className="font-heading text-xl font-semibold tracking-tight md:text-2xl">
         All HSN chapters
       </h2>

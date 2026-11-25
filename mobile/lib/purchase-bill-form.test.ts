@@ -118,7 +118,7 @@ describe('purchase-bill-form', () => {
         'Main',
       ),
     ]
-    form.lines[0]!.quantity = '2'
+    form.lines[0].quantity = '2'
 
     expect(
       computePurchaseFormTotals(form, supplier.stateCode, company.stateCode),

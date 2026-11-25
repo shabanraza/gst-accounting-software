@@ -7,10 +7,9 @@ import {
   documentSearchCondition,
   keysetBeforeCursorCondition,
   parseListCursor,
-  resolveListLimit
-  
+  resolveListLimit,
 } from '#/lib/list-query.ts'
-import type {ListQueryOptions} from '#/lib/list-query.ts';
+import type { ListQueryOptions } from '#/lib/list-query.ts'
 
 import type { AppDatabase } from '#/db/client.ts'
 import type { TaxMode } from '#/features/accounting/voucher-math.ts'
@@ -34,6 +33,10 @@ export class InMemorySalesInvoiceRepository implements SalesInvoiceRepository {
     return this.invoices.find((invoice) => invoice.id === id) ?? null
   }
 
+  async lockById(id: string) {
+    return this.findById(id)
+  }
+
   async save(invoice: SalesInvoiceRecord) {
     const index = this.invoices.findIndex((item) => item.id === invoice.id)
     if (index >= 0) {
@@ -52,6 +55,13 @@ export class InMemorySalesInvoiceRepository implements SalesInvoiceRepository {
       (invoice) => invoice.paymentStatus,
     ).map((invoice) =>
       options?.includeLines === false ? { ...invoice, lines: [] } : invoice,
+    )
+  }
+
+  async listByIds(companyId: string, ids: Array<string>) {
+    const wanted = new Set(ids)
+    return this.invoices.filter(
+      (invoice) => invoice.companyId === companyId && wanted.has(invoice.id),
     )
   }
 
@@ -205,11 +215,21 @@ export class DrizzleSalesInvoiceRepository implements SalesInvoiceRepository {
   }
 
   async findById(id: string) {
-    const invoices = await this.database
+    return this.load(id, false)
+  }
+
+  /** Like findById, but row-locks the invoice until the transaction ends. */
+  async lockById(id: string) {
+    return this.load(id, true)
+  }
+
+  private async load(id: string, lock: boolean) {
+    const query = this.database
       .select()
       .from(schema.salesInvoices)
       .where(eq(schema.salesInvoices.id, id))
       .limit(1)
+    const invoices = await (lock ? query.for('update') : query)
 
     if (invoices.length === 0) {
       return null
@@ -221,6 +241,35 @@ export class DrizzleSalesInvoiceRepository implements SalesInvoiceRepository {
       .where(eq(schema.salesInvoiceLines.salesInvoiceId, invoices[0].id))
 
     return mapRowsToSalesInvoiceRecord(invoices[0], lines)
+  }
+
+  async listByIds(companyId: string, ids: Array<string>) {
+    if (ids.length === 0) return []
+    const invoices = await this.database
+      .select()
+      .from(schema.salesInvoices)
+      .where(
+        and(
+          eq(schema.salesInvoices.companyId, companyId),
+          inArray(schema.salesInvoices.id, ids),
+        ),
+      )
+    if (invoices.length === 0) return []
+    const lines = await this.database
+      .select()
+      .from(schema.salesInvoiceLines)
+      .where(
+        inArray(
+          schema.salesInvoiceLines.salesInvoiceId,
+          invoices.map((invoice) => invoice.id),
+        ),
+      )
+    return invoices.map((invoice) =>
+      mapRowsToSalesInvoiceRecord(
+        invoice,
+        lines.filter((line) => line.salesInvoiceId === invoice.id),
+      ),
+    )
   }
 
   async save(invoice: SalesInvoiceRecord) {

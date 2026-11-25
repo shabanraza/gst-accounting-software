@@ -1,0 +1,98 @@
+import { openPooledDb } from '#/db/client.ts'
+import { DrizzleLedgerPostingRepository } from '#/features/accounting/ledger-posting-store.ts'
+import { DrizzleAuditLogRepository } from '#/features/audit/audit-store.ts'
+import { DrizzleDashboardSummaryRepository } from '#/features/dashboard/dashboard-store.ts'
+import { DrizzleDocumentSequenceRepository } from '#/features/documents/document-sequence-store.ts'
+import { DrizzleExpenseRepository } from '#/features/expenses/expense-store.ts'
+import {
+  DrizzleItemRepository,
+  DrizzleStockStore,
+} from '#/features/inventory/inventory-store.ts'
+import { DrizzlePartyOpeningBalanceRepository } from '#/features/parties/party-opening-balance-store.ts'
+import { DrizzlePartyRepository } from '#/features/parties/party-store.ts'
+import { DrizzlePaymentVoucherRepository } from '#/features/payments/payment-voucher-store.ts'
+import { DrizzlePurchaseBillRepository } from '#/features/purchases/purchase-bill-store.ts'
+import { DrizzleCreditDebitNoteRepository } from '#/features/returns/credit-debit-note-store.ts'
+import { DrizzleRecurringInvoiceRepository } from '#/features/sales/recurring-invoice-store.ts'
+import { DrizzleSalesInvoiceRepository } from '#/features/sales/sales-invoice-store.ts'
+
+import type { PooledDatabase } from '#/db/client.ts'
+import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
+import type { AuditLogRepository } from '#/features/audit/audit-service.ts'
+import type { DashboardSummaryRepository } from '#/features/dashboard/dashboard-summary-service.ts'
+import type { DocumentSequenceRepository } from '#/features/documents/document-sequence-service.ts'
+import type { ExpenseRepository } from '#/features/expenses/expense-service.ts'
+import type { ItemRepository } from '#/features/inventory/item-service.ts'
+import type {
+  StockBalanceRepository,
+  StockMovementRepository,
+} from '#/features/inventory/stock-movement-service.ts'
+import type { PartyOpeningBalanceRepository } from '#/features/parties/party-opening-balance-service.ts'
+import type { PartyRepository } from '#/features/parties/party-service.ts'
+import type { PaymentVoucherRepository } from '#/features/payments/payment-voucher-service.ts'
+import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
+import type { CreditDebitNoteRepository } from '#/features/returns/credit-debit-note-service.ts'
+import type { RecurringInvoiceRepository } from '#/features/sales/recurring-invoice-service.ts'
+import type { SalesInvoiceRepository } from '#/features/sales/sales-invoice-service.ts'
+
+export type PostingRepositories = {
+  invoices: SalesInvoiceRepository
+  bills: PurchaseBillRepository
+  posting: LedgerPostingRepository
+  stock: StockMovementRepository & StockBalanceRepository
+  items: ItemRepository
+  parties: PartyRepository
+  dashboard: DashboardSummaryRepository
+  sequences: DocumentSequenceRepository
+  paymentVouchers: PaymentVoucherRepository
+  openingBalances: PartyOpeningBalanceRepository
+  expenses: ExpenseRepository
+  recurringInvoices: RecurringInvoiceRepository
+  creditDebitNotes: CreditDebitNoteRepository
+  audit: AuditLogRepository
+}
+
+/** Runs accounting writes (document, ledger, stock, summaries, audit) as one unit. */
+export type PostingTransaction = <T>(
+  work: (repositories: PostingRepositories) => Promise<T>,
+) => Promise<T>
+
+/**
+ * With a database, each call opens a per-request pool and runs `work` in a
+ * single Postgres transaction. Without one (dev/tests), `work` runs against
+ * the in-memory fallback repositories.
+ */
+export function createPostingTransaction(
+  fallback: PostingRepositories,
+  openDatabase: () => PooledDatabase | null = openPooledDb,
+): PostingTransaction {
+  return async (work) => {
+    const pooled = openDatabase()
+    if (!pooled) {
+      return work(fallback)
+    }
+
+    try {
+      return await pooled.database.transaction((tx) =>
+        work({
+          invoices: new DrizzleSalesInvoiceRepository(tx),
+          bills: new DrizzlePurchaseBillRepository(tx),
+          posting: new DrizzleLedgerPostingRepository(tx),
+          stock: new DrizzleStockStore(tx),
+          items: new DrizzleItemRepository(tx),
+          parties: new DrizzlePartyRepository(tx),
+          dashboard: new DrizzleDashboardSummaryRepository(tx),
+          sequences: new DrizzleDocumentSequenceRepository(tx),
+          paymentVouchers: new DrizzlePaymentVoucherRepository(tx),
+          openingBalances: new DrizzlePartyOpeningBalanceRepository(tx),
+          expenses: new DrizzleExpenseRepository(tx),
+          recurringInvoices: new DrizzleRecurringInvoiceRepository(tx),
+          creditDebitNotes: new DrizzleCreditDebitNoteRepository(tx),
+          audit: new DrizzleAuditLogRepository(tx),
+        }),
+      )
+    } finally {
+      await pooled.close()
+    }
+  }
+}

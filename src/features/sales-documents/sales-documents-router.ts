@@ -10,6 +10,7 @@ import {
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
+import type { DocumentSequenceRepository } from '#/features/documents/document-sequence-service.ts'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
 import type { SalesDocumentRepository } from '#/features/sales-documents/sales-document-service.ts'
 
@@ -30,7 +31,8 @@ const lineSchema = z.object({
 const createInputSchema = z.object({
   companyId: z.string().uuid(),
   documentType: documentTypeSchema,
-  documentNumber: z.string().min(1),
+  documentNumber: z.string().optional(),
+  financialYearId: z.string().uuid().optional(),
   documentDate: z.string().min(1),
   customerId: z.string().uuid(),
   narration: z.string().optional(),
@@ -54,6 +56,7 @@ const markConvertedInputSchema = byIdInputSchema.extend({
 export const createSalesDocumentsRouter = (
   repository: SalesDocumentRepository,
   itemRepository: ItemRepository,
+  sequences: DocumentSequenceRepository,
 ) =>
   ({
     list: capabilityProcedure('view').input(listInputSchema).query(({ input }) => {
@@ -89,6 +92,6 @@ export const createSalesDocumentsRouter = (
     create: capabilityProcedure('post_sales')
       .input(createInputSchema)
       .mutation(({ input }) => {
-        return createSalesDocument(repository, input)
+        return createSalesDocument(repository, sequences, input)
       }),
   }) satisfies TRPCRouterRecord

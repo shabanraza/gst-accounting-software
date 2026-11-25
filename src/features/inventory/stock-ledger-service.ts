@@ -14,6 +14,8 @@ export type StockLedgerRow = {
   quantity: string
   runningBalance: string
   godownName: string | null
+  referenceType: string
+  referenceId: string
 }
 
 export type StockLedgerReport = {
@@ -52,6 +54,8 @@ export async function buildStockLedger(
       quantity: movement.quantity,
       runningBalance: runningBalance.toString(),
       godownName: movement.godownName,
+      referenceType: movement.referenceType,
+      referenceId: movement.referenceId,
     }
   })
 

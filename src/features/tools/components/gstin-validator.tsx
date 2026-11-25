@@ -28,7 +28,7 @@ export function GstinValidator() {
   const result = value.trim() ? validateGstin(value) : null
 
   return (
-    <Card data-ui="data">
+    <Card className="max-w-2xl" data-ui="data">
       <CardContent className="flex flex-col gap-4">
         <Field id={`${id}-gstin`} label="GSTIN">
           <Input

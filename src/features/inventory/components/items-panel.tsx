@@ -1,5 +1,6 @@
 import * as React from 'react'
-import { PackageIcon, PlusIcon } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { BarcodeIcon, PackageIcon, PencilIcon, PlusIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
 import { itemTrackingBadgeIntent } from '#/lib/badge-intent.ts'
@@ -22,39 +23,60 @@ import {
 } from '#/components/ui/table.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { CreateItemDialog } from '#/features/inventory/components/create-item-dialog.tsx'
 import { useItemsList } from '#/features/masters/use-master-data.ts'
+import type { ItemRecord } from '#/features/inventory/item-service.ts'
 
 export function ItemsPanel() {
   const { error: workspaceError } = useWorkspace()
   const [query, setQuery] = React.useState('')
+  const [editingItem, setEditingItem] = React.useState<ItemRecord | null>(null)
 
   const itemsQuery = useItemsList()
 
   const items = itemsQuery.data
   const filtered = items.filter((item) => {
-    const haystack = `${item.name} ${item.hsnCode}`.toLowerCase()
+    const haystack =
+      `${item.name} ${item.hsnCode} ${item.barcode ?? ''}`.toLowerCase()
     return haystack.includes(query.trim().toLowerCase())
   })
 
   return (
     <WorkspacePage
       actions={
-        <CreateItemDialog
-          trigger={
-            <Button>
-              <PlusIcon data-icon="inline-start" />
-              New item
-            </Button>
-          }
-        />
+        <>
+          <Button asChild variant="outline">
+            <Link to="/app/masters/item-labels">
+              <BarcodeIcon data-icon="inline-start" />
+              Print labels
+            </Link>
+          </Button>
+          <CreateItemDialog
+            trigger={
+              <Button>
+                <PlusIcon data-icon="inline-start" />
+                New item
+              </Button>
+            }
+          />
+        </>
       }
-      description="Item master wired to inventory API, with optional opening stock movement."
+      description="The goods and services you buy and sell, with HSN, GST rate, units and rates."
       title="Items"
     >
       {workspaceError ? (
         <p className="text-sm text-destructive">{workspaceError}</p>
+      ) : null}
+      {editingItem ? (
+        <CreateItemDialog
+          item={editingItem}
+          key={editingItem.id}
+          onOpenChange={(open) => {
+            if (!open) setEditingItem(null)
+          }}
+          open
+        />
       ) : null}
       <Card>
         <CardHeader className="gap-3">
@@ -64,13 +86,13 @@ export function ItemsPanel() {
               Item master
             </CardTitle>
             <CardDescription>
-              {filtered.length} items · F2 lookup on vouchers uses this list
+              {filtered.length} {filtered.length === 1 ? 'item' : 'items'}
             </CardDescription>
           </div>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <SearchInput
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search name or HSN"
+              placeholder="Search name, HSN or barcode"
               value={query}
               wrapperClassName="w-full max-w-sm"
             />
@@ -85,9 +107,10 @@ export function ItemsPanel() {
                 <TableHead>HSN</TableHead>
                 <TableHead>GST</TableHead>
                 <TableHead>Unit</TableHead>
-                <TableHead>Purchase</TableHead>
-                <TableHead>Sale</TableHead>
+                <TableHead className="text-right">Purchase</TableHead>
+                <TableHead className="text-right">Sale</TableHead>
                 <TableHead>Stock</TableHead>
+                <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -95,7 +118,7 @@ export function ItemsPanel() {
                 <TableRow>
                   <TableCell
                     className="py-10 text-center text-muted-foreground"
-                    colSpan={8}
+                    colSpan={9}
                   >
                     Loading items…
                   </TableCell>
@@ -104,9 +127,11 @@ export function ItemsPanel() {
                 <TableRow>
                   <TableCell
                     className="py-10 text-center text-muted-foreground"
-                    colSpan={8}
+                    colSpan={9}
                   >
-                    No items yet. Create the first item master.
+                    {query.trim()
+                      ? 'No items match your search.'
+                      : 'No items yet.'}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -121,14 +146,25 @@ export function ItemsPanel() {
                       <Badge variant="secondary">{item.gstRate}%</Badge>
                     </TableCell>
                     <TableCell>{item.baseUnit}</TableCell>
-                    <TableCell>{formatInr(item.purchaseRate)}</TableCell>
-                    <TableCell>{formatInr(item.saleRate)}</TableCell>
+                    <TableCell className="text-right">{formatInr(item.purchaseRate)}</TableCell>
+                    <TableCell className="text-right">{formatInr(item.saleRate)}</TableCell>
                     <TableCell>
                       <Badge
                         variant={itemTrackingBadgeIntent(item.tracksInventory)}
                       >
                         {item.tracksInventory ? 'Tracked' : 'Service'}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        aria-label={`Edit ${item.name}`}
+                        onClick={() => setEditingItem(item)}
+                        size="icon"
+                        type="button"
+                        variant="ghost"
+                      >
+                        <PencilIcon />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))

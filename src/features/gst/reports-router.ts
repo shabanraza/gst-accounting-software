@@ -1,4 +1,5 @@
 import { buildAccountantExport } from '#/features/exports/accountant-export-service.ts'
+import { buildTallyXml } from '#/features/exports/tally-xml-export-service.ts'
 import { buildCashBook } from '#/features/accounting/cash-book-service.ts'
 import { buildDayBook } from '#/features/accounting/day-book-service.ts'
 import { buildHsnSummary } from '#/features/gst/hsn-summary-service.ts'
@@ -18,6 +19,7 @@ import {
   buildReceivablesAgeing,
 } from '#/features/accounting/ageing-service.ts'
 import { buildPartyLedger } from '#/features/parties/party-ledger-service.ts'
+import { buildPartyStatement } from '#/features/parties/party-statement-service.ts'
 import {
   buildStockLedger,
   buildStockSummary,
@@ -37,12 +39,15 @@ import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
+import type { ExpenseRepository } from '#/features/expenses/expense-service.ts'
 import type { ItemRepository } from '#/features/inventory/item-service.ts'
 import type {
   StockBalanceRepository,
   StockMovementRepository,
 } from '#/features/inventory/stock-movement-service.ts'
+import type { PartyOpeningBalanceRepository } from '#/features/parties/party-opening-balance-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
+import type { PaymentVoucherRepository } from '#/features/payments/payment-voucher-service.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
 import type { CreditDebitNoteRepository } from '#/features/returns/credit-debit-note-service.ts'
 import type { SalesInvoiceRepository } from '#/features/sales/sales-invoice-service.ts'
@@ -119,7 +124,7 @@ const gstr3bWorkingInputSchema = z.object({
   portalRows: z.array(gstPortalRowSchema),
 })
 
-export const createReportsRouter = (deps: {
+type ReportsRouterDeps = {
   invoices: SalesInvoiceRepository
   bills: PurchaseBillRepository
   parties: PartyRepository
@@ -129,25 +134,52 @@ export const createReportsRouter = (deps: {
   stockMovements: StockMovementRepository
   stockBalances: StockBalanceRepository
   items: ItemRepository
-}) =>
+  vouchers: PaymentVoucherRepository
+  openingBalances: PartyOpeningBalanceRepository
+  expenses: ExpenseRepository
+}
+
+async function loadGstr1Report(
+  deps: ReportsRouterDeps,
+  input: z.infer<typeof reportInputSchema>,
+) {
+  const [documents, periodInvoices] = await Promise.all([
+    buildGstDocuments({
+      companyId: input.companyId,
+      companyStateCode: input.companyStateCode,
+      invoices: deps.invoices,
+      bills: deps.bills,
+      parties: deps.parties,
+      notes: deps.notes,
+      items: deps.items,
+      expenses: deps.expenses,
+    }),
+    deps.invoices.listByCompanyId(input.companyId, {
+      includeLines: false,
+      startDate: input.periodStart,
+      endDate: input.periodEnd,
+    }),
+  ])
+  return buildGstr1Report({
+    companyId: input.companyId,
+    periodStart: input.periodStart,
+    periodEnd: input.periodEnd,
+    documents,
+    cancelledInvoices: periodInvoices
+      .filter((invoice) => invoice.status === 'cancelled')
+      .map((invoice) => ({
+        companyId: invoice.companyId,
+        invoiceNumber: invoice.invoiceNumber,
+        documentDate: invoice.invoiceDate,
+      })),
+  })
+}
+
+export const createReportsRouter = (deps: ReportsRouterDeps) =>
   ({
     gstr1: capabilityProcedure('view_reports')
       .input(reportInputSchema)
-      .query(async ({ input }) => {
-        const documents = await buildGstDocuments({
-          companyId: input.companyId,
-          companyStateCode: input.companyStateCode,
-          invoices: deps.invoices,
-          bills: deps.bills,
-          parties: deps.parties,
-        })
-        return buildGstr1Report({
-          companyId: input.companyId,
-          periodStart: input.periodStart,
-          periodEnd: input.periodEnd,
-          documents,
-        })
-      }),
+      .query(({ input }) => loadGstr1Report(deps, input)),
     gstr3b: capabilityProcedure('view_reports')
       .input(reportInputSchema)
       .query(async ({ input }) => {
@@ -157,6 +189,8 @@ export const createReportsRouter = (deps: {
           invoices: deps.invoices,
           bills: deps.bills,
           parties: deps.parties,
+          notes: deps.notes,
+          expenses: deps.expenses,
         })
         return buildGstr3bReport({
           companyId: input.companyId,
@@ -206,11 +240,23 @@ export const createReportsRouter = (deps: {
           input.partyId,
         )
       }),
+    partyStatement: capabilityProcedure('view_reports')
+      .input(
+        companyAndPartyInputSchema.extend({
+          from: z.string().date(),
+          to: z.string().date(),
+        }),
+      )
+      .query(({ input }) => buildPartyStatement(deps, input)),
     receivablesAgeing: capabilityProcedure('view_reports')
       .input(z.object({ companyId: z.string().uuid() }))
       .query(({ input }) => {
         return buildReceivablesAgeing(
-          { invoices: deps.invoices, parties: deps.parties },
+          {
+            invoices: deps.invoices,
+            parties: deps.parties,
+            openingBalances: deps.openingBalances,
+          },
           input.companyId,
         )
       }),
@@ -218,7 +264,11 @@ export const createReportsRouter = (deps: {
       .input(z.object({ companyId: z.string().uuid() }))
       .query(({ input }) => {
         return buildPayablesAgeing(
-          { bills: deps.bills, parties: deps.parties },
+          {
+            bills: deps.bills,
+            parties: deps.parties,
+            openingBalances: deps.openingBalances,
+          },
           input.companyId,
         )
       }),
@@ -248,22 +298,10 @@ export const createReportsRouter = (deps: {
         )
       }),
     gstr1Json: capabilityProcedure('view_reports')
-      .input(reportInputSchema)
+      .input(reportInputSchema.extend({ companyGstin: z.string().length(15) }))
       .query(async ({ input }) => {
-        const documents = await buildGstDocuments({
-          companyId: input.companyId,
-          companyStateCode: input.companyStateCode,
-          invoices: deps.invoices,
-          bills: deps.bills,
-          parties: deps.parties,
-        })
-        const report = buildGstr1Report({
-          companyId: input.companyId,
-          periodStart: input.periodStart,
-          periodEnd: input.periodEnd,
-          documents,
-        })
-        return buildGstr1Json(report)
+        const report = await loadGstr1Report(deps, input)
+        return buildGstr1Json(report, input.companyGstin)
       }),
     gstr2bReconciliation: capabilityProcedure('view_reports')
       .input(gstr2bReconciliationInputSchema)
@@ -273,6 +311,7 @@ export const createReportsRouter = (deps: {
             bills: deps.bills,
             parties: deps.parties,
             recon: gstReconciliationRepository,
+            expenses: deps.expenses,
           },
           input,
         )
@@ -285,6 +324,7 @@ export const createReportsRouter = (deps: {
             recon: gstReconciliationRepository,
             bills: deps.bills,
             parties: deps.parties,
+            expenses: deps.expenses,
           },
           input,
         )
@@ -306,12 +346,15 @@ export const createReportsRouter = (deps: {
           invoices: deps.invoices,
           bills: deps.bills,
           parties: deps.parties,
+          notes: deps.notes,
+          expenses: deps.expenses,
         })
         return buildGstr3bWorkingReport(
           {
             bills: deps.bills,
             parties: deps.parties,
             recon: gstReconciliationRepository,
+            expenses: deps.expenses,
           },
           { ...input, documents },
         )
@@ -354,5 +397,41 @@ export const createReportsRouter = (deps: {
           },
           input.companyId,
         )
+      }),
+    tallyExport: capabilityProcedure('view_reports')
+      .input(reportInputSchema)
+      .query(async ({ input }) => {
+        const [
+          ledgers,
+          parties,
+          items,
+          entries,
+          invoices,
+          bills,
+          notes,
+          openingBalances,
+        ] = await Promise.all([
+          deps.ledgers.listByCompanyId(input.companyId),
+          deps.parties.listByCompanyId(input.companyId),
+          deps.items.listByCompanyId(input.companyId),
+          deps.postings.listByCompanyId(input.companyId),
+          deps.invoices.listByCompanyId(input.companyId),
+          deps.bills.listByCompanyId(input.companyId),
+          deps.notes.listByCompanyId(input.companyId),
+          deps.openingBalances.listByCompanyId(input.companyId),
+        ])
+        return buildTallyXml({
+          companyStateCode: input.companyStateCode,
+          from: input.periodStart,
+          to: input.periodEnd,
+          ledgers,
+          parties,
+          items,
+          entries,
+          invoices,
+          bills,
+          notes,
+          openingBalances,
+        })
       }),
   }) satisfies TRPCRouterRecord

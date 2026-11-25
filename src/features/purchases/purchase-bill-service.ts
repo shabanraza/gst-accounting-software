@@ -1,13 +1,17 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
-import { calculateGst } from '#/features/gst/gst-calculator.ts'
+import {
+  calculateGst,
+  calculateInclusiveGst,
+} from '#/features/gst/gst-calculator.ts'
 import {
   assertTaxInvoiceCompanyAddress,
   assertTaxInvoicePartyAddress,
   buildInvoicePartySnapshot,
 } from '#/features/gst/tax-invoice-compliance.ts'
-import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
+import { recordStockMovements } from '#/features/inventory/stock-movement-service.ts'
 
 import type { TaxMode } from '#/features/accounting/voucher-math.ts'
 import type { InvoicePartySnapshot } from '#/features/gst/tax-invoice-compliance.ts'
@@ -46,7 +50,13 @@ export type PostPurchaseBillInput = {
   billDate: string
   dueDate: string
   placeOfSupply?: string
+  /**
+   * The recipient pays the GST (RCM): the supplier is owed the value only,
+   * and the GST is booked as our liability with matching input credit.
+   */
   reverseCharge?: boolean
+  /** "GST Payable (Reverse Charge)" ledger; required with `reverseCharge`. */
+  reverseChargeAccountId?: string
   taxMode?: TaxMode
   narration?: string
   freight?: string
@@ -118,6 +128,8 @@ export interface PurchaseBillRepository {
   }) => Promise<PurchaseBillRecord | null>
   create: (bill: PurchaseBillRecord) => Promise<PurchaseBillRecord>
   findById: (id: string) => Promise<PurchaseBillRecord | null>
+  /** Row-locking read for read-modify-write inside a transaction. */
+  lockById?: (id: string) => Promise<PurchaseBillRecord | null>
   save: (bill: PurchaseBillRecord) => Promise<PurchaseBillRecord>
   listByCompanyId: (
     companyId: string,
@@ -133,7 +145,14 @@ export type PurchaseBillDependencies = {
   parties?: PartyRepository
 }
 
-export class DuplicateSupplierBillError extends Error {
+export class InvalidReverseChargeBillError extends DomainError {
+  constructor(message: string) {
+    super(message)
+    this.name = 'InvalidReverseChargeBillError'
+  }
+}
+
+export class DuplicateSupplierBillError extends DomainError {
   constructor(supplierBillNumber: string) {
     super(
       `Supplier bill number already exists for this financial year: ${supplierBillNumber}`,
@@ -152,6 +171,31 @@ function formatMoney(value: Decimal) {
   return value.toFixed(2)
 }
 
+/**
+ * Landed cost per line: its taxable value plus a taxable-weighted share of
+ * freight, packing, round-off and bill discount. The last line takes the
+ * rounding remainder so the costs add up to the bill exactly.
+ */
+function allocateLineCosts(
+  lines: Array<PurchaseBillLineRecord>,
+  taxableTotal: Decimal,
+  sundryNet: Decimal,
+): Array<Decimal> {
+  let allocated = new Decimal(0)
+
+  return lines.map((line, index) => {
+    const taxable = money(line.taxableAmount)
+    const share =
+      index === lines.length - 1
+        ? sundryNet.minus(allocated)
+        : taxableTotal.isZero()
+          ? new Decimal(0)
+          : sundryNet.mul(taxable).div(taxableTotal).toDecimalPlaces(2)
+    allocated = allocated.plus(share)
+    return taxable.plus(share)
+  })
+}
+
 export async function postPurchaseBill(
   deps: PurchaseBillDependencies,
   input: PostPurchaseBillInput,
@@ -167,8 +211,28 @@ export async function postPurchaseBill(
     throw new DuplicateSupplierBillError(input.supplierBillNumber)
   }
 
+  if (!deps.parties) {
+    throw new Error('Party repository is required to post purchase bills')
+  }
+
+  const supplier = await deps.parties.findById(input.supplierId)
+  if (!supplier) {
+    throw new Error(`Supplier not found: ${input.supplierId}`)
+  }
+
   const taxMode = input.taxMode ?? 'exclusive'
-  const partyStateCode = input.supplierStateCode ?? '24'
+  const reverseCharge = input.reverseCharge ?? false
+  if (reverseCharge && taxMode === 'inclusive') {
+    throw new InvalidReverseChargeBillError(
+      'Enter reverse charge bills with prices before GST; the supplier does not charge GST on them.',
+    )
+  }
+  if (reverseCharge && !input.reverseChargeAccountId) {
+    throw new InvalidReverseChargeBillError(
+      'The GST Payable (Reverse Charge) ledger is missing.',
+    )
+  }
+  const partyStateCode = input.supplierStateCode ?? supplier.stateCode
   let taxableTotal = new Decimal(0)
   let gstTotal = new Decimal(0)
 
@@ -179,17 +243,16 @@ export async function postPurchaseBill(
     const net = Decimal.max(gross.minus(discountAmount), new Decimal(0))
     const gstRate = money(line.gstRate)
 
-    let taxableAmount = net
-    if (taxMode === 'inclusive' && gstRate.gt(0)) {
-      taxableAmount = net.mul(100).div(gstRate.plus(100))
-    }
-
-    const gst = calculateGst({
-      taxableAmount: formatMoney(taxableAmount),
+    const supply = {
       gstRate: line.gstRate,
       companyStateCode: input.companyStateCode,
       partyStateCode,
-    })
+    }
+    // An inclusive price keeps taxable + GST equal to the price entered.
+    const gst =
+      taxMode === 'inclusive' && gstRate.gt(0)
+        ? calculateInclusiveGst({ inclusiveAmount: formatMoney(net), ...supply })
+        : calculateGst({ taxableAmount: formatMoney(net), ...supply })
 
     taxableTotal = taxableTotal.plus(money(gst.taxableAmount))
     gstTotal = gstTotal.plus(money(gst.totalGstAmount))
@@ -201,7 +264,11 @@ export async function postPurchaseBill(
       discountAmount: formatMoney(discountAmount),
       taxableAmount: gst.taxableAmount,
       gstAmount: gst.totalGstAmount,
-      lineTotal: taxMode === 'inclusive' ? formatMoney(net) : gst.totalAmount,
+      lineTotal: reverseCharge
+        ? gst.taxableAmount
+        : taxMode === 'inclusive'
+          ? formatMoney(net)
+          : gst.totalAmount,
       godownName: line.godownName ?? input.godownName ?? null,
     }
   })
@@ -211,7 +278,10 @@ export async function postPurchaseBill(
   const roundOff = money(input.roundOff ?? '0')
   const billDiscount = money(input.billDiscount ?? '0')
   const sundryNet = freight.plus(packing).plus(roundOff).minus(billDiscount)
-  const totalAmount = taxableTotal.plus(gstTotal).plus(sundryNet)
+  // Under reverse charge the supplier's bill carries no GST.
+  const totalAmount = taxableTotal
+    .plus(reverseCharge ? 0 : gstTotal)
+    .plus(sundryNet)
   const billId = crypto.randomUUID()
 
   assertTaxInvoiceCompanyAddress({
@@ -222,15 +292,6 @@ export async function postPurchaseBill(
     pincode: input.companyPincode,
   })
 
-  if (!deps.parties) {
-    throw new Error('Party repository is required to post purchase bills')
-  }
-
-  const supplier = await deps.parties.findById(input.supplierId)
-  if (!supplier) {
-    throw new Error(`Supplier not found: ${input.supplierId}`)
-  }
-
   const partySnapshot = buildInvoicePartySnapshot(supplier)
   assertTaxInvoicePartyAddress({
     partyName: supplier.name,
@@ -240,13 +301,39 @@ export async function postPurchaseBill(
   })
 
   const inventoryDebit = taxableTotal.plus(sundryNet)
-  const inventoryAccountId = input.skipStockMovement
-    ? input.purchaseAccountId
-    : input.stockAccountId
+  const lineCosts = allocateLineCosts(lines, taxableTotal, sundryNet)
+  const stockedLines: Array<{
+    line: PurchaseBillLineRecord
+    itemName: string
+    value: Decimal
+  }> = []
+  if (!input.skipStockMovement) {
+    for (const [index, line] of lines.entries()) {
+      const item = deps.items ? await deps.items.findById(line.itemId) : null
+      if (item && !item.tracksInventory) {
+        continue
+      }
+      stockedLines.push({
+        line,
+        itemName: item?.name ?? line.description,
+        value: lineCosts[index],
+      })
+    }
+  }
+  const stockDebit = stockedLines.reduce(
+    (sum, entry) => sum.plus(entry.value),
+    new Decimal(0),
+  )
+
   const ledgerLines = [
     {
-      ledgerAccountId: inventoryAccountId,
-      debit: formatMoney(inventoryDebit),
+      ledgerAccountId: input.stockAccountId,
+      debit: formatMoney(stockDebit),
+      credit: '0.00',
+    },
+    {
+      ledgerAccountId: input.purchaseAccountId,
+      debit: formatMoney(inventoryDebit.minus(stockDebit)),
       credit: '0.00',
     },
     {
@@ -259,6 +346,15 @@ export async function postPurchaseBill(
       debit: '0.00',
       credit: formatMoney(totalAmount),
     },
+    ...(reverseCharge && input.reverseChargeAccountId
+      ? [
+          {
+            ledgerAccountId: input.reverseChargeAccountId,
+            debit: '0.00',
+            credit: formatMoney(gstTotal),
+          },
+        ]
+      : []),
   ]
 
   const ledgerEntry = await postLedgerEntry(deps.posting, {
@@ -267,22 +363,19 @@ export async function postPurchaseBill(
     narration:
       input.narration?.trim() || `Purchase bill ${input.supplierBillNumber}`,
     voucherType: 'purchase',
-    lines: ledgerLines,
+    lines: ledgerLines.filter(
+      (line) => !money(line.debit).isZero() || !money(line.credit).isZero(),
+    ),
   })
 
-  for (const line of lines) {
-    if (input.skipStockMovement) {
-      continue
-    }
-
-    const item = deps.items ? await deps.items.findById(line.itemId) : null
-    if (item && !item.tracksInventory) {
-      continue
-    }
-
-    await recordStockMovement(deps.stock, deps.stock, {
+  await recordStockMovements(
+    deps.stock,
+    deps.stock,
+    stockedLines.map(({ line, itemName, value }) => ({
       companyId: input.companyId,
       itemId: line.itemId,
+      itemName,
+      value: formatMoney(value),
       movementType: 'purchase_in',
       quantity: line.quantity,
       unit: line.unit,
@@ -290,8 +383,8 @@ export async function postPurchaseBill(
       referenceId: billId,
       occurredOn: input.billDate,
       godownName: line.godownName,
-    })
-  }
+    })),
+  )
 
   const bill: PurchaseBillRecord = {
     id: billId,
@@ -302,7 +395,7 @@ export async function postPurchaseBill(
     billDate: input.billDate,
     dueDate: input.dueDate,
     placeOfSupply: input.placeOfSupply ?? input.companyStateCode,
-    reverseCharge: input.reverseCharge ?? false,
+    reverseCharge,
     paymentStatus: 'Pending',
     taxMode,
     narration: input.narration?.trim() || '',

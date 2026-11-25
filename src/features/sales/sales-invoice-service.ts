@@ -1,20 +1,24 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
-import { calculateGst } from '#/features/gst/gst-calculator.ts'
+import {
+  calculateGst,
+  calculateInclusiveGst,
+} from '#/features/gst/gst-calculator.ts'
 import {
   assertTaxInvoiceCompanyAddress,
   assertTaxInvoicePartyAddress,
   buildInvoicePartySnapshot,
 } from '#/features/gst/tax-invoice-compliance.ts'
-import { ensureOpeningStockForItemIds } from '#/features/inventory/opening-stock.ts'
-import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
+import { recordStockMovements } from '#/features/inventory/stock-movement-service.ts'
 
 import type { TaxMode } from '#/features/accounting/voucher-math.ts'
 import type { DashboardSummaryRepository } from '#/features/dashboard/dashboard-summary-service.ts'
 import { reverseSalesSummary } from '#/features/dashboard/dashboard-summary-service.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
 import type {
+  RecordStockMovementInput,
   StockBalanceRepository,
   StockMovementRepository,
 } from '#/features/inventory/stock-movement-service.ts'
@@ -122,10 +126,17 @@ export type SalesInvoiceRecord = {
 export interface SalesInvoiceRepository {
   create: (invoice: SalesInvoiceRecord) => Promise<SalesInvoiceRecord>
   findById: (id: string) => Promise<SalesInvoiceRecord | null>
+  /** Row-locking read for read-modify-write inside a transaction. */
+  lockById?: (id: string) => Promise<SalesInvoiceRecord | null>
   save: (invoice: SalesInvoiceRecord) => Promise<SalesInvoiceRecord>
   listByCompanyId: (
     companyId: string,
     options?: ListQueryOptions,
+  ) => Promise<Array<SalesInvoiceRecord>>
+  /** Invoices of the company with these ids, with their lines. */
+  listByIds?: (
+    companyId: string,
+    ids: Array<string>,
   ) => Promise<Array<SalesInvoiceRecord>>
   sumOutstandingByCustomer?: (
     companyId: string,
@@ -150,7 +161,7 @@ export type CancelSalesInvoiceInput = {
   invoiceId: string
 }
 
-export class CreditLimitExceededError extends Error {
+export class CreditLimitExceededError extends DomainError {
   constructor(customerName: string, limit: string, projected: string) {
     super(
       `Credit limit exceeded for ${customerName}: limit ${limit}, projected outstanding ${projected}`,
@@ -221,17 +232,16 @@ export async function postSalesInvoice(
     const lineGstRate = chargesGst ? line.gstRate : '0.00'
     const gstRate = money(lineGstRate)
 
-    let taxableAmount = net
-    if (taxMode === 'inclusive' && gstRate.gt(0)) {
-      taxableAmount = net.mul(100).div(gstRate.plus(100))
-    }
-
-    const gst = calculateGst({
-      taxableAmount: formatMoney(taxableAmount),
+    const supply = {
       gstRate: lineGstRate,
       companyStateCode: input.companyStateCode,
       partyStateCode: input.customerStateCode,
-    })
+    }
+    // An inclusive price keeps taxable + GST equal to the price entered.
+    const gst =
+      taxMode === 'inclusive' && gstRate.gt(0)
+        ? calculateInclusiveGst({ inclusiveAmount: formatMoney(net), ...supply })
+        : calculateGst({ taxableAmount: formatMoney(net), ...supply })
 
     taxableTotal = taxableTotal.plus(money(gst.taxableAmount))
     gstTotal = gstTotal.plus(money(gst.totalGstAmount))
@@ -325,15 +335,43 @@ export async function postSalesInvoice(
     })
   }
 
-  if (input.cogsAccountId && input.stockAccountId) {
-    for (const line of lines) {
-      const item = await deps.items.findById(line.itemId)
-      if (item && !item.tracksInventory) {
-        continue
-      }
-      const rate = item?.purchaseRate ?? line.rate
-      cogsTotal = cogsTotal.plus(money(line.quantity).mul(money(rate)))
+  // Each item is read once per invoice; on Neon every read is a round trip.
+  const itemLookups = new Map<string, ReturnType<ItemRepository['findById']>>()
+  const findItem = (itemId: string) => {
+    const lookup = itemLookups.get(itemId) ?? deps.items.findById(itemId)
+    itemLookups.set(itemId, lookup)
+    return lookup
+  }
+
+  const stockLines: Array<RecordStockMovementInput> = []
+  for (const line of lines) {
+    const item = await findItem(line.itemId)
+    if (item && !item.tracksInventory) {
+      continue
     }
+
+    stockLines.push({
+      companyId: input.companyId,
+      itemId: line.itemId,
+      itemName: item?.name ?? line.description,
+      movementType: 'sale_out',
+      quantity: line.quantity,
+      unit: line.unit,
+      referenceType: 'sales_invoice',
+      referenceId: invoiceId,
+      occurredOn: input.invoiceDate,
+      godownName: line.godownName,
+    })
+  }
+  for (const movement of await recordStockMovements(
+    deps.stock,
+    deps.stock,
+    stockLines,
+  )) {
+    cogsTotal = cogsTotal.plus(money(movement.value))
+  }
+
+  if (input.cogsAccountId && input.stockAccountId && cogsTotal.gt(0)) {
     ledgerLines.push(
       {
         ledgerAccountId: input.cogsAccountId,
@@ -356,31 +394,6 @@ export async function postSalesInvoice(
     voucherType: 'sales',
     lines: ledgerLines,
   })
-
-  await ensureOpeningStockForItemIds(deps.items, deps.stock, {
-    companyId: input.companyId,
-    itemIds: lines.map((line) => line.itemId),
-    occurredOn: input.invoiceDate,
-  })
-
-  for (const line of lines) {
-    const item = await deps.items.findById(line.itemId)
-    if (item && !item.tracksInventory) {
-      continue
-    }
-
-    await recordStockMovement(deps.stock, deps.stock, {
-      companyId: input.companyId,
-      itemId: line.itemId,
-      movementType: 'sale_out',
-      quantity: line.quantity,
-      unit: line.unit,
-      referenceType: 'sales_invoice',
-      referenceId: invoiceId,
-      occurredOn: input.invoiceDate,
-      godownName: line.godownName,
-    })
-  }
 
   const invoice: SalesInvoiceRecord = {
     id: invoiceId,
@@ -419,21 +432,21 @@ export async function postSalesInvoice(
   return deps.invoices.create(invoice)
 }
 
-export class InvoiceNotFoundError extends Error {
+export class InvoiceNotFoundError extends DomainError {
   constructor(invoiceId: string) {
     super(`Sales invoice not found: ${invoiceId}`)
     this.name = 'InvoiceNotFoundError'
   }
 }
 
-export class InvoiceCompanyMismatchError extends Error {
+export class InvoiceCompanyMismatchError extends DomainError {
   constructor(invoiceId: string, companyId: string) {
     super(`Sales invoice ${invoiceId} does not belong to company ${companyId}`)
     this.name = 'InvoiceCompanyMismatchError'
   }
 }
 
-export class InvoiceAlreadyCancelledError extends Error {
+export class InvoiceAlreadyCancelledError extends DomainError {
   constructor(invoiceNumber: string) {
     super(`Sales invoice ${invoiceNumber} is already cancelled`)
     this.name = 'InvoiceAlreadyCancelledError'
@@ -444,7 +457,9 @@ export async function cancelSalesInvoice(
   deps: CancelSalesInvoiceDependencies,
   input: CancelSalesInvoiceInput,
 ): Promise<SalesInvoiceRecord> {
-  const invoice = await deps.invoices.findById(input.invoiceId)
+  const invoice = deps.invoices.lockById
+    ? await deps.invoices.lockById(input.invoiceId)
+    : await deps.invoices.findById(input.invoiceId)
 
   if (!invoice) {
     throw new InvoiceNotFoundError(input.invoiceId)
@@ -458,10 +473,11 @@ export async function cancelSalesInvoice(
     throw new InvoiceAlreadyCancelledError(invoice.invoiceNumber)
   }
 
-  const entries = await deps.posting.listByCompanyId(invoice.companyId)
-  const originalEntry = entries.find(
-    (entry) => entry.id === invoice.ledgerEntryId,
-  )
+  const originalEntry = deps.posting.findById
+    ? await deps.posting.findById(invoice.ledgerEntryId)
+    : (await deps.posting.listByCompanyId(invoice.companyId)).find(
+        (entry) => entry.id === invoice.ledgerEntryId,
+      )
 
   if (!originalEntry) {
     throw new Error(
@@ -481,13 +497,29 @@ export async function cancelSalesInvoice(
     })),
   })
 
+  // The reversal above restores COGS at the cost the sale removed, so stock
+  // must come back at that same cost, not at today's average. A sale with no
+  // recorded cost (before values were tracked) comes back at the average.
+  const saleMovements = await deps.stock.listByReference(
+    invoice.companyId,
+    'sales_invoice',
+    invoice.id,
+  )
+
+  const returnLines: Array<RecordStockMovementInput> = []
   for (const line of invoice.lines) {
     const item = await deps.items.findById(line.itemId)
     if (item && !item.tracksInventory) {
       continue
     }
 
-    await recordStockMovement(deps.stock, deps.stock, {
+    const saleIndex = saleMovements.findIndex(
+      (movement) => movement.itemId === line.itemId,
+    )
+    const saleMovement =
+      saleIndex === -1 ? null : saleMovements.splice(saleIndex, 1)[0]
+
+    returnLines.push({
       companyId: invoice.companyId,
       itemId: line.itemId,
       movementType: 'sales_return_in',
@@ -497,8 +529,13 @@ export async function cancelSalesInvoice(
       referenceId: invoice.id,
       occurredOn: invoice.invoiceDate,
       godownName: line.godownName,
+      value:
+        saleMovement && money(saleMovement.value).gt(0)
+          ? saleMovement.value
+          : undefined,
     })
   }
+  await recordStockMovements(deps.stock, deps.stock, returnLines)
 
   if (deps.dashboard) {
     const stockOutQuantity = invoice.lines

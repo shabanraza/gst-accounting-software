@@ -38,7 +38,7 @@ export function PurchaseBillDetailScreen() {
     queryFn: () =>
       trpcClient.purchases.getById.query({
         companyId: companyId!,
-        id: id!,
+        id: id,
       }),
   })
 

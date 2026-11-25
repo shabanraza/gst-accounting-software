@@ -24,6 +24,7 @@ import {
 import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
 import { formatMediumDate } from '#/lib/calendar-date.ts'
+import { Label } from '#/components/ui/label.tsx'
 import {
   Select,
   SelectContent,
@@ -60,6 +61,9 @@ export function CompaniesPanel() {
   const [tradeName, setTradeName] = React.useState('')
   const [gstin, setGstin] = React.useState('')
   const [stateCode, setStateCode] = React.useState('27')
+  const [addressLine1, setAddressLine1] = React.useState('')
+  const [city, setCity] = React.useState('')
+  const [pincode, setPincode] = React.useState('')
   const [businessType, setBusinessType] =
     React.useState<BusinessType>('wholesale')
   const [financialYearStart, setFinancialYearStart] =
@@ -72,12 +76,16 @@ export function CompaniesPanel() {
   )
 
   const companies = companiesQuery.data ?? workspaceCompanies
+  const hasGstin = Boolean(gstin.trim())
 
   function resetForm() {
     setLegalName('')
     setTradeName('')
     setGstin('')
     setStateCode('27')
+    setAddressLine1('')
+    setCity('')
+    setPincode('')
     setBusinessType('wholesale')
     setFinancialYearStart('2026-04-01')
     setFormError(null)
@@ -92,6 +100,12 @@ export function CompaniesPanel() {
       return failForm(setFormError, 'Trade name is required.')
     }
     if (!requireStateCode(stateCode, 'State')) return
+    if (hasGstin && !(addressLine1.trim() && city.trim() && pincode.trim())) {
+      return failForm(
+        setFormError,
+        'Address, city and PIN code are required for a GST-registered company.',
+      )
+    }
 
     setFormError(null)
     try {
@@ -102,6 +116,9 @@ export function CompaniesPanel() {
         stateCode,
         businessType,
         financialYearStart,
+        addressLine1: addressLine1.trim(),
+        city: city.trim(),
+        pincode: pincode.trim(),
       })
       await queryClient.invalidateQueries({
         queryKey: trpc.companies.list.queryKey(),
@@ -135,14 +152,14 @@ export function CompaniesPanel() {
             <DialogHeader>
               <DialogTitle>New company</DialogTitle>
               <DialogDescription>
-                Creates firm profile and seeds chart of accounts automatically.
+                Ledgers and the financial year are set up for you.
               </DialogDescription>
             </DialogHeader>
             <form className="flex flex-col gap-4" onSubmit={handleCreate}>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium" htmlFor="co-legal">
+                <Label className="text-sm" htmlFor="co-legal">
                   Legal name
-                </label>
+                </Label>
                 <Input
                   id="co-legal"
                   onChange={(event) => setLegalName(event.target.value)}
@@ -151,9 +168,9 @@ export function CompaniesPanel() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium" htmlFor="co-trade">
+                <Label className="text-sm" htmlFor="co-trade">
                   Trade name
-                </label>
+                </Label>
                 <Input
                   id="co-trade"
                   onChange={(event) => setTradeName(event.target.value)}
@@ -163,9 +180,9 @@ export function CompaniesPanel() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium" htmlFor="co-gstin">
+                  <Label className="text-sm" htmlFor="co-gstin">
                     GSTIN
-                  </label>
+                  </Label>
                   <Input
                     id="co-gstin"
                     onChange={(event) => setGstin(event.target.value)}
@@ -190,6 +207,49 @@ export function CompaniesPanel() {
                   </Select>
                 </div>
               </div>
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-sm" htmlFor="co-address">
+                  {hasGstin
+                    ? 'Business address'
+                    : 'Business address (optional)'}
+                </Label>
+                <Input
+                  autoComplete="address-line1"
+                  id="co-address"
+                  onChange={(event) => setAddressLine1(event.target.value)}
+                  placeholder="Shop / building, street"
+                  required={hasGstin}
+                  value={addressLine1}
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-sm" htmlFor="co-city">
+                    City
+                  </Label>
+                  <Input
+                    autoComplete="address-level2"
+                    id="co-city"
+                    onChange={(event) => setCity(event.target.value)}
+                    required={hasGstin}
+                    value={city}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-sm" htmlFor="co-pincode">
+                    PIN code
+                  </Label>
+                  <Input
+                    autoComplete="postal-code"
+                    id="co-pincode"
+                    inputMode="numeric"
+                    maxLength={6}
+                    onChange={(event) => setPincode(event.target.value)}
+                    required={hasGstin}
+                    value={pincode}
+                  />
+                </div>
+              </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
                   <span className="text-sm font-medium">Business type</span>
@@ -212,7 +272,7 @@ export function CompaniesPanel() {
                           Distribution
                         </SelectItem>
                         <SelectItem value="manufacturing_light">
-                          Manufacturing light
+                          Small manufacturing
                         </SelectItem>
                         <SelectItem value="custom">Custom</SelectItem>
                       </SelectGroup>
@@ -220,9 +280,9 @@ export function CompaniesPanel() {
                   </Select>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium" htmlFor="co-fy">
+                  <Label className="text-sm" htmlFor="co-fy">
                     FY start
-                  </label>
+                  </Label>
                   <DatePicker
                     formatValue={formatMediumDate}
                     id="co-fy"
@@ -244,7 +304,7 @@ export function CompaniesPanel() {
           </DialogContent>
         </Dialog>
       }
-      description="Multi-company profiles wired to the companies API."
+      description="All the businesses you keep books for."
       title="Companies"
     >
       <Card>

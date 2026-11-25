@@ -98,6 +98,7 @@ async function seedPurchaseContext() {
     name: 'Textile Mills Ltd',
     partyType: 'supplier',
     gstin: '24AABCU9603R1ZM',
+    billingAddress: '12 Market Road, Surat',
     stateCode: '24',
     creditLimit: null,
     paymentTermsDays: 15,
@@ -128,6 +129,8 @@ async function seedPurchaseContext() {
     ledgerPosting,
     stock,
     bills,
+    items,
+    parties,
   }
 }
 
@@ -140,6 +143,8 @@ describe('postPurchaseBill', () => {
         bills: context.bills,
         posting: context.ledgerPosting,
         stock: context.stock,
+        items: context.items,
+        parties: context.parties,
       },
       {
         companyId: context.companyId,
@@ -190,6 +195,54 @@ describe('postPurchaseBill', () => {
     expect(payableLine?.credit).toBe('8400.00')
   })
 
+  test('a GST-inclusive price posts exactly the price entered', async () => {
+    const context = await seedPurchaseContext()
+
+    const bill = await postPurchaseBill(
+      {
+        bills: context.bills,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+        parties: context.parties,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        supplierStateCode: '27',
+        financialYearStart: '2026-04-01',
+        supplierId: context.supplier.id,
+        supplierBillNumber: 'SUP-1002',
+        billDate: '2026-07-11',
+        dueDate: '2026-07-26',
+        taxMode: 'inclusive',
+        purchaseAccountId: context.purchaseAccountId,
+        inputGstAccountId: context.inputGstAccountId,
+        payableAccountId: context.payableAccountId,
+        stockAccountId: context.stockAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cut diamond',
+            quantity: '1',
+            unit: 'meter',
+            rate: '100.00',
+            gstRate: '0.25',
+          },
+        ],
+      },
+    )
+
+    // Before: taxable 99.75 + GST 0.24 posted 99.99 against a price of 100.
+    expect(bill.lines[0].taxableAmount).toBe('99.76')
+    expect(bill.lines[0].gstAmount).toBe('0.24')
+    expect(bill.totalAmount).toBe('100.00')
+    const payable = context.ledgerPosting
+      .list()[0]
+      .lines.find((line) => line.ledgerAccountId === context.payableAccountId)
+    expect(payable?.credit).toBe('100.00')
+  })
+
   test('blocks duplicate supplier bill number for same supplier/company/financial year', async () => {
     const context = await seedPurchaseContext()
 
@@ -222,6 +275,8 @@ describe('postPurchaseBill', () => {
         bills: context.bills,
         posting: context.ledgerPosting,
         stock: context.stock,
+        items: context.items,
+        parties: context.parties,
       },
       input,
     )
@@ -232,9 +287,153 @@ describe('postPurchaseBill', () => {
           bills: context.bills,
           posting: context.ledgerPosting,
           stock: context.stock,
+          items: context.items,
+          parties: context.parties,
         },
         input,
       ),
     ).rejects.toBeInstanceOf(DuplicateSupplierBillError)
+  })
+})
+
+describe('purchase bill stock value', () => {
+  test('values received stock at its share of taxable value plus charges', async () => {
+    const context = await seedPurchaseContext()
+    const service = await createItem(context.items, {
+      companyId: context.companyId,
+      name: 'Loading charges',
+      hsnCode: '9967',
+      gstRate: '18.00',
+      baseUnit: 'job',
+      purchaseRate: '0.00',
+      saleRate: '0.00',
+      tracksInventory: false,
+    })
+
+    await postPurchaseBill(
+      {
+        bills: context.bills,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+        parties: context.parties,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        financialYearStart: '2026-04-01',
+        supplierId: context.supplier.id,
+        supplierBillNumber: 'SUP-2001',
+        billDate: '2026-07-11',
+        dueDate: '2026-07-26',
+        purchaseAccountId: context.purchaseAccountId,
+        inputGstAccountId: context.inputGstAccountId,
+        payableAccountId: context.payableAccountId,
+        stockAccountId: context.stockAccountId,
+        freight: '100.00',
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity: '10',
+            unit: 'meter',
+            rate: '75.00',
+            gstRate: '5.00',
+          },
+          {
+            itemId: service.id,
+            description: 'Loading charges',
+            quantity: '1',
+            unit: 'job',
+            rate: '250.00',
+            gstRate: '18.00',
+          },
+        ],
+      },
+    )
+
+    // Freight 100 split 750 : 250 → 75 to the fabric, 25 to the service.
+    expect(
+      await context.stock.getValue(context.companyId, context.item.id),
+    ).toBe('825.00')
+    const entry = context.ledgerPosting.list()[0]
+    const debitOf = (accountId: string) =>
+      entry.lines.find((line) => line.ledgerAccountId === accountId)?.debit
+    expect(debitOf(context.stockAccountId)).toBe('825.00')
+    expect(debitOf(context.purchaseAccountId)).toBe('275.00')
+  })
+})
+
+describe('postPurchaseBill under reverse charge', () => {
+  async function postRcmBill(
+    overrides: Partial<Parameters<typeof postPurchaseBill>[1]> = {},
+  ) {
+    const context = await seedPurchaseContext()
+    const rcmAccountId = 'rcm-gst-payable'
+    const bill = await postPurchaseBill(
+      {
+        bills: context.bills,
+        posting: context.ledgerPosting,
+        stock: context.stock,
+        items: context.items,
+        parties: context.parties,
+      },
+      {
+        companyId: context.companyId,
+        companyStateCode: '27',
+        financialYearStart: '2026-04-01',
+        supplierId: context.supplier.id,
+        supplierBillNumber: 'GTA-77',
+        billDate: '2026-07-11',
+        dueDate: '2026-07-26',
+        reverseCharge: true,
+        reverseChargeAccountId: rcmAccountId,
+        freight: '100.00',
+        purchaseAccountId: context.purchaseAccountId,
+        inputGstAccountId: context.inputGstAccountId,
+        payableAccountId: context.payableAccountId,
+        stockAccountId: context.stockAccountId,
+        lines: [
+          {
+            itemId: context.item.id,
+            description: 'Cotton Fabric',
+            quantity: '100',
+            unit: 'meter',
+            rate: '80.00',
+            gstRate: '5.00',
+          },
+        ],
+        ...overrides,
+      },
+    )
+    return { context, bill, rcmAccountId }
+  }
+
+  test('owes the supplier only the value; the GST is our own liability with matching ITC', async () => {
+    const { context, bill, rcmAccountId } = await postRcmBill()
+
+    expect(bill.reverseCharge).toBe(true)
+    expect(bill.taxableAmount).toBe('8000.00')
+    expect(bill.totalGstAmount).toBe('400.00')
+    expect(bill.totalAmount).toBe('8100.00')
+    expect(bill.outstandingAmount).toBe('8100.00')
+    expect(bill.lines[0].lineTotal).toBe('8000.00')
+
+    const entry = context.ledgerPosting.list()[0]
+    const amount = (accountId: string, side: 'debit' | 'credit') =>
+      entry.lines.find((line) => line.ledgerAccountId === accountId)?.[side]
+    expect(amount(context.stockAccountId, 'debit')).toBe('8100.00')
+    expect(amount(context.inputGstAccountId, 'debit')).toBe('400.00')
+    expect(amount(context.payableAccountId, 'credit')).toBe('8100.00')
+    expect(amount(rcmAccountId, 'credit')).toBe('400.00')
+  })
+
+  test('needs prices without GST and a reverse charge ledger', async () => {
+    await expect(postRcmBill({ taxMode: 'inclusive' })).rejects.toThrow(
+      /reverse charge/i,
+    )
+    await expect(
+      postRcmBill({ reverseChargeAccountId: undefined }),
+    ).rejects.toThrow(/reverse charge/i)
   })
 })

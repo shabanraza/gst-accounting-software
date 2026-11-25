@@ -1,7 +1,5 @@
 import { ComparisonTable } from '#/features/marketing/components/comparison-table.tsx'
-import { FeatureGrid } from '#/features/marketing/components/feature-grid.tsx'
-import { HowItWorks } from '#/features/marketing/components/how-it-works.tsx'
-import { KeyboardSpeed } from '#/features/marketing/components/keyboard-speed.tsx'
+import { FeatureShowcase } from '#/features/marketing/components/feature-showcase.tsx'
 import { LandingContact } from '#/features/marketing/components/landing-contact.tsx'
 import { LandingCta } from '#/features/marketing/components/landing-cta.tsx'
 import { LandingFaq } from '#/features/marketing/components/landing-faq.tsx'
@@ -9,7 +7,9 @@ import { LandingFeedback } from '#/features/marketing/components/landing-feedbac
 import { LandingFooter } from '#/features/marketing/components/landing-footer.tsx'
 import { LandingHeader } from '#/features/marketing/components/landing-header.tsx'
 import { LandingHero } from '#/features/marketing/components/landing-hero.tsx'
-import { RoadmapStrip } from '#/features/marketing/components/roadmap-strip.tsx'
+import { PathwayCards } from '#/features/marketing/components/pathway-cards.tsx'
+import { SecuritySection } from '#/features/marketing/components/security-section.tsx'
+import { TrustStrip } from '#/features/marketing/components/trust-strip.tsx'
 
 export function LandingPage() {
   return (
@@ -17,11 +17,11 @@ export function LandingPage() {
       <LandingHeader />
       <main>
         <LandingHero />
-        <HowItWorks />
-        <KeyboardSpeed />
-        <FeatureGrid />
+        <TrustStrip />
+        <FeatureShowcase />
+        <PathwayCards />
+        <SecuritySection />
         <ComparisonTable />
-        <RoadmapStrip />
         <LandingFeedback />
         <LandingFaq />
         <LandingContact />

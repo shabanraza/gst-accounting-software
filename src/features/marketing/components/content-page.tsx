@@ -36,7 +36,7 @@ export function ContentArticlePage({
   return (
     <MarketingPageShell>
       <PageHero
-        crumbs={[{ label: collection.hubLabel, href: collection.basePath }, { label: page.label }]}
+        crumbs={[{ label: collection.hubLabel, to: collection.basePath }, { label: page.label }]}
         headline={page.headline}
         intro={page.intro}
       />
@@ -45,7 +45,7 @@ export function ContentArticlePage({
         body="Billing, purchases, stock, party ledgers, and GST reports on proper double-entry books. Free, in your browser."
         title={`Run your GST billing in ${SITE.name}`}
       />
-      <LandingFaq id="faq" items={page.faq} title="Common questions" />
+      <LandingFaq align="start" id="faq" items={page.faq} title="Common questions" />
       {tools.length > 0 ? (
         <section className="mx-auto max-w-6xl px-4 pb-12" data-ui="chrome">
           <h2 className="font-heading text-xl font-semibold tracking-tight">Free tools for this</h2>
@@ -62,12 +62,13 @@ export function ContentArticlePage({
           <ul className="mt-4 flex flex-wrap gap-2">
             {others.map((other) => (
               <li key={other.slug}>
-                <a
+                <Link
                   className="inline-flex rounded-md bg-muted px-3 py-1.5 text-sm text-foreground hover:bg-muted/70"
-                  href={`${collection.basePath}/${other.slug}`}
+                  params={{ slug: other.slug }}
+                  to={collection.pageRoute}
                 >
                   {other.label}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
@@ -92,10 +93,11 @@ export function ContentHubPage({
       <section className="mx-auto max-w-6xl px-4 pb-16" data-ui="chrome">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {collection.pages.map((page) => (
-            <a
+            <Link
               key={page.slug}
               className="group rounded-[var(--radius-hero)] outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
-              href={`${collection.basePath}/${page.slug}`}
+              params={{ slug: page.slug }}
+              to={collection.pageRoute}
             >
               <Card className="h-full transition-shadow group-hover:shadow-(--elevation-2)" size="hero">
                 <CardHeader>
@@ -103,7 +105,7 @@ export function ContentHubPage({
                   <CardDescription className="text-sm">{page.seoDescription}</CardDescription>
                 </CardHeader>
               </Card>
-            </a>
+            </Link>
           ))}
         </div>
       </section>

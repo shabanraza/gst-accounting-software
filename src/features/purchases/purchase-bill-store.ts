@@ -7,10 +7,9 @@ import {
   documentSearchCondition,
   keysetBeforeCursorCondition,
   parseListCursor,
-  resolveListLimit
-  
+  resolveListLimit,
 } from '#/lib/list-query.ts'
-import type {ListQueryOptions} from '#/lib/list-query.ts';
+import type { ListQueryOptions } from '#/lib/list-query.ts'
 
 import type { AppDatabase } from '#/db/client.ts'
 import type { TaxMode } from '#/features/accounting/voucher-math.ts'
@@ -46,6 +45,10 @@ export class InMemoryPurchaseBillRepository implements PurchaseBillRepository {
 
   async findById(id: string) {
     return this.bills.find((bill) => bill.id === id) ?? null
+  }
+
+  async lockById(id: string) {
+    return this.findById(id)
   }
 
   async save(bill: PurchaseBillRecord) {
@@ -235,11 +238,21 @@ export class DrizzlePurchaseBillRepository implements PurchaseBillRepository {
   }
 
   async findById(id: string) {
-    const bills = await this.database
+    return this.load(id, false)
+  }
+
+  /** Like findById, but row-locks the bill until the transaction ends. */
+  async lockById(id: string) {
+    return this.load(id, true)
+  }
+
+  private async load(id: string, lock: boolean) {
+    const query = this.database
       .select()
       .from(schema.purchaseBills)
       .where(eq(schema.purchaseBills.id, id))
       .limit(1)
+    const bills = await (lock ? query.for('update') : query)
 
     if (bills.length === 0) {
       return null

@@ -41,6 +41,11 @@ export const auth = betterAuth({
         }),
       }
     : {}),
+  session: {
+    // Every API call reads the session; a signed cookie copy saves that
+    // database round trip. A revoked session stays valid for at most 5 minutes.
+    cookieCache: { enabled: true, maxAge: 5 * 60 },
+  },
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url }) => {

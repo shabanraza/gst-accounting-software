@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
+import { skipToken, useQuery } from '@tanstack/react-query'
 import { CheckCircle2Icon } from 'lucide-react'
 
 import { Button } from '#/components/ui/button.tsx'
@@ -33,6 +33,8 @@ type VoucherPreviewSheetProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onDone?: () => void
+  /** Called when the user picks "Create another" after saving. */
+  onCreateAnother?: () => void
 }
 
 export function VoucherPreviewSheet({
@@ -40,45 +42,44 @@ export function VoucherPreviewSheet({
   open,
   onOpenChange,
   onDone,
+  onCreateAnother,
 }: VoucherPreviewSheetProps) {
   const trpc = useTRPC()
   const { companyId, company, isReady } = useWorkspace()
 
   const salesQuery = useQuery({
-    ...trpc.sales.getById.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      id: target?.id ?? '',
-    }),
-    enabled:
-      open &&
-      target?.kind === 'sales' &&
-      Boolean(target.id) &&
-      Boolean(companyId) &&
-      isReady,
+    ...trpc.sales.getById.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            id: target?.id ?? '',
+          }
+        : skipToken,
+    ),
+    enabled: open && target?.kind === 'sales' && Boolean(target.id),
   })
   const purchaseQuery = useQuery({
-    ...trpc.purchases.getById.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      id: target?.id ?? '',
-    }),
-    enabled:
-      open &&
-      target?.kind === 'purchase' &&
-      Boolean(target.id) &&
-      Boolean(companyId) &&
-      isReady,
+    ...trpc.purchases.getById.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            id: target?.id ?? '',
+          }
+        : skipToken,
+    ),
+    enabled: open && target?.kind === 'purchase' && Boolean(target.id),
   })
   const partiesQuery = useQuery({
-    ...trpc.parties.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady && open,
+    ...trpc.parties.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+    enabled: open,
   })
   const itemsQuery = useQuery({
-    ...trpc.inventory.listItems.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady && open,
+    ...trpc.inventory.listItems.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+    enabled: open,
   })
 
   const itemById = React.useMemo(
@@ -151,6 +152,12 @@ export function VoucherPreviewSheet({
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent
         className="flex w-full max-w-none flex-col gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:w-[60vw] data-[side=right]:sm:max-w-[60vw]"
+        onInteractOutside={(event) => {
+          // Answering a toast (e.g. the product-updates prompt) must not close the preview.
+          if ((event.target as Element | null)?.closest('[data-sonner-toast]')) {
+            event.preventDefault()
+          }
+        }}
         showCloseButton
       >
         <SheetHeader className="shrink-0 border-b px-6 py-4">
@@ -178,18 +185,18 @@ export function VoucherPreviewSheet({
 
           <div className="flex min-h-0 flex-1 justify-center overflow-y-auto bg-background px-4 py-6 sm:px-6 sm:py-8">
             {isLoading ? (
-              <div className="mx-auto flex aspect-[210/297] w-full max-w-[min(794px,calc(60vw-3rem))] shrink-0 items-center justify-center rounded-lg border border-dashed bg-background p-10 text-center text-sm text-muted-foreground">
+              <div className="mx-auto flex aspect-[210/297] w-full max-w-[794px] sm:max-w-[min(794px,calc(60vw-3rem))] shrink-0 items-center justify-center rounded-lg border border-dashed bg-background p-10 text-center text-sm text-muted-foreground">
                 Loading preview…
               </div>
             ) : printDocument ? (
-              <div className="mx-auto aspect-[210/297] w-full max-w-[min(794px,calc(60vw-3rem))] shrink-0">
+              <div className="mx-auto aspect-[210/297] w-full max-w-[794px] sm:max-w-[min(794px,calc(60vw-3rem))] shrink-0">
                 <VoucherDocumentPaper
-                  className="h-full min-h-0 overflow-y-auto shadow-md print:h-auto print:overflow-visible"
+                  className="h-full min-h-0 overflow-y-auto shadow-(--elevation-1) print:h-auto print:overflow-visible"
                   document={printDocument}
                 />
               </div>
             ) : (
-              <div className="mx-auto flex aspect-[210/297] w-full max-w-[min(794px,calc(60vw-3rem))] shrink-0 items-center justify-center rounded-lg border border-dashed bg-background p-10 text-center text-sm text-destructive">
+              <div className="mx-auto flex aspect-[210/297] w-full max-w-[794px] sm:max-w-[min(794px,calc(60vw-3rem))] shrink-0 items-center justify-center rounded-lg border border-dashed bg-background p-10 text-center text-sm text-destructive">
                 Could not load voucher preview.
               </div>
             )}
@@ -204,7 +211,6 @@ export function VoucherPreviewSheet({
               companyName={printDocument.company.legalName}
               invoiceId={target.id}
               invoiceNumber={target.number}
-              printPath={fullPageHref}
             />
           ) : null}
           <Button
@@ -222,6 +228,7 @@ export function VoucherPreviewSheet({
               onClick={() => {
                 onOpenChange(false)
                 onDone?.()
+                onCreateAnother?.()
               }}
               to={createAnotherHref}
             >

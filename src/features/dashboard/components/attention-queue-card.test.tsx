@@ -69,7 +69,9 @@ function renderQueue(items: Array<AttentionItem>) {
   const indexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/',
-    component: () => <AttentionQueueCard items={items} />,
+    component: () => (
+      <AttentionQueueCard companyName="Test Company" items={items} />
+    ),
   })
 
   const router = createRouter({
@@ -88,7 +90,15 @@ function renderQueue(items: Array<AttentionItem>) {
         '/app/inventory',
         z.object({ item: z.string().uuid().optional().catch(undefined) }),
       ),
-      stubRoute('/app/reports', z.object({})),
+      stubRoute(
+        '/app/reports',
+        z.object({ tab: z.string().optional().catch(undefined) }),
+      ),
+      stubRoute(
+        '/app/payments',
+        z.object({ mode: z.string().optional().catch(undefined) }),
+      ),
+      stubRoute('/app/purchase-orders', z.object({})),
     ]),
   })
 
@@ -100,7 +110,7 @@ function renderQueue(items: Array<AttentionItem>) {
 async function rowHref(item: AttentionItem) {
   const container = renderQueue([item])
   const links = await waitFor(() => {
-    const found = container.querySelectorAll('a')
+    const found = container.querySelectorAll('a[data-row-link]')
     expect(found).toHaveLength(1)
     return found
   })
@@ -124,5 +134,55 @@ describe('AttentionQueueCard links', () => {
 
   test('leaves a paramless row with a bare pathname', async () => {
     expect(await rowHref(gst)).toBe('/app/reports')
+  })
+})
+
+/** The row's action buttons, as label → href. */
+async function rowActions(item: AttentionItem) {
+  const container = renderQueue([item])
+  await waitFor(() => {
+    expect(container.querySelectorAll('[data-attention-row]')).toHaveLength(1)
+  })
+  return Object.fromEntries(
+    [...container.querySelectorAll('a[data-row-action]')].map((link) => [
+      link.textContent.trim(),
+      link.getAttribute('href'),
+    ]),
+  )
+}
+
+describe('AttentionQueueCard actions', () => {
+  afterEach(cleanup)
+
+  test('offers a WhatsApp reminder and a receipt for an overdue customer with a mobile', async () => {
+    const actions = await rowActions({ ...receivable, contactPhone: '98765 43210' })
+
+    expect(actions.Remind).toMatch(/^https:\/\/wa\.me\/919876543210\?text=/)
+    expect(actions.Remind).toContain(encodeURIComponent('Test Company'))
+    expect(actions.Receipt).toBe('/app/payments?mode=receipts')
+  })
+
+  test('skips the reminder when the customer has no mobile number', async () => {
+    const actions = await rowActions(receivable)
+
+    expect(actions.Remind).toBeUndefined()
+    expect(actions.Receipt).toBe('/app/payments?mode=receipts')
+  })
+
+  test('opens the right screen for payables, low stock and GST', async () => {
+    expect(
+      await rowActions({
+        ...receivable,
+        id: 'overdue-payable:party-2',
+        kind: 'overdue-payable',
+        to: '/app/purchases',
+      }),
+    ).toEqual({ Pay: '/app/payments?mode=payments' })
+    expect(await rowActions(lowStock)).toEqual({ Reorder: '/app/purchase-orders' })
+    expect(await rowActions(gst)).toEqual({ 'GSTR-3B': '/app/reports?tab=gstr3b' })
+  })
+
+  test('shows no actions on a row the caller cannot act on', async () => {
+    expect(await rowActions({ ...receivable, actionable: false })).toEqual({})
   })
 })

@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { BookOpenIcon, WalletCardsIcon } from 'lucide-react'
 
 import { toast } from 'sonner'
@@ -23,6 +28,7 @@ import {
   TableRow,
 } from '#/components/ui/table.tsx'
 import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs.tsx'
+import { AccountLedgerSheet } from '#/features/accounting/components/account-ledger-sheet.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
@@ -53,16 +59,18 @@ function formatAccountType(accountType: LedgerAccountType) {
 export function ChartOfAccountsPanel() {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
-  const { companyId, company, isReady, refresh } = useWorkspace()
+  const { companyId, company, capabilities, isReady, refresh } = useWorkspace()
   const [typeFilter, setTypeFilter] = React.useState<AccountTypeFilter>('all')
   const [searchQuery, setSearchQuery] = React.useState('')
+  const [ledgerAccount, setLedgerAccount] =
+    React.useState<LedgerAccountRecord | null>(null)
+  const canViewLedger = capabilities.includes('view_reports')
 
-  const accountsQuery = useQuery({
-    ...trpc.accounting.listLedgerAccounts.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const accountsQuery = useQuery(
+    trpc.accounting.listLedgerAccounts.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const setupChart = useMutation(
     trpc.accounting.setupChartOfAccounts.mutationOptions(),
@@ -204,7 +212,7 @@ export function ChartOfAccountsPanel() {
                     <TableHead className="w-28 pl-6">Code</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead className="w-36">Type</TableHead>
-                    <TableHead className="w-28 pr-6">System</TableHead>
+                    <TableHead className="w-28 pr-6">Built-in</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -214,7 +222,17 @@ export function ChartOfAccountsPanel() {
                         {account.code}
                       </TableCell>
                       <TableCell className="font-medium">
-                        {account.name}
+                        {canViewLedger ? (
+                          <button
+                            className="text-left underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"
+                            onClick={() => setLedgerAccount(account)}
+                            type="button"
+                          >
+                            {account.name}
+                          </button>
+                        ) : (
+                          account.name
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -225,7 +243,7 @@ export function ChartOfAccountsPanel() {
                       </TableCell>
                       <TableCell className="pr-6">
                         {account.isSystem ? (
-                          <Badge variant="neutral">System</Badge>
+                          <Badge variant="neutral">Built-in</Badge>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
@@ -245,6 +263,12 @@ export function ChartOfAccountsPanel() {
           </CardContent>
         </Card>
       )}
+      <AccountLedgerSheet
+        account={ledgerAccount}
+        onOpenChange={(open) => {
+          if (!open) setLedgerAccount(null)
+        }}
+      />
     </WorkspacePage>
   )
 }

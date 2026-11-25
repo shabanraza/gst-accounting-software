@@ -4,9 +4,10 @@ import * as WebBrowser from 'expo-web-browser'
 import {
   buildVoucherPrintUrl,
   buildVoucherShareMessage,
-  buildWhatsAppShareUrl,
-  type VoucherShareKind,
+  buildWhatsAppShareUrl
+  
 } from '@/lib/voucher-share-urls'
+import type {VoucherShareKind} from '@/lib/voucher-share-urls';
 
 export type { VoucherShareKind } from '@/lib/voucher-share-urls'
 export {

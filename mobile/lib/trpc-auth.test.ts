@@ -1,5 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import {
+  ensureTrpcAuthReady,
+  extractAuthTokenFromResponse,
+  extractSignInToken,
+  extractTokenFromCookieHeader,
+  hasStoredAuthSession,
+  normalizeSessionToken,
+  persistAuthTokenFromSignIn,
+  persistSessionToken,
+  pickBestSessionToken,
+  readSessionTokenForAuth,
+  readTrpcAuthHeaders,
+  requireTrpcAuthReady,
+} from './trpc-auth.ts'
+import { AUTH_SESSION_TOKEN_KEY } from './auth-storage.ts'
+
 const storage = new Map<string, string>()
 
 const { getSession, getCookie } = vi.hoisted(() => ({
@@ -33,27 +49,12 @@ vi.mock('./auth-client.ts', () => ({
   consumeLastAuthToken,
 }))
 
-import {
-  ensureTrpcAuthReady,
-  extractAuthTokenFromResponse,
-  extractSignInToken,
-  extractTokenFromCookieHeader,
-  hasStoredAuthSession,
-  normalizeSessionToken,
-  persistAuthTokenFromSignIn,
-  persistSessionToken,
-  pickBestSessionToken,
-  readSessionTokenForAuth,
-  readTrpcAuthHeaders,
-  requireTrpcAuthReady,
-} from './trpc-auth.ts'
-import { AUTH_SESSION_TOKEN_KEY } from './auth-storage.ts'
-
 describe('trpc-auth', () => {
   beforeEach(() => {
     storage.clear()
     getSession.mockReset()
     getCookie.mockReset()
+    getCookie.mockReturnValue('')
     consumeLastAuthToken.mockReset()
     consumeLastAuthToken.mockReturnValue(null)
     getSession.mockResolvedValue({ data: null })

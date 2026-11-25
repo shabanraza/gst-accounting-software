@@ -7,11 +7,6 @@ import { InMemoryCompanyRepository } from '#/features/companies/company-store.ts
 import { InMemoryFinancialYearRepository } from '#/features/companies/financial-year-store.ts'
 import { InMemoryMembershipRepository } from '#/features/companies/membership-store.ts'
 import { InMemoryGodownRepository } from '#/features/inventory/godown-store.ts'
-import {
-  InMemoryItemRepository,
-  InMemoryStockStore,
-} from '#/features/inventory/inventory-store.ts'
-import { InMemoryPartyRepository } from '#/features/parties/party-store.ts'
 import { createTRPCRouter } from '#/integrations/trpc/init.ts'
 
 import type { TRPCContext } from '#/integrations/trpc/init.ts'
@@ -31,9 +26,6 @@ const appRouter = () => {
   const memberships = new InMemoryMembershipRepository()
   const audit = new InMemoryAuditLogRepository()
   const godowns = new InMemoryGodownRepository()
-  const parties = new InMemoryPartyRepository()
-  const items = new InMemoryItemRepository()
-  const stock = new InMemoryStockStore()
 
   return createTRPCRouter({
     companies: createCompaniesRouter({
@@ -43,9 +35,6 @@ const appRouter = () => {
       memberships,
       audit,
       godowns,
-      parties,
-      items,
-      stock,
     }),
   })
 }
@@ -61,15 +50,35 @@ describe('companies router', () => {
       stateCode: '27',
       financialYearStart: '2026-04-01',
       businessType: 'wholesale',
+      addressLine1: 'Shop 4, Station Road',
+      city: 'Pune',
+      pincode: '411001',
     })
 
+    expect(result.company.addressLine1).toBe('Shop 4, Station Road')
+    expect(result.company.city).toBe('Pune')
+    expect(result.company.pincode).toBe('411001')
     expect(result.company.gstin).toBe('27ABCDE1234F1Z5')
     expect(result.company.tradeName).toBe('Shaban Textiles')
     expect(result.company.id).toBeTruthy()
     expect(result.membership.role).toBe('owner')
     expect(result.ledgerAccounts.length).toBeGreaterThan(0)
-    expect(result.starterData.parties.length).toBeGreaterThan(0)
-    expect(result.starterData.items.length).toBeGreaterThan(0)
+    expect(result).not.toHaveProperty('starterData')
+  })
+
+  test('requires a billing address when the company has a GSTIN', async () => {
+    const caller = appRouter().createCaller(testContext(crypto.randomUUID()))
+
+    await expect(
+      caller.companies.createWithSetup({
+        legalName: 'Shaban Textiles Private Limited',
+        tradeName: 'Shaban Textiles',
+        gstin: '27ABCDE1234F1Z5',
+        stateCode: '27',
+        financialYearStart: '2026-04-01',
+        businessType: 'wholesale',
+      }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
   })
 
   test('lists only companies the signed-in user belongs to', async () => {
@@ -84,6 +93,9 @@ describe('companies router', () => {
       stateCode: '27',
       financialYearStart: '2026-04-01',
       businessType: 'wholesale',
+      addressLine1: 'Shop 4, Station Road',
+      city: 'Pune',
+      pincode: '411001',
     })
 
     await router.createCaller(testContext(userB)).companies.createWithSetup({
@@ -93,6 +105,9 @@ describe('companies router', () => {
       stateCode: '24',
       financialYearStart: '2026-04-01',
       businessType: 'trading',
+      addressLine1: 'Plot 8, Ring Road',
+      city: 'Surat',
+      pincode: '395002',
     })
 
     const companies = await router
@@ -115,6 +130,9 @@ describe('companies router', () => {
       stateCode: '27',
       financialYearStart: '2026-04-01',
       businessType: 'wholesale',
+      addressLine1: 'Shop 4, Station Road',
+      city: 'Pune',
+      pincode: '411001',
     })
 
     const first = await caller.companies.ensureWorkspace({

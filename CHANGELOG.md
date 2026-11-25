@@ -1,0 +1,178 @@
+# Changelog
+
+All notable changes to HisaabKro are recorded here. The public page at
+https://hisaabkro.in/changelog and the in-app "What's new" panel are built
+from this file.
+
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
+and versions follow [Semantic Versioning](https://semver.org/). See
+`docs/release-process.md` for how a release is cut.
+
+Write entries for business users: say what changed for them, not how it was
+built. Never include customer names, balances or other real data.
+
+## [Unreleased]
+
+### Fixed
+
+- CGST and SGST are now always equal on same-state invoices and bills, as e-invoicing requires. Each half is worked out on its own and the GST total is the two added together, so a line can no longer show halves that don't add up to the total (for example ₹0.13 + ₹0.13 against ₹0.25). GST reports and printed invoices split older documents so CGST plus SGST always equals the GST you recorded, and a 0.25% rate now prints as 0.125% CGST and 0.125% SGST.
+- A sales or purchase return can no longer reverse more GST than the original invoice or bill charged. Returning everything that's left reverses exactly the GST that's left, so no paisa stays due.
+- Prices that include GST now come out to exactly the price you enter. ₹100 at 0.25% used to post ₹99.99; the GST is worked out with equal CGST and SGST and the taxable value takes the rest.
+- Same-state expenses round CGST and SGST each, the same way as invoices, so the two always match.
+- Returns are valued at what the original invoice or bill actually charged for the item. On an invoice priced with GST included, the GST is no longer added on top, and a line discount on the invoice or bill now carries into the return.
+- When a page fails to load you now see what went wrong, with Try again and Report a problem, instead of a blank error. A report sent from there includes the error, so support can find the cause faster.
+- Opening a page link before your company is set up now takes you to company setup, instead of showing "No company found for this account" on every page.
+- E-way bill numbers can be saved with 14 digits as well as 12, ready for the longer numbers the portal issues from 1 January 2027.
+
+### Added
+
+- Guides: open Help → Guides for short, step-by-step how-tos on setting up your company, adding parties and items, sales invoices, purchase bills, receipts and payments, returns, GSTR-1 and GSTR-3B, e-way bills, Tally export and backup, and inviting your team. Each guide links straight to the page it starts on. The same guides are on the web at hisaabkro.in/help.
+- E-way bills for sales invoices and delivery challans: pick the truck icon on an invoice in Sales, or E-way bill on a delivery challan, enter the transport details (vehicle or transporter ID, mode, distance) and download the JSON file to upload on the e-way bill portal. After the portal gives you the e-way bill number, save it with its validity, which is filled in from the distance. Invoices that need an e-way bill and don't have one yet show "EWB due" in the sales register. The limit is ₹50,000, or the higher limit some states set for goods moving within the state.
+- Reverse charge purchases: choose Reverse charge as the tax type on a purchase bill when you pay the GST instead of the supplier (for example legal or transport services, or goods notified for reverse charge). The supplier is owed the bill value only, the GST is booked to a GST Payable (Reverse Charge) ledger with the matching input tax credit, and GSTR-3B shows it in 3.1(d) and 4(A)(3). Returns against these bills reverse both sides, and the Tally export carries the reverse charge ledger.
+- More GST rates when you create an item or record an expense: the new 40% rate, plus 0.1%, 0.25%, 1%, 1.5%, 3% (gold, silver and jewellery), 6% and 7.5%. 12% and 28% are still there for older bills and items still taxed at those rates.
+
+## [0.5.0] - 2026-11-19
+
+### Added
+
+- Recurring invoices: pick the repeat icon on a sales invoice to bill the same customer every week, month, 3 months or year, starting on the date you choose and, if you like, stopping on an end date. Sales → Recurring invoices lists each one with its next date; when an invoice is due, Create invoice makes it with the next invoice number, the same items and rates, and the same payment terms. Pause, resume or stop any of them.
+- GST on expenses: choose a GST rate when you record an expense, add the supplier, their GSTIN and the bill number, and tick Claim input tax credit. The GST goes to Input GST and counts towards your ITC in GSTR-3B; leave the box unticked and it stays part of the expense. The expense register shows the GST on each expense.
+- Opening balances for customers and suppliers: enter what a party owed you, or what you owed them, before you started using HisaabKro when you add or edit the party. It is posted to your books, shows in the party statement and the amount due, and you can adjust receipts and payments against it like an invoice or bill.
+- Statement of account for each customer and supplier: open Customers & suppliers and pick the statement icon on a row. It lists every invoice, bill, credit and debit note, receipt and payment for the dates you choose, with the opening balance, the balance after each entry and the closing balance. Print it or download it as CSV.
+- Barcode labels for retail shops: open Items → Print labels, pick items and how many labels each, and print on an A4 label sheet or a 50 × 25 mm label roll. Labels show the item name, MRP and sale price. Items without a barcode get their own store code, and you can enter a product's existing EAN/UPC barcode when adding an item. Scan a label into the item search on a sale or purchase to pick that item.
+- Edit items from the Items page: change the barcode, name, HSN, GST rate, units or rates of an item you already have.
+- A Scan barcode box on sales and purchase bills: each scan adds the item as a new line, and scanning it again adds one more to that line.
+- The audit log in Settings now records every sales invoice saved or cancelled, purchase bill, confirmed scanned bill, receipt, payment, credit and debit note, expense and journal voucher, showing who did it, when, the document number and the amount.
+- The audit log in Settings also records parties, items and godowns added or edited, opening stock, company profile edits, team invites, role changes and removals, and data imports with how many rows were added. For an edit, open the row to see exactly what changed, from what to what. Filter the log by type, person and dates, and download it as a CSV file.
+- Stock journal on the Inventory page: enter a physical stock count and the difference is adjusted for you, write off damaged or lost stock (booked to a new Stock Adjustment expense ledger at average cost), or move stock from one godown to another. The Inventory page now also shows stock by godown, and clicking an item opens its stock history with every movement and the running balance.
+- Sales & profit reports under Reports: see quantity, taxable value, GST, cost and profit for each item, sales and outstanding for each customer, and profit on each invoice for any date range. Sales returns are deducted, cost is what the stock was worth when you sold it, and you can sort any column and download what you see as CSV.
+- Ledger statement for any account: in Chart of accounts, click an account such as Cash, Bank, Sales, Rent or Output GST to see its opening balance, every entry in the period with the other account and a running Dr/Cr balance, and the closing balance. It shows the current financial year by default, and you can print it or download it as CSV.
+- Download for Tally (XML) in Reports → Export: pick a period and get two files your accountant can import into Tally Prime, one with your ledgers, customers and suppliers (with GSTIN, state and address) and stock items, and one with that period's sales, purchases, receipts, payments, journals and credit/debit notes. Cancelled invoices are left out.
+- Numbered receipts and payments (RCT-0001, PAY-0001 each financial year) by cash, bank transfer, UPI or cheque, with the cheque or UTR number and the cash or bank account used. One receipt or payment can settle several bills at once, and any amount left over is kept as an advance for that party. Receipts & payments now has a register of every voucher, a printable receipt, and a way to cancel a voucher, which gives the bills their balance back.
+- Get paid by UPI: add your UPI ID in the company profile, and sales invoices with money still due show a "Scan to pay with any UPI app" QR code for that amount. Invoices shared on WhatsApp or email now open for your customer without a login, with Print, Download PDF and, on a phone, a Pay with UPI app button. The link shows only that invoice, stops working if you cancel the invoice, and expires after 90 days.
+
+### Changed
+
+- The home page now shows Ask AI in action: a question being typed, then the answer and the figures behind it.
+- Amounts in sales, purchases, payments, expenses, stock and GST report tables now line up on the right so figures are easier to compare, long forms in pop-up windows scroll on phones, and invoice previews use the full screen width on phones.
+
+### Fixed
+
+- A credit note now lowers what the customer still owes on the invoice, and a debit note lowers what you owe on the bill, so the amount due, payment status and receivables are right after a return. A return can no longer add up to more than the invoice or bill.
+- Customer and supplier opening balances now show in receivables and payables ageing, the dashboard's dues, and Ask AI's answers about who owes what.
+- The Tally export carries customer and supplier opening balances on their ledgers in Tally.
+- GSTR-2B reconciliation now matches expenses whose input tax credit you claimed, not only purchase bills.
+- New sales invoices and purchase bills for a party in another state now set the place of supply to that party's state, so they save without the "place of supply outside your company state" error. This also works for a party you add from the invoice form.
+- Sales and purchase registers update straight away after you cancel an invoice, save a bill or scanned bill, or record a receipt or payment, instead of showing the old status until you reload.
+- Download for Tally (XML) works again for companies that have used the stock journal. Before, it stopped with an error once a Stock Adjustment ledger existed; that ledger now goes under Indirect Expenses in Tally.
+- The new receipt and payment window waits for the customer's open invoices or supplier's open bills to load before you can save, so a receipt is no longer kept as an advance just because the list hadn't appeared yet. Its first column now reads Invoice for receipts.
+- Sales & profit reports label the value column Net taxable, since sales returns are already deducted from it.
+
+## [0.4.0] - 2026-10-31
+
+### Added
+
+- Ask your books: type a question in Hindi or English, such as "how much does a customer owe?", "GST payable this month?" or "top items sold in October", and get the figure from your own data with a link to the matching report. Open Ask AI at the top of the sidebar (or press Alt+A) for a chat that keeps your conversation while you work. It only reads your books and never changes them. Each company can ask up to 20 questions a day.
+- The GSTR-1 report now includes sales to unregistered customers: B2C large invoices (other-state sales above ₹1 lakh) and B2C small totals by place of supply and GST rate. These are also in the GSTR-1 JSON export.
+- You can upload the GSTR-1 file downloaded from the GST portal to compare it with your sales invoices, instead of pasting it.
+- GSTR-1 now includes credit notes from sales returns: notes to registered customers and notes against B2C large invoices each have their own section, and other returns from unregistered customers reduce the B2C small totals. GSTR-3B and the dashboard GST card count the same credit notes, and purchase returns now reduce input GST.
+- The GSTR-1 report is laid out section by section as on the GST portal (B2B, B2C large, B2C others, credit notes), with section totals and a line for each GST rate on an invoice.
+- Download GSTR-1 as a JSON file in the GST portal's upload layout for the period you pick.
+- GSTR-1 now includes the HSN summary (Table 12), split into B2B and B2C as on the GST portal, and the documents issued list (Table 13) with each invoice series, credit notes, and cancelled invoices. Both are on the GSTR-1 tab and in the JSON download.
+
+### Changed
+
+- The GSTR-1 report now shows one return period at a time (this month by default) instead of the whole financial year.
+- GSTR-3B now follows the same return period as GSTR-1 (this month by default) instead of the whole financial year, and shows Table 3.1(a) outward taxable supplies and Table 4 eligible ITC with IGST, CGST and SGST in separate columns, as on the GST portal.
+- GSTR-3B now shows sales of 0% GST items in Table 3.1(c) nil rated and exempted supplies instead of Table 3.1(a), net of sales returns, as on the GST portal.
+- Companies without a GSTIN now see that they don't file GSTR-1, instead of an empty report.
+- Credit notes from sales returns and debit notes from purchase returns are now numbered in a running series for each financial year (CN-0001, CN-0002, … and DN-0001, …) instead of a random code. Notes you have already posted keep their numbers.
+- A redesigned home page at hisaabkro.in with real screens from the app: the dashboard, a GST tax invoice, stock, ageing and the HSN summary.
+- Plainer wording across the app, using the names accountants already know: Sales invoices, Purchase bills, Receipts & payments, Scanned bills, Goods receipt (GRN), Quotations & orders, and Credit / debit notes for returns.
+- Import now has "Check file" and "Import" buttons, and tells you how many rows are ready or have problems.
+- Clearer column names in bank reconciliation (As per bank, As per books), ageing (Age) and GST matching (Taxable and GST as per books).
+- The new company form no longer shows a sample business name.
+- The Items page and the New item window now use plain wording.
+
+### Fixed
+
+- You can add another company from Masters → Companies again. The New company window now asks for the business address, city and PIN code, which are required when you enter a GSTIN.
+- Credit notes for sales returns of 0% GST items can now be posted. Before, posting stopped with a message that each ledger line must have a debit or credit amount.
+- Sales and purchase returns can be posted from the Returns screen again. Before, posting stopped with a message that the selected invoice or bill had no line items.
+- The New item window no longer fills in an opening stock of 100. Opening stock stays empty, and no stock is added unless you type a quantity.
+- Cancelled sales invoices are no longer counted in GSTR-1, GSTR-3B or the GST card on the dashboard.
+- GST reports now use the place of supply on each sales invoice (for example a ship-to state) instead of the customer's state, so CGST/SGST or IGST is shown correctly.
+- The Stock page now marks an item as low stock when it is at or below its reorder level, matching the dashboard's low-stock alert. Items with no reorder level still show as low when they run out.
+- Clearer wording on the Stock page and in the GSTR-1 comparison.
+- New quotations, sales orders and delivery challans are numbered in their own series for each financial year (QT-0001, SO-0001, DC-0001), the same series the mobile app uses, instead of a long code, and their status reads Open or Converted. Existing document numbers are unchanged.
+
+## [0.3.0] - 2026-10-29
+
+### Added
+
+- A public changelog at hisaabkro.in/changelog, and a "What's new" panel inside the app.
+- A Help menu in the app with the help center, keyboard shortcuts, contact support and a "Report a problem" form.
+- Product update emails you can turn on in Settings. They're off unless you choose them, and every email has an unsubscribe link.
+- You can choose product update emails when you sign up, or say yes or no once after saving an invoice.
+- Move from Tally: import your parties, stock items and opening stock straight from a Tally masters export (XML). Excel (.xlsx) files can be imported too, and common column names such as "Customer Name", "Stock Item", "UOM" and "IGST" are recognised.
+- The import check now lists which rows have problems and why.
+- A new dashboard. The top shows this month's sales, what customers owe you (and how much is overdue), what you owe suppliers (and what falls due this week), and cash and bank.
+- A setup checklist for new companies: business details, first party, first item and first sales invoice, each ticked off as you do it.
+- Send a payment reminder on WhatsApp straight from an overdue customer on the dashboard, or record their receipt in one click.
+- A GST card on the dashboard with this month's output GST, input tax credit, net payable and the monthly filing dates.
+- Top dues: your largest customer and supplier balances, with the overdue part.
+- Quick actions for a new sale, purchase, receipt or payment, with keyboard shortcuts Alt+S, Alt+P, Alt+R and Alt+Y.
+- Goa, Puducherry, Ladakh, Lakshadweep, Andaman and Nicobar Islands, and Dadra and Nagar Haveli and Daman and Diu are now in the state list.
+
+### Fixed
+
+- Imported items keep their GST rate, and 6- and 8-digit HSN codes are accepted. Items without an HSN can be imported too; they get 0000 until you add the real code.
+- Importing opening stock for an item you already have adds the stock to it instead of creating a duplicate item.
+- Imported parties with an unrecognised state now get your company's state instead of Maharashtra.
+- The import screen starts empty instead of pre-filled with sample rows.
+
+### Changed
+
+- Invoices and bills can be filled in from the keyboard: the party field is ready when the page opens, picking a party or item moves you to the next field, and Enter on the last cell starts a new line.
+
+## [0.2.0] - 2026-10-28
+
+### Added
+
+- Stock is valued at its moving weighted-average purchase cost, so Stock In Hand on the balance sheet matches the stock valuation report.
+- Opening stock entered on an item is posted to your books against a new Opening Balance ledger.
+
+### Changed
+
+- New companies start with clean books: no sample parties, items or opening stock are added for you.
+- Company setup asks for your business address, city and PIN, so your first invoice saves without errors. The financial year defaults to the current one.
+- Moving between pages inside the app is faster.
+- The dashboard shows your figures first and loads the charts after.
+- Saving invoices and bills with many items is faster.
+- The supplier bill number is shown in the purchase bill header instead of under "Bill options".
+- Amount columns on invoices and bills fit values in crores.
+
+### Fixed
+
+- Invoice numbers have no gaps: a save that fails no longer uses up a number.
+- Error messages say what went wrong, for example which item is short of stock, instead of a generic server error.
+- Messages are solid and easy to read, appear at the top of the screen and can be closed.
+- Selling an item without enough stock shows a clear "Insufficient stock" message instead of adding stock that was never bought.
+- Two people selling the same item at the same moment can no longer leave the wrong stock quantity.
+- A payment or invoice cancellation can no longer be applied twice when two people act at once.
+- Scanned bills are saved completely or not at all. A supplier the app doesn't know yet must be added with their address first.
+- "Create another" after saving opens a blank form.
+- The app no longer gets stuck showing "Guest" after a brief connection problem.
+
+## [0.1.0] - 2026-10-27
+
+### Fixed
+
+- Sales invoices, purchase bills and payments save completely or not at all, so a failed save can no longer leave half-written entries in your books.
+- Two people saving at the same time can no longer get the same invoice number.
+- Companies without a GSTIN no longer charge GST on sales, and their invoices print as a Bill of Supply.
+- Printed invoices show the party's full billing address.
+
+### Security
+
+- Invoice and bill print pages always check that you have access to the company.

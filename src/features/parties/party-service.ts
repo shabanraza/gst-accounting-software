@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import {
   resolvePartyBillingAddress,
   resolvePartyShippingAddress,
@@ -58,21 +59,21 @@ export interface PartyRepository {
   listByCompanyId: (companyId: string) => Promise<Array<PartyRecord>>
 }
 
-export class DuplicatePartyNameError extends Error {
+export class DuplicatePartyNameError extends DomainError {
   constructor(name: string) {
     super(`Party already exists for this company: ${name}`)
     this.name = 'DuplicatePartyNameError'
   }
 }
 
-export class InvalidPartyMappingError extends Error {
+export class InvalidPartyMappingError extends DomainError {
   constructor(message: string) {
     super(message)
     this.name = 'InvalidPartyMappingError'
   }
 }
 
-export class PartyNotFoundError extends Error {
+export class PartyNotFoundError extends DomainError {
   constructor(id: string) {
     super(`Party not found: ${id}`)
     this.name = 'PartyNotFoundError'

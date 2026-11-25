@@ -7,7 +7,7 @@ import { useWorkspace } from '@/lib/workspace'
 type ModuleRecord = Record<string, unknown>
 
 function getNestedProcedure(namespace: string, procedure: string) {
-  const router = (trpcClient as Record<string, Record<string, unknown>>)[
+  const router = (trpcClient as Record<string, Record<string, unknown> | undefined>)[
     namespace
   ]
   const method = router?.[procedure]
@@ -33,7 +33,7 @@ export function useModuleList(moduleId: string) {
       isReady && module && companyId && module.trpcNamespace && module.listProcedure,
     ),
     queryFn: async () => {
-      if (!module?.trpcNamespace || !module.listProcedure || !companyId) {
+      if (!module?.trpcNamespace || !companyId) {
         return []
       }
 
@@ -68,7 +68,7 @@ export function useModuleList(moduleId: string) {
         result &&
         typeof result === 'object' &&
         'items' in result &&
-        Array.isArray((result as { items: unknown }).items)
+        Array.isArray((result).items)
       ) {
         return (result as { items: Array<ModuleRecord> }).items
       }

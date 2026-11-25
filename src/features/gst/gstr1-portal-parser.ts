@@ -133,7 +133,7 @@ export function parseGstr1PortalJson(text: string): Array<Gstr1PortalRow> {
 
   if (rows.length === 0) {
     throw new Error(
-      'Could not find GSTR-1 rows. Paste a JSON array or portal export with b2b invoices.',
+      'No B2B invoices found. Use the GSTR-1 JSON file downloaded from the GST portal.',
     )
   }
 

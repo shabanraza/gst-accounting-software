@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { usePostHog } from '@posthog/react'
 import { PlusIcon, Trash2Icon } from 'lucide-react'
 import { toast } from 'sonner'
@@ -62,12 +67,11 @@ export function JournalEntryPanel() {
     emptyLine(),
   ])
 
-  const ledgersQuery = useQuery({
-    ...trpc.accounting.listLedgerAccounts.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const ledgersQuery = useQuery(
+    trpc.accounting.listLedgerAccounts.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const postEntry = useMutation(
     trpc.accounting.postLedgerEntry.mutationOptions(),
@@ -120,7 +124,7 @@ export function JournalEntryPanel() {
 
   return (
     <WorkspacePage
-      description="Manual double-entry journal vouchers."
+      description="Adjustment entries between ledgers."
       title="Journal"
     >
       <Card>

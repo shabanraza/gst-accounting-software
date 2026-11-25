@@ -1,7 +1,11 @@
 import { createItem } from '#/features/inventory/item-service.ts'
-import { DEFAULT_OPENING_STOCK_QUANTITY } from '#/features/inventory/opening-stock.ts'
-import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
+import {
+  postOpeningStock,
+  resolveOpeningStockAccounts,
+} from '#/features/inventory/opening-stock-service.ts'
 
+import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
+import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
 import type {
   CreateItemInput,
   ItemRecord,
@@ -23,34 +27,43 @@ export type CreateItemWithOpeningResult = {
   openingMovement: StockMovementRecord | null
 }
 
+export type CreateItemWithOpeningDependencies = {
+  items: ItemRepository
+  stock: StockMovementRepository & StockBalanceRepository
+  posting: LedgerPostingRepository
+  ledgers: LedgerAccountRepository
+}
+
+/** Opening stock is valued at the item's purchase rate. */
 export async function createItemWithOpening(
-  itemRepository: ItemRepository,
-  stockStore: StockMovementRepository & StockBalanceRepository,
+  deps: CreateItemWithOpeningDependencies,
   input: CreateItemWithOpeningInput,
 ): Promise<CreateItemWithOpeningResult> {
   const { openingQuantity, openingOccurredOn, ...itemInput } = input
-  const item = await createItem(itemRepository, itemInput)
+  const qty = openingQuantity?.trim()
+  const hasOpening = itemInput.tracksInventory && !!qty && Number(qty) !== 0
+  const accounts = hasOpening
+    ? await resolveOpeningStockAccounts(deps.ledgers, itemInput.companyId)
+    : null
 
-  if (!item.tracksInventory) {
+  const item = await createItem(deps.items, itemInput)
+
+  if (!accounts || !qty) {
     return { item, openingMovement: null }
   }
 
-  const trimmedQty = openingQuantity?.trim()
-  const qty =
-    trimmedQty && trimmedQty !== '0' && trimmedQty !== '0.00'
-      ? trimmedQty
-      : DEFAULT_OPENING_STOCK_QUANTITY
-
-  const openingMovement = await recordStockMovement(stockStore, stockStore, {
+  const { movement } = await postOpeningStock(deps, {
+    ...accounts,
     companyId: item.companyId,
     itemId: item.id,
-    movementType: 'opening',
-    quantity: qty,
+    itemName: item.name,
     unit: item.baseUnit,
+    quantity: qty,
+    rate: item.purchaseRate,
+    occurredOn: openingOccurredOn ?? new Date().toISOString().slice(0, 10),
     referenceType: 'item_opening',
     referenceId: item.id,
-    occurredOn: openingOccurredOn ?? new Date().toISOString().slice(0, 10),
   })
 
-  return { item, openingMovement }
+  return { item, openingMovement: movement }
 }

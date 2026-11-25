@@ -1,5 +1,8 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
+import { splitIntraStateGst } from '#/features/gst/gst-calculator.ts'
 
+import type { ExpenseRepository } from '#/features/expenses/expense-service.ts'
 import type { PartyRepository } from '#/features/parties/party-service.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
 import type {
@@ -19,11 +22,7 @@ export type Gstr2bRow = {
 }
 
 export type Gstr2bMatchStatus =
-  | 'matched'
-  | 'mismatched'
-  | 'missing_in_books'
-  | 'missing_in_2b'
-  | 'conflict'
+  'matched' | 'mismatched' | 'missing_in_books' | 'missing_in_2b' | 'conflict'
 
 export type Gstr2bReconciliationRow = {
   rowKey: string
@@ -66,7 +65,7 @@ export type Gstr2bReconciliationReport = {
   rows: Array<Gstr2bReconciliationRow>
 }
 
-export class Gstr2bItcDecisionError extends Error {
+export class Gstr2bItcDecisionError extends DomainError {
   constructor(message: string) {
     super(message)
     this.name = 'Gstr2bItcDecisionError'
@@ -107,10 +106,10 @@ function splitPurchaseGst(
 ) {
   const supplyType =
     partyStateCode === companyStateCode ? 'intra_state' : 'inter_state'
-  const half = new Decimal(totalGstAmount).div(2).toFixed(2)
+  const split = splitIntraStateGst(totalGstAmount)
   return {
-    cgstAmount: supplyType === 'intra_state' ? half : '0.00',
-    sgstAmount: supplyType === 'intra_state' ? half : '0.00',
+    cgstAmount: supplyType === 'intra_state' ? split.cgst : '0.00',
+    sgstAmount: supplyType === 'intra_state' ? split.sgst : '0.00',
     igstAmount: supplyType === 'inter_state' ? totalGstAmount : '0.00',
   }
 }
@@ -126,9 +125,7 @@ function collectDuplicateKeys<T>(
   }
 
   return new Set(
-    [...counts.entries()]
-      .filter(([, count]) => count > 1)
-      .map(([key]) => key),
+    [...counts.entries()].filter(([, count]) => count > 1).map(([key]) => key),
   )
 }
 
@@ -170,7 +167,9 @@ function portalItcForRow(row: Gstr2bReconciliationRow) {
   return '0.00'
 }
 
-function buildSummary(rows: Array<Gstr2bReconciliationRow>): Gstr2bReconciliationSummary {
+function buildSummary(
+  rows: Array<Gstr2bReconciliationRow>,
+): Gstr2bReconciliationSummary {
   let booksItc = new Decimal(0)
   let portalItc = new Decimal(0)
   let acceptedItc = new Decimal(0)
@@ -246,10 +245,21 @@ function findMatchingPortalRows(
     }
 
     const sameInvoice =
-      normalizeInvoiceNumber(row.supplierInvoiceNumber) === normalizedBillInvoice
+      normalizeInvoiceNumber(row.supplierInvoiceNumber) ===
+      normalizedBillInvoice
     const portalGstin = normalizeGstin(row.supplierGstin)
     return sameInvoice && bookGstin === portalGstin
   })
+}
+
+/** A purchase bill or a GST-claimed expense, as the books record it. */
+type BookDocument = {
+  supplierGstin: string | null
+  supplierStateCode: string
+  invoiceNumber: string
+  documentDate: string
+  taxableAmount: string
+  totalGstAmount: string
 }
 
 export async function reconcileGstr2b(
@@ -257,6 +267,8 @@ export async function reconcileGstr2b(
     bills: PurchaseBillRepository
     parties: PartyRepository
     recon?: GstReconciliationRepository
+    /** Expenses whose GST is claimed are inward supplies too. */
+    expenses?: Pick<ExpenseRepository, 'listByCompanyId'>
   },
   input: {
     companyId: string
@@ -266,7 +278,7 @@ export async function reconcileGstr2b(
     portalRows: Array<Gstr2bRow>
   },
 ): Promise<Gstr2bReconciliationReport> {
-  const [bills, partyList, decisions] = await Promise.all([
+  const [bills, partyList, decisions, expenses] = await Promise.all([
     deps.bills.listByCompanyId(input.companyId),
     deps.parties.listByCompanyId(input.companyId),
     deps.recon?.listGstr2bItcDecisions(
@@ -274,6 +286,7 @@ export async function reconcileGstr2b(
       input.periodStart,
       input.periodEnd,
     ) ?? [],
+    deps.expenses?.listByCompanyId(input.companyId) ?? [],
   ])
 
   const partyById = new Map(partyList.map((party) => [party.id, party]))
@@ -281,8 +294,35 @@ export async function reconcileGstr2b(
     decisions.map((decision) => [decision.rowKey, decision.status]),
   )
 
-  const periodBills = bills.filter((bill) =>
-    inPeriod(bill.billDate, input.periodStart, input.periodEnd),
+  const bookDocuments: Array<BookDocument> = [
+    // Reverse charge bills carry self-assessed ITC (GSTR-3B 4(A)(3)), so
+    // they are not matched against the supplier-reported 2B credit.
+    ...bills.filter((bill) => !bill.reverseCharge).map((bill) => {
+      const party = partyById.get(bill.supplierId)
+      return {
+        supplierGstin: party?.gstin ?? null,
+        supplierStateCode: party?.stateCode ?? input.companyStateCode,
+        invoiceNumber: bill.supplierBillNumber,
+        documentDate: bill.billDate,
+        taxableAmount: bill.taxableAmount,
+        totalGstAmount: bill.totalGstAmount,
+      }
+    }),
+    ...expenses
+      .filter(
+        (expense) => expense.itcClaimed && new Decimal(expense.gstAmount).gt(0),
+      )
+      .map((expense) => ({
+        supplierGstin: expense.supplierGstin || null,
+        supplierStateCode: expense.placeOfSupply || input.companyStateCode,
+        invoiceNumber: expense.billNumber,
+        documentDate: expense.expenseDate,
+        taxableAmount: expense.taxableAmount,
+        totalGstAmount: expense.gstAmount,
+      })),
+  ]
+  const periodBills = bookDocuments.filter((bill) =>
+    inPeriod(bill.documentDate, input.periodStart, input.periodEnd),
   )
   const periodPortalRows = input.portalRows.filter((row) =>
     inPeriod(row.invoiceDate, input.periodStart, input.periodEnd),
@@ -290,9 +330,9 @@ export async function reconcileGstr2b(
 
   const conflictedBillKeys = collectDuplicateKeys(periodBills, (bill) =>
     buildGstr2bRowKey({
-      supplierGstin: partyById.get(bill.supplierId)?.gstin ?? null,
-      supplierInvoiceNumber: bill.supplierBillNumber,
-      invoiceDate: bill.billDate,
+      supplierGstin: bill.supplierGstin,
+      supplierInvoiceNumber: bill.invoiceNumber,
+      invoiceDate: bill.documentDate,
     }),
   )
   const conflictedPortalKeys = collectDuplicateKeys(periodPortalRows, (row) =>
@@ -307,26 +347,25 @@ export async function reconcileGstr2b(
   const matchedPortalKeys = new Set<string>()
 
   for (const bill of periodBills) {
-    const party = partyById.get(bill.supplierId)
-    const supplierGstin = party?.gstin ?? null
+    const supplierGstin = bill.supplierGstin
     const bookSplit = splitPurchaseGst(
       bill.totalGstAmount,
       input.companyStateCode,
-      party?.stateCode ?? input.companyStateCode,
+      bill.supplierStateCode,
     )
-    const normalizedBillInvoice = normalizeInvoiceNumber(bill.supplierBillNumber)
+    const normalizedBillInvoice = normalizeInvoiceNumber(bill.invoiceNumber)
     const billKey = buildGstr2bRowKey({
       supplierGstin,
-      supplierInvoiceNumber: bill.supplierBillNumber,
-      invoiceDate: bill.billDate,
+      supplierInvoiceNumber: bill.invoiceNumber,
+      invoiceDate: bill.documentDate,
     })
 
     if (conflictedBillKeys.has(billKey)) {
       rows.push({
         rowKey: billKey,
-        supplierInvoiceNumber: bill.supplierBillNumber,
+        supplierInvoiceNumber: bill.invoiceNumber,
         supplierGstin,
-        invoiceDate: bill.billDate,
+        invoiceDate: bill.documentDate,
         bookTaxableAmount: bill.taxableAmount,
         bookCgstAmount: bookSplit.cgstAmount,
         bookSgstAmount: bookSplit.sgstAmount,
@@ -353,9 +392,9 @@ export async function reconcileGstr2b(
     if (portalMatches.length === 0) {
       rows.push({
         rowKey: billKey,
-        supplierInvoiceNumber: bill.supplierBillNumber,
+        supplierInvoiceNumber: bill.invoiceNumber,
         supplierGstin,
-        invoiceDate: bill.billDate,
+        invoiceDate: bill.documentDate,
         bookTaxableAmount: bill.taxableAmount,
         bookCgstAmount: bookSplit.cgstAmount,
         bookSgstAmount: bookSplit.sgstAmount,
@@ -375,9 +414,9 @@ export async function reconcileGstr2b(
     if (portalMatches.length > 1) {
       rows.push({
         rowKey: billKey,
-        supplierInvoiceNumber: bill.supplierBillNumber,
+        supplierInvoiceNumber: bill.invoiceNumber,
         supplierGstin,
-        invoiceDate: bill.billDate,
+        invoiceDate: bill.documentDate,
         bookTaxableAmount: bill.taxableAmount,
         bookCgstAmount: bookSplit.cgstAmount,
         bookSgstAmount: bookSplit.sgstAmount,
@@ -394,7 +433,7 @@ export async function reconcileGstr2b(
       continue
     }
 
-    const portalRow = portalMatches[0]!
+    const portalRow = portalMatches[0]
     const portalKey = buildGstr2bRowKey({
       supplierGstin: portalRow.supplierGstin,
       supplierInvoiceNumber: portalRow.supplierInvoiceNumber,
@@ -404,7 +443,7 @@ export async function reconcileGstr2b(
     if (conflictedPortalKeys.has(portalKey)) {
       rows.push({
         rowKey: portalKey,
-        supplierInvoiceNumber: bill.supplierBillNumber,
+        supplierInvoiceNumber: bill.invoiceNumber,
         supplierGstin: portalRow.supplierGstin || supplierGstin,
         invoiceDate: portalRow.invoiceDate,
         bookTaxableAmount: bill.taxableAmount,
@@ -436,7 +475,7 @@ export async function reconcileGstr2b(
 
     rows.push({
       rowKey: portalKey,
-      supplierInvoiceNumber: bill.supplierBillNumber,
+      supplierInvoiceNumber: bill.invoiceNumber,
       supplierGstin: portalRow.supplierGstin || supplierGstin,
       invoiceDate: portalRow.invoiceDate,
       bookTaxableAmount: bill.taxableAmount,
@@ -500,6 +539,7 @@ export async function setGstr2bItcDecision(
     recon: GstReconciliationRepository
     bills: PurchaseBillRepository
     parties: PartyRepository
+    expenses?: Pick<ExpenseRepository, 'listByCompanyId'>
   },
   input: {
     companyId: string
@@ -513,7 +553,12 @@ export async function setGstr2bItcDecision(
 ) {
   if (input.status === 'accepted' || input.status === 'rejected') {
     const report = await reconcileGstr2b(
-      { bills: deps.bills, parties: deps.parties, recon: deps.recon },
+      {
+        bills: deps.bills,
+        parties: deps.parties,
+        recon: deps.recon,
+        expenses: deps.expenses,
+      },
       {
         companyId: input.companyId,
         companyStateCode: input.companyStateCode,

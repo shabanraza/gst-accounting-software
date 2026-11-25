@@ -124,7 +124,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const needsOnboarding =
     Boolean(errorMessage?.includes('No company found')) ||
     (workspaceQuery.isSuccess &&
-      (workspaceQuery.data?.companies.length ?? 0) === 0)
+      workspaceQuery.data.companies.length === 0)
 
   const value: WorkspaceContextValue = {
     companyId,

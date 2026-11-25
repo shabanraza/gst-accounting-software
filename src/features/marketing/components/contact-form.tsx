@@ -1,6 +1,5 @@
 import * as React from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { usePostHog } from '@posthog/react'
 import { SendIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -36,7 +35,6 @@ const EMPTY_FORM = {
  */
 export function ContactForm({ variant }: { variant: 'compact' | 'full' }) {
   const trpc = useTRPC()
-  const posthog = usePostHog()
   const guard = useSpamGuard()
   const sendContact = useMutation(trpc.marketing.sendContact.mutationOptions())
   const [form, setForm] = React.useState(EMPTY_FORM)
@@ -53,7 +51,6 @@ export function ContactForm({ variant }: { variant: 'compact' | 'full' }) {
     event.preventDefault()
     try {
       await sendContact.mutateAsync({ ...form, ...guard.payload() })
-      posthog.capture('contact_submitted', { topic: form.topic, variant })
       toast.success(CONTACT.success)
       setForm(EMPTY_FORM)
       guard.reset()

@@ -6,7 +6,10 @@ import {
 } from '#/features/imports/import-dry-run-service.ts'
 import { createParty } from '#/features/parties/party-service.ts'
 import { createItem } from '#/features/inventory/item-service.ts'
-import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
+import {
+  postOpeningStock,
+  resolveOpeningStockAccounts,
+} from '#/features/inventory/opening-stock-service.ts'
 import { postLedgerEntry } from '#/features/accounting/posting-engine.ts'
 import { listLedgerAccountsByCompany } from '#/features/accounting/chart-of-accounts.ts'
 
@@ -24,6 +27,18 @@ import type {
 } from '#/features/inventory/stock-movement-service.ts'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
+
+/** Placeholder the HSN summary also uses until the user sets the real code. */
+const UNKNOWN_HSN = '0000'
+
+function formatGstRate(rate: string | undefined): string {
+  return Number(rate?.trim() || '0').toFixed(2)
+}
+
+/** Opening stock matches existing items by name, ignoring case and spacing. */
+function itemNameKey(name: string): string {
+  return name.trim().replace(/\s+/g, ' ').toLowerCase()
+}
 
 export type CommitImportResult = {
   createdCount: number
@@ -79,8 +94,12 @@ export async function commitImportParties(
 }
 
 export async function commitImportOpeningStock(
-  items: ItemRepository,
-  stock: StockMovementRepository & StockBalanceRepository,
+  deps: {
+    items: ItemRepository
+    stock: StockMovementRepository & StockBalanceRepository
+    posting: LedgerPostingRepository
+    ledgers: LedgerAccountRepository
+  },
   input: {
     companyId: string
     rows: Array<ImportStockRow>
@@ -97,27 +116,42 @@ export async function commitImportOpeningStock(
     }
   }
 
+  const accounts = await resolveOpeningStockAccounts(
+    deps.ledgers,
+    input.companyId,
+  )
+  const existingByName = new Map(
+    (await deps.items.listByCompanyId(input.companyId)).map((item) => [
+      itemNameKey(item.name),
+      item,
+    ]),
+  )
   let createdCount = 0
   for (const row of input.rows) {
-    const item = await createItem(items, {
-      companyId: input.companyId,
-      name: row.itemName,
-      hsnCode: '0000',
-      gstRate: '0.00',
-      baseUnit: row.unit,
-      purchaseRate: row.rate,
-      saleRate: row.rate,
-      tracksInventory: true,
-    })
-    await recordStockMovement(stock, stock, {
+    const item =
+      existingByName.get(itemNameKey(row.itemName)) ??
+      (await createItem(deps.items, {
+        companyId: input.companyId,
+        name: row.itemName,
+        hsnCode: row.hsn?.trim() || UNKNOWN_HSN,
+        gstRate: formatGstRate(row.gstRate),
+        baseUnit: row.unit,
+        purchaseRate: row.rate,
+        saleRate: row.rate,
+        tracksInventory: true,
+      }))
+    existingByName.set(itemNameKey(item.name), item)
+    await postOpeningStock(deps, {
+      ...accounts,
       companyId: input.companyId,
       itemId: item.id,
-      movementType: 'opening',
-      quantity: row.quantity,
+      itemName: item.name,
       unit: row.unit,
+      quantity: row.quantity,
+      rate: row.rate,
+      occurredOn: input.occurredOn,
       referenceType: 'import_opening',
       referenceId: item.id,
-      occurredOn: input.occurredOn,
     })
     createdCount += 1
   }
@@ -152,8 +186,8 @@ export async function commitImportItems(
     await createItem(items, {
       companyId: input.companyId,
       name: row.name,
-      hsnCode: row.hsn,
-      gstRate: '0.00',
+      hsnCode: row.hsn.trim() || UNKNOWN_HSN,
+      gstRate: formatGstRate(row.gstRate),
       baseUnit: row.unit,
       purchaseRate: row.rate,
       saleRate: row.rate,

@@ -12,7 +12,10 @@ import {
   CommandList,
   CommandSeparator,
 } from '#/components/ui/command.tsx'
-import { appNav, filterAppNav } from '#/features/app-shell/data/app-shell-nav.ts'
+import {
+  appNav,
+  filterAppNav,
+} from '#/features/app-shell/data/app-shell-nav.ts'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
@@ -86,7 +89,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             value="new sales bill invoice"
           >
             <FilePlusIcon />
-            New sales bill
+            New sales invoice
           </CommandItem>
           <CommandItem
             onSelect={() => go('/app/purchases/new')}

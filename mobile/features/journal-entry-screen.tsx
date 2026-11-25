@@ -17,10 +17,11 @@ import {
   buildPostLedgerEntryInput,
   createEmptyJournalLine,
   createInitialJournalForm,
-  validateJournalForm,
-  type JournalFormDraft,
-  type JournalLineDraft,
+  validateJournalForm
+  
+  
 } from '@/lib/journal-form'
+import type {JournalFormDraft, JournalLineDraft} from '@/lib/journal-form';
 import { trpcClient } from '@/lib/trpc-client'
 import { View } from '@/tw'
 import { useWorkspace } from '@/lib/workspace'

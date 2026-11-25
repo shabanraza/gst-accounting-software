@@ -46,7 +46,7 @@ export function ToolsHubPage() {
 
 function RateLinks() {
   return (
-    <section className="mx-auto max-w-3xl px-4 pb-4" data-ui="chrome">
+    <section className="mx-auto max-w-6xl px-4 pb-4" data-ui="chrome">
       <h2 className="font-heading text-lg font-semibold tracking-tight">Calculators by rate</h2>
       <ul className="mt-3 flex flex-wrap gap-2">
         {GST_RATE_PAGES.map((page) => (

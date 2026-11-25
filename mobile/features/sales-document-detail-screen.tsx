@@ -32,7 +32,7 @@ export function SalesDocumentDetailScreen() {
     queryFn: () =>
       trpcClient.salesDocuments.getById.query({
         companyId: companyId!,
-        documentId: id!,
+        documentId: id,
       }),
   })
 
@@ -95,7 +95,7 @@ export function SalesDocumentDetailScreen() {
             router.push({
               pathname: '/(app)/sales/new',
               params: { fromDocument: document.id },
-            } as never)
+            })
           }
         />
       ) : null}

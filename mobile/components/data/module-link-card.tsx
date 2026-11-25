@@ -10,7 +10,7 @@ export function ModuleLinkCard({ module }: { module: MobileNavModule }) {
   const icon = getModuleIcon(module)
 
   return (
-    <Link href={module.path as never} asChild>
+    <Link href={module.path} asChild>
       <Pressable className="flex-row items-center gap-3 rounded-xl border border-border bg-card p-card-padding">
         <View className="size-action-icon shrink-0 items-center justify-center rounded-xl bg-icon-bg">
           <Ionicons name={icon} size={20} color={themeColors.icon} />

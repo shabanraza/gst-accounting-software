@@ -9,12 +9,15 @@ import { AppShell } from '#/features/app-shell/components/app-shell.tsx'
 import { WorkspaceLoadingGate } from '#/features/app-shell/components/workspace-loading-gate.tsx'
 import { WorkspaceProvider } from '#/features/app-shell/workspace-context.tsx'
 import { trpcClient } from '#/integrations/tanstack-query/root-provider.tsx'
+import { ensureAppAccess } from '#/features/app-shell/app-access.ts'
 import { authClient } from '#/lib/auth-client.ts'
 import { noindexHead } from '#/lib/seo.ts'
 
+import type { AppAccess } from '#/features/app-shell/app-access.ts'
+
 export const Route = createFileRoute('/app')({
   head: noindexHead,
-  beforeLoad: async ({ location }) => {
+  beforeLoad: async ({ location, context }) => {
     if (location.pathname === '/app' || location.pathname === '/app/') {
       throw redirect({
         to: '/app/dashboard',
@@ -23,19 +26,20 @@ export const Route = createFileRoute('/app')({
 
     if (typeof window === 'undefined') return
 
-    const session = await authClient.getSession()
-    if (!session.data) {
-      throw redirect({ to: '/login' })
-    }
-
-    let companies: Array<{ id: string }> = []
+    let access: AppAccess
     try {
-      companies = await trpcClient.companies.list.query()
+      access = await ensureAppAccess(context.queryClient, {
+        hasSession: async () => Boolean((await authClient.getSession()).data),
+        listCompanies: () => trpcClient.companies.list.query(),
+      })
     } catch {
       return
     }
 
-    if (companies.length === 0) {
+    if (access === 'login') {
+      throw redirect({ to: '/login' })
+    }
+    if (access === 'onboarding') {
       throw redirect({ to: '/onboarding' })
     }
   },

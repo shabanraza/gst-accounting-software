@@ -55,7 +55,7 @@ export function ItemDetailScreen() {
     <Screen title={item.name} subtitle={item.itemGroup || 'Item master'}>
       <View className="gap-section-header">
         <DetailCard title="Basics" icon="cube-outline">
-          <DetailRow label="Alias" value={item.alias?.trim() || '—'} />
+          <DetailRow label="Alias" value={item.alias.trim() || '—'} />
           <DetailRow label="HSN" value={item.hsnCode} />
           <DetailRow label="GST rate" value={`${item.gstRate}%`} />
           <DetailRow label="Base unit" value={item.baseUnit} />

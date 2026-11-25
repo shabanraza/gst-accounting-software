@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
@@ -75,7 +76,7 @@ export type BankReconciliationReport = {
   unmatchedBookCount: number
 }
 
-export class BankReconciliationError extends Error {
+export class BankReconciliationError extends DomainError {
   constructor(message: string) {
     super(message)
     this.name = 'BankReconciliationError'

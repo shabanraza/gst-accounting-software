@@ -137,7 +137,7 @@ describe('sales-invoice-form', () => {
         'Main',
       ),
     ]
-    form.lines[0]!.quantity = '2'
+    form.lines[0].quantity = '2'
 
     expect(computeFormTotals(form, customer.stateCode, company.stateCode)).toEqual(
       {

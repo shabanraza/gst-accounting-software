@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 
 import { getDb } from '#/db/client.ts'
 import * as schema from '#/db/schema.ts'
@@ -20,6 +20,14 @@ export class InMemoryCreditDebitNoteRepository implements CreditDebitNoteReposit
 
   async listByCompanyId(companyId: string) {
     return this.notes.filter((note) => note.companyId === companyId)
+  }
+
+  async listByReference(companyId: string, referenceDocumentId: string) {
+    return this.notes.filter(
+      (note) =>
+        note.companyId === companyId &&
+        note.referenceDocumentId === referenceDocumentId,
+    )
   }
 }
 
@@ -76,6 +84,20 @@ export class DrizzleCreditDebitNoteRepository implements CreditDebitNoteReposito
       .select()
       .from(schema.creditDebitNotes)
       .where(eq(schema.creditDebitNotes.companyId, companyId))
+
+    return notes.map(mapRowToCreditDebitNoteRecord)
+  }
+
+  async listByReference(companyId: string, referenceDocumentId: string) {
+    const notes = await this.database
+      .select()
+      .from(schema.creditDebitNotes)
+      .where(
+        and(
+          eq(schema.creditDebitNotes.companyId, companyId),
+          eq(schema.creditDebitNotes.referenceDocumentId, referenceDocumentId),
+        ),
+      )
 
     return notes.map(mapRowToCreditDebitNoteRecord)
   }

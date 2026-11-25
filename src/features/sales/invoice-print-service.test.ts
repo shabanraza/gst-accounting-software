@@ -136,4 +136,53 @@ describe('buildInvoicePrintDocument', () => {
 
     expect(document.lines[0]?.hsnCode).toBe('')
   })
+
+  describe('UPI scan to pay', () => {
+    const company = {
+      legalName: 'Demo Textiles Private Limited',
+      tradeName: 'Demo Textiles',
+      gstin: null,
+      stateCode: '27',
+      upiId: 'demo@okhdfc',
+    }
+    const customer = { name: 'Noor Retailers', gstin: null, stateCode: '27' }
+
+    test('carries a UPI link for the outstanding amount', () => {
+      const document = buildInvoicePrintDocument({
+        invoice: { ...makeInvoice(), outstandingAmount: '1520.00' },
+        company,
+        customer,
+        itemById: new Map(),
+      })
+
+      expect(document.upiUri).toBe(
+        'upi://pay?pa=demo@okhdfc&pn=Demo%20Textiles&am=1520.00&cu=INR&tn=INV-1001',
+      )
+    })
+
+    test('omits the link when the invoice is paid, cancelled, or there is no UPI ID', () => {
+      const paid = buildInvoicePrintDocument({
+        invoice: { ...makeInvoice(), outstandingAmount: '0.00' },
+        company,
+        customer,
+        itemById: new Map(),
+      })
+      const cancelled = buildInvoicePrintDocument({
+        invoice: { ...makeInvoice(), status: 'cancelled' },
+        company,
+        customer,
+        itemById: new Map(),
+      })
+      const noUpi = buildInvoicePrintDocument({
+        invoice: makeInvoice(),
+        company: { ...company, upiId: '' },
+        customer,
+        itemById: new Map(),
+      })
+
+      expect(paid.upiUri).toBeUndefined()
+      expect(cancelled.upiUri).toBeUndefined()
+      expect(noUpi.upiUri).toBeUndefined()
+    })
+  })
 })

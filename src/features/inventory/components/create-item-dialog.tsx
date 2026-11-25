@@ -14,6 +14,7 @@ import {
   DialogTrigger,
 } from '#/components/ui/dialog.tsx'
 import { Input } from '#/components/ui/input.tsx'
+import { Label } from '#/components/ui/label.tsx'
 import {
   Select,
   SelectContent,
@@ -24,12 +25,12 @@ import {
 } from '#/components/ui/select.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import {
+  formatGstRateLabel,
   gstRateOptions,
   itemGroups,
   unitOptions,
   uqcForUnit,
 } from '#/features/app-shell/data/india-masters.ts'
-import { godowns as demoGodowns } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { getFormErrorMessage } from '#/features/app-shell/form-error.ts'
 import { failForm } from '#/lib/form-validation.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
@@ -38,6 +39,7 @@ import type { ItemRecord } from '#/features/inventory/item-service.ts'
 const emptyForm = {
   name: '',
   alias: '',
+  barcode: '',
   group: 'Fabrics',
   hsnCode: '',
   gstRate: '5.00',
@@ -49,9 +51,30 @@ const emptyForm = {
   saleRate: '',
   mrp: '',
   reorderLevel: '',
-  openingQuantity: '100',
-  openingGodown: demoGodowns[0],
+  openingQuantity: '',
+  openingGodown: '',
   tracksInventory: 'yes',
+}
+
+function formFromItem(item: ItemRecord): typeof emptyForm {
+  return {
+    ...emptyForm,
+    name: item.name,
+    alias: item.alias,
+    barcode: item.barcode ?? '',
+    group: item.itemGroup,
+    hsnCode: item.hsnCode,
+    gstRate: item.gstRate,
+    baseUnit: item.baseUnit,
+    uqc: uqcForUnit(item.baseUnit),
+    altUnit: item.alternateUnit || 'none',
+    conversionFactor: item.alternateUnit ? item.conversionFactor : '',
+    purchaseRate: item.purchaseRate,
+    saleRate: item.saleRate,
+    mrp: item.mrp,
+    reorderLevel: item.reorderLevel,
+    tracksInventory: item.tracksInventory ? 'yes' : 'no',
+  }
 }
 
 type CreateItemDialogProps = {
@@ -59,6 +82,8 @@ type CreateItemDialogProps = {
   onOpenChange?: (open: boolean) => void
   trigger?: React.ReactNode
   onCreated?: (item: ItemRecord) => void
+  /** Edits this item instead of creating a new one. */
+  item?: ItemRecord
 }
 
 export function CreateItemDialog({
@@ -66,24 +91,28 @@ export function CreateItemDialog({
   onOpenChange: controlledOnOpenChange,
   trigger,
   onCreated,
+  item,
 }: CreateItemDialogProps) {
   const posthog = usePostHog()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const { companyId, isReady, error: workspaceError, godowns } = useWorkspace()
-  const godownNames =
-    godowns.length > 0 ? godowns.map((entry) => entry.name) : demoGodowns
+  const godownNames = godowns.map((entry) => entry.name)
 
   const [internalOpen, setInternalOpen] = React.useState(false)
   const open = controlledOpen ?? internalOpen
   const setOpen = controlledOnOpenChange ?? setInternalOpen
 
-  const [form, setForm] = React.useState(emptyForm)
+  const [form, setForm] = React.useState(() =>
+    item ? formFromItem(item) : emptyForm,
+  )
   const [formError, setFormError] = React.useState<string | null>(null)
 
   const createItem = useMutation(
     trpc.inventory.createItemWithOpening.mutationOptions(),
   )
+  const updateItem = useMutation(trpc.inventory.updateItem.mutationOptions())
+  const isSaving = createItem.isPending || updateItem.isPending
 
   function updateForm(field: string, value: string) {
     setForm((current) => {
@@ -94,7 +123,11 @@ export function CreateItemDialog({
   }
 
   function resetForm() {
-    setForm({ ...emptyForm, openingGodown: godownNames[0] ?? demoGodowns[0] })
+    setForm(
+      item
+        ? formFromItem(item)
+        : { ...emptyForm, openingGodown: godownNames[0] ?? '' },
+    )
     setFormError(null)
   }
 
@@ -122,29 +155,38 @@ export function CreateItemDialog({
     }
 
     setFormError(null)
+    const details = {
+      companyId,
+      name: form.name.trim(),
+      alias: form.alias.trim(),
+      barcode: form.barcode.trim(),
+      itemGroup: form.group,
+      hsnCode: form.hsnCode.trim(),
+      gstRate: form.gstRate,
+      baseUnit: form.baseUnit,
+      alternateUnit: form.altUnit === 'none' ? '' : form.altUnit,
+      conversionFactor:
+        form.altUnit === 'none' ? '1' : form.conversionFactor || '1',
+      mrp: form.mrp || '0.00',
+      reorderLevel: form.reorderLevel || '0',
+      purchaseRate: form.purchaseRate || '0.00',
+      saleRate: form.saleRate || '0.00',
+      tracksInventory: form.tracksInventory === 'yes',
+    }
     try {
-      const result = await createItem.mutateAsync({
-        companyId,
-        name: form.name.trim(),
-        alias: form.alias.trim(),
-        itemGroup: form.group,
-        hsnCode: form.hsnCode.trim(),
-        gstRate: form.gstRate,
-        baseUnit: form.baseUnit,
-        alternateUnit: form.altUnit === 'none' ? '' : form.altUnit,
-        conversionFactor:
-          form.altUnit === 'none' ? '1' : form.conversionFactor || '1',
-        mrp: form.mrp || '0.00',
-        reorderLevel: form.reorderLevel || '0',
-        purchaseRate: form.purchaseRate || '0.00',
-        saleRate: form.saleRate || '0.00',
-        tracksInventory: form.tracksInventory === 'yes',
-        openingQuantity:
-          form.tracksInventory === 'yes' && form.openingQuantity.trim()
-            ? form.openingQuantity.trim()
-            : null,
-        openingOccurredOn: new Date().toISOString().slice(0, 10),
-      })
+      if (item) {
+        await updateItem.mutateAsync({ ...details, itemId: item.id })
+      } else {
+        const result = await createItem.mutateAsync({
+          ...details,
+          openingQuantity:
+            form.tracksInventory === 'yes' && form.openingQuantity.trim()
+              ? form.openingQuantity.trim()
+              : null,
+          openingOccurredOn: new Date().toISOString().slice(0, 10),
+        })
+        onCreated?.(result.item)
+      }
       await queryClient.invalidateQueries({
         queryKey: trpc.inventory.listItems.queryKey({ companyId }),
       })
@@ -153,13 +195,14 @@ export function CreateItemDialog({
       })
       resetForm()
       setOpen(false)
-      posthog.capture('inventory_item_created', {
-        item_group: form.group,
-        tracks_inventory: form.tracksInventory === 'yes',
-        has_opening_stock: Boolean(form.openingQuantity.trim()),
-      })
-      toast.success('Item created.')
-      onCreated?.(result.item)
+      if (!item) {
+        posthog.capture('inventory_item_created', {
+          item_group: form.group,
+          tracks_inventory: form.tracksInventory === 'yes',
+          has_opening_stock: Boolean(form.openingQuantity.trim()),
+        })
+      }
+      toast.success(item ? 'Item updated.' : 'Item created.')
     } catch (error) {
       setFormError(getFormErrorMessage(error))
     }
@@ -168,17 +211,19 @@ export function CreateItemDialog({
   const dialog = (
     <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
       <DialogHeader>
-        <DialogTitle>Item master</DialogTitle>
+        <DialogTitle>{item ? 'Edit item' : 'New item'}</DialogTitle>
         <DialogDescription>
-          Group, HSN, tax slab, units, rates, and optional opening stock.
+          {item
+            ? 'Barcode, HSN, GST rate, units and rates.'
+            : 'HSN, GST rate, units, rates and any stock you already have.'}
         </DialogDescription>
       </DialogHeader>
       <form className="flex flex-col gap-4" onSubmit={handleCreate}>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5 sm:col-span-2">
-            <label className="text-sm font-medium" htmlFor="item-name">
+            <Label className="text-sm" htmlFor="item-name">
               Item name
-            </label>
+            </Label>
             <Input
               id="item-name"
               onChange={(event) => updateForm('name', event.target.value)}
@@ -187,13 +232,29 @@ export function CreateItemDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="item-alias">
+            <Label className="text-sm" htmlFor="item-alias">
               Alias / code
-            </label>
+            </Label>
             <Input
               id="item-alias"
               onChange={(event) => updateForm('alias', event.target.value)}
               value={form.alias}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-sm" htmlFor="item-barcode">
+              Barcode (EAN / UPC)
+            </Label>
+            <Input
+              id="item-barcode"
+              inputMode="numeric"
+              onChange={(event) => updateForm('barcode', event.target.value)}
+              onKeyDown={(event) => {
+                // Scanners end with Enter; keep it from submitting the form.
+                if (event.key === 'Enter') event.preventDefault()
+              }}
+              placeholder="Optional"
+              value={form.barcode}
             />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -217,9 +278,9 @@ export function CreateItemDialog({
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="item-hsn">
+            <Label className="text-sm" htmlFor="item-hsn">
               HSN / SAC
-            </label>
+            </Label>
             <Input
               id="item-hsn"
               onChange={(event) => updateForm('hsnCode', event.target.value)}
@@ -240,7 +301,7 @@ export function CreateItemDialog({
                 <SelectGroup>
                   {gstRateOptions.map((rate) => (
                     <SelectItem key={rate} value={rate}>
-                      {rate}%
+                      {formatGstRateLabel(rate)}
                     </SelectItem>
                   ))}
                 </SelectGroup>
@@ -295,9 +356,9 @@ export function CreateItemDialog({
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="item-conv">
+            <Label className="text-sm" htmlFor="item-conv">
               Conversion (1 alt = ? main)
-            </label>
+            </Label>
             <Input
               disabled={form.altUnit === 'none'}
               id="item-conv"
@@ -309,9 +370,9 @@ export function CreateItemDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="item-pur">
+            <Label className="text-sm" htmlFor="item-pur">
               Purchase rate
-            </label>
+            </Label>
             <Input
               id="item-pur"
               onChange={(event) =>
@@ -321,9 +382,9 @@ export function CreateItemDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="item-sale">
+            <Label className="text-sm" htmlFor="item-sale">
               Sale rate
-            </label>
+            </Label>
             <Input
               id="item-sale"
               onChange={(event) => updateForm('saleRate', event.target.value)}
@@ -331,9 +392,9 @@ export function CreateItemDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="item-mrp">
+            <Label className="text-sm" htmlFor="item-mrp">
               MRP
-            </label>
+            </Label>
             <Input
               id="item-mrp"
               onChange={(event) => updateForm('mrp', event.target.value)}
@@ -342,9 +403,9 @@ export function CreateItemDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="item-reorder">
+            <Label className="text-sm" htmlFor="item-reorder">
               Reorder level
-            </label>
+            </Label>
             <Input
               id="item-reorder"
               onChange={(event) =>
@@ -371,48 +432,52 @@ export function CreateItemDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="item-open">
-              Opening stock qty
-            </label>
-            <Input
-              disabled={form.tracksInventory !== 'yes'}
-              id="item-open"
-              onChange={(event) =>
-                updateForm('openingQuantity', event.target.value)
-              }
-              placeholder="Optional"
-              value={form.openingQuantity}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium">Opening godown</span>
-            <Select
-              disabled={form.tracksInventory !== 'yes'}
-              onValueChange={(value) => updateForm('openingGodown', value)}
-              value={form.openingGodown}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {godownNames.map((godown) => (
-                    <SelectItem key={godown} value={godown}>
-                      {godown}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
+          {item ? null : (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-sm" htmlFor="item-open">
+                  Opening stock qty
+                </Label>
+                <Input
+                  disabled={form.tracksInventory !== 'yes'}
+                  id="item-open"
+                  onChange={(event) =>
+                    updateForm('openingQuantity', event.target.value)
+                  }
+                  placeholder="Optional"
+                  value={form.openingQuantity}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium">Opening godown</span>
+                <Select
+                  disabled={form.tracksInventory !== 'yes'}
+                  onValueChange={(value) => updateForm('openingGodown', value)}
+                  value={form.openingGodown}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {godownNames.map((godown) => (
+                        <SelectItem key={godown} value={godown}>
+                          {godown}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
         </div>
         {formError ? (
           <p className="text-sm text-destructive">{formError}</p>
         ) : null}
         <DialogFooter>
-          <Button disabled={createItem.isPending} type="submit">
-            {createItem.isPending ? 'Saving…' : 'Save item'}
+          <Button disabled={isSaving} type="submit">
+            {isSaving ? 'Saving…' : 'Save item'}
           </Button>
         </DialogFooter>
       </form>

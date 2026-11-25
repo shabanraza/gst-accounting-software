@@ -25,21 +25,48 @@ export const indianStates = [
   { code: '22', name: 'Chhattisgarh' },
   { code: '23', name: 'Madhya Pradesh' },
   { code: '24', name: 'Gujarat' },
+  { code: '26', name: 'Dadra and Nagar Haveli and Daman and Diu' },
   { code: '27', name: 'Maharashtra' },
   { code: '29', name: 'Karnataka' },
+  { code: '30', name: 'Goa' },
+  { code: '31', name: 'Lakshadweep' },
   { code: '32', name: 'Kerala' },
   { code: '33', name: 'Tamil Nadu' },
+  { code: '34', name: 'Puducherry' },
+  { code: '35', name: 'Andaman and Nicobar Islands' },
   { code: '36', name: 'Telangana' },
   { code: '37', name: 'Andhra Pradesh' },
+  { code: '38', name: 'Ladakh' },
 ] as const
 
+/**
+ * Every GST rate a supply can carry. Since 22 September 2025 the main slabs
+ * are 0/5/18/40%; 12% and 28% stay for earlier bills and items still taxed
+ * there (e.g. tobacco until compensation cess ends). Special rates: 0.1%
+ * (merchant exports), 0.25% (rough diamonds, stones), 1% (composition,
+ * affordable housing), 1.5% (cut diamonds), 3% (gold, silver, jewellery),
+ * 6% (composition for service providers), 7.5% (specified services).
+ */
 export const gstRateOptions = [
   '0.00',
+  '0.10',
+  '0.25',
+  '1.00',
+  '1.50',
+  '3.00',
   '5.00',
+  '6.00',
+  '7.50',
   '12.00',
   '18.00',
   '28.00',
+  '40.00',
 ] as const
+
+export function formatGstRateLabel(rate: string) {
+  const value = Number(rate)
+  return value === 0 ? 'No GST (0%)' : `${value}%`
+}
 
 export const itemGroups = [
   'Fabrics',

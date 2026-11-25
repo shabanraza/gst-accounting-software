@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { PencilIcon, PlusIcon, UsersIcon } from 'lucide-react'
+import { skipToken, useQuery } from '@tanstack/react-query'
+import { FileTextIcon, PencilIcon, PlusIcon, UsersIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
 import { Button } from '#/components/ui/button.tsx'
@@ -28,9 +28,10 @@ import {
   paymentTermsOptions,
   stateLabel,
 } from '#/features/app-shell/data/india-masters.ts'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { usePartiesList } from '#/features/masters/use-master-data.ts'
 import { CreatePartyDialog } from '#/features/parties/components/create-party-dialog.tsx'
+import { PartyStatementSheet } from '#/features/parties/components/party-statement-sheet.tsx'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 import { partyTypeBadgeIntent } from '#/lib/badge-intent.ts'
 import type {
@@ -54,26 +55,30 @@ export function PartiesPanel() {
   const [query, setQuery] = React.useState('')
   const [filter, setFilter] = React.useState<'all' | PartyType>('all')
   const [editParty, setEditParty] = React.useState<PartyRecord | null>(null)
+  const [statementParty, setStatementParty] =
+    React.useState<PartyRecord | null>(null)
 
   const partiesQuery = usePartiesList()
-  const salesQuery = useQuery({
-    ...trpc.sales.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
-  const purchasesQuery = useQuery({
-    ...trpc.purchases.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
-  const priceListsQuery = useQuery({
-    ...trpc.inventory.listPriceLists.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const salesQuery = useQuery(
+    trpc.sales.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
+  const purchasesQuery = useQuery(
+    trpc.purchases.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
+  const openingBalancesQuery = useQuery(
+    trpc.parties.listOpeningBalances.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
+  const priceListsQuery = useQuery(
+    trpc.inventory.listPriceLists.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const priceListNameById = React.useMemo(() => {
     return new Map(
@@ -95,8 +100,14 @@ export function PartiesPanel() {
         (map.get(bill.supplierId) ?? 0) + Number(bill.outstandingAmount),
       )
     }
+    for (const opening of openingBalancesQuery.data ?? []) {
+      map.set(
+        opening.partyId,
+        (map.get(opening.partyId) ?? 0) + Number(opening.outstandingAmount),
+      )
+    }
     return map
-  }, [purchasesQuery.data, salesQuery.data])
+  }, [openingBalancesQuery.data, purchasesQuery.data, salesQuery.data])
 
   const parties = partiesQuery.data
   const filtered = parties.filter((party) => {
@@ -168,7 +179,7 @@ export function PartiesPanel() {
                 <TableHead>Terms</TableHead>
                 <TableHead>Price list</TableHead>
                 <TableHead className="text-right">Outstanding</TableHead>
-                <TableHead className="w-12" />
+                <TableHead className="w-20" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -176,7 +187,7 @@ export function PartiesPanel() {
                 <TableRow>
                   <TableCell
                     className="py-10 text-center text-muted-foreground"
-                    colSpan={9}
+                    colSpan={10}
                   >
                     Loading…
                   </TableCell>
@@ -185,7 +196,7 @@ export function PartiesPanel() {
                 <TableRow>
                   <TableCell
                     className="py-10 text-center text-muted-foreground"
-                    colSpan={9}
+                    colSpan={10}
                   >
                     No customers or suppliers yet.
                   </TableCell>
@@ -224,16 +235,29 @@ export function PartiesPanel() {
                       {formatInr(outstandingByPartyId.get(party.id) ?? 0)}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        aria-label={`Edit ${party.name}`}
-                        className="text-muted-foreground"
-                        onClick={() => setEditParty(party)}
-                        size="icon-sm"
-                        type="button"
-                        variant="ghost"
-                      >
-                        <PencilIcon />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          aria-label={`Statement for ${party.name}`}
+                          className="text-muted-foreground"
+                          onClick={() => setStatementParty(party)}
+                          size="icon-sm"
+                          title="Statement"
+                          type="button"
+                          variant="ghost"
+                        >
+                          <FileTextIcon />
+                        </Button>
+                        <Button
+                          aria-label={`Edit ${party.name}`}
+                          className="text-muted-foreground"
+                          onClick={() => setEditParty(party)}
+                          size="icon-sm"
+                          type="button"
+                          variant="ghost"
+                        >
+                          <PencilIcon />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -248,6 +272,12 @@ export function PartiesPanel() {
         }}
         open={Boolean(editParty)}
         party={editParty}
+      />
+      <PartyStatementSheet
+        onOpenChange={(next) => {
+          if (!next) setStatementParty(null)
+        }}
+        party={statementParty}
       />
     </WorkspacePage>
   )

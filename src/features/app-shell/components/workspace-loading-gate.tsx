@@ -2,7 +2,9 @@ import * as React from 'react'
 import { useNavigate } from '@tanstack/react-router'
 
 import { Skeleton } from '#/components/ui/skeleton.tsx'
+import { ErrorState } from '#/features/app-shell/components/error-state.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
+import { sessionGateAction } from '#/features/app-shell/session-gate.ts'
 import { authClient } from '#/lib/auth-client.ts'
 
 function WorkspacePageSkeleton() {
@@ -23,24 +25,58 @@ export function WorkspaceLoadingGate({
   children: React.ReactNode
 }) {
   const navigate = useNavigate()
-  const { data: session, isPending: isSessionPending } = authClient.useSession()
-  const { accountId, isLoading, error, company } = useWorkspace()
+  const {
+    data: session,
+    isPending: isSessionPending,
+    error: sessionError,
+    refetch,
+  } = authClient.useSession()
+  const { accountId, isLoading, error, errorAction, company, refresh } =
+    useWorkspace()
+  const [retries, setRetries] = React.useState(0)
+  const action = sessionGateAction({
+    isPending: isSessionPending,
+    hasUser: Boolean(session?.user.id),
+    error: sessionError,
+  })
 
   React.useEffect(() => {
-    if (!isSessionPending && !session?.user?.id) {
+    if (action === 'login') {
       void navigate({ to: '/login' })
     }
-  }, [isSessionPending, navigate, session?.user?.id])
+    if (action === 'ready') {
+      setRetries(0)
+    }
+    if (action !== 'retry') return
+    const delay = Math.min(2000 * 2 ** retries, 15_000)
+    const timer = window.setTimeout(() => {
+      setRetries((count) => count + 1)
+      void refetch()
+    }, delay)
+    return () => window.clearTimeout(timer)
+  }, [action, navigate, refetch, retries])
 
-  if (isSessionPending || !accountId) {
+  const needsCompany = errorAction === 'onboarding' && !company
+  React.useEffect(() => {
+    if (needsCompany) void navigate({ to: '/onboarding' })
+  }, [needsCompany, navigate])
+
+  if (action !== 'ready' || !accountId) {
+    return <WorkspacePageSkeleton />
+  }
+
+  if (needsCompany) {
     return <WorkspacePageSkeleton />
   }
 
   if (error && !company) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col gap-2 p-4 text-sm text-destructive">
-        {error}
-      </div>
+      <ErrorState
+        canReport
+        message={error}
+        onRetry={() => void refresh()}
+        title="Your workspace didn't load"
+      />
     )
   }
 

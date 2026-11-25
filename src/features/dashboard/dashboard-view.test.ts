@@ -174,8 +174,13 @@ describe('isFirstRun', () => {
     balances: {
       cashBankBalance: '0.00',
       receivableTotal: '0.00',
+      receivableOverdue: '0.00',
       payableTotal: '0.00',
+      payableDueThisWeek: '0.00',
     },
+    topReceivables: [],
+    topPayables: [],
+    setup: { hasParty: false, hasItem: false, hasSale: false },
     trend: [
       { date: '2026-07-14', sales: '0.00', purchases: '0.00' },
       { date: '2026-07-15', sales: '0.00', purchases: '0.00' },

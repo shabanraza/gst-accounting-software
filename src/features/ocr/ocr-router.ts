@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { recordDocumentEvent } from '#/features/audit/audit-service.ts'
 import {
   confirmOcrDraft,
   createOcrDraft,
@@ -11,6 +12,7 @@ import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 import type { TRPCRouterRecord } from '@trpc/server'
 import type { DocumentAttachmentRepository } from '#/features/documents/document-attachment-service.ts'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
+import type { PostingTransaction } from '#/features/accounting/posting-transaction.ts'
 import type {
   OcrConfirmDependencies,
   OcrDraftRepository,
@@ -69,10 +71,8 @@ const updateOcrDraftInputSchema = z.object({
 export const createOcrRouter = (
   repository: OcrDraftRepository,
   attachments: DocumentAttachmentRepository,
-  deps: Pick<
-    OcrConfirmDependencies,
-    'parties' | 'items' | 'bills' | 'posting' | 'stock' | 'ledgers'
-  >,
+  ledgers: LedgerAccountRepository,
+  transaction: PostingTransaction,
 ) =>
   ({
     list: capabilityProcedure('view')
@@ -95,21 +95,38 @@ export const createOcrRouter = (
     confirm: capabilityProcedure('post_purchase')
       .input(confirmOcrDraftInputSchema)
       .mutation(({ input, ctx }) =>
-        confirmOcrDraft(
-          repository,
-          { ...deps },
-          {
-            draftId: input.draftId,
-            companyId: input.companyId,
-            reviewedByUserId: ctx.userId,
-            companyStateCode: input.companyStateCode,
-            financialYearStart: input.financialYearStart,
-            purchaseAccountId: input.purchaseAccountId,
-            inputGstAccountId: input.inputGstAccountId,
-            payableAccountId: input.payableAccountId,
-            stockAccountId: input.stockAccountId,
-          },
-        ),
+        transaction(async (tx) => {
+          const draft = await confirmOcrDraft(
+            repository,
+            { ...tx, ledgers },
+            {
+              draftId: input.draftId,
+              companyId: input.companyId,
+              reviewedByUserId: ctx.userId,
+              companyStateCode: input.companyStateCode,
+              financialYearStart: input.financialYearStart,
+              purchaseAccountId: input.purchaseAccountId,
+              inputGstAccountId: input.inputGstAccountId,
+              payableAccountId: input.payableAccountId,
+              stockAccountId: input.stockAccountId,
+            },
+          )
+          const bill = draft.postedPurchaseBillId
+            ? await tx.bills.findById(draft.postedPurchaseBillId)
+            : null
+          if (bill) {
+            await recordDocumentEvent(tx.audit, {
+              companyId: bill.companyId,
+              actorUserId: ctx.userId,
+              action: 'scanned_bill.confirmed',
+              entityType: 'purchase_bill',
+              entityId: bill.id,
+              documentNumber: bill.supplierBillNumber,
+              amount: bill.totalAmount,
+            })
+          }
+          return draft
+        }),
       ),
   }) satisfies TRPCRouterRecord
 

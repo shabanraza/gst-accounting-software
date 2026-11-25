@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { usePostHog } from '@posthog/react'
 import { CheckIcon, UploadIcon, WandSparklesIcon } from 'lucide-react'
 import { toast } from 'sonner'
@@ -34,17 +39,12 @@ import {
 } from '#/components/ui/table.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
+import { bankReconciliationBadgeIntent } from '#/lib/badge-intent.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { requireWorkspace } from '#/lib/form-validation.ts'
 import { localCalendarDate } from '#/lib/calendar-date.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
-
-function statusBadge(status: string) {
-  if (status === 'matched') return 'success' as const
-  if (status === 'unmatched_book') return 'warning' as const
-  return 'secondary' as const
-}
 
 function statusLabel(status: string) {
   if (status === 'matched') return 'Matched'
@@ -60,12 +60,11 @@ export function BankReconciliationPanel() {
   const today = localCalendarDate()
   const monthStart = `${today.slice(0, 7)}-01`
 
-  const ledgersQuery = useQuery({
-    ...trpc.accounting.listLedgerAccounts.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const ledgersQuery = useQuery(
+    trpc.accounting.listLedgerAccounts.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const bankAccounts = React.useMemo(
     () =>
@@ -88,27 +87,20 @@ export function BankReconciliationPanel() {
     }
   }, [bankAccounts, ledgerAccountId])
 
-  const resolvedCompanyId = companyId ?? ''
-  const queryEnabled =
-    Boolean(companyId) && isReady && Boolean(ledgerAccountId)
-
   const reconciliationQuery = useQuery({
-    ...trpc.banking.getReconciliation.queryOptions({
-      companyId: resolvedCompanyId,
-      ledgerAccountId,
-      periodStart,
-      periodEnd,
-      statementId,
-    }),
-    enabled: queryEnabled,
+    ...trpc.banking.getReconciliation.queryOptions(
+      companyId && isReady
+        ? { companyId, ledgerAccountId, periodStart, periodEnd, statementId }
+        : skipToken,
+    ),
+    enabled: Boolean(ledgerAccountId),
   })
 
-  const statementsQuery = useQuery({
-    ...trpc.banking.listStatements.queryOptions({
-      companyId: resolvedCompanyId,
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const statementsQuery = useQuery(
+    trpc.banking.listStatements.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const importMutation = useMutation({
     ...trpc.banking.importStatement.mutationOptions(),
@@ -229,10 +221,7 @@ export function BankReconciliationPanel() {
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label>Period from</Label>
-                <DatePicker
-                  onChange={setPeriodStart}
-                  value={periodStart}
-                />
+                <DatePicker onChange={setPeriodStart} value={periodStart} />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label>Period to</Label>
@@ -298,12 +287,12 @@ export function BankReconciliationPanel() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Status</TableHead>
-                  <TableHead>Stmt date</TableHead>
-                  <TableHead>Statement</TableHead>
+                  <TableHead>Bank date</TableHead>
+                  <TableHead>As per bank</TableHead>
                   <TableHead>Book date</TableHead>
-                  <TableHead>Books</TableHead>
-                  <TableHead className="text-right">Stmt</TableHead>
-                  <TableHead className="text-right">Book</TableHead>
+                  <TableHead>As per books</TableHead>
+                  <TableHead className="text-right">Bank amount</TableHead>
+                  <TableHead className="text-right">Book amount</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -319,7 +308,7 @@ export function BankReconciliationPanel() {
                       className="py-8 text-center text-muted-foreground"
                       colSpan={7}
                     >
-                      No reconciliation rows yet.
+                      No bank statement lines yet.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -334,7 +323,7 @@ export function BankReconciliationPanel() {
                     return (
                       <TableRow key={`${row.matchId ?? 'row'}-${index}`}>
                         <TableCell>
-                          <Badge variant={statusBadge(row.status)}>
+                          <Badge variant={bankReconciliationBadgeIntent(row.status)}>
                             {row.status === 'matched' ? (
                               <CheckIcon data-icon="inline-start" />
                             ) : null}
@@ -350,9 +339,7 @@ export function BankReconciliationPanel() {
                           {row.bookNarration ?? '—'}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {statementAmount
-                            ? formatInr(statementAmount)
-                            : '—'}
+                          {statementAmount ? formatInr(statementAmount) : '—'}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {bookAmount ? formatInr(bookAmount) : '—'}

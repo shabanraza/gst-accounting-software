@@ -8,7 +8,7 @@ import { LandingFooter } from '#/features/marketing/components/landing-footer.ts
 import { LandingHeader } from '#/features/marketing/components/landing-header.tsx'
 import { HERO } from '#/features/marketing/landing-content.ts'
 import type { ContentSection } from '#/features/marketing/page-head.ts'
-
+import type { FileRouteTypes } from '#/routeTree.gen.ts'
 
 export function MarketingPageShell({ children }: { children: React.ReactNode }) {
   return (
@@ -21,7 +21,7 @@ export function MarketingPageShell({ children }: { children: React.ReactNode }) 
 }
 
 export function PageHero(props: {
-  crumbs: ReadonlyArray<{ label: string; href?: string }>
+  crumbs: ReadonlyArray<{ label: string; to?: FileRouteTypes['to'] }>
   headline: string
   intro: string
   children?: React.ReactNode
@@ -32,16 +32,16 @@ export function PageHero(props: {
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,oklch(0.94_0.02_95),transparent_55%),linear-gradient(180deg,var(--shell-canvas),var(--background)_70%)] dark:bg-[linear-gradient(180deg,var(--shell-canvas),var(--background)_70%)]"
       />
-      <div className="relative mx-auto flex max-w-4xl flex-col gap-4 px-4 pt-12 pb-8 md:pt-16">
+      <div className="relative mx-auto flex max-w-6xl flex-col gap-4 px-4 pt-12 pb-8 md:pt-16">
         <nav aria-label="Breadcrumb">
           <ol className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
             {props.crumbs.map((crumb, index) => (
               <li key={crumb.label} className="flex items-center gap-1">
                 {index > 0 ? <ChevronRightIcon className="size-3.5" /> : null}
-                {crumb.href ? (
-                  <a className="hover:text-foreground" href={crumb.href}>
+                {crumb.to ? (
+                  <Link className="hover:text-foreground" to={crumb.to}>
                     {crumb.label}
-                  </a>
+                  </Link>
                 ) : (
                   <span aria-current="page">{crumb.label}</span>
                 )}
@@ -63,8 +63,8 @@ export function PageHero(props: {
 
 export function ArticleSections({ sections }: { sections: ReadonlyArray<ContentSection> }) {
   return (
-    <section className="mx-auto max-w-3xl px-4 py-12" data-ui="chrome">
-      <div className="flex flex-col gap-10">
+    <section className="mx-auto max-w-6xl px-4 py-12" data-ui="chrome">
+      <div className="flex max-w-3xl flex-col gap-10">
         {sections.map((section) => (
           <article key={section.heading} className="flex flex-col gap-3">
             <h2 className="font-heading text-xl font-semibold tracking-tight md:text-2xl">
@@ -84,7 +84,7 @@ export function ArticleSections({ sections }: { sections: ReadonlyArray<ContentS
 
 export function ProductPitch({ title, body }: { title: string; body: string }) {
   return (
-    <section className="mx-auto max-w-4xl px-4 py-4" data-ui="chrome">
+    <section className="mx-auto max-w-6xl px-4 py-4" data-ui="chrome">
       <div
         className="flex flex-col items-start gap-4 rounded-[var(--radius-hero)] bg-primary px-6 py-8 text-primary-foreground shadow-(--elevation-2) md:flex-row md:items-center md:justify-between md:px-8"
         data-hero-surface=""

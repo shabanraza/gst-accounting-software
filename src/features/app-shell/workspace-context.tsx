@@ -2,9 +2,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import * as React from 'react'
 
 import { WORKSPACE_COMPANY_KEY } from '#/features/app-shell/workspace.ts'
+import { workspaceErrorAction } from '#/features/app-shell/workspace-error.ts'
 import { trpcClient } from '#/integrations/tanstack-query/root-provider.tsx'
 import { authClient } from '#/lib/auth-client.ts'
 
+import type { WorkspaceErrorAction } from '#/features/app-shell/workspace-error.ts'
 import type { CompanyRecord } from '#/features/companies/company-service.ts'
 import type { Capability } from '#/features/companies/membership-service.ts'
 import type { GodownRecord } from '#/features/inventory/godown-service.ts'
@@ -21,6 +23,7 @@ type WorkspaceValue = {
   isReady: boolean
   isLoading: boolean
   error: string | null
+  errorAction: WorkspaceErrorAction | null
   refresh: () => Promise<void>
   setActiveCompany: (companyId: string) => Promise<void>
 }
@@ -59,6 +62,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       })
     },
     enabled: Boolean(accountId),
+    // No company is an answer, not a failure: go to setup without retrying.
+    retry: (failureCount, error) =>
+      workspaceErrorAction(error) === 'retry' && failureCount < 1,
     staleTime: 5 * 60_000,
     gcTime: 30 * 60_000,
     refetchOnWindowFocus: false,
@@ -80,6 +86,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     ? workspaceQuery.error instanceof Error
       ? workspaceQuery.error.message
       : 'Workspace failed to load'
+    : null
+  const errorAction = workspaceQuery.error
+    ? workspaceErrorAction(workspaceQuery.error)
     : null
 
   React.useEffect(() => {
@@ -118,6 +127,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       isReady,
       isLoading,
       error,
+      errorAction,
       refresh,
       setActiveCompany,
     }),
@@ -133,6 +143,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       isReady,
       isLoading,
       error,
+      errorAction,
       refresh,
       setActiveCompany,
     ],

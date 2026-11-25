@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { MailIcon, MessageCircleIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -23,7 +23,6 @@ type InvoiceShareActionsProps = {
   invoiceNumber: string
   companyName: string
   amount: string
-  printPath: string
 }
 
 export function InvoiceShareActions({
@@ -32,19 +31,27 @@ export function InvoiceShareActions({
   invoiceNumber,
   companyName,
   amount,
-  printPath,
 }: InvoiceShareActionsProps) {
   const trpc = useTRPC()
   const [emailOpen, setEmailOpen] = React.useState(false)
   const [toEmail, setToEmail] = React.useState('')
 
   const emailInvoice = useMutation(trpc.sales.emailInvoice.mutationOptions())
+  // Customer-facing link that opens without a login (signed, expires in 90 days).
+  const shareLink = useQuery({
+    ...trpc.sales.shareLink.queryOptions({ companyId, id: invoiceId }),
+    staleTime: 60 * 60 * 1000,
+  })
 
   const shareUrl =
-    typeof window !== 'undefined' ? `${window.location.origin}${printPath}` : ''
-  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(
-    `Invoice ${invoiceNumber} from ${companyName} for ${amount}. ${shareUrl}`,
-  )}`
+    shareLink.data && typeof window !== 'undefined'
+      ? `${window.location.origin}${shareLink.data.path}`
+      : null
+  const whatsappHref = shareUrl
+    ? `https://wa.me/?text=${encodeURIComponent(
+        `Invoice ${invoiceNumber} from ${companyName} for ${amount}. ${shareUrl}`,
+      )}`
+    : null
 
   async function handleSendEmail() {
     try {
@@ -54,7 +61,6 @@ export function InvoiceShareActions({
         toEmail: toEmail.trim(),
         companyName,
         amount,
-        url: shareUrl || undefined,
       })
       toast.success(`Invoice emailed to ${toEmail.trim()}`)
       setEmailOpen(false)
@@ -66,12 +72,19 @@ export function InvoiceShareActions({
 
   return (
     <>
-      <Button asChild type="button" variant="outline">
-        <a href={whatsappHref} rel="noreferrer" target="_blank">
+      {whatsappHref ? (
+        <Button asChild type="button" variant="outline">
+          <a href={whatsappHref} rel="noreferrer" target="_blank">
+            <MessageCircleIcon data-icon="inline-start" />
+            WhatsApp
+          </a>
+        </Button>
+      ) : (
+        <Button disabled type="button" variant="outline">
           <MessageCircleIcon data-icon="inline-start" />
           WhatsApp
-        </a>
-      </Button>
+        </Button>
+      )}
       <Dialog onOpenChange={setEmailOpen} open={emailOpen}>
         <DialogTrigger asChild>
           <Button type="button" variant="outline">

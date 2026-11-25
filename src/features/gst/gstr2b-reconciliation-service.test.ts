@@ -1,9 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
-import {
-  createGstReconciliationRepository,
-  type GstReconciliationRepository,
-} from '#/features/gst/gst-reconciliation-store.ts'
+import { createGstReconciliationRepository } from '#/features/gst/gst-reconciliation-store.ts'
+import type { GstReconciliationRepository } from '#/features/gst/gst-reconciliation-store.ts'
 import {
   reconcileGstr2b,
   Gstr2bItcDecisionError,
@@ -197,6 +195,20 @@ describe('reconcileGstr2b', () => {
     expect(portalOnly?.status).toBe('missing_in_books')
   })
 
+  test('leaves reverse charge bills out; their ITC is self-assessed', async () => {
+    const report = await reconcileGstr2b(
+      {
+        bills: new FakeBills([
+          bill({ supplierBillNumber: 'SB-RCM', reverseCharge: true }),
+        ]),
+        parties: new FakeParties([supplierParty()]),
+      },
+      { companyId: 'company-1', ...period, portalRows: [] },
+    )
+
+    expect(report.rows).toEqual([])
+  })
+
   test('excludes rows outside the selected period', async () => {
     const report = await reconcileGstr2b(
       {
@@ -265,7 +277,8 @@ describe('reconcileGstr2b', () => {
   })
 
   test('persists accepted ITC decisions in summary', async () => {
-    const recon: GstReconciliationRepository = createGstReconciliationRepository()
+    const recon: GstReconciliationRepository =
+      createGstReconciliationRepository()
     const deps = {
       bills: new FakeBills([bill({})]),
       parties: new FakeParties([supplierParty()]),
@@ -296,7 +309,7 @@ describe('reconcileGstr2b', () => {
         companyStateCode: period.companyStateCode,
         periodStart: period.periodStart,
         periodEnd: period.periodEnd,
-        rowKey: initial.rows[0]!.rowKey,
+        rowKey: initial.rows[0].rowKey,
         status: 'accepted',
         portalRows: input.portalRows,
       },
@@ -311,9 +324,7 @@ describe('reconcileGstr2b', () => {
     const report = await reconcileGstr2b(
       {
         bills: new FakeBills([bill({})]),
-        parties: new FakeParties([
-          { ...supplierParty(), gstin: null },
-        ]),
+        parties: new FakeParties([{ ...supplierParty(), gstin: null }]),
       },
       {
         companyId: 'company-1',
@@ -422,5 +433,80 @@ describe('reconcileGstr2b', () => {
         },
       ),
     ).rejects.toBeInstanceOf(Gstr2bItcDecisionError)
+  })
+})
+
+describe('expenses with claimed GST', () => {
+  const expenseBase = {
+    companyId: 'company-1',
+    narration: 'Office rent',
+    gstRate: '18.00',
+    supplierName: 'Shah Estates',
+    supplierGstin: '24AAACS1234K1Z5',
+    placeOfSupply: '24',
+    expenseAccountId: 'acc-rent',
+    paymentAccountId: 'acc-cash',
+    ledgerEntryId: 'entry-exp',
+    createdAt: new Date(),
+  }
+  const expenses = {
+    listByCompanyId: async () => [
+      {
+        ...expenseBase,
+        id: 'exp-claimed',
+        expenseDate: '2026-01-10',
+        amount: '11800.00',
+        taxableAmount: '10000.00',
+        gstAmount: '1800.00',
+        itcClaimed: true,
+        billNumber: 'R/2026/01',
+      },
+      {
+        ...expenseBase,
+        id: 'exp-not-claimed',
+        expenseDate: '2026-01-11',
+        amount: '1180.00',
+        taxableAmount: '1000.00',
+        gstAmount: '180.00',
+        itcClaimed: false,
+        billNumber: 'R/2026/02',
+      },
+    ],
+  }
+
+  test('matches a claimed expense bill and ignores unclaimed ones', async () => {
+    const report = await reconcileGstr2b(
+      {
+        bills: new FakeBills([]),
+        parties: new FakeParties([]),
+        expenses,
+      },
+      {
+        companyId: 'company-1',
+        ...period,
+        portalRows: [
+          {
+            supplierGstin: '24AAACS1234K1Z5',
+            supplierInvoiceNumber: 'R/2026/01',
+            invoiceDate: '2026-01-10',
+            taxableAmount: '10000.00',
+            cgstAmount: '900.00',
+            sgstAmount: '900.00',
+            igstAmount: '0.00',
+            totalGstAmount: '1800.00',
+          },
+        ],
+      },
+    )
+
+    expect(report.rows).toHaveLength(1)
+    expect(report.rows[0]).toMatchObject({
+      supplierInvoiceNumber: 'R/2026/01',
+      bookTaxableAmount: '10000.00',
+      bookCgstAmount: '900.00',
+      bookTotalGstAmount: '1800.00',
+      status: 'matched',
+    })
+    expect(report.summary.booksItcTotal).toBe('1800.00')
   })
 })

@@ -1,20 +1,16 @@
 import { z } from 'zod'
 
+import { ensureSystemLedger } from '#/features/accounting/chart-of-accounts.ts'
+import { recordDocumentEvent } from '#/features/audit/audit-service.ts'
 import { recordPurchaseSummary } from '#/features/dashboard/dashboard-summary-service.ts'
 import { postPurchaseBill } from '#/features/purchases/purchase-bill-service.ts'
 import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 import { TRPCError } from '@trpc/server'
 
 import type { TRPCRouterRecord } from '@trpc/server'
-import type { LedgerPostingRepository } from '#/features/accounting/posting-engine.ts'
-import type { DashboardSummaryRepository } from '#/features/dashboard/dashboard-summary-service.ts'
-import type {
-  StockBalanceRepository,
-  StockMovementRepository,
-} from '#/features/inventory/stock-movement-service.ts'
+import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
+import type { PostingTransaction } from '#/features/accounting/posting-transaction.ts'
 import type { PurchaseBillRepository } from '#/features/purchases/purchase-bill-service.ts'
-import type { ItemRepository } from '#/features/inventory/item-service.ts'
-import type { PartyRepository } from '#/features/parties/party-service.ts'
 
 const lineSchema = z.object({
   itemId: z.string().uuid(),
@@ -49,6 +45,7 @@ const postPurchaseBillInputSchema = z.object({
   billDate: z.string().min(1),
   dueDate: z.string().min(1),
   taxMode: z.enum(['exclusive', 'inclusive']).optional(),
+  reverseCharge: z.boolean().optional(),
   narration: z.string().optional(),
   freight: z.string().optional(),
   packing: z.string().optional(),
@@ -87,11 +84,8 @@ const getPurchaseBillInputSchema = z.object({
 
 export const createPurchasesRouter = (
   bills: PurchaseBillRepository,
-  posting: LedgerPostingRepository,
-  stock: StockMovementRepository & StockBalanceRepository,
-  dashboard: DashboardSummaryRepository,
-  items: ItemRepository,
-  parties: PartyRepository,
+  transaction: PostingTransaction,
+  ledgers: LedgerAccountRepository,
 ) =>
   ({
     list: capabilityProcedure('view')
@@ -119,23 +113,52 @@ export const createPurchasesRouter = (
       }),
     postBill: capabilityProcedure('post_purchase')
       .input(postPurchaseBillInputSchema)
-      .mutation(async ({ input }) => {
-        const bill = await postPurchaseBill(
-          { bills, posting, stock, items, parties },
-          input,
-        )
-        const stockInQuantity = bill.lines
-          .reduce((sum, line) => sum + Number(line.quantity), 0)
-          .toFixed(0)
+      .mutation(async ({ ctx, input }) => {
+        if (input.reverseCharge && input.taxMode === 'inclusive') {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Enter reverse charge bills with prices before GST; the supplier does not charge GST on them.',
+          })
+        }
+        // Created on first use; harmless if the posting below then fails.
+        const reverseChargeAccountId = input.reverseCharge
+          ? (
+              await ensureSystemLedger(
+                ledgers,
+                input.companyId,
+                'rcm_gst_payable',
+              )
+            ).id
+          : undefined
 
-        await recordPurchaseSummary(dashboard, {
-          companyId: bill.companyId,
-          summaryDate: bill.billDate,
-          purchaseAmount: bill.totalAmount,
-          payableAmount: bill.outstandingAmount,
-          stockInQuantity,
+        return transaction(async (tx) => {
+          const bill = await postPurchaseBill(tx, {
+            ...input,
+            reverseChargeAccountId,
+          })
+          const stockInQuantity = bill.lines
+            .reduce((sum, line) => sum + Number(line.quantity), 0)
+            .toFixed(0)
+
+          await recordPurchaseSummary(tx.dashboard, {
+            companyId: bill.companyId,
+            summaryDate: bill.billDate,
+            purchaseAmount: bill.totalAmount,
+            payableAmount: bill.outstandingAmount,
+            stockInQuantity,
+          })
+          await recordDocumentEvent(tx.audit, {
+            companyId: bill.companyId,
+            actorUserId: ctx.userId,
+            action: 'purchase_bill.posted',
+            entityType: 'purchase_bill',
+            entityId: bill.id,
+            documentNumber: bill.supplierBillNumber,
+            amount: bill.totalAmount,
+          })
+
+          return bill
         })
-
-        return bill
       }),
   }) satisfies TRPCRouterRecord

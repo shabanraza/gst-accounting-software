@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
+import { uploadPurchaseBillAttachment } from './purchase-attachment.ts'
+
 const uploadAttachment = vi.fn()
 const readFileAsBase64 = vi.fn()
 
@@ -16,8 +18,6 @@ vi.mock('./trpc-client.ts', () => ({
 vi.mock('./read-file-base64.ts', () => ({
   readFileAsBase64: (...args: unknown[]) => readFileAsBase64(...args),
 }))
-
-import { uploadPurchaseBillAttachment } from './purchase-attachment.ts'
 
 describe('uploadPurchaseBillAttachment', () => {
   beforeEach(() => {

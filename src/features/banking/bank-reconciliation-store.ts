@@ -1,17 +1,15 @@
 // TODO: Bank statement imports and reconciliation matches are in-memory only.
 // Add Drizzle tables (bank_statements, bank_statement_lines, bank_reconciliation_matches)
 // when bank recon persistence is prioritized.
-import {
-  DuplicateBankMatchError,
-  type BankReconciliationMatchRecord,
-  type BankReconciliationRepository,
-  type BankStatementLineRecord,
-  type BankStatementRecord,
+import { DuplicateBankMatchError } from '#/features/banking/bank-reconciliation-service.ts'
+import type {
+  BankReconciliationMatchRecord,
+  BankReconciliationRepository,
+  BankStatementLineRecord,
+  BankStatementRecord,
 } from '#/features/banking/bank-reconciliation-service.ts'
 
-export class InMemoryBankReconciliationRepository
-  implements BankReconciliationRepository
-{
+export class InMemoryBankReconciliationRepository implements BankReconciliationRepository {
   private statements: Array<BankStatementRecord> = []
   private lines: Array<BankStatementLineRecord> = []
   private matches: Array<BankReconciliationMatchRecord> = []

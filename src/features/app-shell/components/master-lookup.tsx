@@ -2,6 +2,7 @@ import * as React from 'react'
 import { ChevronsUpDownIcon, PlusIcon } from 'lucide-react'
 
 import { Button } from '#/components/ui/button.tsx'
+import { Kbd } from '#/components/ui/kbd.tsx'
 import {
   Command,
   CommandDialog,
@@ -33,6 +34,10 @@ type MasterLookupProps = {
   appearance?: 'default' | 'grid'
   disabled?: boolean
   onFocus?: () => void
+  /** Moves focus on after a pick (e.g. item -> quantity); defaults to this lookup. */
+  onPicked?: () => void
+  /** Lets the voucher grid focus this lookup by cell id. */
+  cellId?: string
   createAction?: {
     label: string
     onSelect: () => void
@@ -51,11 +56,23 @@ export function MasterLookup({
   appearance = 'default',
   disabled,
   onFocus,
+  onPicked,
+  cellId,
   createAction,
 }: MasterLookupProps) {
   const [open, setOpen] = React.useState(false)
+  const buttonRef = React.useRef<HTMLButtonElement>(null)
   const selected = options.find((option) => option.value === value)
   const isGrid = appearance === 'grid'
+
+  // The dialog has no trigger element, so Radix cannot restore focus itself;
+  // without this a keyboard user is dropped back to the top of the page.
+  function afterPick() {
+    requestAnimationFrame(() => {
+      if (onPicked) onPicked()
+      else buttonRef.current?.focus()
+    })
+  }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
     if (disabled) return
@@ -74,11 +91,13 @@ export function MasterLookup({
           className,
         )}
         data-master-lookup
+        data-voucher-cell={cellId}
         data-voucher-grid-control={isGrid ? '' : undefined}
         disabled={disabled}
         onClick={() => setOpen(true)}
         onFocus={onFocus}
         onKeyDown={handleKeyDown}
+        ref={buttonRef}
         type="button"
         variant={isGrid ? 'ghost' : 'outline'}
       >
@@ -86,12 +105,12 @@ export function MasterLookup({
           {selected?.label ?? placeholder}
         </span>
         <span className="flex shrink-0 items-center gap-1 text-muted-foreground">
-          <kbd className="rounded border px-1 font-mono text-[10px]">F2</kbd>
+          <Kbd>F2</Kbd>
           <ChevronsUpDownIcon className="size-3.5 opacity-50" />
         </span>
       </Button>
       <CommandDialog
-        description="Search and select a master record"
+        description="Search and pick from the list"
         onOpenChange={setOpen}
         open={open}
         title={title}
@@ -112,6 +131,7 @@ export function MasterLookup({
                 onSelect={() => {
                   onValueChange(option.value)
                   setOpen(false)
+                  afterPick()
                 }}
                 value={`${option.label} ${option.keywords ?? ''}`}
               >

@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import * as React from 'react'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { usePostHog } from '@posthog/react'
@@ -13,6 +14,7 @@ import {
 
 import { Avatar, AvatarFallback } from '#/components/ui/avatar.tsx'
 import { Button } from '#/components/ui/button.tsx'
+import { Kbd } from '#/components/ui/kbd.tsx'
 import {
   Collapsible,
   CollapsibleContent,
@@ -59,6 +61,10 @@ import type {
 import { CommandPalette } from '#/features/app-shell/components/command-palette.tsx'
 import { useTheme } from '#/features/app-shell/use-theme.ts'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
+import { clearAppAccess } from '#/features/app-shell/app-access.ts'
+import { useQuickActionShortcuts } from '#/features/app-shell/components/quick-actions.tsx'
+import { HelpMenu } from '#/features/support/components/help-menu.tsx'
+import { useAskAiShortcut } from '#/features/assistant/components/use-ask-ai-shortcut.ts'
 import { authClient } from '#/lib/auth-client.ts'
 
 function NavItemButton({
@@ -150,6 +156,7 @@ function CollapsibleNavGroup({
 export function AppShell({ children }: { children: React.ReactNode }) {
   const posthog = usePostHog()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   })
@@ -160,6 +167,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
   const { company, companies, setActiveCompany, isReady, capabilities } =
     useWorkspace()
+  useQuickActionShortcuts(capabilities)
   const visibleNav = React.useMemo(
     () => filterAppNav(appNav, capabilities),
     [capabilities],
@@ -171,6 +179,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const displayCompany = company ?? lastCompanyRef.current
   const { isDark, toggle, mounted: themeMounted } = useTheme()
   const [paletteOpen, setPaletteOpen] = React.useState(false)
+  useAskAiShortcut()
   const displayUser = session?.user ?? lastSessionRef.current?.user
   const userName = displayUser?.name ?? (isSessionPending ? '…' : 'Guest')
   const userEmail =
@@ -189,6 +198,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   async function handleSignOut() {
     await authClient.signOut()
     posthog.reset()
+    clearAppAccess(queryClient)
     void navigate({ to: '/login' })
   }
 
@@ -332,6 +342,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <SidebarTrigger className="-ml-1" />
             <div className="flex-1" />
             <Button
+              aria-label="Search"
               className="gap-2"
               onClick={() => setPaletteOpen(true)}
               size="sm"
@@ -339,11 +350,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               <SearchIcon data-icon="inline-start" />
               <span className="hidden sm:inline">Search</span>
-              <kbd className="hidden rounded border bg-muted px-1 text-[10px] sm:inline">
-                ⌘K
-              </kbd>
+              <Kbd className="hidden sm:inline-flex">⌘K</Kbd>
             </Button>
-            <Button onClick={toggle} size="sm" variant="outline">
+            <Button
+              aria-label={
+                isDark ? 'Switch to light theme' : 'Switch to dark theme'
+              }
+              onClick={toggle}
+              size="sm"
+              variant="outline"
+            >
               {themeMounted ? (
                 isDark ? (
                   <SunMediumIcon data-icon="inline-start" />
@@ -357,6 +373,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {themeMounted ? (isDark ? 'Light' : 'Dark') : 'Theme'}
               </span>
             </Button>
+            <HelpMenu />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button aria-label="New bill" variant="default">
@@ -367,7 +384,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <DropdownMenuContent align="end" className="w-52">
                 <DropdownMenuGroup>
                   <DropdownMenuItem asChild>
-                    <Link to="/app/sales/new">New sales bill</Link>
+                    <Link to="/app/sales/new">New sales invoice</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/app/purchases/new">New purchase bill</Link>

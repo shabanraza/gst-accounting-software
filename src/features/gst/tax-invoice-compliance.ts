@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 import {
@@ -21,7 +22,7 @@ export type InvoicePartySnapshot = {
   partyEmailSnapshot: string
 }
 
-export class TaxInvoiceAddressRequiredError extends Error {
+export class TaxInvoiceAddressRequiredError extends DomainError {
   constructor(message: string) {
     super(message)
     this.name = 'TaxInvoiceAddressRequiredError'

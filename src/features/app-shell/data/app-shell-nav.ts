@@ -18,11 +18,13 @@ import {
   ListTreeIcon,
   PackageCheckIcon,
   PackageIcon,
+  Repeat2Icon,
   ReceiptIcon,
   ReceiptIndianRupeeIcon,
   ScanTextIcon,
   Settings2Icon,
   ShoppingCartIcon,
+  SparklesIcon,
   TrendingUpIcon,
   Undo2Icon,
   UploadIcon,
@@ -36,6 +38,7 @@ import type { Capability } from '#/features/companies/membership-service.ts'
 
 export type AppNavPath =
   | '/app/dashboard'
+  | '/app/assistant'
   | '/app/masters/chart-of-accounts'
   | '/app/masters/companies'
   | '/app/masters/company-profile'
@@ -45,6 +48,7 @@ export type AppNavPath =
   | '/app/accounting/journal'
   | '/app/sales'
   | '/app/sales/documents'
+  | '/app/sales/recurring'
   | '/app/purchases'
   | '/app/purchase-orders'
   | '/app/purchase-grns'
@@ -77,6 +81,13 @@ export type AppNavSection =
 export const appNav: Array<AppNavSection> = [
   {
     kind: 'link',
+    label: 'Ask AI',
+    path: '/app/assistant',
+    icon: SparklesIcon,
+    requiredCapability: 'view_reports',
+  },
+  {
+    kind: 'link',
     label: 'Dashboard',
     path: '/app/dashboard',
     icon: LayoutDashboardIcon,
@@ -86,11 +97,16 @@ export const appNav: Array<AppNavSection> = [
     label: 'Sales',
     icon: TrendingUpIcon,
     items: [
-      { label: 'Invoices', path: '/app/sales', icon: FileTextIcon },
+      { label: 'Sales invoices', path: '/app/sales', icon: FileTextIcon },
       {
         label: 'Quotations & orders',
         path: '/app/sales/documents',
         icon: FileSignatureIcon,
+      },
+      {
+        label: 'Recurring invoices',
+        path: '/app/sales/recurring',
+        icon: Repeat2Icon,
       },
       { label: 'Returns', path: '/app/returns', icon: Undo2Icon },
     ],
@@ -100,8 +116,8 @@ export const appNav: Array<AppNavSection> = [
     label: 'Purchase',
     icon: ShoppingCartIcon,
     items: [
-      { label: 'Bills', path: '/app/purchases', icon: ReceiptIcon },
-      { label: 'OCR review', path: '/app/ocr', icon: ScanTextIcon },
+      { label: 'Purchase bills', path: '/app/purchases', icon: ReceiptIcon },
+      { label: 'Scanned bills', path: '/app/ocr', icon: ScanTextIcon },
       {
         label: 'Purchase orders',
         path: '/app/purchase-orders',
@@ -119,7 +135,11 @@ export const appNav: Array<AppNavSection> = [
     label: 'Payments & banking',
     icon: WalletIcon,
     items: [
-      { label: 'Payments', path: '/app/payments', icon: BanknoteIcon },
+      {
+        label: 'Receipts & payments',
+        path: '/app/payments',
+        icon: BanknoteIcon,
+      },
       {
         label: 'Bank reconciliation',
         path: '/app/bank-reconciliation',
@@ -242,11 +262,12 @@ export function isAppNavPathActive(pathname: string, path: AppNavPath) {
     return (
       normalizedPathname === path ||
       (normalizedPathname.startsWith('/app/sales/') &&
-        !normalizedPathname.startsWith('/app/sales/documents'))
+        !normalizedPathname.startsWith('/app/sales/documents') &&
+        !normalizedPathname.startsWith('/app/sales/recurring'))
     )
   }
 
-  if (path === '/app/sales/documents') {
+  if (path === '/app/sales/documents' || path === '/app/sales/recurring') {
     return (
       normalizedPathname === path || normalizedPathname.startsWith(`${path}/`)
     )

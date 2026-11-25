@@ -17,9 +17,10 @@ import { PickerField } from '@/components/ui/picker-field'
 import { PickerModal } from '@/components/ui/picker-modal'
 import { StepPills } from '@/components/ui/step-pills'
 import {
-  VoucherSuccessSheet,
-  type VoucherSuccessTarget,
+  VoucherSuccessSheet
+  
 } from '@/components/voucher/voucher-success-sheet'
+import type {VoucherSuccessTarget} from '@/components/voucher/voucher-success-sheet';
 import { AddLineButton } from '@/components/voucher/add-line-button'
 import {
   RecentPartyChips,
@@ -44,17 +45,19 @@ import {
   filterSupplierParties,
   validateActiveFinancialYearId,
   validatePurchaseBillForm,
-  validatePurchaseLedgerMappings,
-  type PurchaseBillFormDraft,
-  type PurchaseBillLineDraft,
-  type SupplyRegion,
-  type TaxMode,
+  validatePurchaseLedgerMappings
+  
+  
+  
+  
 } from '@/lib/purchase-bill-form'
+import type {PurchaseBillFormDraft, PurchaseBillLineDraft, SupplyRegion, TaxMode} from '@/lib/purchase-bill-form';
 import { resolvePlaceOfSupply } from '@/lib/sales-invoice-form'
 import {
-  uploadPurchaseBillAttachment,
-  type PurchaseAttachmentAsset,
+  uploadPurchaseBillAttachment
+  
 } from '@/lib/purchase-attachment'
+import type {PurchaseAttachmentAsset} from '@/lib/purchase-attachment';
 import { supplyRegionLabel } from '@/lib/supply-region'
 import { applyGrnDraft } from '@/lib/voucher-prefill'
 import {
@@ -340,7 +343,7 @@ export function PurchaseBillCreateScreen({
       supplier.paymentTermsDays && supplier.paymentTermsDays > 0
         ? (() => {
             const due = new Date()
-            due.setDate(due.getDate() + supplier.paymentTermsDays!)
+            due.setDate(due.getDate() + supplier.paymentTermsDays)
             return due.toISOString().slice(0, 10)
           })()
         : ''
@@ -488,7 +491,7 @@ export function PurchaseBillCreateScreen({
               <SecondaryButton
                 label="Back"
                 onPress={() =>
-                  setStep(step === 'lines' ? 'supplier' : 'lines')
+                  setStep('supplier')
                 }
               />
             </View>

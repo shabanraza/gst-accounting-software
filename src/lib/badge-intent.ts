@@ -15,6 +15,10 @@ export function paymentStatusBadgeIntent(status: string): BadgeIntent {
   return 'warning'
 }
 
+export function paymentVoucherStatusBadgeIntent(status: string): BadgeIntent {
+  return status === 'cancelled' ? 'destructive' : 'success'
+}
+
 export function invoiceStatusBadgeIntent(input: {
   cancelled?: boolean
   paymentStatus: string
@@ -35,6 +39,16 @@ export function documentStatusBadgeIntent(status: string): BadgeIntent {
   if (status === 'converted') return 'success'
   if (status === 'cancelled') return 'destructive'
   return 'neutral'
+}
+
+/** Recurring invoice: due now, running, paused or ended. */
+export function recurringInvoiceBadgeIntent(input: {
+  status: string
+  due: boolean
+}): BadgeIntent {
+  if (input.status === 'ended') return 'neutral'
+  if (input.status === 'paused') return 'warning'
+  return input.due ? 'info' : 'success'
 }
 
 export function partyTypeBadgeIntent(partyType: string): BadgeIntent {
@@ -119,4 +133,42 @@ export function toolCheckBadgeIntent(
   if (outcome === 'action') return 'warning'
   if (outcome === 'fail') return 'destructive'
   return 'info'
+}
+
+/** Audit log action: undoing or removing something stands out, the rest stay quiet. */
+export function auditActionBadgeIntent(action: string): BadgeIntent {
+  if (action.endsWith('.cancelled') || action.endsWith('.removed')) {
+    return 'destructive'
+  }
+  return 'neutral'
+}
+
+/** Bank reconciliation line: matched, in the books only, or on the statement only. */
+export function bankReconciliationBadgeIntent(status: string): BadgeIntent {
+  if (status === 'matched') return 'success'
+  if (status === 'unmatched_book') return 'warning'
+  return 'secondary'
+}
+
+/**
+ * Period-over-period change chip. A rise reads green and a fall red only when
+ * the figure is judged (more is better); otherwise it stays neutral.
+ */
+export function periodChangeBadgeIntent(input: {
+  direction: 'up' | 'down'
+  judged?: boolean
+}): BadgeIntent {
+  if (input.judged === false) return 'secondary'
+  return input.direction === 'up' ? 'success' : 'destructive'
+}
+
+export function eWayBillStatusBadgeIntent(
+  status: 'due' | 'recorded',
+): BadgeIntent {
+  return status === 'due' ? 'warning' : 'neutral'
+}
+
+/** Reverse charge purchases: the GST is ours to pay, so it is a GST signal. */
+export function reverseChargeBadgeIntent(): BadgeIntent {
+  return 'gst'
 }

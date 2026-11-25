@@ -1,3 +1,4 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import Decimal from 'decimal.js'
 
 import { recordStockMovement } from '#/features/inventory/stock-movement-service.ts'
@@ -83,14 +84,14 @@ export interface GrnRepository {
   ) => Promise<GrnRecord>
 }
 
-export class InvalidGrnError extends Error {
+export class InvalidGrnError extends DomainError {
   constructor(message: string) {
     super(message)
     this.name = 'InvalidGrnError'
   }
 }
 
-export class GrnNotFoundError extends Error {
+export class GrnNotFoundError extends DomainError {
   constructor(grnId: string) {
     super(`GRN not found: ${grnId}`)
     this.name = 'GrnNotFoundError'

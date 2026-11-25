@@ -36,6 +36,9 @@ export function buildGoogleAnalyticsScripts() {
   ]
 }
 
+/** Public invoice links (`/i/<token>`) are bearer links; keep them out of GA. */
+const PUBLIC_INVOICE_PATH = /^\/i\/[^/]+/
+
 /** Fires a GA4 page_view on every route change, including the first render. */
 export function GoogleAnalyticsPageview() {
   const pathname = useRouterState({
@@ -45,10 +48,14 @@ export function GoogleAnalyticsPageview() {
   React.useEffect(() => {
     if (!GA_MEASUREMENT_ID || typeof window.gtag !== 'function') return
 
+    const isPublicInvoice = PUBLIC_INVOICE_PATH.test(pathname)
+    const pagePath = isPublicInvoice ? '/i/[token]' : pathname
     window.gtag('event', 'page_view', {
-      page_path: pathname,
-      page_title: document.title,
-      page_location: window.location.href,
+      page_path: pagePath,
+      page_title: isPublicInvoice ? 'Invoice' : document.title,
+      page_location: isPublicInvoice
+        ? `${window.location.origin}${pagePath}`
+        : window.location.href,
     })
   }, [pathname])
 

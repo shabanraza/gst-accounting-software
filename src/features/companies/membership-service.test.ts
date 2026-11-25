@@ -4,8 +4,10 @@ import {
   listRoleCapabilities,
   roleHasCapability,
   rolesForCapability,
-  type Capability,
-  type CompanyRole,
+} from '#/features/companies/membership-service.ts'
+import type {
+  Capability,
+  CompanyRole,
 } from '#/features/companies/membership-service.ts'
 
 const ROLES: Array<CompanyRole> = [

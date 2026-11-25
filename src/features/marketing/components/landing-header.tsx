@@ -6,14 +6,19 @@ import { Button } from '#/components/ui/button.tsx'
 import { NAV_LINKS, SITE } from '#/features/marketing/landing-content.ts'
 import { authClient } from '#/lib/auth-client.ts'
 
+// Every marketing page mounts its own header, so remember the last answer to
+// keep the sign-in buttons from swapping on each client-side navigation.
+let lastKnownHasSession = false
+
 export function LandingHeader() {
-  const [hasSession, setHasSession] = React.useState(false)
+  const [hasSession, setHasSession] = React.useState(lastKnownHasSession)
   const [menuOpen, setMenuOpen] = React.useState(false)
 
   React.useEffect(() => {
     let cancelled = false
     void authClient.getSession().then((session) => {
-      if (!cancelled) setHasSession(Boolean(session.data))
+      lastKnownHasSession = Boolean(session.data)
+      if (!cancelled) setHasSession(lastKnownHasSession)
     })
     return () => {
       cancelled = true
@@ -26,25 +31,27 @@ export function LandingHeader() {
       data-app-header=""
     >
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
-        <a
+        <Link
           className="font-heading text-base font-semibold tracking-tight text-foreground"
-          href="/#top"
+          hash="top"
+          to="/"
         >
           {SITE.name}
-        </a>
+        </Link>
 
         <nav
           aria-label="Primary"
           className="hidden items-center gap-5 md:flex"
         >
           {NAV_LINKS.map((link) => (
-            <a
-              key={link.href}
+            <Link
+              key={link.label}
               className="text-sm text-muted-foreground transition-colors duration-(--duration-fast) ease-(--ease-precise) hover:text-foreground"
-              href={link.href}
+              hash={link.hash}
+              to={link.to}
             >
               {link.label}
-            </a>
+            </Link>
           ))}
         </nav>
 
@@ -92,14 +99,15 @@ export function LandingHeader() {
           className="flex flex-col gap-1 border-t border-border px-4 py-3 md:hidden"
         >
           {NAV_LINKS.map((link) => (
-            <a
-              key={link.href}
+            <Link
+              key={link.label}
               className="rounded-md px-2 py-2 text-sm text-foreground hover:bg-muted"
-              href={link.href}
+              hash={link.hash}
               onClick={() => setMenuOpen(false)}
+              to={link.to}
             >
               {link.label}
-            </a>
+            </Link>
           ))}
         </nav>
       ) : null}

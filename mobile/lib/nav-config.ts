@@ -87,7 +87,7 @@ export const MOBILE_NAV_MODULES: Array<MobileNavModule> = [
   },
   {
     id: 'ocr',
-    title: 'OCR review',
+    title: 'Scanned bills',
     tab: 'purchase',
     path: '/(app)/purchases/ocr',
     trpcNamespace: 'ocr',
@@ -95,7 +95,7 @@ export const MOBILE_NAV_MODULES: Array<MobileNavModule> = [
   },
   {
     id: 'payments',
-    title: 'Payments',
+    title: 'Receipts & payments',
     tab: 'more',
     path: '/(app)/module/payments',
   },

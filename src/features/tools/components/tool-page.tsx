@@ -85,19 +85,19 @@ export function ToolPage({
 }) {
   const tool = TOOLS[slug]
   const crumbs = [
-    { label: 'Free tools', href: '/tools' },
-    extraCrumb ? { label: tool.name, href: toolPath(slug) } : { label: tool.name },
+    { label: 'Free tools', to: '/tools' as const },
+    extraCrumb ? { label: tool.name, to: toolPath(slug) } : { label: tool.name },
     ...(extraCrumb ? [{ label: extraCrumb }] : []),
   ]
 
   return (
     <MarketingPageShell>
       <PageHero crumbs={crumbs} headline={headline ?? tool.headline} intro={intro ?? tool.intro} />
-      <section className="mx-auto max-w-4xl px-4 pb-8">{children}</section>
+      <section className="mx-auto max-w-6xl px-4 pb-8">{children}</section>
       <ProductPitch body={tool.productPitch} title={`Do this every day in ${SITE.name}`} />
       <ArticleSections sections={tool.sections} />
       {belowArticle}
-      <LandingFaq id="faq" items={tool.faq} title={`${tool.name}: common questions`} />
+      <LandingFaq align="start" id="faq" items={tool.faq} title={`${tool.name}: common questions`} />
       <section className="mx-auto max-w-6xl px-4 pb-16" data-ui="chrome">
         <h2 className="font-heading text-xl font-semibold tracking-tight">More free GST tools</h2>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -1,7 +1,17 @@
+export function escapeHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
 type SendEmailInput = {
   to: string
   subject: string
   html: string
+  replyTo?: string
 }
 
 /**
@@ -30,6 +40,7 @@ export async function sendEmail(input: SendEmailInput): Promise<void> {
       to: input.to,
       subject: input.subject,
       html: input.html,
+      ...(input.replyTo ? { reply_to: input.replyTo } : {}),
     }),
   })
 
@@ -122,15 +133,6 @@ export async function sendInvitationEmail(input: {
       { label: 'Accept invite', url: input.url },
     ),
   })
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;')
 }
 
 /** Notifies the team inbox (`CONTACT_INBOX`) of a public-site submission. */

@@ -1,8 +1,9 @@
 import * as React from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { WarehouseIcon } from 'lucide-react'
+import { skipToken, useQuery } from '@tanstack/react-query'
+import { ClipboardListIcon, WarehouseIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
+import { Button } from '#/components/ui/button.tsx'
 import { stockStatusBadgeIntent } from '#/lib/badge-intent.ts'
 import {
   Card,
@@ -26,7 +27,10 @@ import { ActiveFilterChip } from '#/features/app-shell/components/active-filter-
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { resolveListFilter } from '#/features/app-shell/list-filter.ts'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { ItemStockHistorySheet } from '#/features/inventory/components/item-stock-history-sheet.tsx'
+import { StockJournalDialog } from '#/features/inventory/components/stock-journal-dialog.tsx'
+import type { StockHistoryItem } from '#/features/inventory/components/item-stock-history-sheet.tsx'
+import { formatInr } from '#/lib/format-inr.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function InventoryPanel({
@@ -42,13 +46,21 @@ export function InventoryPanel({
   const [statusFilter, setStatusFilter] = React.useState<
     'all' | 'healthy' | 'low'
   >('all')
+  const [journalOpen, setJournalOpen] = React.useState(false)
+  const [historyItem, setHistoryItem] = React.useState<StockHistoryItem | null>(
+    null,
+  )
 
-  const stockQuery = useQuery({
-    ...trpc.inventory.listStockBalances.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const stockQuery = useQuery(
+    trpc.inventory.listStockBalances.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
+  const godownStockQuery = useQuery(
+    trpc.inventory.godownStock.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const rows = stockQuery.data ?? []
   const itemFilter = resolveListFilter(
@@ -58,7 +70,7 @@ export function InventoryPanel({
   )
   const filtered = rows.filter((row) => {
     if (itemFilter.id && row.itemId !== itemFilter.id) return false
-    const isLow = Number(row.quantity) < 1
+    const isLow = row.isLow
     const matchesStatus =
       statusFilter === 'all' || (statusFilter === 'low' ? isLow : !isLow)
     const haystack = row.itemName.toLowerCase()
@@ -69,17 +81,27 @@ export function InventoryPanel({
     (sum, row) => sum + Number(row.quantity) * Number(row.avgRate),
     0,
   )
-  const lowCount = filtered.filter((row) => Number(row.quantity) < 1).length
+  const lowCount = filtered.filter((row) => row.isLow).length
+  const godownRows = (godownStockQuery.data ?? []).filter((row) => {
+    if (itemFilter.id && row.itemId !== itemFilter.id) return false
+    return row.itemName.toLowerCase().includes(query.trim().toLowerCase())
+  })
 
   return (
     <WorkspacePage
-      description="Godown-agnostic stock balances from the movement ledger API."
+      actions={
+        <Button onClick={() => setJournalOpen(true)} type="button">
+          <ClipboardListIcon data-icon="inline-start" />
+          Stock journal
+        </Button>
+      }
+      description="Stock on hand for every item, across all godowns."
       title="Inventory"
     >
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Lines shown</CardDescription>
+            <CardDescription>Items</CardDescription>
             <CardTitle className="text-2xl tabular-nums">
               {filtered.length}
             </CardTitle>
@@ -87,7 +109,7 @@ export function InventoryPanel({
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Stock value (avg)</CardDescription>
+            <CardDescription>Stock value</CardDescription>
             <CardTitle className="text-2xl tabular-nums">
               {formatInr(totalValue)}
             </CardTitle>
@@ -95,7 +117,7 @@ export function InventoryPanel({
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Zero / low</CardDescription>
+            <CardDescription>Low stock</CardDescription>
             <CardTitle className="text-2xl tabular-nums">{lowCount}</CardTitle>
           </CardHeader>
         </Card>
@@ -109,7 +131,7 @@ export function InventoryPanel({
               Stock status
             </CardTitle>
             <CardDescription>
-              Live balances from opening / purchase / sale movements
+              Quantity and value on hand, updated with every purchase and sale
             </CardDescription>
           </div>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -123,7 +145,7 @@ export function InventoryPanel({
                 <ScrollableTabsList>
                   <TabsTrigger value="all">All</TabsTrigger>
                   <TabsTrigger value="healthy">In stock</TabsTrigger>
-                  <TabsTrigger value="low">Low / zero</TabsTrigger>
+                  <TabsTrigger value="low">Low stock</TabsTrigger>
                 </ScrollableTabsList>
               </Tabs>
               {itemFilter.id && onClearItemFilter ? (
@@ -146,10 +168,10 @@ export function InventoryPanel({
             <TableHeader>
               <TableRow>
                 <TableHead>Item</TableHead>
-                <TableHead>Qty</TableHead>
+                <TableHead className="text-right">Qty</TableHead>
                 <TableHead>Unit</TableHead>
-                <TableHead>Avg rate</TableHead>
-                <TableHead>Value</TableHead>
+                <TableHead className="text-right">Avg rate</TableHead>
+                <TableHead className="text-right">Value</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -174,26 +196,38 @@ export function InventoryPanel({
                 </TableRow>
               ) : (
                 filtered.map((row) => {
-                  const isLow = Number(row.quantity) < 1
+                  const isLow = row.isLow
                   const value = Number(row.quantity) * Number(row.avgRate)
                   return (
                     <TableRow key={row.itemId}>
                       <TableCell className="font-medium">
-                        {row.itemName}
+                        <button
+                          className="text-left underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"
+                          onClick={() =>
+                            setHistoryItem({
+                              itemId: row.itemId,
+                              itemName: row.itemName,
+                              unit: row.unit,
+                            })
+                          }
+                          type="button"
+                        >
+                          {row.itemName}
+                        </button>
                       </TableCell>
-                      <TableCell className="tabular-nums">
+                      <TableCell className="text-right">
                         {row.quantity}
                       </TableCell>
                       <TableCell>{row.unit}</TableCell>
-                      <TableCell>{formatInr(row.avgRate)}</TableCell>
-                      <TableCell>{formatInr(value)}</TableCell>
+                      <TableCell className="text-right">{formatInr(row.avgRate)}</TableCell>
+                      <TableCell className="text-right">{formatInr(value)}</TableCell>
                       <TableCell>
                         <Badge
                           variant={stockStatusBadgeIntent({
                             isLowOrZero: isLow,
                           })}
                         >
-                          {isLow ? 'Low / zero' : 'In stock'}
+                          {isLow ? 'Low stock' : 'In stock'}
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -204,6 +238,66 @@ export function InventoryPanel({
           </Table>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Stock by godown</CardTitle>
+        </CardHeader>
+        <CardContent className="px-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Item</TableHead>
+                <TableHead>Godown</TableHead>
+                <TableHead className="text-right">Qty</TableHead>
+                <TableHead>Unit</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {godownStockQuery.isLoading ? (
+                <TableRow>
+                  <TableCell
+                    className="py-10 text-center text-muted-foreground"
+                    colSpan={4}
+                  >
+                    Loading stock…
+                  </TableCell>
+                </TableRow>
+              ) : godownRows.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    className="py-10 text-center text-muted-foreground"
+                    colSpan={4}
+                  >
+                    No godown stock yet.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                godownRows.map((row) => (
+                  <TableRow key={`${row.itemId}:${row.godownName}`}>
+                    <TableCell className="font-medium">
+                      {row.itemName}
+                    </TableCell>
+                    <TableCell>{row.godownName}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {row.quantity}
+                    </TableCell>
+                    <TableCell>{row.unit}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <StockJournalDialog onOpenChange={setJournalOpen} open={journalOpen} />
+      <ItemStockHistorySheet
+        item={historyItem}
+        onOpenChange={(open) => {
+          if (!open) setHistoryItem(null)
+        }}
+      />
     </WorkspacePage>
   )
 }

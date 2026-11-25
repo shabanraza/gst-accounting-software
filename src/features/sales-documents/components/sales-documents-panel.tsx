@@ -1,7 +1,12 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { FileTextIcon, PlusIcon, Trash2Icon } from 'lucide-react'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
+import { FileTextIcon, PlusIcon, Trash2Icon, TruckIcon } from 'lucide-react'
 
 import { toast } from 'sonner'
 
@@ -35,7 +40,7 @@ import {
 import { FieldGroup } from '#/features/app-shell/components/field-label.tsx'
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import {
   requirePositiveQuantity,
@@ -43,6 +48,8 @@ import {
   requireWorkspace,
 } from '#/lib/form-validation.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
+import { EWayBillDialog } from '#/features/eway-bill/components/eway-bill-dialog.tsx'
+import type { EWayBillTarget } from '#/features/eway-bill/components/eway-bill-dialog.tsx'
 
 import { documentStatusBadgeIntent } from '#/lib/badge-intent.ts'
 
@@ -50,6 +57,11 @@ const documentTypeLabels = {
   quotation: 'Quotation',
   sales_order: 'Sales order',
   delivery_challan: 'Delivery challan',
+} as const
+
+const documentStatusLabels = {
+  open: 'Open',
+  converted: 'Converted',
 } as const
 
 type SalesDocumentLineDraft = {
@@ -71,7 +83,9 @@ function createEmptySalesDocumentLine(): SalesDocumentLineDraft {
 export function SalesDocumentsPanel() {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
-  const { companyId, isReady } = useWorkspace()
+  const { activeFinancialYearId, companyId, isReady } = useWorkspace()
+  const [eWayBillTarget, setEWayBillTarget] =
+    React.useState<EWayBillTarget | null>(null)
   const [documentType, setDocumentType] =
     React.useState<keyof typeof documentTypeLabels>('quotation')
   const [documentNumber, setDocumentNumber] = React.useState('')
@@ -83,24 +97,21 @@ export function SalesDocumentsPanel() {
     createEmptySalesDocumentLine(),
   ])
 
-  const documentsQuery = useQuery({
-    ...trpc.salesDocuments.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
-  const partiesQuery = useQuery({
-    ...trpc.parties.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
-  const itemsQuery = useQuery({
-    ...trpc.inventory.listItems.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const documentsQuery = useQuery(
+    trpc.salesDocuments.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
+  const partiesQuery = useQuery(
+    trpc.parties.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
+  const itemsQuery = useQuery(
+    trpc.inventory.listItems.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const createDocument = useMutation(
     trpc.salesDocuments.create.mutationOptions(),
@@ -125,8 +136,8 @@ export function SalesDocumentsPanel() {
         index === 0
           ? {
               ...line,
-              itemId: items[0]!.id,
-              rate: items[0]!.saleRate,
+              itemId: items[0].id,
+              rate: items[0].saleRate,
             }
           : line,
       )
@@ -142,7 +153,7 @@ export function SalesDocumentsPanel() {
   }
 
   function addLine() {
-    const nextItem = items[0]
+    const nextItem = items.at(0)
     setLines((current) => [
       ...current,
       {
@@ -195,9 +206,8 @@ export function SalesDocumentsPanel() {
       await createDocument.mutateAsync({
         companyId,
         documentType,
-        documentNumber:
-          documentNumber.trim() ||
-          `${documentType.toUpperCase()}-${Date.now()}`,
+        documentNumber,
+        financialYearId: activeFinancialYearId ?? undefined,
         documentDate,
         customerId: selectedCustomerId,
         lines: payloadLines,
@@ -222,14 +232,14 @@ export function SalesDocumentsPanel() {
   return (
     <WorkspacePage
       description="Quotations, sales orders, and delivery challans before invoicing."
-      title="Sales documents"
+      title="Quotations & orders"
     >
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">New document</CardTitle>
             <CardDescription>
-              Non-posting sales paperwork. Convert open documents to invoices.
+              Convert to a sales invoice when you bill.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -365,9 +375,7 @@ export function SalesDocumentsPanel() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Documents</CardTitle>
-            <CardDescription>
-              Open documents for the active company.
-            </CardDescription>
+            <CardDescription>Not yet converted to an invoice.</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -395,24 +403,43 @@ export function SalesDocumentsPanel() {
                       <Badge
                         variant={documentStatusBadgeIntent(document.status)}
                       >
-                        {document.status}
+                        {documentStatusLabels[document.status]}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       {formatInr(document.totalAmount)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {document.status === 'open' ? (
-                        <Button asChild size="sm" variant="outline">
-                          <Link
-                            search={{ fromDocument: document.id }}
-                            to="/app/sales/new"
+                      <div className="flex items-center justify-end gap-1">
+                        {document.documentType === 'delivery_challan' ? (
+                          <Button
+                            onClick={() =>
+                              setEWayBillTarget({
+                                kind: 'challan',
+                                id: document.id,
+                                number: document.documentNumber,
+                              })
+                            }
+                            size="sm"
+                            type="button"
+                            variant="ghost"
                           >
-                            <FileTextIcon data-icon="inline-start" />
-                            Convert to invoice
-                          </Link>
-                        </Button>
-                      ) : null}
+                            <TruckIcon data-icon="inline-start" />
+                            E-way bill
+                          </Button>
+                        ) : null}
+                        {document.status === 'open' ? (
+                          <Button asChild size="sm" variant="outline">
+                            <Link
+                              search={{ fromDocument: document.id }}
+                              to="/app/sales/new"
+                            >
+                              <FileTextIcon data-icon="inline-start" />
+                              Convert to invoice
+                            </Link>
+                          </Button>
+                        ) : null}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -421,6 +448,12 @@ export function SalesDocumentsPanel() {
           </CardContent>
         </Card>
       </div>
+      <EWayBillDialog
+        onOpenChange={(open) => {
+          if (!open) setEWayBillTarget(null)
+        }}
+        target={eWayBillTarget}
+      />
     </WorkspacePage>
   )
 }

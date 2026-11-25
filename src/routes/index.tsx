@@ -4,6 +4,7 @@ import { LandingPage } from '#/features/marketing/components/landing-page.tsx'
 import {
   SITE,
   buildFaqJsonLd,
+  buildOrganizationJsonLd,
   buildSocialImageMeta,
   buildSoftwareJsonLd,
 } from '#/features/marketing/landing-content.ts'
@@ -12,6 +13,7 @@ export const Route = createFileRoute('/')({
   head: () => {
     const faqJsonLd = JSON.stringify(buildFaqJsonLd())
     const softwareJsonLd = JSON.stringify(buildSoftwareJsonLd())
+    const organizationJsonLd = JSON.stringify(buildOrganizationJsonLd())
 
     return {
       meta: [
@@ -32,6 +34,10 @@ export const Route = createFileRoute('/')({
         {
           type: 'application/ld+json',
           children: softwareJsonLd,
+        },
+        {
+          type: 'application/ld+json',
+          children: organizationJsonLd,
         },
         {
           type: 'application/ld+json',

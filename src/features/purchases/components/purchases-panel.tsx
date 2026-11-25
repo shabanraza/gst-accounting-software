@@ -1,15 +1,13 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import {
-  EyeIcon,
-  PlusIcon,
-  PrinterIcon,
-  TruckIcon,
-} from 'lucide-react'
+import { skipToken, useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { EyeIcon, PlusIcon, PrinterIcon, TruckIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
-import { paymentStatusBadgeIntent } from '#/lib/badge-intent.ts'
+import {
+  paymentStatusBadgeIntent,
+  reverseChargeBadgeIntent,
+} from '#/lib/badge-intent.ts'
 import { Button } from '#/components/ui/button.tsx'
 import {
   Card,
@@ -44,7 +42,7 @@ import { ActiveFilterChip } from '#/features/app-shell/components/active-filter-
 import { WorkspacePage } from '#/features/app-shell/components/workspace-page.tsx'
 import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { resolveListFilter } from '#/features/app-shell/list-filter.ts'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function PurchasesPanel({
@@ -63,14 +61,12 @@ export function PurchasesPanel({
   const [previewTarget, setPreviewTarget] =
     React.useState<VoucherPreviewTarget | null>(null)
   const [previewOpen, setPreviewOpen] = React.useState(false)
-  const resolvedCompanyId = companyId ?? '00000000-0000-4000-8000-000000000099'
 
-  const partiesQuery = useQuery({
-    ...trpc.parties.list.queryOptions({
-      companyId: resolvedCompanyId,
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const partiesQuery = useQuery(
+    trpc.parties.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
   const partyFilter = resolveListFilter(
     partyId,
     (partiesQuery.data ?? []).map((party) => ({
@@ -82,15 +78,16 @@ export function PurchasesPanel({
 
   const purchasesQuery = useInfiniteQuery(
     trpc.purchases.list.infiniteQueryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            limit: VOUCHER_LIST_PAGE_SIZE,
+            partyId: partyFilter.id,
+            paymentStatus: filter === 'all' ? undefined : filter,
+            search: query.trim() || undefined,
+          }
+        : skipToken,
       {
-        companyId: resolvedCompanyId,
-        limit: VOUCHER_LIST_PAGE_SIZE,
-        partyId: partyFilter.id,
-        paymentStatus: filter === 'all' ? undefined : filter,
-        search: query.trim() || undefined,
-      },
-      {
-        enabled: Boolean(companyId) && isReady,
         getNextPageParam: (lastPage) =>
           nextVoucherListCursor(
             lastPage,
@@ -178,9 +175,9 @@ export function PurchasesPanel({
                 <TableHead>Supplier</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Due</TableHead>
-                <TableHead>Taxable</TableHead>
-                <TableHead>Tax</TableHead>
-                <TableHead>Total</TableHead>
+                <TableHead className="text-right">Taxable</TableHead>
+                <TableHead className="text-right">Tax</TableHead>
+                <TableHead className="text-right">Total</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead />
               </TableRow>
@@ -201,7 +198,7 @@ export function PurchasesPanel({
                     className="py-10 text-center text-muted-foreground"
                     colSpan={9}
                   >
-                    No purchases yet. Create a purchase voucher.
+                    No purchase bills yet.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -213,9 +210,16 @@ export function PurchasesPanel({
                     <TableCell>{partyName(row.supplierId)}</TableCell>
                     <TableCell>{row.billDate}</TableCell>
                     <TableCell>{row.dueDate}</TableCell>
-                    <TableCell>{formatInr(row.taxableAmount)}</TableCell>
-                    <TableCell>{formatInr(row.totalGstAmount)}</TableCell>
-                    <TableCell className="font-medium text-money-out">
+                    <TableCell className="text-right">{formatInr(row.taxableAmount)}</TableCell>
+                    <TableCell className="text-right">
+                      <span className="inline-flex items-center justify-end gap-1.5">
+                        {row.reverseCharge ? (
+                          <Badge variant={reverseChargeBadgeIntent()}>RCM</Badge>
+                        ) : null}
+                        {formatInr(row.totalGstAmount)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-money-out">
                       {formatInr(row.totalAmount)}
                     </TableCell>
                     <TableCell>

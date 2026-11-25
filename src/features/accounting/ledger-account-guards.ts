@@ -1,6 +1,7 @@
+import { DomainError } from '#/lib/domain-error.ts'
 import type { LedgerAccountRepository } from '#/features/accounting/chart-of-accounts.ts'
 
-export class LedgerAccountNotFoundError extends Error {
+export class LedgerAccountNotFoundError extends DomainError {
   constructor(accountId: string) {
     super(`Ledger account not found for company: ${accountId}`)
     this.name = 'LedgerAccountNotFoundError'

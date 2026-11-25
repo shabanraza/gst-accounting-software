@@ -1,8 +1,18 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
+import {
+  ChevronDownIcon,
+  PlusIcon,
+  ScanBarcodeIcon,
+  Trash2Icon,
+} from 'lucide-react'
 import { usePostHog } from '@posthog/react'
-import { ChevronDownIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Badge } from '#/components/ui/badge.tsx'
@@ -14,6 +24,12 @@ import {
 } from '#/components/ui/collapsible.tsx'
 import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '#/components/ui/input-group.tsx'
+import { Label } from '#/components/ui/label.tsx'
 import {
   Select,
   SelectContent,
@@ -41,18 +57,16 @@ import {
   stateLabel,
   uqcForUnit,
 } from '#/features/app-shell/data/india-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import {
-  COMPANY_STATE_CODE,
-  formatInr,
-  godowns as demoGodowns,
-} from '#/features/app-shell/data/voucher-demo-masters.ts'
-import {
+  addScannedItem,
   computeVoucherLine,
   computeVoucherTotals,
   createEmptyVoucherLines,
   emptyVoucherLine,
   isValidStateCode,
   partyStateForRegion,
+  partySupplyDefaults,
   resolvePlaceOfSupply,
   resolveStateCode,
 } from '#/features/accounting/voucher-math.ts'
@@ -64,8 +78,10 @@ import {
   usePartiesList,
 } from '#/features/masters/use-master-data.ts'
 import { VoucherPreviewSheet } from '#/features/documents/components/voucher-preview-sheet.tsx'
+import { useProductUpdatesPrompt } from '#/features/product-updates/use-product-updates-prompt.ts'
 import type { VoucherPreviewTarget } from '#/features/documents/components/voucher-preview-sheet.tsx'
 import { CreateItemDialog } from '#/features/inventory/components/create-item-dialog.tsx'
+import { findItemByBarcode } from '#/features/inventory/barcode.ts'
 import { CreatePartyDialog } from '#/features/parties/components/create-party-dialog.tsx'
 import {
   RecentPartyChips,
@@ -103,6 +119,17 @@ function lineGstAmount(
   return Number(line.igstAmount)
 }
 
+/** Focuses a voucher field by its data-voucher-cell id; false if not on screen. */
+function focusVoucherCell(cellId: string): boolean {
+  const cell = document.querySelector<HTMLElement>(
+    `[data-voucher-cell="${cellId}"]`,
+  )
+  if (!cell) return false
+  cell.focus()
+  if (cell instanceof HTMLInputElement) cell.select()
+  return document.activeElement === cell
+}
+
 function countFilled(...values: Array<string | undefined | null>) {
   return values.filter((value) => value?.trim()).length
 }
@@ -136,12 +163,26 @@ const CollapsibleSectionTrigger = React.forwardRef<
   )
 })
 
-export function VoucherEntryPage({
+export function VoucherEntryPage(props: SalesVoucherProps) {
+  // "Create another" links back to this same route, so React would keep the
+  // saved voucher in state; a new key mounts a blank form instead.
+  const [formKey, setFormKey] = React.useState(0)
+  return (
+    <VoucherEntryForm
+      key={formKey}
+      {...props}
+      onCreateAnother={() => setFormKey((key) => key + 1)}
+    />
+  )
+}
+
+function VoucherEntryForm({
   mode,
   sourceDocumentId,
   sourceGrnId,
   gstr2bPrefill,
-}: SalesVoucherProps) {
+  onCreateAnother,
+}: SalesVoucherProps & { onCreateAnother: () => void }) {
   const isSales = mode === 'sales'
   const posthog = usePostHog()
   const trpc = useTRPC()
@@ -154,14 +195,14 @@ export function VoucherEntryPage({
     godowns,
     isReady,
   } = useWorkspace()
-  const godownNames =
-    godowns.length > 0 ? godowns.map((entry) => entry.name) : demoGodowns
+  const godownNames = godowns.map((entry) => entry.name)
   const seriesOptions = isSales ? salesSeriesOptions : purchaseSeriesOptions
 
   const partiesQuery = usePartiesList()
   const itemsQuery = useItemsList()
 
   const postSales = useMutation(trpc.sales.postInvoice.mutationOptions())
+  const askForProductUpdates = useProductUpdatesPrompt()
   const postPurchase = useMutation(trpc.purchases.postBill.mutationOptions())
   const markDocumentConverted = useMutation(
     trpc.salesDocuments.markConverted.mutationOptions(),
@@ -169,7 +210,6 @@ export function VoucherEntryPage({
   const markGrnConverted = useMutation(
     trpc.purchaseGrns.markConverted.mutationOptions(),
   )
-  const nextNumber = useMutation(trpc.documents.nextNumber.mutationOptions())
   const createAttachment = useMutation(
     trpc.documents.uploadAttachment.mutationOptions(),
   )
@@ -190,11 +230,13 @@ export function VoucherEntryPage({
     isSales ? 'local' : 'central',
   )
   const [taxMode, setTaxMode] = React.useState<TaxMode>('exclusive')
+  const [reverseCharge, setReverseCharge] = React.useState(false)
+  const billIsReverseCharge = !isSales && reverseCharge
   const [partyId, setPartyId] = React.useState('')
   const [placeOfSupply, setPlaceOfSupply] = React.useState(
-    company?.stateCode ?? COMPANY_STATE_CODE,
+    company?.stateCode ?? '',
   )
-  const [godown, setGodown] = React.useState<string>(godownNames[0])
+  const [godown, setGodown] = React.useState<string>(godownNames[0] ?? '')
   const [paymentMode, setPaymentMode] = React.useState<'credit' | 'cash'>(
     'credit',
   )
@@ -211,7 +253,7 @@ export function VoucherEntryPage({
   const [roundOff, setRoundOff] = React.useState('0.00')
   const [billDiscount, setBillDiscount] = React.useState('0.00')
   const [lines, setLines] = React.useState<Array<VoucherLineDraft>>(() =>
-    createEmptyVoucherLines(1, godownNames[0]),
+    createEmptyVoucherLines(1, godownNames[0] ?? ''),
   )
   const [priceListRates, setPriceListRates] = React.useState<
     Record<string, string>
@@ -223,15 +265,32 @@ export function VoucherEntryPage({
   const [attachmentFile, setAttachmentFile] = React.useState<File | null>(null)
   const [partyCreateOpen, setPartyCreateOpen] = React.useState(false)
   const [itemCreateOpen, setItemCreateOpen] = React.useState(false)
+  const [scanCode, setScanCode] = React.useState('')
   const [itemCreateLineKey, setItemCreateLineKey] = React.useState<
     string | null
   >(null)
   const formRef = React.useRef<HTMLFormElement>(null)
   const activeRowIndexRef = React.useRef(0)
-  const companyState = resolveStateCode(
-    company?.stateCode,
-    COMPANY_STATE_CODE,
-  )
+  // A new voucher opens with the cursor in the party field, as in Tally.
+  const focusedOnOpenRef = React.useRef(false)
+  React.useEffect(() => {
+    if (focusedOnOpenRef.current) return
+    // Never pull the cursor out of a field the user is already typing in.
+    if (document.activeElement?.matches('input, textarea, [contenteditable]')) {
+      focusedOnOpenRef.current = true
+      return
+    }
+    focusedOnOpenRef.current = focusVoucherCell('party')
+  })
+  // Once the user touches the form, stop trying to auto-focus the party
+  // field. Otherwise a retry on a later re-render moves focus out of an open
+  // date picker, select or lookup, which dismisses it, so the picker seemed
+  // to need a second click. React focus and pointer events bubble through
+  // portals, so this also covers picker content rendered outside the form.
+  function stopAutoFocus() {
+    focusedOnOpenRef.current = true
+  }
+  const companyState = resolveStateCode(company?.stateCode)
   const party = parties.find((item) => item.id === partyId)
   const { recentIds, rememberParty } = useRecentParties(
     companyId,
@@ -249,9 +308,14 @@ export function VoucherEntryPage({
         selectedPlaceOfSupply: '',
         partyStateCode,
         companyStateCode: companyState,
-        fallbackStateCode: COMPANY_STATE_CODE,
       }),
     )
+  }
+
+  function applyPartySupply(partyStateCode: string) {
+    const defaults = partySupplyDefaults(partyStateCode, companyState)
+    setRegion(defaults.region)
+    setPlaceOfSupply(defaults.placeOfSupply)
   }
 
   function handleRegionChange(nextRegion: SupplyRegion) {
@@ -299,8 +363,7 @@ export function VoucherEntryPage({
   React.useEffect(() => {
     if (!partyId && parties[0]) {
       setPartyId(parties[0].id)
-      syncPlaceOfSupplyForParty(parties[0].stateCode)
-      setRegion(parties[0].stateCode === companyState ? 'local' : 'central')
+      applyPartySupply(parties[0].stateCode)
     }
   }, [parties, partyId, companyState])
 
@@ -319,37 +382,41 @@ export function VoucherEntryPage({
   const activePriceListId = party?.priceListId ?? null
 
   const salesDraftQuery = useQuery({
-    ...trpc.salesDocuments.buildInvoiceDraft.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      documentId: sourceDocumentId ?? '00000000-0000-4000-8000-000000000000',
-    }),
-    enabled:
-      Boolean(companyId) &&
-      isReady &&
-      isSales &&
-      Boolean(sourceDocumentId) &&
-      !prefillApplied,
+    ...trpc.salesDocuments.buildInvoiceDraft.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            documentId:
+              sourceDocumentId ?? '00000000-0000-4000-8000-000000000000',
+          }
+        : skipToken,
+    ),
+    enabled: isSales && Boolean(sourceDocumentId) && !prefillApplied,
   })
 
   const grnDraftQuery = useQuery({
-    ...trpc.purchaseGrns.buildBillDraft.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      grnId: sourceGrnId ?? '00000000-0000-4000-8000-000000000000',
-    }),
-    enabled:
-      Boolean(companyId) &&
-      isReady &&
-      !isSales &&
-      Boolean(sourceGrnId) &&
-      !prefillApplied,
+    ...trpc.purchaseGrns.buildBillDraft.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            grnId: sourceGrnId ?? '00000000-0000-4000-8000-000000000000',
+          }
+        : skipToken,
+    ),
+    enabled: !isSales && Boolean(sourceGrnId) && !prefillApplied,
   })
 
   const priceListItemsQuery = useQuery({
-    ...trpc.inventory.listPriceListItems.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-      priceListId: activePriceListId ?? '00000000-0000-4000-8000-000000000000',
-    }),
-    enabled: Boolean(companyId) && Boolean(activePriceListId) && isReady,
+    ...trpc.inventory.listPriceListItems.queryOptions(
+      companyId && isReady
+        ? {
+            companyId,
+            priceListId:
+              activePriceListId ?? '00000000-0000-4000-8000-000000000000',
+          }
+        : skipToken,
+    ),
+    enabled: Boolean(activePriceListId),
   })
 
   React.useEffect(() => {
@@ -465,12 +532,11 @@ export function VoucherEntryPage({
       companyState,
     ),
   )
-  const totals = computeVoucherTotals(computedLines, {
-    freight,
-    packing,
-    roundOff,
-    billDiscount,
-  })
+  const totals = computeVoucherTotals(
+    computedLines,
+    { freight, packing, roundOff, billDiscount },
+    { reverseCharge: billIsReverseCharge },
+  )
 
   function ensureTrailingEmptyRows(next: Array<VoucherLineDraft>) {
     const last = next.at(-1)
@@ -511,33 +577,20 @@ export function VoucherEntryPage({
       next?.select()
       return
     }
-    const nextRow = document.querySelector<HTMLInputElement>(
-      `[data-voucher-cell="${rowIndex + 1}-quantity"]`,
-    )
-    if (nextRow) {
-      nextRow.focus()
-      nextRow.select()
-      return
-    }
+    // Like Tally, a finished line continues at the next line's item.
+    if (focusVoucherCell(`${rowIndex + 1}-item`)) return
     addLine()
-    requestAnimationFrame(() => {
-      document
-        .querySelector<HTMLInputElement>(
-          `[data-voucher-cell="${rowIndex + 1}-quantity"]`,
-        )
-        ?.focus()
-    })
+    requestAnimationFrame(() => focusVoucherCell(`${rowIndex + 1}-item`))
   }
 
-  function selectParty(nextPartyId: string) {
+  // A party created from this form is not in `parties` until the list refetches.
+  function selectParty(nextPartyId: string, knownParty?: PartyRecord) {
     rememberParty(nextPartyId)
-    const nextParty = parties.find((entry) => entry.id === nextPartyId)
+    const nextParty =
+      knownParty ?? parties.find((entry) => entry.id === nextPartyId)
     setPartyId(nextPartyId)
     if (nextParty) {
-      const nextRegion =
-        nextParty.stateCode === companyState ? 'local' : 'central'
-      setRegion(nextRegion)
-      syncPlaceOfSupplyForParty(nextParty.stateCode, nextRegion)
+      applyPartySupply(nextParty.stateCode)
       if (nextParty.paymentTermsDays > 0) {
         const due = new Date()
         due.setDate(due.getDate() + nextParty.paymentTermsDays)
@@ -547,7 +600,7 @@ export function VoucherEntryPage({
   }
 
   function applyCreatedParty(createdParty: PartyRecord) {
-    selectParty(createdParty.id)
+    selectParty(createdParty.id, createdParty)
     if (!isSales && createdParty.paymentTermsDays > 0) {
       const due = new Date()
       due.setDate(due.getDate() + createdParty.paymentTermsDays)
@@ -555,20 +608,35 @@ export function VoucherEntryPage({
     }
   }
 
-  function applyItemToLine(key: string, item: ItemRecord) {
+  function itemLineFields(item: ItemRecord) {
     const listRate = activePriceListId ? priceListRates[item.id] : undefined
-    const rate = listRate ?? (isSales ? item.saleRate : item.purchaseRate)
-
-    updateLine(key, {
+    return {
       itemId: item.id,
       itemName: item.name,
       hsnCode: item.hsnCode,
       gstRate: item.gstRate,
       unit: item.baseUnit,
       uqc: uqcForUnit(item.baseUnit),
-      rate,
+      rate: listRate ?? (isSales ? item.saleRate : item.purchaseRate),
       godownName: godown,
-    })
+    }
+  }
+
+  function applyItemToLine(key: string, item: ItemRecord) {
+    updateLine(key, itemLineFields(item))
+  }
+
+  /** Adds the item with this barcode to the bill; false when none has it. */
+  function addScannedBarcode(code: string) {
+    const item = findItemByBarcode(items, code)
+    if (!item) {
+      toast.error(`No item has barcode ${code.trim()}.`)
+      return false
+    }
+    setLines((current) =>
+      ensureTrailingEmptyRows(addScannedItem(current, itemLineFields(item))),
+    )
+    return true
   }
 
   function selectItem(key: string, itemId: string) {
@@ -643,10 +711,7 @@ export function VoucherEntryPage({
       return
     }
 
-    const companyStateCode = resolveStateCode(
-      company.stateCode,
-      COMPANY_STATE_CODE,
-    )
+    const companyStateCode = resolveStateCode(company.stateCode)
     if (!isValidStateCode(companyStateCode)) {
       reportSaveError(
         'Set a valid company state code in Company settings before posting.',
@@ -659,7 +724,6 @@ export function VoucherEntryPage({
       selectedPlaceOfSupply: placeOfSupply,
       partyStateCode: party.stateCode,
       companyStateCode,
-      fallbackStateCode: COMPANY_STATE_CODE,
     })
     if (!isValidStateCode(resolvedPlaceOfSupply)) {
       reportSaveError(
@@ -691,16 +755,12 @@ export function VoucherEntryPage({
     const stockAccountId = ledgerBySystemKey.stock_in_hand as string
     const cogsAccountId = ledgerBySystemKey.cogs
 
-    try {
-      const allocatedNumber = await nextNumber.mutateAsync({
-        companyId,
-        financialYearId: activeFinancialYearId ?? company.financialYearStart,
-        voucherType: isSales ? 'sales' : 'purchase',
-        series,
-        padLength: 4,
-      })
-      setVoucherNoPreview(allocatedNumber)
+    if (isSales && !activeFinancialYearId) {
+      reportSaveError('No active financial year. Set one in Company settings.')
+      return
+    }
 
+    try {
       if (isSales) {
         const gstPartyState = partyStateForRegion(
           region,
@@ -709,7 +769,9 @@ export function VoucherEntryPage({
         )
         if (!isValidStateCode(gstPartyState)) {
           reportSaveError(
-            'Customer state is missing. Update the customer master or place of supply.',
+            region === 'central'
+              ? 'Inter-state (IGST) sale needs a place of supply outside your company state.'
+              : 'Customer state is missing. Update the customer master or place of supply.',
           )
           return
         }
@@ -724,7 +786,8 @@ export function VoucherEntryPage({
           customerId: party.id,
           customerStateCode: gstPartyState,
           placeOfSupply: resolvedPlaceOfSupply,
-          invoiceNumber: allocatedNumber,
+          financialYearId: activeFinancialYearId ?? undefined,
+          series,
           invoiceDate: voucherDate,
           dueDate: dueDate || voucherDate,
           poReference,
@@ -781,8 +844,9 @@ export function VoucherEntryPage({
             queryKey: trpc.salesDocuments.list.queryKey({ companyId }),
           })
         }
+        setVoucherNoPreview(invoice.invoiceNumber)
         await queryClient.invalidateQueries({
-          queryKey: trpc.sales.list.queryKey({ companyId }),
+          queryKey: trpc.sales.list.pathKey(),
         })
         setPreviewTarget({
           kind: 'sales',
@@ -790,12 +854,21 @@ export function VoucherEntryPage({
           number: invoice.invoiceNumber,
         })
         setPreviewOpen(true)
+        void askForProductUpdates()
       } else {
         const gstPartyState = partyStateForRegion(
           region,
           resolvedPlaceOfSupply,
           companyStateCode,
         )
+        if (!isValidStateCode(gstPartyState)) {
+          reportSaveError(
+            region === 'central'
+              ? 'Inter-state (IGST) purchase needs a supplier state outside your company state.'
+              : 'Supplier state is missing. Update the supplier master.',
+          )
+          return
+        }
         const bill = await postPurchase.mutateAsync({
           companyId,
           companyStateCode,
@@ -817,6 +890,7 @@ export function VoucherEntryPage({
           lrNumber,
           challanRef,
           taxMode,
+          reverseCharge: billIsReverseCharge || undefined,
           narration,
           freight,
           packing,
@@ -880,7 +954,7 @@ export function VoucherEntryPage({
           setAttachmentFile(null)
         }
         await queryClient.invalidateQueries({
-          queryKey: trpc.purchases.list.queryKey({ companyId }),
+          queryKey: trpc.purchases.list.pathKey(),
         })
         setPreviewTarget({
           kind: 'purchase',
@@ -907,12 +981,11 @@ export function VoucherEntryPage({
   const itemOptions = items.map((entry) => ({
     value: entry.id,
     label: entry.name,
-    keywords: entry.hsnCode,
+    keywords: `${entry.hsnCode} ${entry.barcode ?? ''}`.trim(),
     description: `HSN ${entry.hsnCode} · ${entry.gstRate}% · ${entry.baseUnit}`,
   }))
 
-  const saving =
-    postSales.isPending || postPurchase.isPending || nextNumber.isPending
+  const saving = postSales.isPending || postPurchase.isPending
 
   const transportFilledCount = countFilled(
     poReference,
@@ -938,10 +1011,12 @@ export function VoucherEntryPage({
           </Link>
         </Button>
       }
-      title={isSales ? 'New sales bill' : 'New purchase bill'}
+      title={isSales ? 'New sales invoice' : 'New purchase bill'}
     >
       <form
         className="flex flex-col gap-4 pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] sm:pb-24"
+        onFocusCapture={stopAutoFocus}
+        onPointerDownCapture={stopAutoFocus}
         onSubmit={handleSave}
         ref={formRef}
       >
@@ -959,6 +1034,8 @@ export function VoucherEntryPage({
                       onSelect: () => setPartyCreateOpen(true),
                     }}
                     emptyText="No contacts yet."
+                    cellId="party"
+                    onPicked={() => focusVoucherCell('0-item')}
                     onValueChange={selectParty}
                     options={partyOptions}
                     placeholder="Select customer"
@@ -994,12 +1071,12 @@ export function VoucherEntryPage({
                 </div>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs text-muted-foreground"
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
                       htmlFor="vch-date"
                     >
                       Date
-                    </label>
+                    </Label>
                     <DatePicker
                       id="vch-date"
                       onChange={setVoucherDate}
@@ -1032,12 +1109,12 @@ export function VoucherEntryPage({
                   </div>
                   {paymentMode === 'credit' ? (
                     <div className="flex flex-col gap-1.5">
-                      <label
-                        className="text-xs text-muted-foreground"
+                      <Label
+                        className="text-xs font-normal text-muted-foreground"
                         htmlFor="sales-due-date"
                       >
                         Due date
-                      </label>
+                      </Label>
                       <DatePicker
                         id="sales-due-date"
                         onChange={setDueDate}
@@ -1059,6 +1136,8 @@ export function VoucherEntryPage({
                       onSelect: () => setPartyCreateOpen(true),
                     }}
                     emptyText="No contacts yet."
+                    cellId="party"
+                    onPicked={() => focusVoucherCell('0-item')}
                     onValueChange={selectParty}
                     options={partyOptions}
                     placeholder="Select supplier"
@@ -1094,12 +1173,12 @@ export function VoucherEntryPage({
                 </div>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs text-muted-foreground"
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
                       htmlFor="vch-date"
                     >
                       Date
-                    </label>
+                    </Label>
                     <DatePicker
                       id="vch-date"
                       onChange={setVoucherDate}
@@ -1116,6 +1195,22 @@ export function VoucherEntryPage({
                         ? `${series} · auto`
                         : voucherNoPreview}
                     </Badge>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
+                      htmlFor="sup-bill"
+                    >
+                      Supplier bill no.
+                    </Label>
+                    <Input
+                      id="sup-bill"
+                      onChange={(event) =>
+                        setSupplierBillNo(event.target.value)
+                      }
+                      required
+                      value={supplierBillNo}
+                    />
                   </div>
                 </div>
               </div>
@@ -1252,7 +1347,10 @@ export function VoucherEntryPage({
           {!isSales ? (
             <Collapsible className="group/collapsible" defaultOpen={false}>
               <CollapsibleTrigger asChild>
-                <CollapsibleSectionTrigger title="Bill options" />
+                <CollapsibleSectionTrigger
+                  filledCount={billIsReverseCharge ? 1 : undefined}
+                  title="Bill options"
+                />
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <section className="grid gap-3 pt-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -1302,8 +1400,15 @@ export function VoucherEntryPage({
                       Tax type
                     </span>
                     <Select
-                      onValueChange={(value) => setTaxMode(value as TaxMode)}
-                      value={taxMode}
+                      onValueChange={(value) => {
+                        setReverseCharge(value === 'reverse_charge')
+                        setTaxMode(
+                          value === 'reverse_charge'
+                            ? 'exclusive'
+                            : (value as TaxMode),
+                        )
+                      }}
+                      value={reverseCharge ? 'reverse_charge' : taxMode}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue />
@@ -1312,6 +1417,9 @@ export function VoucherEntryPage({
                         <SelectGroup>
                           <SelectItem value="exclusive">Exclusive</SelectItem>
                           <SelectItem value="inclusive">Inclusive</SelectItem>
+                          <SelectItem value="reverse_charge">
+                            Reverse charge
+                          </SelectItem>
                         </SelectGroup>
                       </SelectContent>
                     </Select>
@@ -1344,33 +1452,18 @@ export function VoucherEntryPage({
                         Price list
                       </span>
                       <p className="rounded-md bg-muted/40 px-2.5 py-2 text-xs text-muted-foreground">
-                        Party price list — rates apply on item pick
+                        Party price list — its rates fill in when you pick an
+                        item
                       </p>
                     </div>
                   ) : null}
                   <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs text-muted-foreground"
-                      htmlFor="sup-bill"
-                    >
-                      Supplier bill no.
-                    </label>
-                    <Input
-                      id="sup-bill"
-                      onChange={(event) =>
-                        setSupplierBillNo(event.target.value)
-                      }
-                      required
-                      value={supplierBillNo}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs text-muted-foreground"
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
                       htmlFor="due-date"
                     >
                       Due date
-                    </label>
+                    </Label>
                     <DatePicker
                       id="due-date"
                       onChange={setDueDate}
@@ -1378,12 +1471,12 @@ export function VoucherEntryPage({
                     />
                   </div>
                   <div className="flex flex-col gap-1.5 sm:col-span-2">
-                    <label
-                      className="text-xs text-muted-foreground"
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
                       htmlFor="bill-attachment"
                     >
                       Bill attachment
-                    </label>
+                    </Label>
                     <Input
                       accept="image/*,.pdf"
                       id="bill-attachment"
@@ -1413,12 +1506,12 @@ export function VoucherEntryPage({
             <CollapsibleContent>
               <section className="grid gap-3 pt-2 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="flex flex-col gap-1.5">
-                  <label
-                    className="text-xs text-muted-foreground"
+                  <Label
+                    className="text-xs font-normal text-muted-foreground"
                     htmlFor="po-ref"
                   >
                     PO / order ref
-                  </label>
+                  </Label>
                   <Input
                     id="po-ref"
                     onChange={(event) => setPoReference(event.target.value)}
@@ -1426,12 +1519,12 @@ export function VoucherEntryPage({
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label
-                    className="text-xs text-muted-foreground"
+                  <Label
+                    className="text-xs font-normal text-muted-foreground"
                     htmlFor="challan-ref"
                   >
                     Challan ref
-                  </label>
+                  </Label>
                   <Input
                     id="challan-ref"
                     onChange={(event) => setChallanRef(event.target.value)}
@@ -1439,12 +1532,12 @@ export function VoucherEntryPage({
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label
-                    className="text-xs text-muted-foreground"
+                  <Label
+                    className="text-xs font-normal text-muted-foreground"
                     htmlFor="transport-mode"
                   >
                     Transport
-                  </label>
+                  </Label>
                   <Input
                     id="transport-mode"
                     onChange={(event) => setTransportMode(event.target.value)}
@@ -1453,12 +1546,12 @@ export function VoucherEntryPage({
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label
-                    className="text-xs text-muted-foreground"
+                  <Label
+                    className="text-xs font-normal text-muted-foreground"
                     htmlFor="vehicle-no"
                   >
                     Vehicle no.
-                  </label>
+                  </Label>
                   <Input
                     id="vehicle-no"
                     onChange={(event) => setVehicleNo(event.target.value)}
@@ -1466,12 +1559,12 @@ export function VoucherEntryPage({
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label
-                    className="text-xs text-muted-foreground"
+                  <Label
+                    className="text-xs font-normal text-muted-foreground"
                     htmlFor="lr-number"
                   >
                     LR / AWB
-                  </label>
+                  </Label>
                   <Input
                     id="lr-number"
                     onChange={(event) => setLrNumber(event.target.value)}
@@ -1483,12 +1576,34 @@ export function VoucherEntryPage({
           </Collapsible>
 
           <section className="flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-sm font-medium">Line items</h2>
-              <Button onClick={addLine} size="sm" type="button">
-                <PlusIcon data-icon="inline-start" />
-                Add row
-              </Button>
+              <div className="flex flex-1 items-center justify-end gap-2">
+                <InputGroup className="max-w-56">
+                  <InputGroupAddon>
+                    <ScanBarcodeIcon />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    aria-label="Scan barcode"
+                    inputMode="numeric"
+                    onChange={(event) => setScanCode(event.target.value)}
+                    onKeyDown={(event) => {
+                      // Scanners type the code and press Enter.
+                      if (event.key !== 'Enter') return
+                      event.preventDefault()
+                      if (!scanCode.trim()) return
+                      if (addScannedBarcode(scanCode)) setScanCode('')
+                      else event.currentTarget.select()
+                    }}
+                    placeholder="Scan barcode"
+                    value={scanCode}
+                  />
+                </InputGroup>
+                <Button onClick={addLine} size="sm" type="button">
+                  <PlusIcon data-icon="inline-start" />
+                  Add row
+                </Button>
+              </div>
             </div>
             <div
               className="overflow-x-auto rounded-md border border-border"
@@ -1525,12 +1640,16 @@ export function VoucherEntryPage({
                             onFocus={() => {
                               activeRowIndexRef.current = rowIndex
                             }}
+                            cellId={`${rowIndex}-item`}
                             onValueChange={(value) =>
                               selectItem(line.key, value)
                             }
+                            onPicked={() =>
+                              focusVoucherCell(`${rowIndex}-quantity`)
+                            }
                             options={itemOptions}
                             placeholder="Select item"
-                            searchPlaceholder="Search name / HSN"
+                            searchPlaceholder="Search name / HSN / barcode"
                             title="Item lookup"
                             value={line.itemId}
                           />
@@ -1644,7 +1763,11 @@ export function VoucherEntryPage({
                         className="text-sm font-medium tabular-nums"
                         data-voucher-col="total"
                       >
-                        {formatInr(line.lineTotal)}
+                        {formatInr(
+                          billIsReverseCharge
+                            ? line.taxableAmount
+                            : line.lineTotal,
+                        )}
                       </TableCell>
                       <TableCell data-voucher-col="actions">
                         <Button
@@ -1679,12 +1802,12 @@ export function VoucherEntryPage({
               <CollapsibleContent>
                 <section className="grid gap-3 pt-2 sm:grid-cols-2 lg:grid-cols-3">
                   <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs text-muted-foreground"
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
                       htmlFor="freight"
                     >
                       Freight
-                    </label>
+                    </Label>
                     <Input
                       id="freight"
                       onChange={(event) => setFreight(event.target.value)}
@@ -1692,12 +1815,12 @@ export function VoucherEntryPage({
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs text-muted-foreground"
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
                       htmlFor="packing"
                     >
                       Packing
-                    </label>
+                    </Label>
                     <Input
                       id="packing"
                       onChange={(event) => setPacking(event.target.value)}
@@ -1705,12 +1828,12 @@ export function VoucherEntryPage({
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs text-muted-foreground"
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
                       htmlFor="roundoff"
                     >
                       Round off
-                    </label>
+                    </Label>
                     <Input
                       id="roundoff"
                       onChange={(event) => setRoundOff(event.target.value)}
@@ -1718,12 +1841,12 @@ export function VoucherEntryPage({
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs text-muted-foreground"
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
                       htmlFor="bill-discount"
                     >
                       Bill discount
-                    </label>
+                    </Label>
                     <Input
                       id="bill-discount"
                       onChange={(event) => setBillDiscount(event.target.value)}
@@ -1731,12 +1854,12 @@ export function VoucherEntryPage({
                     />
                   </div>
                   <div className="flex flex-col gap-1.5 sm:col-span-2">
-                    <label
-                      className="text-xs text-muted-foreground"
+                    <Label
+                      className="text-xs font-normal text-muted-foreground"
                       htmlFor="narration"
                     >
                       Narration
-                    </label>
+                    </Label>
                     <Textarea
                       id="narration"
                       onChange={(event) => setNarration(event.target.value)}
@@ -1766,13 +1889,17 @@ export function VoucherEntryPage({
                 {region === 'local' ? (
                   <>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-muted-foreground">CGST</span>
+                      <span className="text-muted-foreground">
+                        {billIsReverseCharge ? 'CGST (reverse charge)' : 'CGST'}
+                      </span>
                       <span className="tabular-nums">
                         {formatInr(totals.cgstAmount)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-muted-foreground">SGST</span>
+                      <span className="text-muted-foreground">
+                        {billIsReverseCharge ? 'SGST (reverse charge)' : 'SGST'}
+                      </span>
                       <span className="tabular-nums">
                         {formatInr(totals.sgstAmount)}
                       </span>
@@ -1780,7 +1907,9 @@ export function VoucherEntryPage({
                   </>
                 ) : (
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">IGST</span>
+                    <span className="text-muted-foreground">
+                      {billIsReverseCharge ? 'IGST (reverse charge)' : 'IGST'}
+                    </span>
                     <span className="tabular-nums">
                       {formatInr(totals.igstAmount)}
                     </span>
@@ -1821,7 +1950,9 @@ export function VoucherEntryPage({
                 </span>
               </div>
               <div className="flex flex-col gap-0.5">
-                <span className="text-xs text-muted-foreground">GST</span>
+                <span className="text-xs text-muted-foreground">
+                  {billIsReverseCharge ? 'GST (RCM)' : 'GST'}
+                </span>
                 <span className="text-sm font-medium tabular-nums">
                   {formatInr(
                     region === 'local'
@@ -1848,7 +1979,11 @@ export function VoucherEntryPage({
                 {formatInr(totals.grandTotal)}
               </span>
             </div>
-            <Button className="w-full sm:w-auto" disabled={saving} type="submit">
+            <Button
+              className="w-full sm:w-auto"
+              disabled={saving}
+              type="submit"
+            >
               {saving ? 'Saving…' : 'Save bill'}
             </Button>
           </div>
@@ -1856,6 +1991,7 @@ export function VoucherEntryPage({
       </form>
 
       <VoucherPreviewSheet
+        onCreateAnother={onCreateAnother}
         onOpenChange={setPreviewOpen}
         open={previewOpen}
         target={previewTarget}

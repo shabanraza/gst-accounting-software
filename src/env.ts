@@ -4,6 +4,8 @@ import { z } from 'zod'
 export const env = createEnv({
   server: {
     SERVER_URL: z.string().url().optional(),
+    /** HMAC key for public invoice links (`/i/<token>`); read via process.env. */
+    INVOICE_LINK_SECRET: z.string().min(32).optional(),
   },
 
   /**

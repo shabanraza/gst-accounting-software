@@ -26,20 +26,23 @@ Living status vs [BUSY 21](https://busy.in/) wholesale/trading features, trackin
 | Item master (HSN, units, MRP, opening stock) | Done        |                                                  |
 | Godowns + price lists                        | Done        | Service + masters                                |
 | Invoice cancel                               | Done        | Sales list                                       |
-| Audit trail viewer                           | Done        | Settings                                         |
+| Audit trail viewer                           | Done        | Settings: documents, masters, team; filters, CSV |
 | Journal / contra UI                          | Done        | `/app/accounting/journal`                        |
 | Sales documents (quote/order/challan)        | Done        | `/app/sales/documents`                           |
 | Purchase orders                              | Done        | `/app/purchase-orders`                           |
 | PO → GRN → purchase bill                     | Done        | GRN at `/app/purchase-grns`; convert to bill     |
 | Quotation → invoice                          | Done        | Sales documents → `/app/sales/new?fromDocument=` |
 | Per-line godown on voucher                   | Done        | Godown column per row in voucher grid            |
+| Stock journal (count, write-off, transfer)   | Done        | Inventory → Stock journal; item stock history    |
 | Price list auto-rate                         | Done        | Party price list applies on item pick            |
 | Credit limit on party                        | Done        | Blocked on credit sales in service               |
 | CSV + BUSY/EZY native import                 | Done        | Parties/items TSV/CSV; file upload on Import     |
+| Tally XML + Excel import                     | Done        | Tally masters XML (parties, items, opening stock); .xlsx via CSV |
 | Bill attachment + OCR                        | Done        | Upload + `/app/ocr` review; confirm posts bill   |
 | Role-based permissions                       | Partial     | Capability on posting mutations; not every read  |
 | e-Invoice / e-way                            | Stub UI     | Local IRN/EWB generation; no live GSP API        |
-| POS / barcode / BOM                          | Not started | Later                                            |
+| Barcode                                      | Done        | Item barcodes, labels, scan-to-bill on sales and purchases |
+| POS / BOM                                    | Not started | Later                                            |
 
 ## Still open (priority)
 
@@ -56,7 +59,7 @@ _All four P1 workflow items are complete (Jul 2026)._
 ### P3 — Later BUSY parity
 
 8. OCR draft UI on purchase — **done** (`/app/ocr`)
-9. POS / barcode / BOM — not started
+9. Barcode — **done** (labels, scan-to-bill); POS / BOM — not started
 10. Live e-invoice / e-way GSP integrations — **stub** (pseudo IRN/EWB; wire real NIC/GSP later)
 
 ## What not to rebuild

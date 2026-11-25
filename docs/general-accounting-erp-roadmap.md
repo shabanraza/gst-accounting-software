@@ -24,7 +24,7 @@ See also `docs/busy-21-gap-status.md` for BUSY 21 parity detail.
 | **3 — Sales, purchase, GST** | Done        | Invoices, bills, GST calc, returns, notes, GSTR-1/3B, HSN, CA export        |
 | **4 — Inventory**            | Mostly done | Items, HSN, stock movements, godowns, price lists; batch/barcode later      |
 | **5 — Orders & ops**         | Done        | Quote/order/challan, PO→GRN→bill, attachments metadata, per-line godown     |
-| **6 — Migration & import**   | Partial     | CSV parties/stock/items; no native BUSY/EZY; dry-run partial                |
+| **6 — Migration & import**   | Partial     | CSV, Excel, BUSY/EZY and Tally XML masters with dry-run; no voucher history yet |
 | **7 — SaaS productization**  | Partial     | Backup JSON export; no subscriptions, GSP, or mobile                        |
 
 ### MVP checklist (roadmap § MVP Priority)
@@ -52,7 +52,7 @@ See also `docs/busy-21-gap-status.md` for BUSY 21 parity detail.
 | Aging            | Done                                                          |
 | Stock valuation  | Partial (movements; no dedicated valuation report)            |
 | Bill attachments | Partial (metadata; R2 upload stub)                            |
-| Audit log        | Done                                                          |
+| Audit log        | Partial (documents, party/item/godown/company edits with changed fields, team, imports; filters and CSV export; not yet ledger, price list or delete events) |
 | Role permissions | Partial (`mutatingProcedure` on key mutations; not universal) |
 
 | Later (explicitly out of MVP) | Not started |

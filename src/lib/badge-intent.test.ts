@@ -1,9 +1,16 @@
 import { describe, expect, test } from 'vitest'
 
 import {
+  eWayBillStatusBadgeIntent,
+  reverseChargeBadgeIntent,
+  recurringInvoiceBadgeIntent,
   ageingBucketBadgeIntent,
   ageingBucketChartColor,
+  auditActionBadgeIntent,
+  bankReconciliationBadgeIntent,
   paymentStatusBadgeIntent,
+  paymentVoucherStatusBadgeIntent,
+  periodChangeBadgeIntent,
   toolCheckBadgeIntent,
 } from '#/lib/badge-intent.ts'
 
@@ -18,6 +25,13 @@ describe('paymentStatusBadgeIntent', () => {
 
   test('Pending is warning amber (industry waiting signal, not info blue)', () => {
     expect(paymentStatusBadgeIntent('Pending')).toBe('warning')
+  })
+})
+
+describe('paymentVoucherStatusBadgeIntent', () => {
+  test('posted is success, cancelled is destructive', () => {
+    expect(paymentVoucherStatusBadgeIntent('posted')).toBe('success')
+    expect(paymentVoucherStatusBadgeIntent('cancelled')).toBe('destructive')
   })
 })
 
@@ -58,4 +72,66 @@ describe('toolCheckBadgeIntent', () => {
     expect(toolCheckBadgeIntent('fail')).toBe('destructive')
     expect(toolCheckBadgeIntent('info')).toBe('info')
   })
+})
+
+describe('auditActionBadgeIntent', () => {
+  test('cancellations and removals are destructive, everything else neutral', () => {
+    expect(auditActionBadgeIntent('sales_invoice.cancelled')).toBe(
+      'destructive',
+    )
+    expect(auditActionBadgeIntent('team_member.removed')).toBe('destructive')
+    expect(auditActionBadgeIntent('party.updated')).toBe('neutral')
+    expect(auditActionBadgeIntent('sales_invoice.posted')).toBe('neutral')
+  })
+})
+
+describe('bankReconciliationBadgeIntent', () => {
+  test('matched is success, books-only is warning, statement-only is quiet', () => {
+    expect(bankReconciliationBadgeIntent('matched')).toBe('success')
+    expect(bankReconciliationBadgeIntent('unmatched_book')).toBe('warning')
+    expect(bankReconciliationBadgeIntent('unmatched_statement')).toBe(
+      'secondary',
+    )
+  })
+})
+
+describe('periodChangeBadgeIntent', () => {
+  test('a judged rise is success and a judged fall is destructive', () => {
+    expect(periodChangeBadgeIntent({ direction: 'up' })).toBe('success')
+    expect(periodChangeBadgeIntent({ direction: 'down' })).toBe('destructive')
+  })
+
+  test('a change that is not judged good or bad stays neutral', () => {
+    expect(periodChangeBadgeIntent({ direction: 'up', judged: false })).toBe(
+      'secondary',
+    )
+  })
+})
+
+describe('recurringInvoiceBadgeIntent', () => {
+  test('due is info, running is success, paused is warning, ended is neutral', () => {
+    expect(recurringInvoiceBadgeIntent({ status: 'active', due: true })).toBe(
+      'info',
+    )
+    expect(recurringInvoiceBadgeIntent({ status: 'active', due: false })).toBe(
+      'success',
+    )
+    expect(recurringInvoiceBadgeIntent({ status: 'paused', due: true })).toBe(
+      'warning',
+    )
+    expect(recurringInvoiceBadgeIntent({ status: 'ended', due: false })).toBe(
+      'neutral',
+    )
+  })
+})
+
+describe('eWayBillStatusBadgeIntent', () => {
+  test('flags a missing e-way bill as a warning and a recorded one as neutral', () => {
+    expect(eWayBillStatusBadgeIntent('due')).toBe('warning')
+    expect(eWayBillStatusBadgeIntent('recorded')).toBe('neutral')
+  })
+})
+
+test('marks reverse charge purchases with the GST intent', () => {
+  expect(reverseChargeBadgeIntent()).toBe('gst')
 })

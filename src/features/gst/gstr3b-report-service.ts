@@ -5,14 +5,39 @@ import type {
   GstReportPeriodInput,
 } from '#/features/gst/gst-report-types.ts'
 
+export type Gstr3bTaxSplit = {
+  igst: string
+  cgst: string
+  sgst: string
+}
+
 export type Gstr3bReport = {
   companyId: string
   periodStart: string
   periodEnd: string
   outwardTaxableValue: string
+  /** Table 3.1(a): outward taxable supplies, net of credit notes. */
+  outwardTaxableSupplies: Gstr3bTaxSplit & { taxableValue: string }
+  /** Table 3.1(c): 0% rated sales, net of credit notes. */
+  nilRatedExemptValue: string
+  /** Table 3.1(d): inward supplies liable to reverse charge, net of debit notes. */
+  inwardReverseCharge: Gstr3bTaxSplit & { taxableValue: string }
+  /** Table 4(A)(3): ITC on the reverse charge paid in 3.1(d). */
+  reverseChargeItc: Gstr3bTaxSplit
+  /** Table 4(A)(5): ITC on other purchase bills, net of debit notes. */
+  eligibleItc: Gstr3bTaxSplit
   outputGst: string
+  /**
+   * GST we owe on reverse charge purchases (3.1(d)). It must be paid in cash
+   * and cannot be set off against ITC, so it is not part of `netGstPayable`.
+   */
+  reverseChargeTax: string
+  /** All ITC: 4(A)(3) plus 4(A)(5). */
   inputGst: string
+  /** Output GST less all ITC; negative means ITC carried forward. */
   netGstPayable: string
+  /** Cash due this period: any output GST left after ITC, plus reverse charge. */
+  cashPayable: string
 }
 
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP })
@@ -25,42 +50,112 @@ function inPeriod(document: GstReportDocument, input: GstReportPeriodInput) {
   )
 }
 
+type TaxTotals = {
+  taxable: Decimal
+  igst: Decimal
+  cgst: Decimal
+  sgst: Decimal
+  totalGst: Decimal
+}
+
+function emptyTotals(): TaxTotals {
+  return {
+    taxable: new Decimal(0),
+    igst: new Decimal(0),
+    cgst: new Decimal(0),
+    sgst: new Decimal(0),
+    totalGst: new Decimal(0),
+  }
+}
+
+function addDocument(
+  totals: TaxTotals,
+  document: GstReportDocument,
+  sign: 1 | -1,
+) {
+  totals.taxable = totals.taxable.plus(
+    new Decimal(document.taxableAmount).times(sign),
+  )
+  totals.igst = totals.igst.plus(new Decimal(document.igstAmount).times(sign))
+  totals.cgst = totals.cgst.plus(new Decimal(document.cgstAmount).times(sign))
+  totals.sgst = totals.sgst.plus(new Decimal(document.sgstAmount).times(sign))
+  totals.totalGst = totals.totalGst.plus(
+    new Decimal(document.totalGstAmount).times(sign),
+  )
+}
+
+/** Taxable value of a document's 0% rate lines; documents without rate lines have none. */
+function nilRatedTaxable(document: GstReportDocument) {
+  return (document.rateLines ?? [])
+    .filter((line) => new Decimal(line.gstRate).isZero())
+    .reduce((sum, line) => sum.plus(line.taxableAmount), new Decimal(0))
+}
+
+function taxSplit(totals: TaxTotals): Gstr3bTaxSplit {
+  return {
+    igst: totals.igst.toFixed(2),
+    cgst: totals.cgst.toFixed(2),
+    sgst: totals.sgst.toFixed(2),
+  }
+}
+
 export function buildGstr3bReport(input: GstReportPeriodInput): Gstr3bReport {
   const periodDocs = input.documents.filter((document) =>
     inPeriod(document, input),
   )
 
-  let outwardTaxable = new Decimal(0)
-  let outputGst = new Decimal(0)
-  let inputGst = new Decimal(0)
+  const outward = emptyTotals()
+  const itc = emptyTotals()
+  const reverseCharge = emptyTotals()
+  let nilRated = new Decimal(0)
 
   for (const document of periodDocs) {
     if (document.documentType === 'sales_invoice') {
-      outwardTaxable = outwardTaxable.plus(document.taxableAmount)
-      outputGst = outputGst.plus(document.totalGstAmount)
+      addDocument(outward, document, 1)
+      nilRated = nilRated.plus(nilRatedTaxable(document))
     }
 
     if (document.documentType === 'credit_note') {
-      outwardTaxable = outwardTaxable.minus(document.taxableAmount)
-      outputGst = outputGst.minus(document.totalGstAmount)
+      addDocument(outward, document, -1)
+      nilRated = nilRated.minus(nilRatedTaxable(document))
     }
 
+    const inward = document.reverseCharge ? reverseCharge : itc
     if (document.documentType === 'purchase_bill') {
-      inputGst = inputGst.plus(document.totalGstAmount)
+      addDocument(inward, document, 1)
     }
 
     if (document.documentType === 'debit_note') {
-      inputGst = inputGst.minus(document.totalGstAmount)
+      addDocument(inward, document, -1)
     }
   }
+
+  const outputGst = outward.totalGst
+  const reverseChargeTax = reverseCharge.totalGst
+  const inputGst = itc.totalGst.plus(reverseChargeTax)
 
   return {
     companyId: input.companyId,
     periodStart: input.periodStart,
     periodEnd: input.periodEnd,
-    outwardTaxableValue: outwardTaxable.toFixed(2),
+    outwardTaxableValue: outward.taxable.toFixed(2),
+    outwardTaxableSupplies: {
+      taxableValue: outward.taxable.minus(nilRated).toFixed(2),
+      ...taxSplit(outward),
+    },
+    nilRatedExemptValue: nilRated.toFixed(2),
+    inwardReverseCharge: {
+      taxableValue: reverseCharge.taxable.toFixed(2),
+      ...taxSplit(reverseCharge),
+    },
+    reverseChargeItc: taxSplit(reverseCharge),
+    eligibleItc: taxSplit(itc),
     outputGst: outputGst.toFixed(2),
+    reverseChargeTax: reverseChargeTax.toFixed(2),
     inputGst: inputGst.toFixed(2),
     netGstPayable: outputGst.minus(inputGst).toFixed(2),
+    cashPayable: Decimal.max(0, outputGst.minus(inputGst))
+      .plus(reverseChargeTax)
+      .toFixed(2),
   }
 }

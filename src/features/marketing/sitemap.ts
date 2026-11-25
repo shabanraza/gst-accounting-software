@@ -1,5 +1,6 @@
 import { ALTERNATIVE_SLUGS } from '#/features/marketing/alternatives-content.ts'
 import { CONTENT_HUBS } from '#/features/marketing/content-pages.ts'
+import { HELP_GUIDES, HELP_HUB, helpGuidePath } from '#/features/marketing/help-content.ts'
 import { SITE } from '#/features/marketing/landing-content.ts'
 import { GST_RATE_PAGES } from '#/features/tools/gst-calculator-service.ts'
 import { HSN_CHAPTERS } from '#/features/tools/hsn-service.ts'
@@ -33,11 +34,18 @@ export function listSitemapEntries(): Array<SitemapEntry> {
   }
 
   entries.push(
+    { path: HELP_HUB.path, changefreq: 'monthly', priority: '0.6' },
+    ...HELP_GUIDES.map((guide) => ({
+      path: helpGuidePath(guide),
+      changefreq: 'monthly' as const,
+      priority: '0.6',
+    })),
     ...ALTERNATIVE_SLUGS.map((slug) => ({
       path: `/alternatives/${slug}`,
       changefreq: 'monthly' as const,
       priority: '0.6',
     })),
+    { path: '/changelog', changefreq: 'weekly', priority: '0.5' },
     { path: '/contact', changefreq: 'monthly', priority: '0.5' },
     { path: '/privacy', changefreq: 'yearly', priority: '0.3' },
     { path: '/data-deletion', changefreq: 'yearly', priority: '0.3' },

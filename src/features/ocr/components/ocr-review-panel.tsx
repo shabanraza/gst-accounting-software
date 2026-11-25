@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { usePostHog } from '@posthog/react'
 import { CheckIcon, ScanTextIcon } from 'lucide-react'
 
@@ -27,7 +32,7 @@ import { useWorkspace } from '#/features/app-shell/workspace-context.tsx'
 import { toastActionError } from '#/features/app-shell/form-error.ts'
 import { requireWorkspace } from '#/lib/form-validation.ts'
 import { ocrDraftBadgeIntent } from '#/lib/badge-intent.ts'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function OcrReviewPanel() {
@@ -36,12 +41,11 @@ export function OcrReviewPanel() {
   const queryClient = useQueryClient()
   const { companyId, company, ledgerBySystemKey, isReady } = useWorkspace()
 
-  const draftsQuery = useQuery({
-    ...trpc.ocr.list.queryOptions({
-      companyId: companyId ?? '00000000-0000-4000-8000-000000000099',
-    }),
-    enabled: Boolean(companyId) && isReady,
-  })
+  const draftsQuery = useQuery(
+    trpc.ocr.list.queryOptions(
+      companyId && isReady ? { companyId } : skipToken,
+    ),
+  )
 
   const confirmMutation = useMutation(trpc.ocr.confirm.mutationOptions())
 
@@ -59,7 +63,7 @@ export function OcrReviewPanel() {
       !payableAccountId ||
       !stockAccountId
     ) {
-      toast.error('Ledger mappings required before posting OCR bills')
+      toast.error('Set up default accounts in Chart of accounts first.')
       return
     }
 
@@ -79,11 +83,11 @@ export function OcrReviewPanel() {
         queryKey: trpc.ocr.list.queryKey({ companyId }),
       })
       await queryClient.invalidateQueries({
-        queryKey: trpc.purchases.list.queryKey(),
+        queryKey: trpc.purchases.list.pathKey(),
       })
-      toast.success('Purchase bill posted from OCR draft.')
+      toast.success('Purchase bill saved from the scanned bill.')
     } catch (err) {
-      toastActionError(err, 'Failed to confirm OCR draft')
+      toastActionError(err, 'Could not confirm the scanned bill')
     }
   }
 
@@ -93,8 +97,8 @@ export function OcrReviewPanel() {
 
   return (
     <WorkspacePage
-      description="Review OCR-extracted purchase bills before posting."
-      title="OCR review"
+      description="Check bills read from scans before saving them as purchase bills."
+      title="Scanned bills"
     >
       <Card>
         <CardHeader>
@@ -103,7 +107,7 @@ export function OcrReviewPanel() {
             Draft purchase bills
           </CardTitle>
           <CardDescription>
-            Confirm posts a purchase bill from extracted header fields
+            Confirm saves the scanned bill as a purchase bill.
           </CardDescription>
         </CardHeader>
         <CardContent className="px-0">
@@ -127,7 +131,7 @@ export function OcrReviewPanel() {
                     className="py-10 text-center text-muted-foreground"
                     colSpan={8}
                   >
-                    Loading OCR drafts…
+                    Loading scanned bills…
                   </TableCell>
                 </TableRow>
               ) : drafts.length === 0 ? (
@@ -136,7 +140,7 @@ export function OcrReviewPanel() {
                     className="py-10 text-center text-muted-foreground"
                     colSpan={8}
                   >
-                    No OCR drafts awaiting review.
+                    No scanned bills waiting for review.
                   </TableCell>
                 </TableRow>
               ) : (

@@ -154,7 +154,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         <PostHogRoot>
           <TooltipProvider>{children}</TooltipProvider>
-          <Toaster richColors />
+          <Toaster closeButton position="top-center" />
           <AppDevtools />
           <GoogleAnalyticsPageview />
         </PostHogRoot>

@@ -1,9 +1,12 @@
 import { sql } from 'drizzle-orm'
 import {
   boolean,
+  check,
   index,
   integer,
+  jsonb,
   pgTable,
+  primaryKey,
   serial,
   text,
   timestamp,
@@ -71,6 +74,18 @@ export const verification = pgTable('verification', {
   updatedAt: timestamp('updated_at').defaultNow(),
 })
 
+/** Per-user email consent. Not company data, so keyed by user only. */
+export const userPreferences = pgTable('user_preferences', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  productUpdates: boolean('product_updates').notNull().default(false),
+  productUpdatesConsentedAt: timestamp('product_updates_consented_at'),
+  productUpdatesWithdrawnAt: timestamp('product_updates_withdrawn_at'),
+  productUpdatesPromptedAt: timestamp('product_updates_prompted_at'),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+})
+
 export const companies = pgTable(
   'companies',
   {
@@ -95,6 +110,7 @@ export const companies = pgTable(
     authorizedSignatory: text('authorized_signatory').notNull().default(''),
     logoUrl: text('logo_url').notNull().default(''),
     invoiceTerms: text('invoice_terms').notNull().default(''),
+    upiId: text('upi_id').notNull().default(''),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
@@ -233,6 +249,7 @@ export const items = pgTable(
       .references(() => companies.id),
     name: text('name').notNull(),
     alias: text('alias').notNull().default(''),
+    barcode: text('barcode').notNull().default(''),
     itemGroup: text('item_group').notNull().default(''),
     hsnCode: text('hsn_code').notNull(),
     gstRate: text('gst_rate').notNull(),
@@ -248,6 +265,9 @@ export const items = pgTable(
   },
   (table) => [
     uniqueIndex('items_company_name_idx').on(table.companyId, table.name),
+    uniqueIndex('items_company_barcode_idx')
+      .on(table.companyId, table.barcode)
+      .where(sql`${table.barcode} <> ''`),
   ],
 )
 
@@ -304,6 +324,8 @@ export const stockMovements = pgTable(
     referenceType: text('reference_type').notNull(),
     referenceId: text('reference_id').notNull(),
     occurredOn: text('occurred_on').notNull(),
+    /** Cost moved, at moving average for outbound. Null on legacy rows. */
+    value: text('value'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
@@ -326,6 +348,8 @@ export const stockBalances = pgTable(
       .notNull()
       .references(() => items.id),
     quantity: text('quantity').notNull(),
+    /** Moving-average stock value. Null until valued (legacy rows). */
+    value: text('value'),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (table) => [
@@ -744,6 +768,15 @@ export const expenses = pgTable(
     expenseDate: text('expense_date').notNull(),
     narration: text('narration').notNull(),
     amount: text('amount').notNull(),
+    /** Null for expenses saved before GST was recorded; then it equals amount. */
+    taxableAmount: text('taxable_amount'),
+    gstRate: text('gst_rate').notNull().default('0.00'),
+    gstAmount: text('gst_amount').notNull().default('0.00'),
+    itcClaimed: boolean('itc_claimed').notNull().default(false),
+    supplierName: text('supplier_name').notNull().default(''),
+    supplierGstin: text('supplier_gstin').notNull().default(''),
+    billNumber: text('bill_number').notNull().default(''),
+    placeOfSupply: text('place_of_supply').notNull().default(''),
     expenseAccountId: uuid('expense_account_id')
       .notNull()
       .references(() => ledgerAccounts.id),
@@ -932,18 +965,30 @@ export const eWayBills = pgTable(
     companyId: uuid('company_id')
       .notNull()
       .references(() => companies.id),
-    salesInvoiceId: uuid('sales_invoice_id')
-      .notNull()
-      .references(() => salesInvoices.id),
+    // Exactly one of these is set (check constraint in migration 0022).
+    salesInvoiceId: uuid('sales_invoice_id').references(() => salesInvoices.id),
+    salesDocumentId: uuid('sales_document_id').references(
+      () => salesDocuments.id,
+    ),
     ewbNumber: text('ewb_number').notNull(),
     ewbDate: text('ewb_date').notNull(),
     vehicleNumber: text('vehicle_number'),
     validUntil: text('valid_until').notNull(),
+    transportMode: text('transport_mode').notNull().default('road'),
+    distanceKm: integer('distance_km').notNull().default(0),
+    transporterId: text('transporter_id').notNull().default(''),
+    transporterName: text('transporter_name').notNull().default(''),
     generatedAt: timestamp('generated_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (table) => [
     uniqueIndex('e_way_bills_sales_invoice_idx').on(table.salesInvoiceId),
+    uniqueIndex('e_way_bills_sales_document_idx').on(table.salesDocumentId),
     index('e_way_bills_company_idx').on(table.companyId),
+    check(
+      'e_way_bills_one_source_chk',
+      sql`(${table.salesInvoiceId} IS NULL) <> (${table.salesDocumentId} IS NULL)`,
+    ),
   ],
 )
 
@@ -1008,6 +1053,164 @@ export const marketingSubmissions = pgTable(
     index('marketing_submissions_kind_created_idx').on(
       table.kind,
       table.createdAt,
+    ),
+  ],
+)
+
+/** "Ask your books" questions per company per day (IST), for the daily limit. */
+export const assistantUsage = pgTable(
+  'assistant_usage',
+  {
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id, { onDelete: 'cascade' }),
+    usageDate: text('usage_date').notNull(),
+    questionCount: integer('question_count').notNull().default(0),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.companyId, table.usageDate] })],
+)
+
+export const paymentVouchers = pgTable(
+  'payment_vouchers',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id),
+    voucherNumber: text('voucher_number').notNull(),
+    kind: text('kind').notNull(),
+    partyId: uuid('party_id')
+      .notNull()
+      .references(() => parties.id),
+    voucherDate: text('voucher_date').notNull(),
+    mode: text('mode').notNull(),
+    cashBankAccountId: uuid('cash_bank_account_id')
+      .notNull()
+      .references(() => ledgerAccounts.id),
+    partyAccountId: uuid('party_account_id')
+      .notNull()
+      .references(() => ledgerAccounts.id),
+    reference: text('reference').notNull().default(''),
+    amount: text('amount').notNull(),
+    unallocatedAmount: text('unallocated_amount').notNull(),
+    narration: text('narration').notNull().default(''),
+    status: text('status').notNull().default('posted'),
+    ledgerEntryId: uuid('ledger_entry_id')
+      .notNull()
+      .references(() => ledgerEntries.id),
+    cancelLedgerEntryId: uuid('cancel_ledger_entry_id').references(
+      () => ledgerEntries.id,
+    ),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('payment_vouchers_company_number_idx').on(
+      table.companyId,
+      table.voucherNumber,
+    ),
+    index('payment_vouchers_company_date_idx').on(
+      table.companyId,
+      table.voucherDate,
+    ),
+    index('payment_vouchers_company_party_idx').on(
+      table.companyId,
+      table.partyId,
+    ),
+  ],
+)
+
+export const paymentAllocations = pgTable(
+  'payment_allocations',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id),
+    voucherId: uuid('voucher_id')
+      .notNull()
+      .references(() => paymentVouchers.id),
+    documentType: text('document_type').notNull(),
+    documentId: uuid('document_id').notNull(),
+    documentNumber: text('document_number').notNull(),
+    amount: text('amount').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('payment_allocations_company_voucher_idx').on(
+      table.companyId,
+      table.voucherId,
+    ),
+    index('payment_allocations_company_document_idx').on(
+      table.companyId,
+      table.documentId,
+    ),
+  ],
+)
+
+export const partyOpeningBalances = pgTable(
+  'party_opening_balances',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id),
+    partyId: uuid('party_id')
+      .notNull()
+      .references(() => parties.id),
+    side: text('side').notNull(),
+    asOfDate: text('as_of_date').notNull(),
+    amount: text('amount').notNull(),
+    outstandingAmount: text('outstanding_amount').notNull(),
+    partyAccountId: uuid('party_account_id')
+      .notNull()
+      .references(() => ledgerAccounts.id),
+    ledgerEntryId: uuid('ledger_entry_id')
+      .notNull()
+      .references(() => ledgerEntries.id),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('party_opening_balances_company_party_idx').on(
+      table.companyId,
+      table.partyId,
+    ),
+  ],
+)
+
+export const recurringInvoices = pgTable(
+  'recurring_invoices',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => parties.id),
+    customerName: text('customer_name').notNull(),
+    sourceInvoiceId: uuid('source_invoice_id')
+      .notNull()
+      .references(() => salesInvoices.id),
+    frequency: text('frequency').notNull(),
+    startDate: text('start_date').notNull(),
+    nextRunDate: text('next_run_date').notNull(),
+    endDate: text('end_date'),
+    dueDays: integer('due_days').default(0).notNull(),
+    status: text('status').default('active').notNull(),
+    totalAmount: text('total_amount').notNull(),
+    template: jsonb('template').notNull(),
+    lastInvoiceId: uuid('last_invoice_id').references(() => salesInvoices.id),
+    lastInvoiceNumber: text('last_invoice_number').default('').notNull(),
+    generatedCount: integer('generated_count').default(0).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('recurring_invoices_company_next_run_idx').on(
+      table.companyId,
+      table.nextRunDate,
     ),
   ],
 )

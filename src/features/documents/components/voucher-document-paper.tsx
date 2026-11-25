@@ -1,9 +1,10 @@
 import { cn } from '#/lib/utils.ts'
-import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
+import { formatInr } from '#/lib/format-inr.ts'
 import {
   formatIndianDate,
   stateLabel,
 } from '#/features/documents/gst-invoice-format.ts'
+import { UpiQrCode } from '#/features/documents/components/upi-qr-code.tsx'
 
 import type { VoucherPrintDocument } from '#/features/documents/voucher-print-types.ts'
 
@@ -458,6 +459,16 @@ export function VoucherDocumentPaper({
                       {formatInr(document.totalAmount)}
                     </td>
                   </tr>
+                  {document.reverseCharge ? (
+                    <tr>
+                      <td className="py-0.5">
+                        Tax payable on reverse charge
+                      </td>
+                      <td className="py-0.5 text-right tabular-nums">
+                        {formatInr(document.totalGstAmount)}
+                      </td>
+                    </tr>
+                  ) : null}
                   <tr>
                     <td className="py-0.5">Outstanding</td>
                     <td className="py-0.5 text-right tabular-nums">
@@ -471,23 +482,47 @@ export function VoucherDocumentPaper({
 
           <tr>
             <td className={cell} colSpan={leftCols}>
-              {company.bankName ? (
-                <div>
-                  <p className="text-[10px] font-semibold uppercase">
-                    Company&apos;s Bank Details
-                  </p>
-                  <p>Bank: {company.bankName}</p>
-                  {company.bankAccountNumber ? (
-                    <p>A/c No.: {company.bankAccountNumber}</p>
+              {company.bankName || document.upiUri ? (
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  {company.bankName ? (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase">
+                        Company&apos;s Bank Details
+                      </p>
+                      <p>Bank: {company.bankName}</p>
+                      {company.bankAccountNumber ? (
+                        <p>A/c No.: {company.bankAccountNumber}</p>
+                      ) : null}
+                      {company.bankIfsc ? (
+                        <p>IFSC: {company.bankIfsc}</p>
+                      ) : null}
+                    </div>
                   ) : null}
-                  {company.bankIfsc ? <p>IFSC: {company.bankIfsc}</p> : null}
+                  {document.upiUri ? (
+                    <div className="flex items-center gap-2">
+                      <UpiQrCode
+                        className="size-24 shrink-0"
+                        value={document.upiUri}
+                      />
+                      <div className="flex flex-col gap-0.5">
+                        <p className="text-[10px] font-semibold uppercase">
+                          Scan to pay with any UPI app
+                        </p>
+                        <p className="font-semibold tabular-nums">
+                          {formatInr(document.outstandingAmount)}
+                        </p>
+                        {company.upiId ? (
+                          <p className="break-all">UPI: {company.upiId}</p>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
               <p className="mt-2 whitespace-pre-line text-[10px]">
+                {/* Whether tax is on reverse charge prints on its own line below. */}
                 {company.invoiceTerms?.trim() ||
-                  (showTax
-                    ? 'Goods once sold will not be taken back. Interest @18% p.a. on overdue bills. Subject to local jurisdiction. Whether tax is payable on reverse charge - No.'
-                    : 'Goods once sold will not be taken back. Interest @18% p.a. on overdue bills. Subject to local jurisdiction.')}
+                  'Goods once sold will not be taken back. Interest @18% p.a. on overdue bills. Subject to local jurisdiction.'}
               </p>
               {showTax ? (
                 <p className="mt-1 text-[10px]">

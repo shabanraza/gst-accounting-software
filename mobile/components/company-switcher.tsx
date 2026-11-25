@@ -44,12 +44,12 @@ export function CompanySwitcher({
           title="Switch company"
         >
           <View style={{ gap: pageLayout.sectionHeaderGap }}>
-            {companies.map((company) => (
+            {companies.map((option) => (
               <CardRow
-                key={company.id}
-                title={company.tradeName}
+                key={option.id}
+                title={option.tradeName}
                 onPress={() => {
-                  void setActiveCompany(company.id)
+                  void setActiveCompany(option.id)
                   setOpen(false)
                 }}
               />
@@ -86,12 +86,12 @@ export function CompanySwitcher({
         title="Switch company"
       >
         <View style={{ gap: pageLayout.sectionHeaderGap }}>
-          {companies.map((company) => (
+          {companies.map((option) => (
             <CardRow
-              key={company.id}
-              title={company.tradeName}
+              key={option.id}
+              title={option.tradeName}
               onPress={() => {
-                void setActiveCompany(company.id)
+                void setActiveCompany(option.id)
                 setOpen(false)
               }}
             />

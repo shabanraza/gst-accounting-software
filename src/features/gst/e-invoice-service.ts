@@ -1,3 +1,5 @@
+import { DomainError } from '#/lib/domain-error.ts'
+
 export type EInvoiceRecord = {
   id: string
   companyId: string
@@ -17,7 +19,7 @@ export interface EInvoiceRepository {
   create: (record: EInvoiceRecord) => Promise<EInvoiceRecord>
 }
 
-export class EInvoiceAlreadyGeneratedError extends Error {
+export class EInvoiceAlreadyGeneratedError extends DomainError {
   constructor(salesInvoiceId: string) {
     super(`An e-invoice already exists for sales invoice: ${salesInvoiceId}`)
     this.name = 'EInvoiceAlreadyGeneratedError'
@@ -61,63 +63,6 @@ export async function generateEInvoice(
     ackNumber,
     ackDate: now.toISOString().slice(0, 10),
     qrCodeData: `IRN:${irn}|AMT:${input.totalAmount}`,
-    generatedAt: now,
-  })
-}
-
-export type EWayBillRecord = {
-  id: string
-  companyId: string
-  salesInvoiceId: string
-  ewbNumber: string
-  ewbDate: string
-  vehicleNumber: string | null
-  validUntil: string
-  generatedAt: Date
-}
-
-export interface EWayBillRepository {
-  findBySalesInvoiceId: (
-    salesInvoiceId: string,
-  ) => Promise<EWayBillRecord | null>
-  listByCompanyId: (companyId: string) => Promise<Array<EWayBillRecord>>
-  create: (record: EWayBillRecord) => Promise<EWayBillRecord>
-}
-
-export class EWayBillAlreadyGeneratedError extends Error {
-  constructor(salesInvoiceId: string) {
-    super(`An e-way bill already exists for sales invoice: ${salesInvoiceId}`)
-    this.name = 'EWayBillAlreadyGeneratedError'
-  }
-}
-
-export async function generateEWayBill(
-  repository: EWayBillRepository,
-  input: {
-    companyId: string
-    salesInvoiceId: string
-    vehicleNumber?: string | null
-  },
-): Promise<EWayBillRecord> {
-  const existing = await repository.findBySalesInvoiceId(input.salesInvoiceId)
-
-  if (existing) {
-    throw new EWayBillAlreadyGeneratedError(input.salesInvoiceId)
-  }
-
-  const now = new Date()
-  const seed = `${input.companyId}:${input.salesInvoiceId}`
-  const ewbNumber = pseudoHash(seed).padStart(12, '0').slice(0, 12)
-  const validUntil = new Date(now.getTime() + 24 * 60 * 60 * 1000)
-
-  return repository.create({
-    id: crypto.randomUUID(),
-    companyId: input.companyId,
-    salesInvoiceId: input.salesInvoiceId,
-    ewbNumber,
-    ewbDate: now.toISOString().slice(0, 10),
-    vehicleNumber: input.vehicleNumber ?? null,
-    validUntil: validUntil.toISOString().slice(0, 10),
     generatedAt: now,
   })
 }

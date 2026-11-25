@@ -11,9 +11,10 @@ import {
   buildCreateGodownInput,
   buildUpdateGodownInput,
   createInitialGodownForm,
-  validateGodownForm,
-  type GodownFormDraft,
+  validateGodownForm
+  
 } from '@/lib/godown-form'
+import type {GodownFormDraft} from '@/lib/godown-form';
 import { trpcClient } from '@/lib/trpc-client'
 import { useWorkspace } from '@/lib/workspace'
 

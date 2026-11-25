@@ -3,7 +3,7 @@ import {
   useNativeVariable as useFunctionalVariable,
 } from 'react-native-css'
 import { Link as RouterLink } from 'expo-router'
-import React from 'react'
+import type React from 'react'
 import {
   View as RNView,
   Text as RNText,

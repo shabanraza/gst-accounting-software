@@ -15,9 +15,10 @@ import {
   buildPostExpenseInput,
   createInitialExpenseForm,
   filterPaymentAccounts,
-  validateExpenseForm,
-  type ExpenseFormDraft,
+  validateExpenseForm
+  
 } from '@/lib/expense-form'
+import type {ExpenseFormDraft} from '@/lib/expense-form';
 import { trpcClient } from '@/lib/trpc-client'
 import { useWorkspace } from '@/lib/workspace'
 

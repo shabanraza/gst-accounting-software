@@ -42,7 +42,7 @@ export function StockLedgerDetailScreen() {
     queryFn: () =>
       trpcClient.reports.stockLedger.query({
         companyId: companyId!,
-        itemId: itemId!,
+        itemId: itemId,
       }),
   })
 

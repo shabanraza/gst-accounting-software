@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 
+import { recordMasterEvent } from '#/features/audit/audit-service.ts'
 import { listCompaniesByIds } from '#/features/companies/company-service.ts'
 import {
   acceptInvitation,
@@ -13,6 +14,7 @@ import { capabilityProcedure } from '#/integrations/trpc/company-procedures.ts'
 import { protectedProcedure } from '#/integrations/trpc/init.ts'
 
 import type { TRPCRouterRecord } from '@trpc/server'
+import type { AuditLogRepository } from '#/features/audit/audit-service.ts'
 import type { CompanyRepository } from '#/features/companies/company-service.ts'
 import type { MembershipRepository } from '#/features/companies/membership-service.ts'
 import type { InvitationRepository } from '#/features/team/invitation-service.ts'
@@ -31,6 +33,14 @@ export type TeamRouterDependencies = {
   invitations: InvitationRepository
   companies: CompanyRepository
   users: UserDirectory
+  audit: AuditLogRepository
+}
+
+async function memberLabel(users: UserDirectory, userId: string) {
+  const user = (await users.listByIds([userId])).find(
+    (entry) => entry.id === userId,
+  )
+  return user?.name || user?.email || userId
 }
 
 function inviteUrl(token: string): string {
@@ -85,6 +95,15 @@ export const createTeamRouter = (deps: TeamRouterDependencies) =>
           email: input.email,
           role: input.role,
           invitedByUserId: ctx.userId,
+        })
+        await recordMasterEvent(deps.audit, {
+          companyId: input.companyId,
+          actorUserId: ctx.userId,
+          action: 'team_member.invited',
+          entityType: 'invitation',
+          entityId: invitation.id,
+          label: invitation.email,
+          details: { role: invitation.role },
         })
 
         const companies = await listCompaniesByIds(deps.companies, [
@@ -179,11 +198,21 @@ export const createTeamRouter = (deps: TeamRouterDependencies) =>
           })
         }
 
+        const previousRole = target.role
         const updated = await deps.memberships.updateRole(
           input.companyId,
           input.userId,
           input.role,
         )
+        await recordMasterEvent(deps.audit, {
+          companyId: input.companyId,
+          actorUserId: ctx.userId,
+          action: 'team_member.role_changed',
+          entityType: 'membership',
+          entityId: input.userId,
+          label: await memberLabel(deps.users, input.userId),
+          changes: { role: { from: previousRole, to: input.role } },
+        })
         return updated
       }),
     removeMember: capabilityProcedure('manage_company')
@@ -211,6 +240,17 @@ export const createTeamRouter = (deps: TeamRouterDependencies) =>
         }
 
         await deps.memberships.remove(input.companyId, input.userId)
+        if (target) {
+          await recordMasterEvent(deps.audit, {
+            companyId: input.companyId,
+            actorUserId: ctx.userId,
+            action: 'team_member.removed',
+            entityType: 'membership',
+            entityId: input.userId,
+            label: await memberLabel(deps.users, input.userId),
+            details: { role: target.role },
+          })
+        }
         return { ok: true }
       }),
     acceptInvite: protectedProcedure

@@ -17,10 +17,9 @@ import {
 import { DatePicker } from '#/components/ui/date-picker.tsx'
 import { Input } from '#/components/ui/input.tsx'
 import { formatMediumDate } from '#/lib/calendar-date.ts'
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from '#/components/ui/toggle-group.tsx'
+import { currentFinancialYearStart } from '#/lib/gst-period.ts'
+import { Label } from '#/components/ui/label.tsx'
+import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group.tsx'
 import {
   Select,
   SelectContent,
@@ -59,14 +58,30 @@ export function CreateCompanyPanel() {
   const [legalName, setLegalName] = React.useState('')
   const [tradeName, setTradeName] = React.useState('')
   const [gstin, setGstin] = React.useState('')
-  const [stateCode, setStateCode] = React.useState('27')
-  const [financialYearStart, setFinancialYearStart] =
-    React.useState('2026-04-01')
+  const [stateCode, setStateCode] = React.useState('')
+  const [addressLine1, setAddressLine1] = React.useState('')
+  const [city, setCity] = React.useState('')
+  const [pincode, setPincode] = React.useState('')
+  const [financialYearStart, setFinancialYearStart] = React.useState(() =>
+    currentFinancialYearStart(),
+  )
   const [businessType, setBusinessType] =
     React.useState<BusinessType>('wholesale')
 
   const canContinueStep0 = legalName.trim() && tradeName.trim()
-  const canContinueStep1 = stateCode && financialYearStart
+  const hasGstin = Boolean(gstin.trim())
+  const hasAddress = Boolean(
+    addressLine1.trim() && city.trim() && pincode.trim(),
+  )
+  const canContinueStep1 =
+    stateCode && financialYearStart && (!hasGstin || hasAddress)
+
+  function handleGstinChange(value: string) {
+    setGstin(value)
+    // The first two GSTIN digits are the registration state code.
+    const gstinState = value.trim().slice(0, 2)
+    if (/^[0-9]{2}$/.test(gstinState)) setStateCode(gstinState)
+  }
 
   async function handleFinish() {
     try {
@@ -77,6 +92,9 @@ export function CreateCompanyPanel() {
         stateCode,
         financialYearStart,
         businessType,
+        addressLine1: addressLine1.trim(),
+        city: city.trim(),
+        pincode: pincode.trim(),
       })
       posthog.capture('company_created', {
         business_type: businessType,
@@ -113,8 +131,7 @@ export function CreateCompanyPanel() {
           </div>
           <CardTitle className="text-lg">Set up your company</CardTitle>
           <CardDescription>
-            We will seed your chart of accounts, financial year, and ledgers
-            automatically.
+            We'll set up your ledgers and financial year automatically.
           </CardDescription>
         </CardHeader>
 
@@ -122,24 +139,24 @@ export function CreateCompanyPanel() {
           {step === 0 ? (
             <>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium" htmlFor="ob-legal">
+                <Label className="text-sm" htmlFor="ob-legal">
                   Legal name
-                </label>
+                </Label>
                 <Input
                   id="ob-legal"
                   onChange={(event) => setLegalName(event.target.value)}
-                  placeholder="Shaban Textiles Private Limited"
+                  placeholder="As on your GST registration"
                   value={legalName}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium" htmlFor="ob-trade">
+                <Label className="text-sm" htmlFor="ob-trade">
                   Trade name
-                </label>
+                </Label>
                 <Input
                   id="ob-trade"
                   onChange={(event) => setTradeName(event.target.value)}
-                  placeholder="Shaban Textiles"
+                  placeholder="Name printed on your bills"
                   value={tradeName}
                 />
               </div>
@@ -149,12 +166,12 @@ export function CreateCompanyPanel() {
           {step === 1 ? (
             <>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium" htmlFor="ob-gstin">
+                <Label className="text-sm" htmlFor="ob-gstin">
                   GSTIN (optional)
-                </label>
+                </Label>
                 <Input
                   id="ob-gstin"
-                  onChange={(event) => setGstin(event.target.value)}
+                  onChange={(event) => handleGstinChange(event.target.value)}
                   placeholder="27ABCDE1234F1Z5"
                   value={gstin}
                 />
@@ -162,8 +179,8 @@ export function CreateCompanyPanel() {
               <div className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium">State</span>
                 <Select onValueChange={setStateCode} value={stateCode}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
+                  <SelectTrigger aria-label="State" className="w-full">
+                    <SelectValue placeholder="Select state" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
@@ -177,9 +194,49 @@ export function CreateCompanyPanel() {
                 </Select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium" htmlFor="ob-fy">
+                <Label className="text-sm" htmlFor="ob-address">
+                  {hasGstin
+                    ? 'Business address'
+                    : 'Business address (optional)'}
+                </Label>
+                <Input
+                  autoComplete="address-line1"
+                  id="ob-address"
+                  onChange={(event) => setAddressLine1(event.target.value)}
+                  placeholder="Shop / building, street"
+                  value={addressLine1}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-sm" htmlFor="ob-city">
+                    City
+                  </Label>
+                  <Input
+                    autoComplete="address-level2"
+                    id="ob-city"
+                    onChange={(event) => setCity(event.target.value)}
+                    value={city}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-sm" htmlFor="ob-pincode">
+                    PIN code
+                  </Label>
+                  <Input
+                    autoComplete="postal-code"
+                    id="ob-pincode"
+                    inputMode="numeric"
+                    maxLength={6}
+                    onChange={(event) => setPincode(event.target.value)}
+                    value={pincode}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-sm" htmlFor="ob-fy">
                   Financial year start
-                </label>
+                </Label>
                 <DatePicker
                   formatValue={formatMediumDate}
                   id="ob-fy"
@@ -204,6 +261,7 @@ export function CreateCompanyPanel() {
               {businessTypes.map((type) => (
                 <ToggleGroupItem
                   className="h-auto min-h-14 flex-col items-start justify-center gap-1 p-3 text-left text-sm"
+                  aria-label={type.label}
                   key={type.value}
                   value={type.value}
                 >
