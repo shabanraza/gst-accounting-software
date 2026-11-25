@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { usePostHog } from '@posthog/react'
 import { CheckIcon, UploadIcon, WandSparklesIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -52,6 +53,7 @@ function statusLabel(status: string) {
 }
 
 export function BankReconciliationPanel() {
+  const posthog = usePostHog()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const { companyId, isReady } = useWorkspace()
@@ -118,6 +120,7 @@ export function BankReconciliationPanel() {
       void queryClient.invalidateQueries({
         queryKey: trpc.banking.getReconciliation.queryKey(),
       })
+      posthog.capture('bank_statement_imported')
       toast.success('Bank statement imported')
     },
     onError: (error) => {
@@ -130,6 +133,9 @@ export function BankReconciliationPanel() {
     onSuccess: (result) => {
       void queryClient.invalidateQueries({
         queryKey: trpc.banking.getReconciliation.queryKey(),
+      })
+      posthog.capture('bank_reconciliation_auto_matched', {
+        matched_line_count: result.matched,
       })
       toast.success(`Matched ${result.matched} line(s)`)
     },

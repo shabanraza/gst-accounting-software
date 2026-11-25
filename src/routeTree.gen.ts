@@ -9,110 +9,70 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as DataDeletionRouteImport } from './routes/data-deletion'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as AppRouteImport } from './routes/app'
-import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ToolsIndexRouteImport } from './routes/tools/index'
-import { Route as GuidesIndexRouteImport } from './routes/guides/index'
-import { Route as GstBillingSoftwareForIndexRouteImport } from './routes/gst-billing-software-for/index'
-import { Route as CompareIndexRouteImport } from './routes/compare/index'
-import { Route as ToolsPaymentReminderRouteImport } from './routes/tools/payment-reminder'
-import { Route as ToolsGstinValidatorRouteImport } from './routes/tools/gstin-validator'
-import { Route as ToolsGstInvoiceGeneratorRouteImport } from './routes/tools/gst-invoice-generator'
-import { Route as ToolsGstDueDatesRouteImport } from './routes/tools/gst-due-dates'
-import { Route as ToolsEInvoiceEWayBillCheckerRouteImport } from './routes/tools/e-invoice-e-way-bill-checker'
-import { Route as GuidesSlugRouteImport } from './routes/guides/$slug'
-import { Route as GstBillingSoftwareForSlugRouteImport } from './routes/gst-billing-software-for/$slug'
-import { Route as DesignAccountingRouteImport } from './routes/design/accounting'
-import { Route as CompareSlugRouteImport } from './routes/compare/$slug'
-import { Route as AppSettingsRouteImport } from './routes/app/settings'
-import { Route as AppSalesRouteImport } from './routes/app/sales'
-import { Route as AppReturnsRouteImport } from './routes/app/returns'
-import { Route as AppReportsRouteImport } from './routes/app/reports'
-import { Route as AppPurchasesRouteImport } from './routes/app/purchases'
-import { Route as AppPurchaseOrdersRouteImport } from './routes/app/purchase-orders'
-import { Route as AppPurchaseGrnsRouteImport } from './routes/app/purchase-grns'
-import { Route as AppPaymentsRouteImport } from './routes/app/payments'
-import { Route as AppOcrRouteImport } from './routes/app/ocr'
-import { Route as AppInventoryRouteImport } from './routes/app/inventory'
-import { Route as AppImportsRouteImport } from './routes/app/imports'
-import { Route as AppExpensesRouteImport } from './routes/app/expenses'
-import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
-import { Route as AppBankReconciliationRouteImport } from './routes/app/bank-reconciliation'
+import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
+import { Route as AppRouteImport } from './routes/app'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as DataDeletionRouteImport } from './routes/data-deletion'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AlternativesCompetitorRouteImport } from './routes/alternatives/$competitor'
-import { Route as ToolsHsnCodeFinderIndexRouteImport } from './routes/tools/hsn-code-finder.index'
-import { Route as ToolsGstCalculatorIndexRouteImport } from './routes/tools/gst-calculator.index'
-import { Route as AppSalesIndexRouteImport } from './routes/app/sales/index'
-import { Route as AppPurchasesIndexRouteImport } from './routes/app/purchases/index'
-import { Route as ToolsHsnCodeFinderChapterRouteImport } from './routes/tools/hsn-code-finder.$chapter'
-import { Route as ToolsGstCalculatorRateRouteImport } from './routes/tools/gst-calculator.$rate'
-import { Route as DesignAccountingSidebarRouteImport } from './routes/design/accounting/sidebar'
-import { Route as AppSalesNewRouteImport } from './routes/app/sales/new'
-import { Route as AppSalesDocumentsRouteImport } from './routes/app/sales/documents'
-import { Route as AppPurchasesNewRouteImport } from './routes/app/purchases/new'
-import { Route as AppMastersPartiesRouteImport } from './routes/app/masters/parties'
-import { Route as AppMastersItemsRouteImport } from './routes/app/masters/items'
-import { Route as AppMastersGodownsRouteImport } from './routes/app/masters/godowns'
-import { Route as AppMastersCompanyProfileRouteImport } from './routes/app/masters/company-profile'
-import { Route as AppMastersCompaniesRouteImport } from './routes/app/masters/companies'
-import { Route as AppMastersChartOfAccountsRouteImport } from './routes/app/masters/chart-of-accounts'
-import { Route as AppAccountingJournalRouteImport } from './routes/app/accounting/journal'
-import { Route as ApiTrpcSplatRouteImport } from './routes/api.trpc.$'
+import { Route as AppBankReconciliationRouteImport } from './routes/app/bank-reconciliation'
+import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
+import { Route as AppExpensesRouteImport } from './routes/app/expenses'
+import { Route as AppImportsRouteImport } from './routes/app/imports'
+import { Route as AppInventoryRouteImport } from './routes/app/inventory'
+import { Route as AppOcrRouteImport } from './routes/app/ocr'
+import { Route as AppPaymentsRouteImport } from './routes/app/payments'
+import { Route as AppPurchaseGrnsRouteImport } from './routes/app/purchase-grns'
+import { Route as AppPurchaseOrdersRouteImport } from './routes/app/purchase-orders'
+import { Route as AppPurchasesRouteImport } from './routes/app/purchases'
+import { Route as AppReportsRouteImport } from './routes/app/reports'
+import { Route as AppReturnsRouteImport } from './routes/app/returns'
+import { Route as AppSalesRouteImport } from './routes/app/sales'
+import { Route as AppSettingsRouteImport } from './routes/app/settings'
+import { Route as CompareIndexRouteImport } from './routes/compare/index'
+import { Route as CompareSlugRouteImport } from './routes/compare/$slug'
+import { Route as DesignAccountingRouteImport } from './routes/design/accounting'
+import { Route as GstBillingSoftwareForIndexRouteImport } from './routes/gst-billing-software-for/index'
+import { Route as GstBillingSoftwareForSlugRouteImport } from './routes/gst-billing-software-for/$slug'
+import { Route as GuidesIndexRouteImport } from './routes/guides/index'
+import { Route as GuidesSlugRouteImport } from './routes/guides/$slug'
+import { Route as ToolsIndexRouteImport } from './routes/tools/index'
+import { Route as ToolsEInvoiceEWayBillCheckerRouteImport } from './routes/tools/e-invoice-e-way-bill-checker'
+import { Route as ToolsGstDueDatesRouteImport } from './routes/tools/gst-due-dates'
+import { Route as ToolsGstInvoiceGeneratorRouteImport } from './routes/tools/gst-invoice-generator'
+import { Route as ToolsGstinValidatorRouteImport } from './routes/tools/gstin-validator'
+import { Route as ToolsPaymentReminderRouteImport } from './routes/tools/payment-reminder'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as AppSalesInvoiceIdPrintRouteImport } from './routes/app/sales/$invoiceId.print'
+import { Route as ApiTrpcSplatRouteImport } from './routes/api.trpc.$'
+import { Route as AppAccountingJournalRouteImport } from './routes/app/accounting/journal'
+import { Route as AppMastersChartOfAccountsRouteImport } from './routes/app/masters/chart-of-accounts'
+import { Route as AppMastersCompaniesRouteImport } from './routes/app/masters/companies'
+import { Route as AppMastersCompanyProfileRouteImport } from './routes/app/masters/company-profile'
+import { Route as AppMastersGodownsRouteImport } from './routes/app/masters/godowns'
+import { Route as AppMastersItemsRouteImport } from './routes/app/masters/items'
+import { Route as AppMastersPartiesRouteImport } from './routes/app/masters/parties'
+import { Route as AppPurchasesIndexRouteImport } from './routes/app/purchases/index'
+import { Route as AppPurchasesNewRouteImport } from './routes/app/purchases/new'
+import { Route as AppSalesIndexRouteImport } from './routes/app/sales/index'
+import { Route as AppSalesDocumentsRouteImport } from './routes/app/sales/documents'
+import { Route as AppSalesNewRouteImport } from './routes/app/sales/new'
+import { Route as DesignAccountingSidebarRouteImport } from './routes/design/accounting/sidebar'
+import { Route as ToolsGstCalculatorIndexRouteImport } from './routes/tools/gst-calculator.index'
+import { Route as ToolsGstCalculatorRateRouteImport } from './routes/tools/gst-calculator.$rate'
+import { Route as ToolsHsnCodeFinderIndexRouteImport } from './routes/tools/hsn-code-finder.index'
+import { Route as ToolsHsnCodeFinderChapterRouteImport } from './routes/tools/hsn-code-finder.$chapter'
 import { Route as AppPurchasesBillIdPrintRouteImport } from './routes/app/purchases/$billId.print'
+import { Route as AppSalesInvoiceIdPrintRouteImport } from './routes/app/sales/$invoiceId.print'
 
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OnboardingRoute = OnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DataDeletionRoute = DataDeletionRouteImport.update({
-  id: '/data-deletion',
-  path: '/data-deletion',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppRoute = AppRouteImport.update({
-  id: '/app',
-  path: '/app',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AcceptInviteRoute = AcceptInviteRouteImport.update({
@@ -120,19 +80,139 @@ const AcceptInviteRoute = AcceptInviteRouteImport.update({
   path: '/accept-invite',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ToolsIndexRoute = ToolsIndexRouteImport.update({
-  id: '/tools/',
-  path: '/tools/',
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GuidesIndexRoute = GuidesIndexRouteImport.update({
-  id: '/guides/',
-  path: '/guides/',
+const DataDeletionRoute = DataDeletionRouteImport.update({
+  id: '/data-deletion',
+  path: '/data-deletion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AlternativesCompetitorRoute = AlternativesCompetitorRouteImport.update({
+  id: '/alternatives/$competitor',
+  path: '/alternatives/$competitor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppBankReconciliationRoute = AppBankReconciliationRouteImport.update({
+  id: '/bank-reconciliation',
+  path: '/bank-reconciliation',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExpensesRoute = AppExpensesRouteImport.update({
+  id: '/expenses',
+  path: '/expenses',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppImportsRoute = AppImportsRouteImport.update({
+  id: '/imports',
+  path: '/imports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInventoryRoute = AppInventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOcrRoute = AppOcrRouteImport.update({
+  id: '/ocr',
+  path: '/ocr',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPaymentsRoute = AppPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPurchaseGrnsRoute = AppPurchaseGrnsRouteImport.update({
+  id: '/purchase-grns',
+  path: '/purchase-grns',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPurchaseOrdersRoute = AppPurchaseOrdersRouteImport.update({
+  id: '/purchase-orders',
+  path: '/purchase-orders',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPurchasesRoute = AppPurchasesRouteImport.update({
+  id: '/purchases',
+  path: '/purchases',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReturnsRoute = AppReturnsRouteImport.update({
+  id: '/returns',
+  path: '/returns',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSalesRoute = AppSalesRouteImport.update({
+  id: '/sales',
+  path: '/sales',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const CompareIndexRoute = CompareIndexRouteImport.update({
+  id: '/compare/',
+  path: '/compare/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompareSlugRoute = CompareSlugRouteImport.update({
+  id: '/compare/$slug',
+  path: '/compare/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DesignAccountingRoute = DesignAccountingRouteImport.update({
+  id: '/design/accounting',
+  path: '/design/accounting',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GstBillingSoftwareForIndexRoute =
@@ -141,30 +221,25 @@ const GstBillingSoftwareForIndexRoute =
     path: '/gst-billing-software-for/',
     getParentRoute: () => rootRouteImport,
   } as any)
-const CompareIndexRoute = CompareIndexRouteImport.update({
-  id: '/compare/',
-  path: '/compare/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ToolsPaymentReminderRoute = ToolsPaymentReminderRouteImport.update({
-  id: '/tools/payment-reminder',
-  path: '/tools/payment-reminder',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ToolsGstinValidatorRoute = ToolsGstinValidatorRouteImport.update({
-  id: '/tools/gstin-validator',
-  path: '/tools/gstin-validator',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ToolsGstInvoiceGeneratorRoute =
-  ToolsGstInvoiceGeneratorRouteImport.update({
-    id: '/tools/gst-invoice-generator',
-    path: '/tools/gst-invoice-generator',
+const GstBillingSoftwareForSlugRoute =
+  GstBillingSoftwareForSlugRouteImport.update({
+    id: '/gst-billing-software-for/$slug',
+    path: '/gst-billing-software-for/$slug',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ToolsGstDueDatesRoute = ToolsGstDueDatesRouteImport.update({
-  id: '/tools/gst-due-dates',
-  path: '/tools/gst-due-dates',
+const GuidesIndexRoute = GuidesIndexRouteImport.update({
+  id: '/guides/',
+  path: '/guides/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuidesSlugRoute = GuidesSlugRouteImport.update({
+  id: '/guides/$slug',
+  path: '/guides/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsIndexRoute = ToolsIndexRouteImport.update({
+  id: '/tools/',
+  path: '/tools/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ToolsEInvoiceEWayBillCheckerRoute =
@@ -173,177 +248,40 @@ const ToolsEInvoiceEWayBillCheckerRoute =
     path: '/tools/e-invoice-e-way-bill-checker',
     getParentRoute: () => rootRouteImport,
   } as any)
-const GuidesSlugRoute = GuidesSlugRouteImport.update({
-  id: '/guides/$slug',
-  path: '/guides/$slug',
+const ToolsGstDueDatesRoute = ToolsGstDueDatesRouteImport.update({
+  id: '/tools/gst-due-dates',
+  path: '/tools/gst-due-dates',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GstBillingSoftwareForSlugRoute =
-  GstBillingSoftwareForSlugRouteImport.update({
-    id: '/gst-billing-software-for/$slug',
-    path: '/gst-billing-software-for/$slug',
+const ToolsGstInvoiceGeneratorRoute =
+  ToolsGstInvoiceGeneratorRouteImport.update({
+    id: '/tools/gst-invoice-generator',
+    path: '/tools/gst-invoice-generator',
     getParentRoute: () => rootRouteImport,
   } as any)
-const DesignAccountingRoute = DesignAccountingRouteImport.update({
-  id: '/design/accounting',
-  path: '/design/accounting',
+const ToolsGstinValidatorRoute = ToolsGstinValidatorRouteImport.update({
+  id: '/tools/gstin-validator',
+  path: '/tools/gstin-validator',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CompareSlugRoute = CompareSlugRouteImport.update({
-  id: '/compare/$slug',
-  path: '/compare/$slug',
+const ToolsPaymentReminderRoute = ToolsPaymentReminderRouteImport.update({
+  id: '/tools/payment-reminder',
+  path: '/tools/payment-reminder',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppSettingsRoute = AppSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppSalesRoute = AppSalesRouteImport.update({
-  id: '/sales',
-  path: '/sales',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppReturnsRoute = AppReturnsRouteImport.update({
-  id: '/returns',
-  path: '/returns',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppReportsRoute = AppReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppPurchasesRoute = AppPurchasesRouteImport.update({
-  id: '/purchases',
-  path: '/purchases',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppPurchaseOrdersRoute = AppPurchaseOrdersRouteImport.update({
-  id: '/purchase-orders',
-  path: '/purchase-orders',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppPurchaseGrnsRoute = AppPurchaseGrnsRouteImport.update({
-  id: '/purchase-grns',
-  path: '/purchase-grns',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppPaymentsRoute = AppPaymentsRouteImport.update({
-  id: '/payments',
-  path: '/payments',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppOcrRoute = AppOcrRouteImport.update({
-  id: '/ocr',
-  path: '/ocr',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppInventoryRoute = AppInventoryRouteImport.update({
-  id: '/inventory',
-  path: '/inventory',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppImportsRoute = AppImportsRouteImport.update({
-  id: '/imports',
-  path: '/imports',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppExpensesRoute = AppExpensesRouteImport.update({
-  id: '/expenses',
-  path: '/expenses',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppDashboardRoute = AppDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppBankReconciliationRoute = AppBankReconciliationRouteImport.update({
-  id: '/bank-reconciliation',
-  path: '/bank-reconciliation',
-  getParentRoute: () => AppRoute,
-} as any)
-const AlternativesCompetitorRoute = AlternativesCompetitorRouteImport.update({
-  id: '/alternatives/$competitor',
-  path: '/alternatives/$competitor',
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ToolsHsnCodeFinderIndexRoute = ToolsHsnCodeFinderIndexRouteImport.update({
-  id: '/tools/hsn-code-finder/',
-  path: '/tools/hsn-code-finder/',
+const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
+  id: '/api/trpc/$',
+  path: '/api/trpc/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ToolsGstCalculatorIndexRoute = ToolsGstCalculatorIndexRouteImport.update({
-  id: '/tools/gst-calculator/',
-  path: '/tools/gst-calculator/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppSalesIndexRoute = AppSalesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppSalesRoute,
-} as any)
-const AppPurchasesIndexRoute = AppPurchasesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppPurchasesRoute,
-} as any)
-const ToolsHsnCodeFinderChapterRoute =
-  ToolsHsnCodeFinderChapterRouteImport.update({
-    id: '/tools/hsn-code-finder/$chapter',
-    path: '/tools/hsn-code-finder/$chapter',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ToolsGstCalculatorRateRoute = ToolsGstCalculatorRateRouteImport.update({
-  id: '/tools/gst-calculator/$rate',
-  path: '/tools/gst-calculator/$rate',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DesignAccountingSidebarRoute = DesignAccountingSidebarRouteImport.update({
-  id: '/sidebar',
-  path: '/sidebar',
-  getParentRoute: () => DesignAccountingRoute,
-} as any)
-const AppSalesNewRoute = AppSalesNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AppSalesRoute,
-} as any)
-const AppSalesDocumentsRoute = AppSalesDocumentsRouteImport.update({
-  id: '/documents',
-  path: '/documents',
-  getParentRoute: () => AppSalesRoute,
-} as any)
-const AppPurchasesNewRoute = AppPurchasesNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AppPurchasesRoute,
-} as any)
-const AppMastersPartiesRoute = AppMastersPartiesRouteImport.update({
-  id: '/masters/parties',
-  path: '/masters/parties',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppMastersItemsRoute = AppMastersItemsRouteImport.update({
-  id: '/masters/items',
-  path: '/masters/items',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppMastersGodownsRoute = AppMastersGodownsRouteImport.update({
-  id: '/masters/godowns',
-  path: '/masters/godowns',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppMastersCompanyProfileRoute =
-  AppMastersCompanyProfileRouteImport.update({
-    id: '/masters/company-profile',
-    path: '/masters/company-profile',
-    getParentRoute: () => AppRoute,
-  } as any)
-const AppMastersCompaniesRoute = AppMastersCompaniesRouteImport.update({
-  id: '/masters/companies',
-  path: '/masters/companies',
+const AppAccountingJournalRoute = AppAccountingJournalRouteImport.update({
+  id: '/accounting/journal',
+  path: '/accounting/journal',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMastersChartOfAccountsRoute =
@@ -352,30 +290,92 @@ const AppMastersChartOfAccountsRoute =
     path: '/masters/chart-of-accounts',
     getParentRoute: () => AppRoute,
   } as any)
-const AppAccountingJournalRoute = AppAccountingJournalRouteImport.update({
-  id: '/accounting/journal',
-  path: '/accounting/journal',
+const AppMastersCompaniesRoute = AppMastersCompaniesRouteImport.update({
+  id: '/masters/companies',
+  path: '/masters/companies',
   getParentRoute: () => AppRoute,
 } as any)
-const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
-  id: '/api/trpc/$',
-  path: '/api/trpc/$',
+const AppMastersCompanyProfileRoute =
+  AppMastersCompanyProfileRouteImport.update({
+    id: '/masters/company-profile',
+    path: '/masters/company-profile',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppMastersGodownsRoute = AppMastersGodownsRouteImport.update({
+  id: '/masters/godowns',
+  path: '/masters/godowns',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMastersItemsRoute = AppMastersItemsRouteImport.update({
+  id: '/masters/items',
+  path: '/masters/items',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMastersPartiesRoute = AppMastersPartiesRouteImport.update({
+  id: '/masters/parties',
+  path: '/masters/parties',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPurchasesIndexRoute = AppPurchasesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppPurchasesRoute,
+} as any)
+const AppPurchasesNewRoute = AppPurchasesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AppPurchasesRoute,
+} as any)
+const AppSalesIndexRoute = AppSalesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppSalesRoute,
+} as any)
+const AppSalesDocumentsRoute = AppSalesDocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => AppSalesRoute,
+} as any)
+const AppSalesNewRoute = AppSalesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AppSalesRoute,
+} as any)
+const DesignAccountingSidebarRoute = DesignAccountingSidebarRouteImport.update({
+  id: '/sidebar',
+  path: '/sidebar',
+  getParentRoute: () => DesignAccountingRoute,
+} as any)
+const ToolsGstCalculatorIndexRoute = ToolsGstCalculatorIndexRouteImport.update({
+  id: '/tools/gst-calculator/',
+  path: '/tools/gst-calculator/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: '/api/auth/$',
-  path: '/api/auth/$',
+const ToolsGstCalculatorRateRoute = ToolsGstCalculatorRateRouteImport.update({
+  id: '/tools/gst-calculator/$rate',
+  path: '/tools/gst-calculator/$rate',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsHsnCodeFinderIndexRoute = ToolsHsnCodeFinderIndexRouteImport.update({
+  id: '/tools/hsn-code-finder/',
+  path: '/tools/hsn-code-finder/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsHsnCodeFinderChapterRoute =
+  ToolsHsnCodeFinderChapterRouteImport.update({
+    id: '/tools/hsn-code-finder/$chapter',
+    path: '/tools/hsn-code-finder/$chapter',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AppPurchasesBillIdPrintRoute = AppPurchasesBillIdPrintRouteImport.update({
+  id: '/$billId/print',
+  path: '/$billId/print',
+  getParentRoute: () => AppPurchasesRoute,
 } as any)
 const AppSalesInvoiceIdPrintRoute = AppSalesInvoiceIdPrintRouteImport.update({
   id: '/$invoiceId/print',
   path: '/$invoiceId/print',
   getParentRoute: () => AppSalesRoute,
-} as any)
-const AppPurchasesBillIdPrintRoute = AppPurchasesBillIdPrintRouteImport.update({
-  id: '/$billId/print',
-  path: '/$billId/print',
-  getParentRoute: () => AppPurchasesRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -786,67 +786,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof OnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/forgot-password': {
-      id: '/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof ForgotPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/data-deletion': {
-      id: '/data-deletion'
-      path: '/data-deletion'
-      fullPath: '/data-deletion'
-      preLoaderRoute: typeof DataDeletionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app': {
-      id: '/app'
-      path: '/app'
-      fullPath: '/app'
-      preLoaderRoute: typeof AppRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/accept-invite': {
@@ -856,186 +800,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AcceptInviteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tools/': {
-      id: '/tools/'
-      path: '/tools'
-      fullPath: '/tools/'
-      preLoaderRoute: typeof ToolsIndexRouteImport
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/guides/': {
-      id: '/guides/'
-      path: '/guides'
-      fullPath: '/guides/'
-      preLoaderRoute: typeof GuidesIndexRouteImport
+    '/data-deletion': {
+      id: '/data-deletion'
+      path: '/data-deletion'
+      fullPath: '/data-deletion'
+      preLoaderRoute: typeof DataDeletionRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/gst-billing-software-for/': {
-      id: '/gst-billing-software-for/'
-      path: '/gst-billing-software-for'
-      fullPath: '/gst-billing-software-for/'
-      preLoaderRoute: typeof GstBillingSoftwareForIndexRouteImport
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/compare/': {
-      id: '/compare/'
-      path: '/compare'
-      fullPath: '/compare/'
-      preLoaderRoute: typeof CompareIndexRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tools/payment-reminder': {
-      id: '/tools/payment-reminder'
-      path: '/tools/payment-reminder'
-      fullPath: '/tools/payment-reminder'
-      preLoaderRoute: typeof ToolsPaymentReminderRouteImport
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tools/gstin-validator': {
-      id: '/tools/gstin-validator'
-      path: '/tools/gstin-validator'
-      fullPath: '/tools/gstin-validator'
-      preLoaderRoute: typeof ToolsGstinValidatorRouteImport
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tools/gst-invoice-generator': {
-      id: '/tools/gst-invoice-generator'
-      path: '/tools/gst-invoice-generator'
-      fullPath: '/tools/gst-invoice-generator'
-      preLoaderRoute: typeof ToolsGstInvoiceGeneratorRouteImport
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tools/gst-due-dates': {
-      id: '/tools/gst-due-dates'
-      path: '/tools/gst-due-dates'
-      fullPath: '/tools/gst-due-dates'
-      preLoaderRoute: typeof ToolsGstDueDatesRouteImport
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tools/e-invoice-e-way-bill-checker': {
-      id: '/tools/e-invoice-e-way-bill-checker'
-      path: '/tools/e-invoice-e-way-bill-checker'
-      fullPath: '/tools/e-invoice-e-way-bill-checker'
-      preLoaderRoute: typeof ToolsEInvoiceEWayBillCheckerRouteImport
+    '/alternatives/$competitor': {
+      id: '/alternatives/$competitor'
+      path: '/alternatives/$competitor'
+      fullPath: '/alternatives/$competitor'
+      preLoaderRoute: typeof AlternativesCompetitorRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/guides/$slug': {
-      id: '/guides/$slug'
-      path: '/guides/$slug'
-      fullPath: '/guides/$slug'
-      preLoaderRoute: typeof GuidesSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/gst-billing-software-for/$slug': {
-      id: '/gst-billing-software-for/$slug'
-      path: '/gst-billing-software-for/$slug'
-      fullPath: '/gst-billing-software-for/$slug'
-      preLoaderRoute: typeof GstBillingSoftwareForSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/design/accounting': {
-      id: '/design/accounting'
-      path: '/design/accounting'
-      fullPath: '/design/accounting'
-      preLoaderRoute: typeof DesignAccountingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/compare/$slug': {
-      id: '/compare/$slug'
-      path: '/compare/$slug'
-      fullPath: '/compare/$slug'
-      preLoaderRoute: typeof CompareSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/settings': {
-      id: '/app/settings'
-      path: '/settings'
-      fullPath: '/app/settings'
-      preLoaderRoute: typeof AppSettingsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/sales': {
-      id: '/app/sales'
-      path: '/sales'
-      fullPath: '/app/sales'
-      preLoaderRoute: typeof AppSalesRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/returns': {
-      id: '/app/returns'
-      path: '/returns'
-      fullPath: '/app/returns'
-      preLoaderRoute: typeof AppReturnsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/reports': {
-      id: '/app/reports'
-      path: '/reports'
-      fullPath: '/app/reports'
-      preLoaderRoute: typeof AppReportsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/purchases': {
-      id: '/app/purchases'
-      path: '/purchases'
-      fullPath: '/app/purchases'
-      preLoaderRoute: typeof AppPurchasesRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/purchase-orders': {
-      id: '/app/purchase-orders'
-      path: '/purchase-orders'
-      fullPath: '/app/purchase-orders'
-      preLoaderRoute: typeof AppPurchaseOrdersRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/purchase-grns': {
-      id: '/app/purchase-grns'
-      path: '/purchase-grns'
-      fullPath: '/app/purchase-grns'
-      preLoaderRoute: typeof AppPurchaseGrnsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/payments': {
-      id: '/app/payments'
-      path: '/payments'
-      fullPath: '/app/payments'
-      preLoaderRoute: typeof AppPaymentsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/ocr': {
-      id: '/app/ocr'
-      path: '/ocr'
-      fullPath: '/app/ocr'
-      preLoaderRoute: typeof AppOcrRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/inventory': {
-      id: '/app/inventory'
-      path: '/inventory'
-      fullPath: '/app/inventory'
-      preLoaderRoute: typeof AppInventoryRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/imports': {
-      id: '/app/imports'
-      path: '/imports'
-      fullPath: '/app/imports'
-      preLoaderRoute: typeof AppImportsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/expenses': {
-      id: '/app/expenses'
-      path: '/expenses'
-      fullPath: '/app/expenses'
-      preLoaderRoute: typeof AppExpensesRouteImport
+    '/app/bank-reconciliation': {
+      id: '/app/bank-reconciliation'
+      path: '/bank-reconciliation'
+      fullPath: '/app/bank-reconciliation'
+      preLoaderRoute: typeof AppBankReconciliationRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/dashboard': {
@@ -1045,144 +884,179 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/bank-reconciliation': {
-      id: '/app/bank-reconciliation'
-      path: '/bank-reconciliation'
-      fullPath: '/app/bank-reconciliation'
-      preLoaderRoute: typeof AppBankReconciliationRouteImport
+    '/app/expenses': {
+      id: '/app/expenses'
+      path: '/expenses'
+      fullPath: '/app/expenses'
+      preLoaderRoute: typeof AppExpensesRouteImport
       parentRoute: typeof AppRoute
     }
-    '/alternatives/$competitor': {
-      id: '/alternatives/$competitor'
-      path: '/alternatives/$competitor'
-      fullPath: '/alternatives/$competitor'
-      preLoaderRoute: typeof AlternativesCompetitorRouteImport
+    '/app/imports': {
+      id: '/app/imports'
+      path: '/imports'
+      fullPath: '/app/imports'
+      preLoaderRoute: typeof AppImportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/inventory': {
+      id: '/app/inventory'
+      path: '/inventory'
+      fullPath: '/app/inventory'
+      preLoaderRoute: typeof AppInventoryRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/ocr': {
+      id: '/app/ocr'
+      path: '/ocr'
+      fullPath: '/app/ocr'
+      preLoaderRoute: typeof AppOcrRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/payments': {
+      id: '/app/payments'
+      path: '/payments'
+      fullPath: '/app/payments'
+      preLoaderRoute: typeof AppPaymentsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/purchase-grns': {
+      id: '/app/purchase-grns'
+      path: '/purchase-grns'
+      fullPath: '/app/purchase-grns'
+      preLoaderRoute: typeof AppPurchaseGrnsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/purchase-orders': {
+      id: '/app/purchase-orders'
+      path: '/purchase-orders'
+      fullPath: '/app/purchase-orders'
+      preLoaderRoute: typeof AppPurchaseOrdersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/purchases': {
+      id: '/app/purchases'
+      path: '/purchases'
+      fullPath: '/app/purchases'
+      preLoaderRoute: typeof AppPurchasesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/reports': {
+      id: '/app/reports'
+      path: '/reports'
+      fullPath: '/app/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/returns': {
+      id: '/app/returns'
+      path: '/returns'
+      fullPath: '/app/returns'
+      preLoaderRoute: typeof AppReturnsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/sales': {
+      id: '/app/sales'
+      path: '/sales'
+      fullPath: '/app/sales'
+      preLoaderRoute: typeof AppSalesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/settings': {
+      id: '/app/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/compare/': {
+      id: '/compare/'
+      path: '/compare'
+      fullPath: '/compare/'
+      preLoaderRoute: typeof CompareIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tools/hsn-code-finder/': {
-      id: '/tools/hsn-code-finder/'
-      path: '/tools/hsn-code-finder'
-      fullPath: '/tools/hsn-code-finder/'
-      preLoaderRoute: typeof ToolsHsnCodeFinderIndexRouteImport
+    '/compare/$slug': {
+      id: '/compare/$slug'
+      path: '/compare/$slug'
+      fullPath: '/compare/$slug'
+      preLoaderRoute: typeof CompareSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tools/gst-calculator/': {
-      id: '/tools/gst-calculator/'
-      path: '/tools/gst-calculator'
-      fullPath: '/tools/gst-calculator/'
-      preLoaderRoute: typeof ToolsGstCalculatorIndexRouteImport
+    '/design/accounting': {
+      id: '/design/accounting'
+      path: '/design/accounting'
+      fullPath: '/design/accounting'
+      preLoaderRoute: typeof DesignAccountingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/app/sales/': {
-      id: '/app/sales/'
-      path: '/'
-      fullPath: '/app/sales/'
-      preLoaderRoute: typeof AppSalesIndexRouteImport
-      parentRoute: typeof AppSalesRoute
-    }
-    '/app/purchases/': {
-      id: '/app/purchases/'
-      path: '/'
-      fullPath: '/app/purchases/'
-      preLoaderRoute: typeof AppPurchasesIndexRouteImport
-      parentRoute: typeof AppPurchasesRoute
-    }
-    '/tools/hsn-code-finder/$chapter': {
-      id: '/tools/hsn-code-finder/$chapter'
-      path: '/tools/hsn-code-finder/$chapter'
-      fullPath: '/tools/hsn-code-finder/$chapter'
-      preLoaderRoute: typeof ToolsHsnCodeFinderChapterRouteImport
+    '/gst-billing-software-for/': {
+      id: '/gst-billing-software-for/'
+      path: '/gst-billing-software-for'
+      fullPath: '/gst-billing-software-for/'
+      preLoaderRoute: typeof GstBillingSoftwareForIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tools/gst-calculator/$rate': {
-      id: '/tools/gst-calculator/$rate'
-      path: '/tools/gst-calculator/$rate'
-      fullPath: '/tools/gst-calculator/$rate'
-      preLoaderRoute: typeof ToolsGstCalculatorRateRouteImport
+    '/gst-billing-software-for/$slug': {
+      id: '/gst-billing-software-for/$slug'
+      path: '/gst-billing-software-for/$slug'
+      fullPath: '/gst-billing-software-for/$slug'
+      preLoaderRoute: typeof GstBillingSoftwareForSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/design/accounting/sidebar': {
-      id: '/design/accounting/sidebar'
-      path: '/sidebar'
-      fullPath: '/design/accounting/sidebar'
-      preLoaderRoute: typeof DesignAccountingSidebarRouteImport
-      parentRoute: typeof DesignAccountingRoute
+    '/guides/': {
+      id: '/guides/'
+      path: '/guides'
+      fullPath: '/guides/'
+      preLoaderRoute: typeof GuidesIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/app/sales/new': {
-      id: '/app/sales/new'
-      path: '/new'
-      fullPath: '/app/sales/new'
-      preLoaderRoute: typeof AppSalesNewRouteImport
-      parentRoute: typeof AppSalesRoute
+    '/guides/$slug': {
+      id: '/guides/$slug'
+      path: '/guides/$slug'
+      fullPath: '/guides/$slug'
+      preLoaderRoute: typeof GuidesSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/app/sales/documents': {
-      id: '/app/sales/documents'
-      path: '/documents'
-      fullPath: '/app/sales/documents'
-      preLoaderRoute: typeof AppSalesDocumentsRouteImport
-      parentRoute: typeof AppSalesRoute
+    '/tools/': {
+      id: '/tools/'
+      path: '/tools'
+      fullPath: '/tools/'
+      preLoaderRoute: typeof ToolsIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/app/purchases/new': {
-      id: '/app/purchases/new'
-      path: '/new'
-      fullPath: '/app/purchases/new'
-      preLoaderRoute: typeof AppPurchasesNewRouteImport
-      parentRoute: typeof AppPurchasesRoute
+    '/tools/e-invoice-e-way-bill-checker': {
+      id: '/tools/e-invoice-e-way-bill-checker'
+      path: '/tools/e-invoice-e-way-bill-checker'
+      fullPath: '/tools/e-invoice-e-way-bill-checker'
+      preLoaderRoute: typeof ToolsEInvoiceEWayBillCheckerRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/app/masters/parties': {
-      id: '/app/masters/parties'
-      path: '/masters/parties'
-      fullPath: '/app/masters/parties'
-      preLoaderRoute: typeof AppMastersPartiesRouteImport
-      parentRoute: typeof AppRoute
+    '/tools/gst-due-dates': {
+      id: '/tools/gst-due-dates'
+      path: '/tools/gst-due-dates'
+      fullPath: '/tools/gst-due-dates'
+      preLoaderRoute: typeof ToolsGstDueDatesRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/app/masters/items': {
-      id: '/app/masters/items'
-      path: '/masters/items'
-      fullPath: '/app/masters/items'
-      preLoaderRoute: typeof AppMastersItemsRouteImport
-      parentRoute: typeof AppRoute
+    '/tools/gst-invoice-generator': {
+      id: '/tools/gst-invoice-generator'
+      path: '/tools/gst-invoice-generator'
+      fullPath: '/tools/gst-invoice-generator'
+      preLoaderRoute: typeof ToolsGstInvoiceGeneratorRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/app/masters/godowns': {
-      id: '/app/masters/godowns'
-      path: '/masters/godowns'
-      fullPath: '/app/masters/godowns'
-      preLoaderRoute: typeof AppMastersGodownsRouteImport
-      parentRoute: typeof AppRoute
+    '/tools/gstin-validator': {
+      id: '/tools/gstin-validator'
+      path: '/tools/gstin-validator'
+      fullPath: '/tools/gstin-validator'
+      preLoaderRoute: typeof ToolsGstinValidatorRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/app/masters/company-profile': {
-      id: '/app/masters/company-profile'
-      path: '/masters/company-profile'
-      fullPath: '/app/masters/company-profile'
-      preLoaderRoute: typeof AppMastersCompanyProfileRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/masters/companies': {
-      id: '/app/masters/companies'
-      path: '/masters/companies'
-      fullPath: '/app/masters/companies'
-      preLoaderRoute: typeof AppMastersCompaniesRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/masters/chart-of-accounts': {
-      id: '/app/masters/chart-of-accounts'
-      path: '/masters/chart-of-accounts'
-      fullPath: '/app/masters/chart-of-accounts'
-      preLoaderRoute: typeof AppMastersChartOfAccountsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/accounting/journal': {
-      id: '/app/accounting/journal'
-      path: '/accounting/journal'
-      fullPath: '/app/accounting/journal'
-      preLoaderRoute: typeof AppAccountingJournalRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/api/trpc/$': {
-      id: '/api/trpc/$'
-      path: '/api/trpc/$'
-      fullPath: '/api/trpc/$'
-      preLoaderRoute: typeof ApiTrpcSplatRouteImport
+    '/tools/payment-reminder': {
+      id: '/tools/payment-reminder'
+      path: '/tools/payment-reminder'
+      fullPath: '/tools/payment-reminder'
+      preLoaderRoute: typeof ToolsPaymentReminderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -1192,12 +1066,131 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/app/sales/$invoiceId/print': {
-      id: '/app/sales/$invoiceId/print'
-      path: '/$invoiceId/print'
-      fullPath: '/app/sales/$invoiceId/print'
-      preLoaderRoute: typeof AppSalesInvoiceIdPrintRouteImport
+    '/api/trpc/$': {
+      id: '/api/trpc/$'
+      path: '/api/trpc/$'
+      fullPath: '/api/trpc/$'
+      preLoaderRoute: typeof ApiTrpcSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/accounting/journal': {
+      id: '/app/accounting/journal'
+      path: '/accounting/journal'
+      fullPath: '/app/accounting/journal'
+      preLoaderRoute: typeof AppAccountingJournalRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/masters/chart-of-accounts': {
+      id: '/app/masters/chart-of-accounts'
+      path: '/masters/chart-of-accounts'
+      fullPath: '/app/masters/chart-of-accounts'
+      preLoaderRoute: typeof AppMastersChartOfAccountsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/masters/companies': {
+      id: '/app/masters/companies'
+      path: '/masters/companies'
+      fullPath: '/app/masters/companies'
+      preLoaderRoute: typeof AppMastersCompaniesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/masters/company-profile': {
+      id: '/app/masters/company-profile'
+      path: '/masters/company-profile'
+      fullPath: '/app/masters/company-profile'
+      preLoaderRoute: typeof AppMastersCompanyProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/masters/godowns': {
+      id: '/app/masters/godowns'
+      path: '/masters/godowns'
+      fullPath: '/app/masters/godowns'
+      preLoaderRoute: typeof AppMastersGodownsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/masters/items': {
+      id: '/app/masters/items'
+      path: '/masters/items'
+      fullPath: '/app/masters/items'
+      preLoaderRoute: typeof AppMastersItemsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/masters/parties': {
+      id: '/app/masters/parties'
+      path: '/masters/parties'
+      fullPath: '/app/masters/parties'
+      preLoaderRoute: typeof AppMastersPartiesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/purchases/': {
+      id: '/app/purchases/'
+      path: '/'
+      fullPath: '/app/purchases/'
+      preLoaderRoute: typeof AppPurchasesIndexRouteImport
+      parentRoute: typeof AppPurchasesRoute
+    }
+    '/app/purchases/new': {
+      id: '/app/purchases/new'
+      path: '/new'
+      fullPath: '/app/purchases/new'
+      preLoaderRoute: typeof AppPurchasesNewRouteImport
+      parentRoute: typeof AppPurchasesRoute
+    }
+    '/app/sales/': {
+      id: '/app/sales/'
+      path: '/'
+      fullPath: '/app/sales/'
+      preLoaderRoute: typeof AppSalesIndexRouteImport
       parentRoute: typeof AppSalesRoute
+    }
+    '/app/sales/documents': {
+      id: '/app/sales/documents'
+      path: '/documents'
+      fullPath: '/app/sales/documents'
+      preLoaderRoute: typeof AppSalesDocumentsRouteImport
+      parentRoute: typeof AppSalesRoute
+    }
+    '/app/sales/new': {
+      id: '/app/sales/new'
+      path: '/new'
+      fullPath: '/app/sales/new'
+      preLoaderRoute: typeof AppSalesNewRouteImport
+      parentRoute: typeof AppSalesRoute
+    }
+    '/design/accounting/sidebar': {
+      id: '/design/accounting/sidebar'
+      path: '/sidebar'
+      fullPath: '/design/accounting/sidebar'
+      preLoaderRoute: typeof DesignAccountingSidebarRouteImport
+      parentRoute: typeof DesignAccountingRoute
+    }
+    '/tools/gst-calculator/': {
+      id: '/tools/gst-calculator/'
+      path: '/tools/gst-calculator'
+      fullPath: '/tools/gst-calculator/'
+      preLoaderRoute: typeof ToolsGstCalculatorIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/gst-calculator/$rate': {
+      id: '/tools/gst-calculator/$rate'
+      path: '/tools/gst-calculator/$rate'
+      fullPath: '/tools/gst-calculator/$rate'
+      preLoaderRoute: typeof ToolsGstCalculatorRateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/hsn-code-finder/': {
+      id: '/tools/hsn-code-finder/'
+      path: '/tools/hsn-code-finder'
+      fullPath: '/tools/hsn-code-finder/'
+      preLoaderRoute: typeof ToolsHsnCodeFinderIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/hsn-code-finder/$chapter': {
+      id: '/tools/hsn-code-finder/$chapter'
+      path: '/tools/hsn-code-finder/$chapter'
+      fullPath: '/tools/hsn-code-finder/$chapter'
+      preLoaderRoute: typeof ToolsHsnCodeFinderChapterRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/app/purchases/$billId/print': {
       id: '/app/purchases/$billId/print'
@@ -1205,6 +1198,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/purchases/$billId/print'
       preLoaderRoute: typeof AppPurchasesBillIdPrintRouteImport
       parentRoute: typeof AppPurchasesRoute
+    }
+    '/app/sales/$invoiceId/print': {
+      id: '/app/sales/$invoiceId/print'
+      path: '/$invoiceId/print'
+      fullPath: '/app/sales/$invoiceId/print'
+      preLoaderRoute: typeof AppSalesInvoiceIdPrintRouteImport
+      parentRoute: typeof AppSalesRoute
     }
   }
 }
@@ -1342,10 +1342,11 @@ export const routeTree = rootRouteImport
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }

@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { usePostHog } from '@posthog/react'
 import { CheckIcon, ScanTextIcon } from 'lucide-react'
 
 import { toast } from 'sonner'
@@ -30,6 +31,7 @@ import { formatInr } from '#/features/app-shell/data/voucher-demo-masters.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function OcrReviewPanel() {
+  const posthog = usePostHog()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const { companyId, company, ledgerBySystemKey, isReady } = useWorkspace()
@@ -72,6 +74,7 @@ export function OcrReviewPanel() {
         payableAccountId,
         stockAccountId,
       })
+      posthog.capture('ocr_purchase_bill_posted')
       await queryClient.invalidateQueries({
         queryKey: trpc.ocr.list.queryKey({ companyId }),
       })

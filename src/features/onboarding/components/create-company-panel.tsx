@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
+import { usePostHog } from '@posthog/react'
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -48,6 +49,7 @@ const steps = ['Company', 'Tax & books', 'Business type'] as const
 
 export function CreateCompanyPanel() {
   const navigate = useNavigate()
+  const posthog = usePostHog()
   const trpc = useTRPC()
   const createWithSetup = useMutation(
     trpc.companies.createWithSetup.mutationOptions(),
@@ -75,6 +77,10 @@ export function CreateCompanyPanel() {
         stateCode,
         financialYearStart,
         businessType,
+      })
+      posthog.capture('company_created', {
+        business_type: businessType,
+        has_gstin: Boolean(gstin.trim()),
       })
       window.localStorage.setItem(WORKSPACE_COMPANY_KEY, result.company.id)
       void navigate({ to: '/app/dashboard' })

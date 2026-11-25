@@ -13,6 +13,7 @@ __unconfig*
 
 # Environment / local overrides
 .env
+.env.sentry-build-plugin
 *.local
 
 # Tests, coverage, and browser automation scratch

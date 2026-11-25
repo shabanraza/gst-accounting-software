@@ -73,8 +73,12 @@ export function VoucherDocumentPaper({
   printId = 'voucher-print-root',
   className,
 }: VoucherDocumentPaperProps) {
-  const { company, party, isInterState } = document
-  const cols = isInterState ? 12 : 14
+  const { company, party, isInterState, isBillOfSupply } = document
+  // A bill of supply carries no tax, so it drops the taxable and GST columns.
+  const showTax = !isBillOfSupply
+  const cols = isBillOfSupply ? 9 : isInterState ? 12 : 14
+  const metaCols = isBillOfSupply || isInterState ? 2 : 3
+  const leftCols = isBillOfSupply ? 5 : isInterState ? 6 : 7
   const addressLines = companyAddressLines(company)
   const shipAddress = party.shippingAddress || party.billingAddress || ''
 
@@ -149,22 +153,22 @@ export function VoucherDocumentPaper({
               {document.documentNumber}
             </td>
             <td className={headCell}>Dated</td>
-            <td className={cell} colSpan={isInterState ? 2 : 3}>
+            <td className={cell} colSpan={metaCols}>
               {formatIndianDate(document.documentDate)}
             </td>
             <td className={headCell}>Due Date</td>
-            <td className={cell} colSpan={isInterState ? 5 : 6}>
+            <td className={cell} colSpan={cols - 5 - metaCols}>
               {formatIndianDate(document.dueDate || document.documentDate)}
             </td>
           </tr>
 
           <tr>
             <td className={headCell}>Place of Supply</td>
-            <td className={cell} colSpan={isInterState ? 2 : 3}>
+            <td className={cell} colSpan={metaCols}>
               {document.placeOfSupplyLabel || '—'}
             </td>
             <td className={headCell}>Mode/Terms of Payment</td>
-            <td className={cell} colSpan={isInterState ? 8 : 9}>
+            <td className={cell} colSpan={cols - 2 - metaCols}>
               {document.paymentMode
                 ? document.paymentMode === 'cash'
                   ? 'Cash'
@@ -237,8 +241,10 @@ export function VoucherDocumentPaper({
             <td className={headCell}>Unit</td>
             <td className={cn(headCell, 'text-right')}>Rate</td>
             <td className={cn(headCell, 'text-right')}>Disc</td>
-            <td className={cn(headCell, 'text-right')}>Taxable</td>
-            {isInterState ? (
+            {showTax ? (
+              <td className={cn(headCell, 'text-right')}>Taxable</td>
+            ) : null}
+            {!showTax ? null : isInterState ? (
               <>
                 <td className={cn(headCell, 'text-right')}>IGST %</td>
                 <td className={cn(headCell, 'text-right')}>IGST Amt</td>
@@ -269,8 +275,10 @@ export function VoucherDocumentPaper({
                   ? formatInr(line.discountAmount)
                   : '—'}
               </td>
-              <td className={numCell}>{formatInr(line.taxableAmount)}</td>
-              {isInterState ? (
+              {showTax ? (
+                <td className={numCell}>{formatInr(line.taxableAmount)}</td>
+              ) : null}
+              {!showTax ? null : isInterState ? (
                 <>
                   <td className={numCell}>{line.igstRate}%</td>
                   <td className={numCell}>{formatInr(line.igstAmount)}</td>
@@ -288,11 +296,13 @@ export function VoucherDocumentPaper({
           ))}
 
           <tr className="font-semibold">
-            <td className={cell} colSpan={isInterState ? 8 : 8}>
+            <td className={cell} colSpan={8}>
               Total
             </td>
-            <td className={numCell}>{formatInr(document.taxableAmount)}</td>
-            {isInterState ? (
+            {showTax ? (
+              <td className={numCell}>{formatInr(document.taxableAmount)}</td>
+            ) : null}
+            {!showTax ? null : isInterState ? (
               <>
                 <td className={cell} />
                 <td className={numCell}>{formatInr(document.totalIgst)}</td>
@@ -309,53 +319,61 @@ export function VoucherDocumentPaper({
           </tr>
 
           <tr>
-            <td className={cell} colSpan={isInterState ? 6 : 7}>
-              <p className="mb-1 text-[10px] font-semibold uppercase">
-                HSN/SAC Summary
-              </p>
-              <table className="w-full border-collapse border border-black text-[10px]">
-                <thead>
-                  <tr>
-                    <td className={headCell}>HSN/SAC</td>
-                    <td className={cn(headCell, 'text-right')}>
-                      Taxable Value
-                    </td>
-                    {isInterState ? (
-                      <td className={cn(headCell, 'text-right')}>IGST</td>
-                    ) : (
-                      <>
-                        <td className={cn(headCell, 'text-right')}>CGST</td>
-                        <td className={cn(headCell, 'text-right')}>SGST</td>
-                      </>
-                    )}
-                    <td className={cn(headCell, 'text-right')}>Total Tax</td>
-                  </tr>
-                </thead>
-                <tbody>
-                  {document.hsnSummary.map((row) => (
-                    <tr key={row.hsnCode}>
-                      <td className={cell}>{row.hsnCode}</td>
-                      <td className={numCell}>
-                        {formatInr(row.taxableAmount)}
-                      </td>
-                      {isInterState ? (
-                        <td className={numCell}>{formatInr(row.igstAmount)}</td>
-                      ) : (
-                        <>
+            <td className={cell} colSpan={leftCols}>
+              {showTax ? (
+                <>
+                  <p className="mb-1 text-[10px] font-semibold uppercase">
+                    HSN/SAC Summary
+                  </p>
+                  <table className="w-full border-collapse border border-black text-[10px]">
+                    <thead>
+                      <tr>
+                        <td className={headCell}>HSN/SAC</td>
+                        <td className={cn(headCell, 'text-right')}>
+                          Taxable Value
+                        </td>
+                        {isInterState ? (
+                          <td className={cn(headCell, 'text-right')}>IGST</td>
+                        ) : (
+                          <>
+                            <td className={cn(headCell, 'text-right')}>CGST</td>
+                            <td className={cn(headCell, 'text-right')}>SGST</td>
+                          </>
+                        )}
+                        <td className={cn(headCell, 'text-right')}>
+                          Total Tax
+                        </td>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {document.hsnSummary.map((row) => (
+                        <tr key={row.hsnCode}>
+                          <td className={cell}>{row.hsnCode}</td>
                           <td className={numCell}>
-                            {formatInr(row.cgstAmount)}
+                            {formatInr(row.taxableAmount)}
                           </td>
-                          <td className={numCell}>
-                            {formatInr(row.sgstAmount)}
-                          </td>
-                        </>
-                      )}
-                      <td className={numCell}>{formatInr(row.totalTax)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p className="mt-2">
+                          {isInterState ? (
+                            <td className={numCell}>
+                              {formatInr(row.igstAmount)}
+                            </td>
+                          ) : (
+                            <>
+                              <td className={numCell}>
+                                {formatInr(row.cgstAmount)}
+                              </td>
+                              <td className={numCell}>
+                                {formatInr(row.sgstAmount)}
+                              </td>
+                            </>
+                          )}
+                          <td className={numCell}>{formatInr(row.totalTax)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              ) : null}
+              <p className={showTax ? 'mt-2' : undefined}>
                 <span className="font-semibold">
                   Amount Chargeable (in words):{' '}
                 </span>
@@ -368,16 +386,18 @@ export function VoucherDocumentPaper({
                 </p>
               ) : null}
             </td>
-            <td className={cell} colSpan={cols - (isInterState ? 6 : 7)}>
+            <td className={cell} colSpan={cols - leftCols}>
               <table className="w-full text-[11px]">
                 <tbody>
                   <tr>
-                    <td className="py-0.5">Taxable Amount</td>
+                    <td className="py-0.5">
+                      {showTax ? 'Taxable Amount' : 'Sub Total'}
+                    </td>
                     <td className="py-0.5 text-right tabular-nums">
                       {formatInr(document.taxableAmount)}
                     </td>
                   </tr>
-                  {isInterState ? (
+                  {!showTax ? null : isInterState ? (
                     <tr>
                       <td className="py-0.5">IGST</td>
                       <td className="py-0.5 text-right tabular-nums">
@@ -450,7 +470,7 @@ export function VoucherDocumentPaper({
           </tr>
 
           <tr>
-            <td className={cell} colSpan={isInterState ? 6 : 7}>
+            <td className={cell} colSpan={leftCols}>
               {company.bankName ? (
                 <div>
                   <p className="text-[10px] font-semibold uppercase">
@@ -465,15 +485,19 @@ export function VoucherDocumentPaper({
               ) : null}
               <p className="mt-2 whitespace-pre-line text-[10px]">
                 {company.invoiceTerms?.trim() ||
-                  'Goods once sold will not be taken back. Interest @18% p.a. on overdue bills. Subject to local jurisdiction. Whether tax is payable on reverse charge - No.'}
+                  (showTax
+                    ? 'Goods once sold will not be taken back. Interest @18% p.a. on overdue bills. Subject to local jurisdiction. Whether tax is payable on reverse charge - No.'
+                    : 'Goods once sold will not be taken back. Interest @18% p.a. on overdue bills. Subject to local jurisdiction.')}
               </p>
-              <p className="mt-1 text-[10px]">
-                Reverse Charge: {document.reverseCharge ? 'Yes' : 'No'}
-              </p>
+              {showTax ? (
+                <p className="mt-1 text-[10px]">
+                  Reverse Charge: {document.reverseCharge ? 'Yes' : 'No'}
+                </p>
+              ) : null}
             </td>
             <td
               className={cn(cell, 'align-bottom text-right')}
-              colSpan={cols - (isInterState ? 6 : 7)}
+              colSpan={cols - leftCols}
             >
               <p className="font-semibold">For {company.legalName}</p>
               <div className="mt-10 border-t border-black pt-1">

@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { usePostHog } from '@posthog/react'
 import { ChevronDownIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -142,6 +143,7 @@ export function VoucherEntryPage({
   gstr2bPrefill,
 }: SalesVoucherProps) {
   const isSales = mode === 'sales'
+  const posthog = usePostHog()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const {
@@ -453,8 +455,15 @@ export function VoucherEntryPage({
     salesDraftQuery.data,
   ])
 
+  const chargesGst = !isSales || !company || Boolean(company.gstin?.trim())
   const computedLines = lines.map((line) =>
-    computeVoucherLine(line, region, placeOfSupply, taxMode, companyState),
+    computeVoucherLine(
+      chargesGst ? line : { ...line, gstRate: '0.00' },
+      region,
+      placeOfSupply,
+      taxMode,
+      companyState,
+    ),
   )
   const totals = computeVoucherTotals(computedLines, {
     freight,
@@ -748,6 +757,20 @@ export function VoucherEntryPage({
             godownName: line.godownName || godown,
           })),
         })
+        posthog.capture('sales_invoice_posted', {
+          line_count: filledLines.length,
+          payment_mode: paymentMode,
+          source_document: Boolean(sourceDocumentId),
+          supply_region: region,
+          tax_mode: taxMode,
+        })
+        posthog.logger.info('sales invoice posted', {
+          line_count: filledLines.length,
+          payment_mode: paymentMode,
+          source_document: Boolean(sourceDocumentId),
+          supply_region: region,
+          tax_mode: taxMode,
+        })
         if (sourceDocumentId) {
           await markDocumentConverted.mutateAsync({
             companyId,
@@ -815,6 +838,18 @@ export function VoucherEntryPage({
             discountPercent: line.discountPercent,
             godownName: line.godownName || godown,
           })),
+        })
+        posthog.capture('purchase_bill_posted', {
+          has_attachment: Boolean(attachmentFile),
+          line_count: filledLines.length,
+          source_grn: Boolean(sourceGrnId),
+          tax_mode: taxMode,
+        })
+        posthog.logger.info('purchase bill posted', {
+          has_attachment: Boolean(attachmentFile),
+          line_count: filledLines.length,
+          source_grn: Boolean(sourceGrnId),
+          tax_mode: taxMode,
         })
         if (sourceGrnId) {
           await markGrnConverted.mutateAsync({

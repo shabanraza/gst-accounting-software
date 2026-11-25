@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { usePostHog } from '@posthog/react'
 import { toast } from 'sonner'
 
 import { Button } from '#/components/ui/button.tsx'
@@ -66,6 +67,7 @@ export function CreateItemDialog({
   trigger,
   onCreated,
 }: CreateItemDialogProps) {
+  const posthog = usePostHog()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const { companyId, isReady, error: workspaceError, godowns } = useWorkspace()
@@ -151,6 +153,11 @@ export function CreateItemDialog({
       })
       resetForm()
       setOpen(false)
+      posthog.capture('inventory_item_created', {
+        item_group: form.group,
+        tracks_inventory: form.tracksInventory === 'yes',
+        has_opening_stock: Boolean(form.openingQuantity.trim()),
+      })
       toast.success('Item created.')
       onCreated?.(result.item)
     } catch (error) {

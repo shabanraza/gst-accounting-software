@@ -48,6 +48,7 @@ type BuildVoucherInput = {
   partyLabel: string
   placeOfSupplyCode: string
   reverseCharge: boolean
+  isBillOfSupply?: boolean
   copyLabel?: string
   rawLines: Array<VoucherRawLine>
   freight: string
@@ -149,6 +150,7 @@ export function buildVoucherPrintDocument(
     placeOfSupplyLabel: stateLabel(placeOfSupplyCode),
     reverseCharge: input.reverseCharge,
     isInterState,
+    isBillOfSupply: input.isBillOfSupply ?? false,
     copyLabel: input.copyLabel ?? 'Original for Recipient',
     lines,
     hsnSummary,

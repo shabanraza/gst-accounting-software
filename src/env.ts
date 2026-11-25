@@ -18,6 +18,9 @@ export const env = createEnv({
     VITE_ENABLE_GOOGLE_AUTH: z.enum(['true', 'false']).optional(),
     VITE_GA_MEASUREMENT_ID: z.string().min(1).optional(),
     VITE_GOOGLE_SITE_VERIFICATION: z.string().min(1).optional(),
+    VITE_PUBLIC_POSTHOG_PROJECT_TOKEN: z.string().min(1).optional(),
+    VITE_PUBLIC_POSTHOG_HOST: z.string().url().optional(),
+    VITE_PUBLIC_SENTRY_DSN: z.string().min(1).optional(),
     VITE_TURNSTILE_SITE_KEY: z.string().min(1).optional(),
   },
 

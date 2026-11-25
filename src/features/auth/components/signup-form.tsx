@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
+import { usePostHog } from '@posthog/react'
 
 import { Button } from '#/components/ui/button.tsx'
 import { Input } from '#/components/ui/input.tsx'
@@ -28,6 +29,7 @@ function signupErrorMessage(error: { message?: string }) {
 
 export function SignupForm() {
   const navigate = useNavigate()
+  const posthog = usePostHog()
   const [name, setName] = React.useState('')
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
@@ -52,6 +54,7 @@ export function SignupForm() {
       return
     }
 
+    posthog.capture('account_created')
     void navigate({ to: '/onboarding' })
   }
 

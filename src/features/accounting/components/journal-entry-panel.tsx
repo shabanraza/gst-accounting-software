@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { usePostHog } from '@posthog/react'
 import { PlusIcon, Trash2Icon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -48,6 +49,7 @@ function emptyLine(): JournalLine {
 }
 
 export function JournalEntryPanel() {
+  const posthog = usePostHog()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const { companyId, isReady } = useWorkspace()
@@ -107,6 +109,7 @@ export function JournalEntryPanel() {
       await queryClient.invalidateQueries({
         queryKey: trpc.accounting.listLedgerAccounts.queryKey({ companyId }),
       })
+      posthog.capture('journal_entry_posted', { line_count: filled.length })
       toast.success('Journal entry posted')
       setNarration('')
       setLines([emptyLine(), emptyLine()])

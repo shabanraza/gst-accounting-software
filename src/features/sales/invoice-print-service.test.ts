@@ -100,6 +100,25 @@ describe('buildInvoicePrintDocument', () => {
     expect(document.amountInWords).toBe(
       'Two Thousand Five Hundred Twenty Rupees Only',
     )
+    expect(document.title).toBe('Tax Invoice')
+    expect(document.isBillOfSupply).toBe(false)
+  })
+
+  test('prints a bill of supply when the company is unregistered', () => {
+    const document = buildInvoicePrintDocument({
+      invoice: makeInvoice(),
+      company: {
+        legalName: 'Demo Textiles Private Limited',
+        tradeName: 'Demo Textiles',
+        gstin: null,
+        stateCode: '27',
+      },
+      customer: { name: 'Noor Retailers', gstin: null, stateCode: '27' },
+      itemById: new Map([[item.id, item]]),
+    })
+
+    expect(document.title).toBe('Bill of Supply')
+    expect(document.isBillOfSupply).toBe(true)
   })
 
   test('falls back to empty HSN when item is missing from the map', () => {

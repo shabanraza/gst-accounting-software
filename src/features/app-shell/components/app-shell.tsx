@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
+import { usePostHog } from '@posthog/react'
 import {
   Building2Icon,
   ChevronRightIcon,
@@ -147,6 +148,7 @@ function CollapsibleNavGroup({
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const posthog = usePostHog()
   const navigate = useNavigate()
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
@@ -186,6 +188,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   async function handleSignOut() {
     await authClient.signOut()
+    posthog.reset()
     void navigate({ to: '/login' })
   }
 

@@ -11,10 +11,14 @@ export function buildInvoicePrintDocument(input: {
   itemById: Map<string, ItemRecord>
 }): VoucherPrintDocument {
   const { invoice } = input
+  // An unregistered supplier cannot collect GST, so it issues a bill of
+  // supply rather than a tax invoice.
+  const isBillOfSupply = !input.company.gstin?.trim()
 
   return buildVoucherPrintDocument({
     kind: 'sales',
-    title: 'Tax Invoice',
+    title: isBillOfSupply ? 'Bill of Supply' : 'Tax Invoice',
+    isBillOfSupply,
     documentNumber: invoice.invoiceNumber,
     documentDate: invoice.invoiceDate,
     dueDate: invoice.dueDate,

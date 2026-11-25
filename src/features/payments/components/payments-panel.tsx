@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { usePostHog } from '@posthog/react'
 import { BanknoteIcon, PlusIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -56,6 +57,7 @@ import { useTRPC } from '#/integrations/trpc/react.ts'
 import { paymentStatusBadgeIntent } from '#/lib/badge-intent.ts'
 
 export function PaymentsPanel() {
+  const posthog = usePostHog()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const { companyId, ledgerBySystemKey, isReady } = useWorkspace()
@@ -208,6 +210,9 @@ export function PaymentsPanel() {
           throw err
         }
       }
+      posthog.capture('payment_allocated', {
+        payment_type: mode === 'receipts' ? 'customer_receipt' : 'supplier_payment',
+      })
       setDocumentId('')
       setAmount('')
       toast.success(mode === 'receipts' ? 'Receipt posted' : 'Payment posted')

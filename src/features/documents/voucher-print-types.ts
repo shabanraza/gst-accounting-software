@@ -77,6 +77,7 @@ export type VoucherPrintDocument = {
   placeOfSupplyLabel: string
   reverseCharge: boolean
   isInterState: boolean
+  isBillOfSupply: boolean
   copyLabel: string
   lines: Array<VoucherPrintLine>
   hsnSummary: Array<VoucherPrintHsnRow>

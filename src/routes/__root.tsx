@@ -1,8 +1,14 @@
+import * as React from 'react'
 import {
   HeadContent,
   Scripts,
   createRootRouteWithContext,
 } from '@tanstack/react-router'
+import {
+  PostHogErrorBoundary,
+  PostHogProvider,
+  usePostHog,
+} from '@posthog/react'
 import { AppDevtools } from '../integrations/tanstack-devtools'
 import {
   GoogleAnalyticsPageview,
@@ -10,6 +16,7 @@ import {
 } from '../integrations/google-analytics.tsx'
 import { Toaster } from '#/components/ui/sonner.tsx'
 import { TooltipProvider } from '#/components/ui/tooltip.tsx'
+import { authClient } from '#/lib/auth-client.ts'
 import { env } from '#/env.ts'
 
 import appCss from '../styles.css?url'
@@ -66,6 +73,78 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   shellComponent: RootDocument,
 })
 
+const posthogApiKey = env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN
+const posthogHost = env.VITE_PUBLIC_POSTHOG_HOST
+
+function PostHogIdentity() {
+  const posthog = usePostHog()
+  const { data: session, isPending } = authClient.useSession()
+  const identifiedUserId = React.useRef<string | null>(null)
+
+  React.useEffect(() => {
+    if (isPending) return
+
+    const user = session?.user
+    if (!user) {
+      if (identifiedUserId.current) {
+        posthog.reset()
+        identifiedUserId.current = null
+      }
+      return
+    }
+
+    if (identifiedUserId.current === user.id) return
+
+    if (identifiedUserId.current) {
+      posthog.reset()
+    }
+
+    posthog.identify(user.id, {
+      email: user.email,
+      name: user.name,
+    })
+    identifiedUserId.current = user.id
+  }, [isPending, posthog, session?.user])
+
+  return null
+}
+
+function PostHogRoot({ children }: { children: React.ReactNode }) {
+  if (!posthogApiKey || !posthogHost) {
+    if (import.meta.env.DEV) {
+      const missingVariable = !posthogApiKey
+        ? 'VITE_PUBLIC_POSTHOG_PROJECT_TOKEN'
+        : 'VITE_PUBLIC_POSTHOG_HOST'
+      throw new Error(
+        `${missingVariable} variable required by PostHog is missing or un-configured, this causes events to be silently missed. This error stops appearing once ${missingVariable} is configured`,
+      )
+    }
+
+    return <>{children}</>
+  }
+
+  return (
+    <PostHogProvider
+      apiKey={posthogApiKey}
+      options={{
+        api_host: posthogHost,
+        defaults: '2025-05-24',
+        capture_exceptions: true,
+        debug: import.meta.env.DEV,
+        logs: {
+          serviceName: 'hisaabkro-web',
+          environment: import.meta.env.MODE,
+        },
+        tracing_headers:
+          typeof window !== 'undefined' ? [window.location.hostname] : [],
+      }}
+    >
+      <PostHogIdentity />
+      <PostHogErrorBoundary>{children}</PostHogErrorBoundary>
+    </PostHogProvider>
+  )
+}
+
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -73,10 +152,12 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <TooltipProvider>{children}</TooltipProvider>
-        <Toaster richColors />
-        <AppDevtools />
-        <GoogleAnalyticsPageview />
+        <PostHogRoot>
+          <TooltipProvider>{children}</TooltipProvider>
+          <Toaster richColors />
+          <AppDevtools />
+          <GoogleAnalyticsPageview />
+        </PostHogRoot>
         <Scripts />
       </body>
     </html>

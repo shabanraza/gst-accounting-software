@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate, useSearch } from '@tanstack/react-router'
+import { usePostHog } from '@posthog/react'
 
 import { toast } from 'sonner'
 
@@ -18,6 +19,7 @@ import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function AcceptInvitePanel() {
   const navigate = useNavigate()
+  const posthog = usePostHog()
   const trpc = useTRPC()
   const { token } = useSearch({ from: '/accept-invite' })
   const acceptInvite = useMutation(trpc.team.acceptInvite.mutationOptions())
@@ -29,6 +31,7 @@ export function AcceptInvitePanel() {
     }
     try {
       const result = await acceptInvite.mutateAsync({ token })
+      posthog.capture('team_invite_accepted')
       window.localStorage.setItem(WORKSPACE_COMPANY_KEY, result.companyId)
       void navigate({ to: '/app/dashboard' })
     } catch (err) {

@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/tanstackstart-react'
 import { createRouter as createTanStackRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
 
@@ -29,6 +30,20 @@ export function getRouter() {
       )
     },
   })
+
+  // Client-side Sentry init (browser error monitoring + router tracing).
+  // Dormant until VITE_PUBLIC_SENTRY_DSN is set at build time.
+  if (!router.isServer) {
+    Sentry.init({
+      dsn: import.meta.env.VITE_PUBLIC_SENTRY_DSN,
+      environment: import.meta.env.MODE,
+      // Route browser envelopes through the server's managed tunnel so
+      // ad-blockers can't drop them.
+      tunnel: true,
+      integrations: [Sentry.tanstackRouterBrowserTracingIntegration(router)],
+      tracesSampleRate: 0.2,
+    })
+  }
 
   setupRouterSsrQueryIntegration({ router, queryClient: context.queryClient })
 

@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { usePostHog } from '@posthog/react'
 import { ReceiptIcon, PlusIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -50,6 +51,7 @@ import {
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function ExpensesPanel() {
+  const posthog = usePostHog()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const { companyId, ledgerBySystemKey, isReady } = useWorkspace()
@@ -112,6 +114,7 @@ export function ExpensesPanel() {
       await queryClient.invalidateQueries({
         queryKey: trpc.expenses.list.queryKey({ companyId }),
       })
+      posthog.capture('expense_posted')
       setOpen(false)
       setNarration('')
       setAmount('')
