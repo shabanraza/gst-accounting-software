@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { usePostHog } from '@posthog/react'
+import { analytics } from '#/features/analytics/client.ts'
 import { toast } from 'sonner'
 
 import { Button } from '#/components/ui/button.tsx'
@@ -71,7 +71,6 @@ const sampleBusyItems = `Item Name\tHSN/SAC\tSale Rate\tUnit
 Imported Yarn\t5205\t120.00\tKg`
 
 export function ImportsPanel() {
-  const posthog = usePostHog()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const { company, companyId, ledgerBySystemKey } = useWorkspace()
@@ -282,7 +281,7 @@ export function ImportsPanel() {
         )
         toast.success(`Imported ${report.createdCount} opening balances.`)
       }
-      posthog.capture('import_committed', {
+      analytics.capture('import_committed', {
         import_format: format,
         import_type: mode,
       })

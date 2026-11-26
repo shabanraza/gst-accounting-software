@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import * as React from 'react'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
-import { usePostHog } from '@posthog/react'
+import { analytics } from '#/features/analytics/client.ts'
 import {
   Building2Icon,
   ChevronRightIcon,
@@ -154,7 +154,6 @@ function CollapsibleNavGroup({
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const posthog = usePostHog()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const pathname = useRouterState({
@@ -197,7 +196,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   async function handleSignOut() {
     await authClient.signOut()
-    posthog.reset()
+    analytics.reset()
     clearAppAccess(queryClient)
     void navigate({ to: '/login' })
   }

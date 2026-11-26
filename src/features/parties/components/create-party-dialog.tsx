@@ -5,7 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { usePostHog } from '@posthog/react'
+import { analytics } from '#/features/analytics/client.ts'
 import { toast } from 'sonner'
 
 import { Button } from '#/components/ui/button.tsx'
@@ -66,7 +66,6 @@ export function CreatePartyDialog({
   defaultPartyType = 'customer',
   lockPartyType = false,
 }: CreatePartyDialogProps) {
-  const posthog = usePostHog()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const {
@@ -345,7 +344,7 @@ export function CreatePartyDialog({
       }
       resetForm()
       setOpen(false)
-      posthog.capture('party_created', {
+      analytics.capture('party_created', {
         party_type: partyType,
         has_gstin: Boolean(gstin.trim()),
       })

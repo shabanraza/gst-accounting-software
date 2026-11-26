@@ -1,10 +1,10 @@
-import * as Sentry from '@sentry/tanstackstart-react'
 import { createRouter as createTanStackRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
 
 import type { ReactNode } from 'react'
 import { RoutePending } from '#/features/app-shell/components/route-pending.tsx'
 import { RouteError } from '#/features/app-shell/components/route-error.tsx'
+import { errorReporter } from '#/features/analytics/error-reporter.ts'
 import { installClientErrorCapture } from '#/features/support/recent-errors.ts'
 import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
 import TanstackQueryProvider, {
@@ -35,17 +35,15 @@ export function getRouter() {
     },
   })
 
-  // Client-side Sentry init (browser error monitoring + router tracing).
-  // Dormant until VITE_PUBLIC_SENTRY_DSN is set at build time.
-  if (!router.isServer) {
-    Sentry.init({
-      dsn: import.meta.env.VITE_PUBLIC_SENTRY_DSN,
-      environment: import.meta.env.MODE,
-      // Route browser envelopes through the server's managed tunnel so
-      // ad-blockers can't drop them.
-      tunnel: true,
-      integrations: [Sentry.tanstackRouterBrowserTracingIntegration(router)],
-      tracesSampleRate: 0.2,
+  // Browser error monitoring loads after startup and stays off until
+  // VITE_PUBLIC_SENTRY_DSN is set at build time.
+  const sentryDsn = import.meta.env.VITE_PUBLIC_SENTRY_DSN
+  if (!router.isServer && sentryDsn) {
+    void errorReporter.start(async () => {
+      const monitoring = await import(
+        '#/features/analytics/browser-monitoring.ts'
+      )
+      return monitoring.startBrowserMonitoring(sentryDsn)
     })
   }
 

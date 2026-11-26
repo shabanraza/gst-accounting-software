@@ -1,3 +1,4 @@
+import { redactText } from '#/features/analytics/redact.ts'
 import { useRouterState } from '@tanstack/react-router'
 import * as React from 'react'
 
@@ -53,9 +54,7 @@ export function GoogleAnalyticsPageview() {
     window.gtag('event', 'page_view', {
       page_path: pagePath,
       page_title: isPublicInvoice ? 'Invoice' : document.title,
-      page_location: isPublicInvoice
-        ? `${window.location.origin}${pagePath}`
-        : window.location.href,
+      page_location: redactText(window.location.href),
     })
   }, [pathname])
 

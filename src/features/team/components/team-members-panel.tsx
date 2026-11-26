@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { usePostHog } from '@posthog/react'
+import { analytics } from '#/features/analytics/client.ts'
 import { MailIcon, Trash2Icon, UserPlusIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
@@ -77,7 +77,6 @@ const assignableRoles = [
 type AssignableRole = (typeof assignableRoles)[number]['value']
 
 export function TeamMembersPanel() {
-  const posthog = usePostHog()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const { companyId } = useWorkspace()
@@ -149,7 +148,7 @@ export function TeamMembersPanel() {
         email,
         role: inviteRole,
       })
-      posthog.capture('team_invitation_sent', { invitation_role: inviteRole })
+      analytics.capture('team_invitation_sent', { invitation_role: inviteRole })
       setInviteEmail('')
       setInviteRole('billing')
       setInviteOpen(false)

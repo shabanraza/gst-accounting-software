@@ -13,6 +13,10 @@ built. Never include customer names, balances or other real data.
 
 ## [Unreleased]
 
+### Changed
+
+- We now measure which pages and actions are used, and receive error reports when something fails, so problems get fixed sooner. The privacy page says which services we use and what they receive.
+
 ### Fixed
 
 - CGST and SGST are now always equal on same-state invoices and bills, as e-invoicing requires. Each half is worked out on its own and the GST total is the two added together, so a line can no longer show halves that don't add up to the total (for example ₹0.13 + ₹0.13 against ₹0.25). GST reports and printed invoices split older documents so CGST plus SGST always equals the GST you recorded, and a 0.25% rate now prints as 0.125% CGST and 0.125% SGST.

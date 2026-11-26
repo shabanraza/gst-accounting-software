@@ -5,7 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { usePostHog } from '@posthog/react'
+import { analytics } from '#/features/analytics/client.ts'
 import { WandSparklesIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -78,7 +78,6 @@ export function PaymentVoucherSheet({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const posthog = usePostHog()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const { companyId, ledgerBySystemKey, isReady } = useWorkspace()
@@ -237,7 +236,7 @@ export function PaymentVoucherSheet({
           queryKey: trpc.parties.listOpeningBalances.pathKey(),
         }),
       ])
-      posthog.capture('payment_allocated', {
+      analytics.capture('payment_allocated', {
         payment_type:
           kind === 'receipt' ? 'customer_receipt' : 'supplier_payment',
       })

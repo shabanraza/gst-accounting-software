@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { usePostHog } from '@posthog/react'
+import { analytics } from '#/features/analytics/client.ts'
 
 import { Button } from '#/components/ui/button.tsx'
 import { Checkbox } from '#/components/ui/checkbox.tsx'
@@ -33,7 +33,6 @@ function signupErrorMessage(error: { message?: string }) {
 
 export function SignupForm() {
   const navigate = useNavigate()
-  const posthog = usePostHog()
   const trpc = useTRPC()
   const [name, setName] = React.useState('')
   const [email, setEmail] = React.useState('')
@@ -60,7 +59,7 @@ export function SignupForm() {
       return
     }
 
-    posthog.capture('account_created')
+    analytics.capture('account_created')
     if (productUpdates) {
       // The account exists either way; the in-app prompt asks again if this fails.
       await optIn.mutateAsync({ enabled: true }).catch(() => undefined)

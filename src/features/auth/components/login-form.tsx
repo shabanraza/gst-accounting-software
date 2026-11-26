@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { usePostHog } from '@posthog/react'
+import { analytics } from '#/features/analytics/client.ts'
 
 import { Button } from '#/components/ui/button.tsx'
 import { Input } from '#/components/ui/input.tsx'
@@ -17,7 +17,6 @@ import { authClient } from '#/lib/auth-client.ts'
 
 export function LoginForm() {
   const navigate = useNavigate()
-  const posthog = usePostHog()
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [error, setError] = React.useState<string | null>(null)
@@ -40,11 +39,7 @@ export function LoginForm() {
       return
     }
 
-    posthog.capture('user_logged_in')
-    posthog.logger.info('user sign-in completed', {
-      authentication_method: 'email_password',
-      outcome: 'success',
-    })
+    analytics.capture('user_logged_in')
     void navigate({ to: '/app/dashboard' })
   }
 

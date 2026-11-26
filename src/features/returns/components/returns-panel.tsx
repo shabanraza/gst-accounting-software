@@ -5,7 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { usePostHog } from '@posthog/react'
+import { analytics } from '#/features/analytics/client.ts'
 import { Undo2Icon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -45,7 +45,6 @@ import { resolveStateCode } from '#/features/accounting/voucher-math.ts'
 import { useTRPC } from '#/integrations/trpc/react.ts'
 
 export function ReturnsPanel() {
-  const posthog = usePostHog()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const { companyId, company, ledgerBySystemKey, isReady } = useWorkspace()
@@ -180,7 +179,7 @@ export function ReturnsPanel() {
             queryKey: trpc.sales.pathKey(),
           }),
         ])
-        posthog.capture('return_posted', { return_type: 'sales' })
+        analytics.capture('return_posted', { return_type: 'sales' })
         toast.success(
           `Credit note ${salesReturn.noteNumber} posted for ${selectedSales.invoiceNumber}.`,
         )
@@ -241,7 +240,7 @@ export function ReturnsPanel() {
             queryKey: trpc.purchases.pathKey(),
           }),
         ])
-        posthog.capture('return_posted', { return_type: 'purchase' })
+        analytics.capture('return_posted', { return_type: 'purchase' })
         toast.success(
           `Debit note ${purchaseReturn.noteNumber} posted for ${selectedPurchase.supplierBillNumber}.`,
         )
