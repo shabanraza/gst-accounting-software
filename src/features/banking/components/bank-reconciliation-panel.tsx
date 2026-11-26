@@ -5,6 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
+import { analytics } from '#/features/analytics/client.ts'
 import { CheckIcon, UploadIcon, WandSparklesIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -110,6 +111,7 @@ export function BankReconciliationPanel() {
       void queryClient.invalidateQueries({
         queryKey: trpc.banking.getReconciliation.queryKey(),
       })
+      analytics.capture('bank_statement_imported')
       toast.success('Bank statement imported')
     },
     onError: (error) => {
@@ -122,6 +124,9 @@ export function BankReconciliationPanel() {
     onSuccess: (result) => {
       void queryClient.invalidateQueries({
         queryKey: trpc.banking.getReconciliation.queryKey(),
+      })
+      analytics.capture('bank_reconciliation_auto_matched', {
+        matched_line_count: result.matched,
       })
       toast.success(`Matched ${result.matched} line(s)`)
     },

@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { analytics } from '#/features/analytics/client.ts'
 import { toast } from 'sonner'
 
 import { Button } from '#/components/ui/button.tsx'
@@ -280,6 +281,10 @@ export function ImportsPanel() {
         )
         toast.success(`Imported ${report.createdCount} opening balances.`)
       }
+      analytics.capture('import_committed', {
+        import_format: format,
+        import_type: mode,
+      })
       setDryRunComplete(false)
     } catch (err) {
       toastActionError(err, 'Import failed')

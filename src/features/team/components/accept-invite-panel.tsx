@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate, useSearch } from '@tanstack/react-router'
+import { analytics } from '#/features/analytics/client.ts'
 
 import { toast } from 'sonner'
 
@@ -29,6 +30,7 @@ export function AcceptInvitePanel() {
     }
     try {
       const result = await acceptInvite.mutateAsync({ token })
+      analytics.capture('team_invite_accepted')
       window.localStorage.setItem(WORKSPACE_COMPANY_KEY, result.companyId)
       void navigate({ to: '/app/dashboard' })
     } catch (err) {

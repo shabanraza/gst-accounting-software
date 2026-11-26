@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
+import { analytics } from '#/features/analytics/client.ts'
 
 import { Button } from '#/components/ui/button.tsx'
 import { Input } from '#/components/ui/input.tsx'
@@ -38,6 +39,7 @@ export function LoginForm() {
       return
     }
 
+    analytics.capture('user_logged_in')
     void navigate({ to: '/app/dashboard' })
   }
 

@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
+import { analytics } from '#/features/analytics/client.ts'
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -93,6 +94,10 @@ export function CreateCompanyPanel() {
         addressLine1: addressLine1.trim(),
         city: city.trim(),
         pincode: pincode.trim(),
+      })
+      analytics.capture('company_created', {
+        business_type: businessType,
+        has_gstin: Boolean(gstin.trim()),
       })
       window.localStorage.setItem(WORKSPACE_COMPANY_KEY, result.company.id)
       void navigate({ to: '/app/dashboard' })

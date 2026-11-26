@@ -5,6 +5,7 @@ import {
   useRouterState,
 } from '@tanstack/react-router'
 
+import { AnalyticsIdentity } from '#/features/analytics/components/analytics-identity.tsx'
 import { AppShell } from '#/features/app-shell/components/app-shell.tsx'
 import { WorkspaceLoadingGate } from '#/features/app-shell/components/workspace-loading-gate.tsx'
 import { WorkspaceProvider } from '#/features/app-shell/workspace-context.tsx'
@@ -54,6 +55,7 @@ function AppLayoutRoute() {
 
   return (
     <WorkspaceProvider>
+      <AnalyticsIdentity />
       {isPrintRoute ? (
         <div className="min-h-screen bg-muted/30 print:bg-white">
           <Outlet />

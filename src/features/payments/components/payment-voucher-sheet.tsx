@@ -5,6 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
+import { analytics } from '#/features/analytics/client.ts'
 import { WandSparklesIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -235,6 +236,10 @@ export function PaymentVoucherSheet({
           queryKey: trpc.parties.listOpeningBalances.pathKey(),
         }),
       ])
+      analytics.capture('payment_allocated', {
+        payment_type:
+          kind === 'receipt' ? 'customer_receipt' : 'supplier_payment',
+      })
       toast.success(`${voucher.voucherNumber} saved`)
       reset()
       onOpenChange(false)

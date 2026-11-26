@@ -10,6 +10,7 @@ import {
 } from '../integrations/google-analytics.tsx'
 import { Toaster } from '#/components/ui/sonner.tsx'
 import { TooltipProvider } from '#/components/ui/tooltip.tsx'
+import { AnalyticsLoader } from '#/features/analytics/components/analytics-loader.tsx'
 import { env } from '#/env.ts'
 
 import appCss from '../styles.css?url'
@@ -77,6 +78,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <Toaster closeButton position="top-center" />
         <AppDevtools />
         <GoogleAnalyticsPageview />
+        <AnalyticsLoader />
         <Scripts />
       </body>
     </html>

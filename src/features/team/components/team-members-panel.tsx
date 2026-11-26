@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { analytics } from '#/features/analytics/client.ts'
 import { MailIcon, Trash2Icon, UserPlusIcon } from 'lucide-react'
 
 import { Badge } from '#/components/ui/badge.tsx'
@@ -147,6 +148,7 @@ export function TeamMembersPanel() {
         email,
         role: inviteRole,
       })
+      analytics.capture('team_invitation_sent', { invitation_role: inviteRole })
       setInviteEmail('')
       setInviteRole('billing')
       setInviteOpen(false)

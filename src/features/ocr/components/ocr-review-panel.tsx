@@ -5,6 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
+import { analytics } from '#/features/analytics/client.ts'
 import { CheckIcon, ScanTextIcon } from 'lucide-react'
 
 import { toast } from 'sonner'
@@ -76,6 +77,7 @@ export function OcrReviewPanel() {
         payableAccountId,
         stockAccountId,
       })
+      analytics.capture('ocr_purchase_bill_posted')
       await queryClient.invalidateQueries({
         queryKey: trpc.ocr.list.queryKey({ companyId }),
       })

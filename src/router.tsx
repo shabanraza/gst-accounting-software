@@ -4,6 +4,7 @@ import { routeTree } from './routeTree.gen'
 import type { ReactNode } from 'react'
 import { RoutePending } from '#/features/app-shell/components/route-pending.tsx'
 import { RouteError } from '#/features/app-shell/components/route-error.tsx'
+import { errorReporter } from '#/features/analytics/error-reporter.ts'
 import { installClientErrorCapture } from '#/features/support/recent-errors.ts'
 import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
 import TanstackQueryProvider, {
@@ -33,6 +34,18 @@ export function getRouter() {
       )
     },
   })
+
+  // Browser error monitoring loads after startup and stays off until
+  // VITE_PUBLIC_SENTRY_DSN is set at build time.
+  const sentryDsn = import.meta.env.VITE_PUBLIC_SENTRY_DSN
+  if (!router.isServer && sentryDsn) {
+    void errorReporter.start(async () => {
+      const monitoring = await import(
+        '#/features/analytics/browser-monitoring.ts'
+      )
+      return monitoring.startBrowserMonitoring(sentryDsn)
+    })
+  }
 
   setupRouterSsrQueryIntegration({ router, queryClient: context.queryClient })
 

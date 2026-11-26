@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useRouter, useRouterState } from '@tanstack/react-router'
 
+import { errorReporter } from '#/features/analytics/error-reporter.ts'
 import { ErrorState } from '#/features/app-shell/components/error-state.tsx'
 import { recordClientError } from '#/features/support/recent-errors.ts'
 
@@ -15,6 +16,7 @@ export function RouteError({ error, reset }: ErrorComponentProps) {
 
   React.useEffect(() => {
     recordClientError(error)
+    errorReporter.report(error)
   }, [error])
 
   return (
