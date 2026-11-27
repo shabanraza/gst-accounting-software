@@ -1,6 +1,6 @@
-# HisaabKro — GST Billing & Khata App
+# HisaabKro — Free, Open-Source GST Billing & Accounting Software for India
 
-HisaabKro is a modern **GST billing, khata ledger, and accounting app** for Indian businesses — sales invoicing, purchase bills, inventory, party ledger, payments, and **GST compliance** in one web and mobile workspace.
+**GST invoices, inventory, khata (party ledger), double-entry accounting and GSTR reports** for small businesses. Use it free at [hisaabkro.in](https://hisaabkro.in) or self-host it.
 
 Looking for a **Busy accounting alternative**, **Zoho Books alternative**, or **Tally-style GST software** without license fees? This project is built for that.
 
@@ -14,9 +14,9 @@ Use it at no cost. Fork it, self-host it, or contribute back.
 
 ---
 
-## What this software covers
+## GST billing and accounting features at a glance
 
-| What people search for | Supported in this app |
+| If you need | HisaabKro has |
 |------------------------|------------------------|
 | GST accounting software India | Sales, purchases, payments, double-entry books |
 | GST billing software | Tax invoices with CGST, SGST, IGST |
@@ -30,7 +30,9 @@ Use it at no cost. Fork it, self-host it, or contribute back.
 | GSTR-1 / GSTR-2B / GST return help | GSTR-1 portal JSON, GSTR-3B, HSN summary, 2B reconciliation |
 | Tally to cloud migration | Import Tally masters XML, Excel and BUSY files |
 | AI accounting assistant | Ask your books questions in Hindi or English |
-| Party ledger software | Customer & supplier balances, ageing |
+| Khata book / party ledger | Customer & supplier balances, ageing |
+| E-way bill from an invoice | JSON file for the portal, EWB number and validity |
+| Reverse charge purchases | RCM bills in the books and GSTR-3B |
 | Free GST software | 100% free & open source — no license fee |
 
 ---
@@ -46,6 +48,8 @@ Use it at no cost. Fork it, self-host it, or contribute back.
 - **Parties** — Customers & suppliers with GSTIN, ledger, ageing, WhatsApp payment reminders
 - **Payments** — Receipts, payments, bank/cash book, bank reconciliation
 - **GST returns** — GSTR-1 laid out as on the portal (B2B, B2C large/small, credit notes, HSN summary, documents issued) with JSON download and portal-file comparison; GSTR-3B by return period; GSTR-2B reconciliation
+- **E-way bills** — Download the JSON for the e-way bill portal from an invoice or delivery challan, then save the number and validity
+- **Reverse charge** — RCM purchase bills with the liability and input credit, shown in GSTR-3B
 - **Ask your books (AI)** — Ask in Hindi or English ("GST payable this month?") and get the figure from your own data with a link to the report
 - **Dashboard** — Sales, receivables, payables, cash and bank, GST card with filing dates, top dues, setup checklist
 - **Import** — Tally masters XML, Excel (.xlsx), CSV and BUSY files for parties, items and opening stock
@@ -53,6 +57,18 @@ Use it at no cost. Fork it, self-host it, or contribute back.
 - **Modern UI** — Fast web app, mobile-friendly, light theme default
 
 See [CHANGELOG.md](./CHANGELOG.md) for what changed in each release.
+
+---
+
+## Free GST tools (no signup)
+
+- [GST calculator and reverse GST calculator](https://hisaabkro.in/tools/gst-calculator)
+- [GST invoice generator](https://hisaabkro.in/tools/gst-invoice-generator)
+- [HSN & SAC code finder](https://hisaabkro.in/tools/hsn-code-finder)
+- [GST number check (format and checksum)](https://hisaabkro.in/tools/gstin-validator)
+- [GST due dates](https://hisaabkro.in/tools/gst-due-dates)
+- [E-invoice and e-way bill checker](https://hisaabkro.in/tools/e-invoice-e-way-bill-checker)
+- [Payment reminder message](https://hisaabkro.in/tools/payment-reminder)
 
 ---
 
@@ -280,15 +296,9 @@ This project is **free and open source**. Anyone can:
 
 ---
 
-## Search keywords
-
-GST accounting software India · GST billing software · free GST invoice software · barcode billing software · GSTR-1 JSON · Busy alternative · Zoho Books alternative · Tally GST alternative · Marg ERP alternative · Vyapar alternative · inventory accounting GST · GSTR-1 software · GSTR-2B reconciliation · HSN summary · tax invoice generator India · purchase bill software · sales invoice software · small business accounting India · open source accounting software · cloud GST software · billing software India
-
----
-
 ## SEO, Google Analytics, and Search Console
 
-The homepage (`/`) targets the primary keywords above. Four dedicated pages
+The homepage (`/`) targets free GST billing software searches. Four dedicated pages
 target competitor-alternative search intent without duplicating the
 homepage's keywords: `/alternatives/tally`, `/alternatives/busy`,
 `/alternatives/vyapar`, `/alternatives/zoho-books`. Both `/` and the

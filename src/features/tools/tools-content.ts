@@ -37,10 +37,10 @@ const TOOL_LIST: ReadonlyArray<Tool> = [
     name: 'GST calculator',
     tone: 'gst',
     summary: 'Add or remove GST at 5%, 18%, 40% and other slabs, with the CGST/SGST or IGST split.',
-    seoTitle: `GST Calculator India 2026 — Add or Remove GST, CGST/SGST Split | ${SITE.name}`,
+    seoTitle: `GST Calculator & Reverse GST Calculator India 2026 | ${SITE.name}`,
     seoDescription:
       'Free GST calculator for the new GST slabs (5%, 18%, 40%). Add GST to a price or remove it from an inclusive amount, with the CGST, SGST, and IGST split.',
-    headline: 'GST calculator: add or remove GST in one step',
+    headline: 'GST calculator: add or reverse GST in one step',
     intro:
       'Type an amount, pick the GST rate, and choose whether the amount already includes tax. The calculator shows the taxable value, the GST, and how it splits between CGST and SGST for a sale inside your state, or IGST for a sale to another state.',
     sections: [
@@ -92,13 +92,19 @@ const TOOL_LIST: ReadonlyArray<Tool> = [
     name: 'GST invoice generator',
     tone: 'money-in',
     summary: 'Make a GST tax invoice in the browser and print it or save it as PDF. No signup, no watermark.',
-    seoTitle: `Free GST Invoice Generator — No Signup, No Watermark, PDF | ${SITE.name}`,
+    seoTitle: `Free GST Invoice Generator & Bill Maker — PDF, No Signup | ${SITE.name}`,
     seoDescription:
       'Create a GST tax invoice online for free: seller and buyer GSTIN, HSN, CGST/SGST/IGST, round off, amount in words. Print or save as PDF. Nothing is uploaded.',
     headline: 'Free GST invoice generator',
     intro:
       'Fill in your details, your customer’s details, and the items. Tax is split into CGST and SGST or IGST from the place of supply, the total is rounded to the rupee, and the amount is written in words. Print it or save it as a PDF from the print dialog. Everything stays in your browser.',
     sections: [
+      {
+        heading: 'Online bill generator for GST bills',
+        paragraphs: [
+          'Use it as a bill maker when you need one GST bill quickly: there is nothing to install and no account to create. The bill is built on this page, and you print it or save it as a PDF.',
+        ],
+      },
       {
         heading: 'What a GST tax invoice must show',
         paragraphs: [
@@ -190,12 +196,12 @@ const TOOL_LIST: ReadonlyArray<Tool> = [
     name: 'GSTIN validator',
     tone: 'banking',
     summary: 'Check a GSTIN’s format and check digit, and see the state and PAN inside it.',
-    seoTitle: `GSTIN Validator — Check GST Number Format & Checksum | ${SITE.name}`,
+    seoTitle: `GST Number Check — Free GSTIN Format & Checksum Validator | ${SITE.name}`,
     seoDescription:
-      'Free GSTIN checker: verify the 15-character format and check digit of any GST number, and decode its state code, PAN, and entity type. Works offline.',
+      'Free GST number check: test the format and check digit of any GSTIN and see its state, PAN and entity type. No business-name or status lookup.',
     headline: 'GSTIN validator',
     intro:
-      'Paste a GST number to check that it is well-formed and that its last character matches the official check digit. You also see the state it was issued in, the PAN inside it, and the type of entity. The check runs in your browser.',
+      'Paste a GST number to check that it is well-formed and that its last character matches the official check digit. You also see the state it was issued in, the PAN inside it, and the type of entity. The check runs in your browser. It does not look up the business name or registration status.',
     sections: [
       {
         heading: 'What the 15 characters mean',
