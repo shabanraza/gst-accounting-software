@@ -74,6 +74,22 @@ function dropMisplacedHsnCodes(byCode: Map<string, string>, dropped: Array<Dropp
   }
 }
 
+/** Headings the master uses without listing the heading itself. */
+const UNLISTED_HEADINGS = new Set(['9807'])
+
+/**
+ * A 6- or 8-digit code whose 4-digit heading is not in the master is a typing
+ * error in the source (for example 52805120 "SAARI", with no heading 5280).
+ */
+function dropOrphanHsnCodes(byCode: Map<string, string>, dropped: Array<DroppedCode>) {
+  for (const [code, description] of [...byCode]) {
+    const heading = code.slice(0, 4)
+    if (code.length < 6 || byCode.has(heading) || UNLISTED_HEADINGS.has(heading)) continue
+    byCode.delete(code)
+    dropped.push({ sheet: 'HSN_MSTR', code, description, reason: `no heading ${heading} in the master` })
+  }
+}
+
 export function buildHsnDataFiles(
   hsnRows: ReadonlyArray<SheetRow>,
   sacRows: ReadonlyArray<SheetRow>,
@@ -102,6 +118,7 @@ export function buildHsnDataFiles(
 
   add('HSN_MSTR', hsnRows)
   dropMisplacedHsnCodes(byCode, dropped)
+  dropOrphanHsnCodes(byCode, dropped)
   add('SAC_MSTR', sacRows)
 
   const files: Record<string, Array<HsnDataRow>> = {}

@@ -105,7 +105,15 @@ export function HsnFinder() {
 
   const chapters = searchHsn(searchQuery).slice(0, 4)
   const codes = index ? searchHsnCodes(index, searchQuery, { limit: RESULT_LIMIT }) : null
-  const hasQuery = searchQuery.trim() !== ''
+  // One letter matches most of the list and is slow to rank on a phone.
+  const hasQuery = searchQuery.trim().length >= 2
+  const status = !hasQuery
+    ? ''
+    : codes
+      ? `${codes.total} matching codes`
+      : loadFailed
+        ? 'Codes could not be loaded'
+        : 'Loading codes'
 
   return (
     <Card data-ui="data">
@@ -120,7 +128,10 @@ export function HsnFinder() {
           placeholder="Try “smartphone”, “saree”, “8517”, or “restaurant”"
           value={query}
         />
-        <div aria-live="polite" className="flex flex-col gap-4">
+        <p aria-live="polite" className="sr-only">
+          {status}
+        </p>
+        <div className="flex flex-col gap-4">
           {hasQuery && chapters.length > 0 ? (
             <div className="flex flex-col gap-1">
               <h3 className="px-2 text-xs font-medium text-muted-foreground">Chapters</h3>
@@ -313,7 +324,7 @@ function HeadingRow({ heading }: { heading: ChapterTreeHeading }) {
   return (
     <details className="group scroll-mt-24" id={codeAnchor(heading.code)}>
       <summary className="flex cursor-pointer list-none items-start gap-3 rounded-md py-2.5 text-sm hover:bg-muted [&::-webkit-details-marker]:hidden">
-        <ChevronRightIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
+        <ChevronRightIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform duration-(--duration-fast) ease-(--ease-precise) group-open:rotate-90" />
         {label}
         <span className="shrink-0 pr-2 text-xs text-muted-foreground tabular-nums">{heading.items.length}</span>
       </summary>

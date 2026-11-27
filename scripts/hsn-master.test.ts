@@ -49,6 +49,7 @@ describe('buildHsnDataFiles', () => {
     ['0101', 'LIVE HORSES'],
     ['01011010', 'HORSES FOR BREEDING'],
     ['30559', 'BROKEN CODE'],
+    ['2307', 'RESIDUES'],
     ['2307 00', 'WINE LEES'],
     // Chapter 03 subheadings that lost their leading zero and now look like
     // chapter 30 codes.
@@ -87,7 +88,10 @@ describe('buildHsnDataFiles', () => {
       ['851713', 'SMARTPHONES'],
       ['85171300', 'SMARTPHONES'],
     ])
-    expect(result.files['23']).toEqual([['230700', 'WINE LEES']])
+    expect(result.files['23']).toEqual([
+      ['2307', 'RESIDUES'],
+      ['230700', 'WINE LEES'],
+    ])
   })
 
   test('puts SAC codes in the chapter 99 file', () => {
@@ -96,10 +100,6 @@ describe('buildHsnDataFiles', () => {
       ['9963', 'Accommodation, food and beverage services'],
       ['996331', 'Services provided by restaurants'],
     ])
-  })
-
-  test('keeps codes whose heading is missing from the file under their chapter', () => {
-    expect(result.files['23']).toEqual([['230700', 'WINE LEES']])
   })
 
   test('drops codes that lost a leading zero and headings with nothing under them', () => {
@@ -119,5 +119,34 @@ describe('buildHsnDataFiles', () => {
       { sheet: 'HSN_MSTR', code: '303799', description: 'Other', reason: 'leading zero lost (belongs under 0303)' },
     ])
     expect(result.duplicates).toEqual(['85171300'])
+  })
+})
+
+describe('codes under a heading the master does not list', () => {
+  const build = buildHsnDataFiles(
+    [
+      ['HSN_CD', 'HSN_Description'],
+      ['52', 'COTTON'],
+      ['5208', 'WOVEN FABRICS'],
+      ['52081100', 'PLAIN WEAVE'],
+      ['52805120', 'SAARI'],
+      ['063610', 'Scampi'],
+      ['98', 'PROJECT IMPORTS'],
+      ['98071000', 'ACTIONABLE CLAIMS'],
+    ],
+    [['SAC_CD', 'SAC_Description']],
+  )
+  const kept = Object.values(build.files).flatMap((rows) => rows.map(([code]) => code))
+
+  test('are dropped and reported, since the code is mistyped', () => {
+    expect(kept).not.toContain('52805120')
+    expect(kept).not.toContain('063610')
+    expect(build.dropped.map((row) => row.code)).toEqual(
+      expect.arrayContaining(['52805120', '063610']),
+    )
+  })
+
+  test('are kept for chapter 98, whose newer headings are listed without one', () => {
+    expect(kept).toEqual(expect.arrayContaining(['98071000', '52081100']))
   })
 })
