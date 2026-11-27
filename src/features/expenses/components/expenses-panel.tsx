@@ -5,7 +5,6 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { analytics } from '#/features/analytics/client.ts'
 import { ReceiptIcon, PlusIcon } from 'lucide-react'
 import Decimal from 'decimal.js'
 import { toast } from 'sonner'
@@ -155,7 +154,6 @@ export function ExpensesPanel() {
       await queryClient.invalidateQueries({
         queryKey: trpc.expenses.list.queryKey({ companyId }),
       })
-      analytics.capture('expense_posted')
       setOpen(false)
       setNarration('')
       setAmount('')

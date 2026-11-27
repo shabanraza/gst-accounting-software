@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
 import {
-  POSTHOG_OPTIONS,
   sentryPrivacyOptions,
   shouldReportServerError,
 } from '#/features/analytics/options.ts'
@@ -30,34 +29,6 @@ describe('sentryPrivacyOptions', () => {
     expect(
       sentryPrivacyOptions.beforeBreadcrumb({ message: 'a@b.com' }),
     ).toEqual({ message: '[email]' })
-  })
-})
-
-describe('POSTHOG_OPTIONS', () => {
-  test('records no clicks, screens, console or exceptions', () => {
-    expect(POSTHOG_OPTIONS).toMatchObject({
-      autocapture: false,
-      disable_session_recording: true,
-      capture_exceptions: false,
-      enable_heatmaps: false,
-      capture_dead_clicks: false,
-      disable_surveys: true,
-      disable_external_dependency_loading: true,
-      advanced_disable_flags: true,
-    })
-  })
-
-  test('cleans page addresses on every event', () => {
-    expect(
-      POSTHOG_OPTIONS.before_send({
-        event: '$pageview',
-        properties: { $current_url: 'https://x.in/i/tok' },
-      }),
-    ).toEqual({
-      event: '$pageview',
-      properties: { $current_url: 'https://x.in/i/[token]' },
-    })
-    expect(POSTHOG_OPTIONS.before_send(null)).toBeNull()
   })
 })
 

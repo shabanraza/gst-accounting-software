@@ -12,7 +12,6 @@ import {
   ScanBarcodeIcon,
   Trash2Icon,
 } from 'lucide-react'
-import { analytics } from '#/features/analytics/client.ts'
 import { toast } from 'sonner'
 
 import { Badge } from '#/components/ui/badge.tsx'
@@ -819,13 +818,6 @@ function VoucherEntryForm({
             godownName: line.godownName || godown,
           })),
         })
-        analytics.capture('sales_invoice_posted', {
-          line_count: filledLines.length,
-          payment_mode: paymentMode,
-          source_document: Boolean(sourceDocumentId),
-          supply_region: region,
-          tax_mode: taxMode,
-        })
         if (sourceDocumentId) {
           await markDocumentConverted.mutateAsync({
             companyId,
@@ -904,12 +896,6 @@ function VoucherEntryForm({
             discountPercent: line.discountPercent,
             godownName: line.godownName || godown,
           })),
-        })
-        analytics.capture('purchase_bill_posted', {
-          has_attachment: Boolean(attachmentFile),
-          line_count: filledLines.length,
-          source_grn: Boolean(sourceGrnId),
-          tax_mode: taxMode,
         })
         if (sourceGrnId) {
           await markGrnConverted.mutateAsync({

@@ -5,7 +5,6 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { analytics } from '#/features/analytics/client.ts'
 import { toast } from 'sonner'
 
 import { Button } from '#/components/ui/button.tsx'
@@ -344,10 +343,6 @@ export function CreatePartyDialog({
       }
       resetForm()
       setOpen(false)
-      analytics.capture('party_created', {
-        party_type: partyType,
-        has_gstin: Boolean(gstin.trim()),
-      })
       toast.success('Party created.')
       onCreated?.(created)
     } catch (error) {
