@@ -32,6 +32,29 @@ describe('sentryPrivacyOptions', () => {
   })
 })
 
+describe('known noise', () => {
+  const ignored = (message: string) =>
+    sentryPrivacyOptions.ignoreErrors.some((pattern) => pattern.test(message))
+
+  test('skips the rejection that email link scanners raise', () => {
+    expect(
+      ignored(
+        'Non-Error promise rejection captured with value: Object Not Found Matching Id:11, MethodName:update, ParamCount:4',
+      ),
+    ).toBe(true)
+  })
+
+  test('still reports real failures', () => {
+    for (const message of [
+      'Failed to fetch',
+      'Object not found',
+      "Cannot read properties of undefined (reading 'update')",
+    ]) {
+      expect(ignored(message)).toBe(false)
+    }
+  })
+})
+
 describe('shouldReportServerError', () => {
   test('reports unexpected failures only', () => {
     expect(shouldReportServerError('INTERNAL_SERVER_ERROR')).toBe(true)

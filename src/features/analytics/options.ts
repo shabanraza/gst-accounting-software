@@ -16,6 +16,10 @@ export const sentryPrivacyOptions = {
     stackFrameVariables: false,
   },
   tracesSampleRate: 0,
+  // Raised by automated link scanners (embedded browsers), never by this app.
+  ignoreErrors: [
+    /Object Not Found Matching Id:\d+, MethodName:\w+, ParamCount:\d+/,
+  ],
   beforeSend: <T>(event: T) => redactDeep(event),
   beforeBreadcrumb: <T>(breadcrumb: T) => redactDeep(breadcrumb),
 }
