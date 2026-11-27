@@ -138,9 +138,9 @@ const TOOL_LIST: ReadonlyArray<Tool> = [
     name: 'HSN & SAC code finder',
     tone: 'inventory',
     summary: 'Find the HSN chapter for any product, or the SAC heading for a service.',
-    seoTitle: `HSN Code Finder — Search HSN & SAC Codes by Product Name | ${SITE.name}`,
+    seoTitle: `HSN Code Search by Product Name — Free HSN & SAC Finder | ${SITE.name}`,
     seoDescription:
-      'Search HSN chapters by product name or code, browse all 98 goods chapters and SAC service headings, and learn how many HSN digits your invoice needs.',
+      'Search a product name or code to get its HSN chapter or SAC heading. Free, no signup. See whether your GST invoice needs 4 or 6 HSN digits.',
     headline: 'HSN and SAC code finder',
     intro:
       'Search by product name (“mobile phone”, “saree”, “medicine”) or by the first digits of a code. You get the HSN chapter and section, and for services the SAC heading. Open a chapter to see what it covers and how the codes are built.',
