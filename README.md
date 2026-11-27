@@ -2,38 +2,11 @@
 
 **GST invoices, inventory, khata (party ledger), double-entry accounting and GSTR reports** for small businesses. Use it free at [hisaabkro.in](https://hisaabkro.in) or self-host it.
 
-Looking for a **Busy accounting alternative**, **Zoho Books alternative**, or **Tally-style GST software** without license fees? This project is built for that.
-
-Use it at no cost. Fork it, self-host it, or contribute back.
-
 **Try it free:** [hisaabkro.in](https://hisaabkro.in) ·
 **Repository:** [github.com/shabanraza/gst-accounting-software](https://github.com/shabanraza/gst-accounting-software) · 
 **What's new:** [hisaabkro.in/changelog](https://hisaabkro.in/changelog)
 
 [![HisaabKro home page with the dashboard: sales this month, amounts to collect and pay, cash and bank, and GST this month](docs/screenshots/home.png)](https://hisaabkro.in)
-
----
-
-## GST billing and accounting features at a glance
-
-| If you need | HisaabKro has |
-|------------------------|------------------------|
-| GST accounting software India | Sales, purchases, payments, double-entry books |
-| GST billing software | Tax invoices with CGST, SGST, IGST |
-| GST invoice software / tax invoice format | Rule 46 layout, HSN, amount in words |
-| Busy accounting software alternative | Vouchers, parties, inventory, GST reports |
-| Zoho Books GST alternative | Cloud web app, multi-user, multi-company |
-| Tally ERP GST alternative | Ledger, chart of accounts, day book |
-| Marg / Vyapar style billing | Sales bill, purchase bill, stock |
-| Inventory with GST | Items, godowns, stock ledger, GRN |
-| Barcode billing software | Item barcodes, label printing, scan-to-bill |
-| GSTR-1 / GSTR-2B / GST return help | GSTR-1 portal JSON, GSTR-3B, HSN summary, 2B reconciliation |
-| Tally to cloud migration | Import Tally masters XML, Excel and BUSY files |
-| AI accounting assistant | Ask your books questions in Hindi or English |
-| Khata book / party ledger | Customer & supplier balances, ageing |
-| E-way bill from an invoice | JSON file for the portal, EWB number and validity |
-| Reverse charge purchases | RCM bills in the books and GSTR-3B |
-| Free GST software | 100% free & open source — no license fee |
 
 ---
 
@@ -57,18 +30,6 @@ Use it at no cost. Fork it, self-host it, or contribute back.
 - **Modern UI** — Fast web app, mobile-friendly, light theme default
 
 See [CHANGELOG.md](./CHANGELOG.md) for what changed in each release.
-
----
-
-## Free GST tools (no signup)
-
-- [GST calculator and reverse GST calculator](https://hisaabkro.in/tools/gst-calculator)
-- [GST invoice generator](https://hisaabkro.in/tools/gst-invoice-generator)
-- [HSN & SAC code finder](https://hisaabkro.in/tools/hsn-code-finder)
-- [GST number check (format and checksum)](https://hisaabkro.in/tools/gstin-validator)
-- [GST due dates](https://hisaabkro.in/tools/gst-due-dates)
-- [E-invoice and e-way bill checker](https://hisaabkro.in/tools/e-invoice-e-way-bill-checker)
-- [Payment reminder message](https://hisaabkro.in/tools/payment-reminder)
 
 ---
 
@@ -119,6 +80,9 @@ cp .env.example .env.local
 | `GOOGLE_CLIENT_SECRET` | No | Google sign-in (optional) |
 | `VITE_ENABLE_GOOGLE_AUTH` | No | Google buttons show by default; `false` hides them (build-time) |
 | `RESEND_API_KEY` | No | Email (optional in dev) |
+| `VITE_GA_MEASUREMENT_ID` | No | Google Analytics 4 ID; blank turns analytics off (build-time) |
+| `VITE_GOOGLE_SITE_VERIFICATION` | No | Search Console HTML-tag value (build-time) |
+| `VITE_PUBLIC_SENTRY_DSN` | No | Sentry error monitoring; blank turns it off (build-time) |
 
 #### Enabling Google sign-in
 
@@ -147,9 +111,6 @@ VITE_ENABLE_GOOGLE_AUTH=false bun run build
 `bun run deploy` already does this, so the deployed Worker ships without the
 buttons. If you deploy some other way (Cloudflare Workers Builds, or your own
 CI), set `VITE_ENABLE_GOOGLE_AUTH=false` as a build-time variable there too.
-
-`VITE_GA_MEASUREMENT_ID` and `VITE_GOOGLE_SITE_VERIFICATION` are build-time
-vars too — see [SEO, Google Analytics, and Search Console](#seo-google-analytics-and-search-console).
 
 ### 4. Set up the database
 
@@ -208,20 +169,6 @@ This app is designed for a **two-service** setup:
 | **Database** | [Neon](https://neon.tech) PostgreSQL | Stores companies, vouchers, ledger, inventory, users |
 
 **Do not** run PostgreSQL on the same machine as a long-lived Node server for production — Workers are serverless and need a remote HTTP-compatible database like Neon.
-
-### Why Cloudflare Workers?
-
-We chose Cloudflare as the default deploy target because it fits a **free, fast, India-friendly GST SaaS**:
-
-| Benefit | Why it matters for GST accounting software |
-|---------|---------------------------------------------|
-| **Global edge network** | Pages load quickly for users across India (and abroad) |
-| **Generous free tier** | Low cost to start; good for open-source self-hosters and small shops |
-| **No server management** | No VPS, no patching Linux, no scaling cron — deploy and forget |
-| **Built for this stack** | TanStack Start + Vite plugin deploys directly with Wrangler |
-| **HTTPS by default** | `*.workers.dev` SSL included; custom domain supported |
-| **Secrets management** | `DATABASE_URL`, auth secrets stored securely in dashboard |
-| **Always on** | Unlike cold-start-heavy hobby hosts; suitable for daily billing use |
 
 **Database on Neon:** Serverless Postgres with a free tier, works with Drizzle ORM and Cloudflare Workers over HTTP (no TCP from the edge).
 
@@ -293,47 +240,6 @@ This project is **free and open source**. Anyone can:
 - Contribute improvements via pull requests
 
 **Contributing:** Open an issue or PR on [GitHub](https://github.com/shabanraza/gst-accounting-software).
-
----
-
-## SEO, Google Analytics, and Search Console
-
-The homepage (`/`) targets free GST billing software searches. Four dedicated pages
-target competitor-alternative search intent without duplicating the
-homepage's keywords: `/alternatives/tally`, `/alternatives/busy`,
-`/alternatives/vyapar`, `/alternatives/zoho-books`. Both `/` and the
-alternative pages ship meta tags, Open Graph/Twitter tags, canonical URLs,
-and `SoftwareApplication`/`FAQPage`/`BreadcrumbList` JSON-LD. `public/robots.txt`
-and `public/sitemap.xml` list every public page.
-
-### Google Analytics 4
-
-Set `VITE_GA_MEASUREMENT_ID` to enable it — it is a **build-time** var like
-`VITE_ENABLE_GOOGLE_AUTH`, blank by default so local dev and fresh clones ship
-with zero analytics script:
-
-```bash
-VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX bun run build
-```
-
-The measurement ID comes from a GA4 property at
-[analytics.google.com](https://analytics.google.com) (Admin → Data Streams →
-Web). Page views are sent manually on every route change, since the app is a
-client-side router.
-
-### Google Search Console
-
-1. Add the property for `https://hisaabkro.in` at
-   [search.google.com/search-console](https://search.google.com/search-console).
-2. Choose the **HTML tag** verification method and copy the `content="..."`
-   value (not the whole tag).
-3. Set `VITE_GOOGLE_SITE_VERIFICATION` to that value and rebuild/deploy —
-   also a build-time var:
-
-   ```bash
-   VITE_GOOGLE_SITE_VERIFICATION=your-verification-value bun run build
-   ```
-4. Once verified, submit `https://hisaabkro.in/sitemap.xml` under **Sitemaps**.
 
 ---
 

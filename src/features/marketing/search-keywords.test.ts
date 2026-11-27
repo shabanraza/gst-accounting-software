@@ -5,10 +5,7 @@ import { HELP_GUIDES } from '#/features/marketing/help-content.ts'
 import { HERO, SITE } from '#/features/marketing/landing-content.ts'
 import { TOOLS } from '#/features/tools/tools-content.ts'
 
-/**
- * Phrases chosen from Google Keyword Planner (India, Nov 2025 to Oct 2026)
- * and Search Console, each owned by one page.
- */
+/** Each page keeps the wording its title and description promise. */
 const words = (text: string) => text.toLowerCase()
 
 describe('search keywords', () => {
