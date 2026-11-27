@@ -13,6 +13,8 @@ built. Never include customer names, balances or other real data.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-27
+
 ### Changed
 
 - We now receive an error report when something fails, so problems get fixed sooner. The privacy page says which service we use and what it receives.
