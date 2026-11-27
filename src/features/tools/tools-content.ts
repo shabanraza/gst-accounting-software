@@ -1,5 +1,6 @@
 import { SITE } from '#/features/marketing/landing-content.ts'
 import type { ContentSection, FaqItem } from '#/features/marketing/page-head.ts'
+import { HSN_SOURCE } from '#/features/tools/hsn-source.ts'
 
 export const TOOL_SLUGS = [
   'gst-calculator',
@@ -143,13 +144,13 @@ const TOOL_LIST: ReadonlyArray<Tool> = [
     slug: 'hsn-code-finder',
     name: 'HSN & SAC code finder',
     tone: 'inventory',
-    summary: 'Find the HSN chapter for any product, or the SAC heading for a service.',
+    summary: 'Find the HSN code for any product, or the SAC code for a service, with its official description.',
     seoTitle: `HSN Code Search by Product Name — Free HSN & SAC Finder | ${SITE.name}`,
     seoDescription:
-      'Search a product name or code to get its HSN chapter or SAC heading. Free, no signup. See whether your GST invoice needs 4 or 6 HSN digits.',
+      'Search a product name or code to get 4-, 6- or 8-digit HSN and SAC codes with official descriptions from the GST portal. Free, no signup.',
     headline: 'HSN and SAC code finder',
     intro:
-      'Search by product name (“mobile phone”, “saree”, “medicine”) or by the first digits of a code. You get the HSN chapter and section, and for services the SAC heading. Open a chapter to see what it covers and how the codes are built.',
+      'Search by product name (“mobile phone”, “saree”, “medicine”) or by code digits. You get the matching HSN and SAC codes with their official descriptions and the headings they sit under. Open a chapter to see every code in it.',
     sections: [
       {
         heading: 'How HSN codes are built',
@@ -167,7 +168,9 @@ const TOOL_LIST: ReadonlyArray<Tool> = [
       {
         heading: 'Why rates are not shown here',
         paragraphs: [
-          'GST rates are set per tariff item by notification and change from time to time, most recently in September 2025. A chapter can contain items at several rates. Confirm the current rate for your exact code on the CBIC GST rate finder before billing.',
+          'The codes and descriptions come from the HSN/SAC master published on the GST portal, which does not include rates. GST rates are set per tariff item by notification and change from time to time, most recently in September 2025, and one heading can contain items at several rates. Confirm the current rate for your exact code on the CBIC GST rate finder before billing.',
+          'Descriptions are shown as the GST portal publishes them, including its capitals and spelling. A few rows in the published file have broken codes (for example a leading zero missing) and are left out.',
+          `Source: ${HSN_SOURCE.name}, ${HSN_SOURCE.date}.`,
         ],
       },
     ],
@@ -175,7 +178,7 @@ const TOOL_LIST: ReadonlyArray<Tool> = [
       {
         question: 'What is the HSN code for mobile phones?',
         answer:
-          'Mobile phones fall under chapter 85, heading 8517 (telephone sets, including smartphones). Use the full tariff item from your purchase invoice for your own bills.',
+          'Smartphones are HSN 85171300, under heading 8517 (telephone sets, including smartphones) in chapter 85. Use the full tariff item from your purchase invoice for your own bills.',
       },
       {
         question: 'What is the difference between HSN and SAC?',

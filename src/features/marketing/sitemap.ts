@@ -21,8 +21,8 @@ export function listSitemapEntries(): Array<SitemapEntry> {
     })),
     ...HSN_CHAPTERS.map((chapter) => ({
       path: `${toolPath('hsn-code-finder')}/${chapter.slug}`,
-      changefreq: 'yearly' as const,
-      priority: '0.4',
+      changefreq: 'monthly' as const,
+      priority: '0.6',
     })),
   ]
 
