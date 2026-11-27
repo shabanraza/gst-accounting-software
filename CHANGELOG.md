@@ -15,7 +15,7 @@ built. Never include customer names, balances or other real data.
 
 ### Changed
 
-- We now measure which pages and actions are used, and receive error reports when something fails, so problems get fixed sooner. The privacy page says which services we use and what they receive.
+- We now receive an error report when something fails, so problems get fixed sooner. The privacy page says which service we use and what it receives.
 
 ### Fixed
 

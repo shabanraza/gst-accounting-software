@@ -1,7 +1,6 @@
 import * as React from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { analytics } from '#/features/analytics/client.ts'
 
 import { Button } from '#/components/ui/button.tsx'
 import { Checkbox } from '#/components/ui/checkbox.tsx'
@@ -59,7 +58,6 @@ export function SignupForm() {
       return
     }
 
-    analytics.capture('account_created')
     if (productUpdates) {
       // The account exists either way; the in-app prompt asks again if this fails.
       await optIn.mutateAsync({ enabled: true }).catch(() => undefined)

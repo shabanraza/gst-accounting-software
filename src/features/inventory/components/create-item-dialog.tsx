@@ -1,6 +1,5 @@
 import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { analytics } from '#/features/analytics/client.ts'
 import { toast } from 'sonner'
 
 import { Button } from '#/components/ui/button.tsx'
@@ -194,13 +193,6 @@ export function CreateItemDialog({
       })
       resetForm()
       setOpen(false)
-      if (!item) {
-        analytics.capture('inventory_item_created', {
-          item_group: form.group,
-          tracks_inventory: form.tracksInventory === 'yes',
-          has_opening_stock: Boolean(form.openingQuantity.trim()),
-        })
-      }
       toast.success(item ? 'Item updated.' : 'Item created.')
     } catch (error) {
       setFormError(getFormErrorMessage(error))

@@ -75,14 +75,9 @@ function PrivacyRoute() {
               website traffic and usage.
             </p>
             <p>
-              We use PostHog (hosted in the United States) to measure how the
-              product is used: pages visited and actions such as creating an
-              invoice, linked to an internal account ID with browser, device and
-              network (IP address) details. We use Sentry (hosted in the
-              European Union) to receive error reports with technical details
-              about the failure and the browser. PostHog does not record your
-              screen, and neither service is set up to collect what you type
-              into forms.
+              We use Sentry (hosted in the European Union) to receive error
+              reports with technical details about the failure and the browser.
+              It is not set up to collect what you type into forms.
             </p>
           </CardContent>
         </Card>

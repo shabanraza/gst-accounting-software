@@ -5,7 +5,6 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { analytics } from '#/features/analytics/client.ts'
 import { Undo2Icon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -179,7 +178,6 @@ export function ReturnsPanel() {
             queryKey: trpc.sales.pathKey(),
           }),
         ])
-        analytics.capture('return_posted', { return_type: 'sales' })
         toast.success(
           `Credit note ${salesReturn.noteNumber} posted for ${selectedSales.invoiceNumber}.`,
         )
@@ -240,7 +238,6 @@ export function ReturnsPanel() {
             queryKey: trpc.purchases.pathKey(),
           }),
         ])
-        analytics.capture('return_posted', { return_type: 'purchase' })
         toast.success(
           `Debit note ${purchaseReturn.noteNumber} posted for ${selectedPurchase.supplierBillNumber}.`,
         )

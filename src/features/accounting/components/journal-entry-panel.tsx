@@ -5,7 +5,6 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { analytics } from '#/features/analytics/client.ts'
 import { PlusIcon, Trash2Icon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -112,7 +111,6 @@ export function JournalEntryPanel() {
       await queryClient.invalidateQueries({
         queryKey: trpc.accounting.listLedgerAccounts.queryKey({ companyId }),
       })
-      analytics.capture('journal_entry_posted', { line_count: filled.length })
       toast.success('Journal entry posted')
       setNarration('')
       setLines([emptyLine(), emptyLine()])

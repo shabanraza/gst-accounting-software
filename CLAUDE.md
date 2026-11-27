@@ -24,8 +24,9 @@ change.
   read through `process.env`.
 - Email: Resend REST API (`src/lib/email.ts`); logs to console when
   `RESEND_API_KEY` is unset.
-- Analytics: GA4 (`src/integrations/google-analytics.tsx`) and PostHog
-  (`__root.tsx`); both are optional and driven by env vars.
+- Analytics: GA4 (`src/integrations/google-analytics.tsx`). Error
+  monitoring: Sentry (`src/features/analytics`, Worker entry `src/server.ts`).
+  Both are optional and driven by env vars.
 - Env validation: `src/env.ts` (t3 env). Every new `VITE_*` var goes there and
   in `.env.example`.
 - Workspaces: `mobile/` (Expo app, has its own AGENTS.md) and

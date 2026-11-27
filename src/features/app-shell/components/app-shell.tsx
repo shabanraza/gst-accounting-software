@@ -1,7 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import * as React from 'react'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
-import { analytics } from '#/features/analytics/client.ts'
 import {
   Building2Icon,
   ChevronRightIcon,
@@ -196,7 +195,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   async function handleSignOut() {
     await authClient.signOut()
-    analytics.reset()
     clearAppAccess(queryClient)
     void navigate({ to: '/login' })
   }
