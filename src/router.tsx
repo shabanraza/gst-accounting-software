@@ -4,6 +4,7 @@ import { routeTree } from './routeTree.gen'
 import type { ReactNode } from 'react'
 import { RoutePending } from '#/features/app-shell/components/route-pending.tsx'
 import { RouteError } from '#/features/app-shell/components/route-error.tsx'
+import { NotFound } from '#/features/app-shell/components/not-found.tsx'
 import { errorReporter } from '#/features/analytics/error-reporter.ts'
 import { installClientErrorCapture } from '#/features/support/recent-errors.ts'
 import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
@@ -25,6 +26,7 @@ export function getRouter() {
     defaultPendingMinMs: 300,
     defaultPendingComponent: RoutePending,
     defaultErrorComponent: RouteError,
+    defaultNotFoundComponent: NotFound,
 
     Wrap: (props: { children: ReactNode }) => {
       return (

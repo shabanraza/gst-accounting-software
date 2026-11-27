@@ -13,6 +13,10 @@ built. Never include customer names, balances or other real data.
 
 ## [Unreleased]
 
+### Fixed
+
+- A wrong or old link now shows a "Page not found" page with a way back to your dashboard or the home page, instead of two bare words.
+
 ## [0.6.0] - 2026-11-27
 
 ### Changed
