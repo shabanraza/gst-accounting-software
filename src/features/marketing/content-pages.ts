@@ -74,10 +74,10 @@ export const GUIDES: ContentCollection = {
     {
       slug: 'gst-invoice-format',
       label: 'GST invoice format and mandatory fields',
-      seoTitle: `GST Invoice Format: Mandatory Fields Under Rule 46 (2026) | ${SITE.name}`,
+      seoTitle: `GST Invoice Format / GST Bill Format (Rule 46, 2026) | ${SITE.name}`,
       seoDescription:
         'Every field a GST tax invoice must show under Rule 46, the difference between a tax invoice and a bill of supply, numbering rules, and B2C limits.',
-      headline: 'GST invoice format: every field your bill must show',
+      headline: 'GST invoice format: every field your GST bill must show',
       intro:
         'A tax invoice is the document your customer uses to claim input tax credit, so a missing field can cost them money and you a customer. This is the checklist from Rule 46 of the CGST Rules.',
       sections: [

@@ -81,8 +81,8 @@ logic in routes or components.
 - Document numbers come from `document_sequences`, never `COUNT(*) + 1`.
 - OCR and AI produce reviewable drafts; nothing posts without user confirmation.
 - Sales, purchases, payments, returns, GST, and stock writes must be atomic.
-  Note that `neon-http` has no interactive transactions, so see
-  `docs/production-gap-audit.md` before adding multi-step writes.
+  Note that `neon-http` has no interactive transactions, so check how existing
+  posting code keeps writes together before adding multi-step writes.
 - TDD for domain behaviour: write the failing test, watch it fail, implement,
   watch it pass.
 

@@ -12,8 +12,6 @@
 
 ## Implementation status (Jul 2026)
 
-See also `docs/busy-21-gap-status.md` for BUSY 21 parity detail.
-
 ### Phase completion
 
 | Phase                        | Status      | Notes                                                                       |

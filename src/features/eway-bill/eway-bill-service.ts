@@ -13,7 +13,7 @@ Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP })
  * E-way bills are generated on the NIC portal (ewaybillgst.gov.in) from the
  * bulk-upload JSON built here; the user then records the EWB number back.
  * Field list and codes follow the portal's bulk generation tool, version
- * below. See docs/feature-gap-vyapar-busy.md §4 for sources.
+ * below.
  */
 export const EWAY_BILL_JSON_VERSION = '1.0.0621'
 export const EWAY_BILL_PORTAL_URL = 'https://ewaybillgst.gov.in'

@@ -150,7 +150,7 @@ export const HELP_GUIDES: ReadonlyArray<HelpGuide> = [
     slug: 'generate-an-e-way-bill',
     title: 'Make an e-way bill',
     summary: 'Prepare the e-way bill file for an invoice, upload it on the portal, and save the number.',
-    seoTitle: `How to Generate an E-Way Bill from a GST Invoice | ${SITE.name}`,
+    seoTitle: `How to Generate an E-Way Bill from a GST Invoice (JSON Upload) | ${SITE.name}`,
     seoDescription: `Prepare e-way bill JSON from a sales invoice or delivery challan in ${SITE.name}, upload it on the e-way bill portal, and save the EWB number and validity.`,
     steps: [
       'Open **Sales → Sales invoices**. Invoices that still need one show **EWB due**.',

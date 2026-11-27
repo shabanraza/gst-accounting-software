@@ -2,9 +2,9 @@ export const SITE = {
   name: 'HisaabKro',
   url: 'https://hisaabkro.in',
   githubUrl: 'https://github.com/shabanraza/gst-accounting-software',
-  title: 'Free GST Billing & Accounting Software – HisaabKro',
+  title: 'Free GST Billing Software with Inventory & Khata – HisaabKro',
   description:
-    'Free GST billing and accounting software for Indian businesses: GST invoices, inventory, khata and GSTR reports on double-entry books. Import from Tally.',
+    'Free GST billing software for Indian small businesses: GST invoices, inventory, khata ledger, GSTR reports and double-entry accounting. Import from Tally.',
   /** Absolute URL for Open Graph / Twitter cards (1200×630). */
   ogImage: 'https://hisaabkro.in/og-card.png',
 } as const
@@ -40,7 +40,7 @@ export const NAV_LINKS: ReadonlyArray<NavLink> = [
 
 export const HERO = {
   headline:
-    'AI-powered GST billing and accounting software for Indian businesses',
+    'Free GST billing and accounting software for Indian businesses',
   subhead:
     'GST invoices, inventory, khata and GST returns on real double-entry books. Ask your books a question in Hindi or English, and move from Tally in minutes.',
   primaryCta: { label: 'Start free', to: '/signup' as const },
