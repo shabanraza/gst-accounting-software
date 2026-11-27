@@ -127,6 +127,13 @@ bun run db:generate
 bun run db:migrate
 ```
 
+`db:push` and `db:migrate` refuse to change a hosted database unless you name
+its host for that run, so a wrong `.env` cannot alter production:
+
+```bash
+DB_CONFIRM_HOST=your-db-host.neon.tech bun run db:migrate
+```
+
 ### 5. Run locally
 
 ```bash

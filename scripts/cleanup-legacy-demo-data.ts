@@ -28,6 +28,8 @@ import type {
   CompanySnapshot,
 } from '#/features/companies/legacy-demo-cleanup.ts'
 
+import { assertSchemaChangeAllowed } from './db-guard.ts'
+
 config({ path: ['.env.local', '.env'] })
 
 const connectionString = process.env.DATABASE_URL
@@ -35,6 +37,7 @@ if (!connectionString) {
   console.error('DATABASE_URL is not set.')
   process.exit(1)
 }
+assertSchemaChangeAllowed()
 
 const args = process.argv.slice(2)
 const apply = args.includes('--apply')

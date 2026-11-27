@@ -10,6 +10,8 @@ import { readFileSync } from 'node:fs'
 import { config } from 'dotenv'
 import pg from 'pg'
 
+import { assertSchemaChangeAllowed } from './db-guard.ts'
+
 config({ path: ['.env.local', '.env'] })
 
 const connectionString = process.env.DATABASE_URL
@@ -17,6 +19,7 @@ if (!connectionString) {
   console.error('DATABASE_URL is not set.')
   process.exit(1)
 }
+assertSchemaChangeAllowed()
 
 const journal = JSON.parse(
   readFileSync('drizzle/meta/_journal.json', 'utf8'),

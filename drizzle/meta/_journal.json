@@ -66,6 +66,13 @@
       "breakpoints": true
     },
     {
+      "idx": 9,
+      "version": "7",
+      "when": 1783877000000,
+      "tag": "0009_e_invoice",
+      "breakpoints": true
+    },
+    {
       "idx": 10,
       "version": "7",
       "when": 1783878000000,
@@ -98,6 +105,69 @@
       "version": "7",
       "when": 1783882000000,
       "tag": "0014_marketing_submissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1783883000000,
+      "tag": "0015_assistant_usage",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1783884000000,
+      "tag": "0016_item_barcode",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1783885000000,
+      "tag": "0017_payment_vouchers",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1783886000000,
+      "tag": "0018_company_upi",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1783887000000,
+      "tag": "0019_party_opening_balances",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1783888000000,
+      "tag": "0020_expense_gst",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1783889000000,
+      "tag": "0021_recurring_invoices",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1783890000000,
+      "tag": "0022_e_way_bill_details",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1783891000000,
+      "tag": "0023_schema_sync",
       "breakpoints": true
     }
   ]

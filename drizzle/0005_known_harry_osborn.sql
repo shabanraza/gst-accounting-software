@@ -1,3 +1,5 @@
+-- 0004 already creates some of these on a new database, so those statements
+-- are written to be skipped when the object exists.
 CREATE TABLE "account" (
 	"id" text PRIMARY KEY NOT NULL,
 	"account_id" text NOT NULL,
@@ -28,7 +30,7 @@ CREATE TABLE "company_invitations" (
 	CONSTRAINT "company_invitations_token_unique" UNIQUE("token")
 );
 --> statement-breakpoint
-CREATE TABLE "purchase_grn_lines" (
+CREATE TABLE IF NOT EXISTS "purchase_grn_lines" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"purchase_grn_id" uuid NOT NULL,
 	"purchase_order_line_id" uuid,
@@ -40,7 +42,7 @@ CREATE TABLE "purchase_grn_lines" (
 	"gst_rate" text NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "purchase_grns" (
+CREATE TABLE IF NOT EXISTS "purchase_grns" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"company_id" uuid NOT NULL,
 	"purchase_order_id" uuid,
@@ -87,18 +89,39 @@ CREATE TABLE "verification" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-ALTER TABLE "parties" ADD COLUMN "price_list_id" uuid;--> statement-breakpoint
-ALTER TABLE "sales_documents" ADD COLUMN "status" text DEFAULT 'open' NOT NULL;--> statement-breakpoint
-ALTER TABLE "sales_documents" ADD COLUMN "converted_to_invoice_id" uuid;--> statement-breakpoint
+ALTER TABLE "parties" ADD COLUMN IF NOT EXISTS "price_list_id" uuid;--> statement-breakpoint
+ALTER TABLE "sales_documents" ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'open' NOT NULL;--> statement-breakpoint
+ALTER TABLE "sales_documents" ADD COLUMN IF NOT EXISTS "converted_to_invoice_id" uuid;--> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "company_invitations" ADD CONSTRAINT "company_invitations_company_id_companies_id_fk" FOREIGN KEY ("company_id") REFERENCES "public"."companies"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "purchase_grn_lines" ADD CONSTRAINT "purchase_grn_lines_purchase_grn_id_purchase_grns_id_fk" FOREIGN KEY ("purchase_grn_id") REFERENCES "public"."purchase_grns"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "purchase_grn_lines" ADD CONSTRAINT "purchase_grn_lines_purchase_order_line_id_purchase_order_lines_id_fk" FOREIGN KEY ("purchase_order_line_id") REFERENCES "public"."purchase_order_lines"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "purchase_grn_lines" ADD CONSTRAINT "purchase_grn_lines_item_id_items_id_fk" FOREIGN KEY ("item_id") REFERENCES "public"."items"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "purchase_grns" ADD CONSTRAINT "purchase_grns_company_id_companies_id_fk" FOREIGN KEY ("company_id") REFERENCES "public"."companies"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "purchase_grns" ADD CONSTRAINT "purchase_grns_purchase_order_id_purchase_orders_id_fk" FOREIGN KEY ("purchase_order_id") REFERENCES "public"."purchase_orders"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "purchase_grns" ADD CONSTRAINT "purchase_grns_supplier_id_parties_id_fk" FOREIGN KEY ("supplier_id") REFERENCES "public"."parties"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "purchase_grn_lines" ADD CONSTRAINT "purchase_grn_lines_purchase_grn_id_purchase_grns_id_fk" FOREIGN KEY ("purchase_grn_id") REFERENCES "public"."purchase_grns"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "purchase_grn_lines" ADD CONSTRAINT "purchase_grn_lines_purchase_order_line_id_purchase_order_lines_id_fk" FOREIGN KEY ("purchase_order_line_id") REFERENCES "public"."purchase_order_lines"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "purchase_grn_lines" ADD CONSTRAINT "purchase_grn_lines_item_id_items_id_fk" FOREIGN KEY ("item_id") REFERENCES "public"."items"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "purchase_grns" ADD CONSTRAINT "purchase_grns_company_id_companies_id_fk" FOREIGN KEY ("company_id") REFERENCES "public"."companies"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "purchase_grns" ADD CONSTRAINT "purchase_grns_purchase_order_id_purchase_orders_id_fk" FOREIGN KEY ("purchase_order_id") REFERENCES "public"."purchase_orders"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "purchase_grns" ADD CONSTRAINT "purchase_grns_supplier_id_parties_id_fk" FOREIGN KEY ("supplier_id") REFERENCES "public"."parties"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "company_invitations_company_email_idx" ON "company_invitations" USING btree ("company_id","email");--> statement-breakpoint
-CREATE UNIQUE INDEX "purchase_grns_company_number_idx" ON "purchase_grns" USING btree ("company_id","grn_number");--> statement-breakpoint
-ALTER TABLE "parties" ADD CONSTRAINT "parties_price_list_id_price_lists_id_fk" FOREIGN KEY ("price_list_id") REFERENCES "public"."price_lists"("id") ON DELETE no action ON UPDATE no action;
+CREATE UNIQUE INDEX IF NOT EXISTS "purchase_grns_company_number_idx" ON "purchase_grns" USING btree ("company_id","grn_number");--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "parties" ADD CONSTRAINT "parties_price_list_id_price_lists_id_fk" FOREIGN KEY ("price_list_id") REFERENCES "public"."price_lists"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
