@@ -2,6 +2,8 @@
 import { config } from 'dotenv'
 import pg from 'pg'
 
+import { assertSchemaChangeAllowed } from './db-guard.ts'
+
 config({ path: ['.env.local', '.env'] })
 
 const connectionString = process.env.DATABASE_URL
@@ -9,6 +11,7 @@ if (!connectionString) {
   console.error('DATABASE_URL is not set. Load .env.local first.')
   process.exit(1)
 }
+assertSchemaChangeAllowed()
 
 const statements = [
   `ALTER TABLE sales_invoices ADD COLUMN IF NOT EXISTS due_date text NOT NULL DEFAULT ''`,
