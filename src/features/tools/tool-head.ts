@@ -81,12 +81,12 @@ export function chapterPageCopy(chapter: HsnChapter) {
   return {
     path: `${toolPath('hsn-code-finder')}/${chapter.slug}`,
     title: isServices
-      ? `SAC Codes List — Service Accounting Codes for GST (Chapter 99) | ${SITE.name}`
+      ? `SAC Code List — All Service Accounting Codes for GST (Chapter 99) | ${SITE.name}`
       : `HSN Code Chapter ${chapter.code}: ${chapter.title} | ${SITE.name}`,
     description: isServices
-      ? 'All SAC service headings used under GST, from 9954 construction to 9999, with how the six-digit SAC codes are structured.'
-      : `HSN chapter ${chapter.code} covers ${chapter.title.toLowerCase()}. See the section it belongs to, how its 4-, 6-, and 8-digit codes are built, and where to check the GST rate.`,
-    headline: isServices ? 'SAC codes for services (chapter 99)' : `HSN chapter ${chapter.code}: ${chapter.title}`,
+      ? 'Full SAC code list for GST: every 4-digit service heading and 6-digit SAC code from 9954 to 9999, with official descriptions from the GST portal.'
+      : `All HSN codes in chapter ${chapter.code} (${chapter.title.toLowerCase()}): 4-digit headings, 6- and 8-digit codes with official descriptions from the GST portal.`,
+    headline: isServices ? 'SAC code list for services (chapter 99)' : `HSN chapter ${chapter.code}: ${chapter.title}`,
     intro: isServices
       ? 'Services under GST use SAC codes that start with 99. The four-digit heading names the service group, and the six-digit code names the exact service.'
       : `Goods in chapter ${chapter.code} have HSN codes starting with ${chapter.code}. Use the four-digit heading on invoices if your turnover is up to ₹5 crore, and six digits above that.`,

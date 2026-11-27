@@ -11,15 +11,18 @@ import { GstCalculator } from '#/features/tools/components/gst-calculator.tsx'
 import { GstDueDates } from '#/features/tools/components/gst-due-dates.tsx'
 import { GstinValidator } from '#/features/tools/components/gstin-validator.tsx'
 import {
+  HsnChapterCodes,
   HsnChapterDetail,
   HsnChapterIndex,
   HsnFinder,
+  HsnSectionSiblings,
 } from '#/features/tools/components/hsn-finder.tsx'
 import { InvoiceGenerator } from '#/features/tools/components/invoice-generator.tsx'
 import { PaymentReminder } from '#/features/tools/components/payment-reminder.tsx'
 import { ToolCard, ToolPage } from '#/features/tools/components/tool-page.tsx'
 import { GST_RATE_PAGES } from '#/features/tools/gst-calculator-service.ts'
 import type { GstRatePage } from '#/features/tools/gst-calculator-service.ts'
+import type { HsnCodeRow } from '#/features/tools/hsn-codes.ts'
 import type { HsnChapter } from '#/features/tools/hsn-service.ts'
 import { chapterPageCopy, ratePageCopy } from '#/features/tools/tool-head.ts'
 import { TOOLS_HUB, TOOL_SLUGS } from '#/features/tools/tools-content.ts'
@@ -104,8 +107,9 @@ export function HsnFinderPage() {
   )
 }
 
-export function HsnChapterPage({ chapter }: { chapter: HsnChapter }) {
+export function HsnChapterPage({ chapter, rows }: { chapter: HsnChapter; rows: ReadonlyArray<HsnCodeRow> }) {
   const copy = chapterPageCopy(chapter)
+  const codeCount = rows.filter(([code]) => code.length > 2).length
   return (
     <ToolPage
       extraCrumb={`Chapter ${chapter.code}`}
@@ -114,8 +118,10 @@ export function HsnChapterPage({ chapter }: { chapter: HsnChapter }) {
       slug="hsn-code-finder"
     >
       <div className="flex flex-col gap-6">
-        <HsnChapterDetail chapter={chapter} />
+        <HsnChapterDetail chapter={chapter} codeCount={codeCount} />
         <HsnFinder />
+        <HsnChapterCodes chapter={chapter} rows={rows} />
+        <HsnSectionSiblings chapter={chapter} />
       </div>
     </ToolPage>
   )

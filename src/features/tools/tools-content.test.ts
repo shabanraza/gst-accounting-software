@@ -18,9 +18,15 @@ describe('HSN finder search snippet', () => {
     expect(tool.seoDescription).toContain('no signup')
   })
 
-  test('promises only what the finder returns, a chapter or SAC heading', () => {
-    expect(tool.seoDescription).toContain('HSN chapter')
-    expect(tool.seoDescription).toContain('SAC heading')
-    expect(tool.seoDescription).toContain('4 or 6')
+  test('promises what the finder returns: codes and descriptions, not rates', () => {
+    expect(tool.seoDescription).toContain('8-digit HSN')
+    expect(tool.seoDescription).toContain('SAC codes')
+    expect(tool.seoDescription).toContain('descriptions')
+    expect(tool.seoDescription).not.toMatch(/\brates? (included|shown)\b/i)
+  })
+
+  test('credits the GST portal master it searches', () => {
+    const text = tool.sections.flatMap((section) => section.paragraphs).join(' ')
+    expect(text).toContain('Source: GST portal HSN/SAC master, 26 November 2026')
   })
 })

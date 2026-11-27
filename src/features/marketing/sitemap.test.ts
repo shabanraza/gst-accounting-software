@@ -18,6 +18,11 @@ describe('sitemap', () => {
     expect(paths.some((entry) => entry.startsWith('/app'))).toBe(false)
   })
 
+  test('HSN chapter pages, which list every code, rank with the other tool pages', () => {
+    const chapter = listSitemapEntries().find((entry) => entry.path === '/tools/hsn-code-finder/chapter-99')
+    expect(chapter).toEqual({ path: '/tools/hsn-code-finder/chapter-99', changefreq: 'monthly', priority: '0.6' })
+  })
+
   test('public/sitemap.xml is up to date (run bun scripts/generate-sitemap.ts)', () => {
     const file = readFileSync(
       path.resolve(import.meta.dirname, '../../../public/sitemap.xml'),

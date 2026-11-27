@@ -13,6 +13,10 @@ built. Never include customer names, balances or other real data.
 
 ## [Unreleased]
 
+### Changed
+
+- The free HSN & SAC code finder at hisaabkro.in/tools/hsn-code-finder now finds the actual code, not just the chapter: search a product such as "smartphone" or a code such as "8517" to get 4-, 6- and 8-digit HSN codes and SAC codes with their official descriptions from the GST portal's HSN/SAC master. Every chapter page lists all of its codes, and chapter 99 lists every SAC code. GST rates are still not shown; check them on CBIC.
+
 ### Fixed
 
 - A wrong or old link now shows a "Page not found" page with a way back to your dashboard or the home page, instead of two bare words.
